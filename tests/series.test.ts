@@ -198,7 +198,7 @@ describe("الحفظ على القرص: «عام» للقائم، وختم ال�
   beforeAll(() => {
     for (const k of ENV) saved[k] = process.env[k];
     tmp = mkdtempSync(path.join(os.tmpdir(), "bal-series-"));
-    for (const ch of CHANNELS) cpSync(path.join("channels", ch), path.join(tmp, ch), { recursive: true, filter: (s) => !/[\\/]episodes([\\/]|$)/.test(s) });
+    for (const ch of CHANNELS) cpSync(path.join("channels", ch), path.join(tmp, ch), { recursive: true, filter: (s) => !/[\\/](episodes|series)([\\/]|$)/.test(s) });
     // one existing episode with no series file: it is in «عام»
     const ep = path.join(tmp, "balislam", "episodes", "001-old");
     mkdirSync(ep, { recursive: true });

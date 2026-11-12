@@ -8,6 +8,7 @@ import { contentSyncEnabled, createContentSync, setSharedContentSync } from "./c
 import { restoreUntrackedPreviews } from "./untrackedPreviews.ts";
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
 import { MAX_BODY_BYTES, readBody } from "./body.ts";
+import { writeFileAtomic, writeJsonAtomic } from "../../src/io/atomicJson.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
 import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
 
@@ -761,7 +762,7 @@ export const balApi = (): Plugin => ({
           if (parts[2] === "script" && req.method === "PUT") {
             const { text } = await readBody(req);
             if (typeof text !== "string" || !text.trim()) return send(res, 400, { error: "نص السكريبت فارغ؛ لم يُحفظ." });
-            await writeFile(scriptPath, text, "utf8");
+            await writeFileAtomic(scriptPath, text);
             const check = await checkText(text, scriptPath);
             // الخطة المصمَّمة لا تُعاد كتابتها من السكريبت أبدًا (حادثة دفاتر الزمن 001)؛ تُرجع قائمة الاختلاف فقط
             const after = await io.planAfterScriptSave(ep);
@@ -784,11 +785,13 @@ export const balApi = (): Plugin => ({
             }
           }
           if (parts[2] === "plan" && req.method === "PUT") {
-            const { plan, overwriteDesigned, confirmEpisode } = await readBody(req);
+            const { plan, overwriteDesigned, confirmEpisode, expectedRevision } = await readBody(req);
             if (!plan || !Array.isArray(plan.chapters) || plan.chapters.some((c: any) => !Array.isArray(c?.scenes))) return send(res, 400, { error: "الخطة غير مكتملة؛ لم تُحفظ." });
+            if (typeof expectedRevision !== "string" || !/^[a-f0-9]{64}$/.test(expectedRevision))
+              return send(res, 409, { error: "نسخة الصفحة قديمة أو لم تُحمّل الخطة كاملة؛ احتفظ بتعديلك ثم أعد تحميل الصفحة قبل الحفظ.", code: "PLAN_REVISION_REQUIRED" });
             // M4: designed-plan guard (D46) and a backup before the overwrite (src/plan/io.ts savePlanFromStudio)
             try {
-              const r = await io.savePlanFromStudio(ep, plan, { overwriteDesigned, confirmEpisode });
+              const r = await io.savePlanFromStudio(ep, plan, { overwriteDesigned, confirmEpisode, expectedRevision });
               return send(res, 200, { ok: true, ...r });
             } catch (error) {
               if ((error as { code?: string })?.code === "designed-plan-replace")
@@ -818,7 +821,7 @@ export const balApi = (): Plugin => ({
             if (refused) return send(res, 403, { error: refused });
             const { identity } = await readBody(req);
             if (!identity?.themes || !identity?.palettes || !identity?.typography || !identity?.motion) return send(res, 400, { error: "ملف الهوية ناقص" });
-            await writeFile(identityFile, JSON.stringify(identity, null, 2) + "\n", "utf8");
+            await writeJsonAtomic(identityFile, identity);
             return send(res, 200, { ok: true });
           }
           return send(res, 200, {
@@ -855,8 +858,8 @@ export const balApi = (): Plugin => ({
       } catch (err) {
         if (err instanceof HttpError) return send(res, err.status, { error: err.message });
         // Known, owner-facing refusals (QA H4/M3): a busy lock or episode, or a state file being written / damaged.
-        if (["LOCK_BUSY", "BAD_JSON_FILE", "EPISODE_BUSY"].includes(String((err as { code?: unknown })?.code)))
-          return send(res, 409, { error: (err as Error).message });
+        if (["LOCK_BUSY", "BAD_JSON_FILE", "EPISODE_BUSY", "PLAN_CONFLICT"].includes(String((err as { code?: unknown })?.code)))
+          return send(res, 409, { error: (err as Error).message, code: String((err as { code?: unknown }).code) });
         if (isMissingFileError(err)) return send(res, 404, { error: /^ENOENT\b/.test((err as Error).message) ? "الملف المطلوب غير موجود." : (err as Error).message });
         console.error("[studio] request failed:", url.pathname, err);
         return send(res, 500, { error: (err as Error).message });

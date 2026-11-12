@@ -683,7 +683,12 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
    * in one quiet row: play, tone, pause, «ولّد الجملة», «عدّل النص», «⋯». No filled button here.
    */
   /** D97: «قديم — سُجّل على نص سابق» (the old take stays playable; «ولّد» makes the current one), and a take kept under its own tone. */
-  const takeNote = (r: SentenceRow) => r.status === "old" ? (
+  /** D110: the scene's audio clamped this sentence's word timing to its file (a bounded overshoot): listen to its end. */
+  const clampNote = (r: SentenceRow) => r.timingClamped ? (
+    <p className="sp-hint sv-clamp" role="status">التوقيت ضُبط قليلًا — استمع لآخر الجملة</p>
+  ) : null;
+  const takeNote = (r: SentenceRow) => <>{takeOnlyNote(r)}{clampNote(r)}</>;
+  const takeOnlyNote = (r: SentenceRow) => r.status === "old" ? (
     <p className="sv-old" role="status"><b>قديم — سُجّل على نص سابق.</b> {r.recordedOn ? <>سُجّل على: «{r.recordedOn}». </> : null}
       اسمعه بزر التشغيل؛ لا يدخل صوت المشهد حتى تولّد الجملة بنصها الحالي، ويبقى محفوظًا في التسجيلات السابقة.</p>
   ) : r.recordedTone && isTone(r.recordedTone) && r.recordedTone !== r.inheritedTone && !r.tone ? (

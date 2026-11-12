@@ -1,4 +1,9 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
+import { PlanSaveQueue } from "./planSaveQueue";
+import { PlanBackupRestore, PlanSaveRecovery, clearPlanBackup, readPlanBackup } from "./PlanSaveRecovery";
+import { withServerFields } from "./planMerge";
+import { PLAN_SERVER_FIELDS_EVENT, type PlanServerFieldsDetail } from "./planServerFields";
+import { browserPlanRevision } from "../../src/plan/revision";
 import { SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
 import "./studio-shell.css";
 import "./shell/shell.css";
@@ -13,7 +18,7 @@ import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedSte
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
-import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary, type SceneProductionRead } from "./api";
+import { api, isPlanConflict, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary, type SceneProductionRead } from "./api";
 import { scriptSaveMessage } from "./planGuard";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
@@ -160,6 +165,11 @@ export const App: React.FC = () => {
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
+  /** The last refused save was a revision conflict (409): the recovery offers the three-way merge (D110). */
+  const [planConflict, setPlanConflict] = useState(false);
+  /** D110: «ch/ep» whose browser copy (PlanSaveRecovery) is cleared when its edit is saved; re-read on each tick. */
+  const clearBackupOnSave = useRef<string | null>(null);
+  const [backupTick, setBackupTick] = useState(0);
   /** Counts successful plan saves: step ٢ reads the ledger again after each (dafatir M6). */
   const [planSaved, setPlanSaved] = useState(0);
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
@@ -175,7 +185,11 @@ export const App: React.FC = () => {
   const scriptRef = useRef<ScriptTabHandle>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** آخر خطة لم تُحفظ بعد (تنتظر مؤقت الحفظ التلقائي) */
-  const pendingPlan = useRef<{ ep: string; plan: Plan } | null>(null);
+  const planSaves = useRef<PlanSaveQueue<Plan> | null>(null);
+  if (!planSaves.current) planSaves.current = new PlanSaveQueue(async (item, expectedRevision) => {
+    const result = await api.savePlan(item.episode, item.value, item.channel, expectedRevision);
+    return result.planRevision;
+  });
   /** نص السكريبت غير المحفوظ (لا يُستبدل عند إعادة تحميل الحلقة) */
   const scriptDirtyRef = useRef(false);
 
@@ -244,28 +258,41 @@ export const App: React.FC = () => {
   const flushPlan = useCallback(async () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = null;
-    const p = pendingPlan.current;
-    pendingPlan.current = null;
-    if (!p) return;
+    if (!planSaves.current!.hasPending) return;
     setPlanState("saving");
+    const item = planSaves.current!.snapshot;
+    const key = item ? item.channel + "/" + item.episode : null;
     try {
-      await api.savePlan(p.ep, p.plan);
+      await planSaves.current!.flush();
       setPlanState("saved");
+      setPlanConflict(false);
       setPlanSaved((n) => n + 1);
+      // D110: the browser copy of a refused or restored edit goes once that edit is saved
+      if (key && clearBackupOnSave.current === key) {
+        clearPlanBackup(item!.channel, item!.episode);
+        clearBackupOnSave.current = null;
+        setBackupTick((n) => n + 1);
+      }
     } catch (e) {
+      if (key) clearBackupOnSave.current = key;
+      setPlanConflict(isPlanConflict(e));
       setPlanState("error");
       say((e as Error).message, true);
+      throw e;
     }
   }, []);
+  const flushBeforeNavigation = useCallback(() => flushPlan().then(() => true, () => false), [flushPlan]);
 
   const loadEpisode = useCallback(async (id: string, opts: { keepScript?: boolean } = {}) => {
     // الحلقة تخص القناة الحالية لحظة الطلب؛ إن تبدّلت القناة أثناء الحفظ يُلغى التحميل
     const ch = channelRef.current;
-    await flushPlan();
+    if (!await flushBeforeNavigation()) return;
     if (channelRef.current !== ch || episodeRef.current !== id) return;
     api.episode(id, ch).then((d) => {
       if (channelRef.current !== ch || episodeRef.current !== id) return;
+      if (planSaves.current!.hasPending) return;
       setPlan(d.plan);
+      planSaves.current!.seed(ch, id, browserPlanRevision(d.plan), d.plan);
       setChannel(d.channel);
       if (!(opts.keepScript && scriptDirtyRef.current)) {
         setScript(d.script);
@@ -277,7 +304,7 @@ export const App: React.FC = () => {
       setPlanState("saved");
 
     }).catch((e) => say(e.message, true));
-  }, [flushPlan, channelId]);
+  }, [flushBeforeNavigation, channelId]);
   // تُحمَّل الحلقة بعد وصول قائمة حلقات القناة الحالية فقط، فلا تُطلب حلقة القناة السابقة بعد التبديل
   useEffect(() => {
     if (!epId || episodesOf.current !== channelId || !episodes?.some((e) => e.id === epId)) return;
@@ -305,18 +332,36 @@ export const App: React.FC = () => {
     try { window.history.replaceState(null, "", `${window.location.pathname}${next}`); } catch { /* not critical */ }
   }, [channelId, channels, epId, tab, seriesId, shownScene]);
 
+  // D110: moving the episode (series stamp) or saving its shorts writes plan.json on the server. Both fields are
+  // outside the plan revision, so a pending edit stays valid; the page takes the new fields and, when nothing
+  // is pending, the server's current revision, so the next edit is never refused as stale.
+  useEffect(() => {
+    const h = (e: Event) => {
+      const detail = (e as CustomEvent<PlanServerFieldsDetail>).detail;
+      const ch = channelRef.current, id = episodeRef.current;
+      if (!id || !detail?.episodes?.includes(id) || (detail.channel && detail.channel !== ch)) return;
+      api.episode(id, ch).then((d) => {
+        if (channelRef.current !== ch || episodeRef.current !== id) return;
+        setPlan((prev) => (prev ? withServerFields(prev, d.plan) : d.plan));
+        if (!planSaves.current!.hasPending) planSaves.current!.seed(ch, id, browserPlanRevision(d.plan), d.plan);
+      }).catch(() => {});
+    };
+    window.addEventListener(PLAN_SERVER_FIELDS_EVENT, h);
+    return () => window.removeEventListener(PLAN_SERVER_FIELDS_EVENT, h);
+  }, []);
+
   /** حفظ تلقائي للخطة بعد توقف التعديل */
   const onPlanChange = useCallback((p: Plan) => {
     setPlan(p);
     setPlanState("dirty");
-    pendingPlan.current = { ep: epId, plan: p };
+    planSaves.current!.enqueue(channelRef.current, epId, p);
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => void flushPlan(), 700);
+    saveTimer.current = setTimeout(() => { void flushPlan().catch(() => {}); }, 700);
   }, [epId, flushPlan]);
 
   const saveScript = async () => {
     // تعديلات المشاهد المعلّقة تُحفظ أولًا، ثم يعيد الخادم بناء الخطة مع إبقائها
-    await flushPlan();
+    if (!await flushBeforeNavigation()) return;
     let r;
     try {
       r = await api.saveScript(epId, script);
@@ -327,6 +372,7 @@ export const App: React.FC = () => {
     setSavedScript(script);
     setCheck(r.check);
     setPlan(r.plan);
+    planSaves.current!.seed(channelRef.current, epId, browserPlanRevision(r.plan), r.plan);
     setPlanState("saved");
     // M2: step ١'s approval state (script fingerprint, blockers) is re-read at once, so «اعتمد التجهيز»
     // never sends the fingerprint of the script before this save.
@@ -343,7 +389,7 @@ export const App: React.FC = () => {
   // تنبيه قبل إغلاق الصفحة إن بقي شيء غير محفوظ
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
-      if (scriptDirtyRef.current || researchDirty || pendingPlan.current) {
+      if (scriptDirtyRef.current || researchDirty || planSaves.current!.hasPending) {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
         e.returnValue = "";
@@ -369,7 +415,8 @@ export const App: React.FC = () => {
     if (r.scene && want.ep === epId && r.channel === (channelId || channels[0]?.id)) setViewSceneId(r.scene);
     if (want.ep === epId && want.tab === tab && r.channel === (channelId || channels[0]?.id)) return;
     if (!confirmLeaveScript()) return;
-    void flushPlan().then(() => {
+    void flushBeforeNavigation().then((saved) => {
+      if (!saved) return;
       if (r.channel !== channelId) {
         pendingOpen.current = r.episode ? { ep: r.episode, tab: want.tab } : null;
         if (!r.episode) setTab(want.tab);
@@ -388,7 +435,7 @@ export const App: React.FC = () => {
 
   const navigateManage = async (next: Tab) => {
     if (!next || !confirmLeaveScript()) return;
-    await flushPlan();
+    if (!await flushBeforeNavigation()) return;
     if (next === "settings" && EPISODE_TABS.includes(tab)) setSettingsReturn(tab);
     setTab(next);
   };
@@ -451,7 +498,7 @@ export const App: React.FC = () => {
   const bandSeries = bandSeriesId ? seriesData?.series.find((x) => x.id === bandSeriesId) : undefined;
   const seriesNames = seriesData && seriesData.series.length > 1 ? Object.fromEntries(seriesData.series.map((x) => [x.id, x.name])) : null;
   const screenLabel = inEpisode && here >= 0 ? `الخطوة ${STEPS[here]!.n} «${STEPS[here]!.title}»` : tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "هذه الشاشة";
-  const openSeries = (id: string) => { if (!confirmLeaveScript()) return; void flushPlan().then(() => { setSeriesId(id); setTab("series"); }); };
+  const openSeries = (id: string) => { if (!confirmLeaveScript()) return; void flushBeforeNavigation().then((saved) => { if (!saved) return; setSeriesId(id); setTab("series"); }); };
 
   return (
     <IdentityProvider identity={ident.draft}>
@@ -461,7 +508,7 @@ export const App: React.FC = () => {
         channels={channels}
         channelId={cid}
         channelName={channelName}
-        onChannel={async (next) => { if (next === channelId) return; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }}
+        onChannel={async (next) => { if (next === channelId) return; if (!confirmLeaveScript()) return; if (!await flushBeforeNavigation()) return; setChannelId(next); }}
         onHome={() => void navigateManage("home")}
         episode={inEpisode ? { id: epId, title: epTitle } : null}
         steps={inEpisode ? { done, here, sub: stepSub } : null}
@@ -479,7 +526,7 @@ export const App: React.FC = () => {
         <TopBar
           episodes={inEpisode ? episodes : null}
           episodeId={epId}
-          onEpisode={async (id) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(id); }}
+          onEpisode={async (id) => { if (!confirmLeaveScript()) return; if (!await flushBeforeNavigation()) return; setEpId(id); }}
           seriesNames={seriesNames}
           title="الاستوديو"
           views={views}
@@ -487,7 +534,43 @@ export const App: React.FC = () => {
           scheme={scheme}
           onToggleScheme={toggleScheme}
         />
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
+        {planState === "error" && planSaves.current!.hasPending ? (
+          <PlanSaveRecovery
+            queue={planSaves.current!}
+            conflict={planConflict}
+            retry={flushPlan}
+            latest={async (ch, id) => (await api.episode(id, ch)).plan}
+            revisionOf={browserPlanRevision}
+            onPlan={(p) => { setPlan(p); setPlanState("dirty"); }}
+            onLeft={(ch, id) => {
+              clearBackupOnSave.current = null; // the way out keeps the copy: «استعد تعديلي المحفوظ» offers it back
+              setBackupTick((n) => n + 1);
+              setPlanConflict(false); setPlanState("saved");
+              say("فُتحت النسخة المحفوظة؛ تعديلك في الملف المنزَّل وفي هذا المتصفح.");
+              if (ch === channelRef.current && id === episodeRef.current) void loadEpisode(id);
+            }}
+          />
+        ) : null}
+        {(() => {
+          const backup = inEpisode && plan && planState === "saved" && !planSaves.current!.hasPending ? readPlanBackup(channelRef.current, epId) : null;
+          void backupTick;
+          return backup ? (
+            <PlanBackupRestore
+              key={channelRef.current + "/" + epId + backup.at}
+              channel={channelRef.current} episode={epId} backup={backup}
+              latest={async () => (await api.episode(epId, channelRef.current)).plan}
+              apply={async (merged, theirs) => {
+                const ch = channelRef.current;
+                planSaves.current!.rebase(ch, epId, browserPlanRevision(theirs), theirs, merged);
+                clearBackupOnSave.current = ch + "/" + epId;
+                setPlan(merged); setPlanState("dirty");
+                await flushPlan();
+              }}
+              onDropped={() => setBackupTick((n) => n + 1)}
+            />
+          ) : null;
+        })()}
+        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty || planState !== "saved"} />
         {!EPISODE_TABS.includes(tab) && tab !== "home" && tab !== "series" ? (
           <div className="page-head"><h1>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</h1></div>
         ) : null}
@@ -535,19 +618,20 @@ export const App: React.FC = () => {
             onOpen={async (ch, id, t) => {
               if (ch === (channelId || channels[0]?.id)) {
                 if (id !== epId && !confirmLeaveScript()) return;
+                if (!await flushBeforeNavigation()) return;
                 setEpId(id);
                 setTab(t);
                 return;
               }
               if (!confirmLeaveScript()) return;
-              await flushPlan();
+              if (!await flushBeforeNavigation()) return;
               pendingOpen.current = { ep: id, tab: t };
               setChannelId(ch);
             }}
             onStartIdea={async (ch, idea, suggested) => {
               if (ch !== (channelId || channels[0]?.id)) {
                 if (!confirmLeaveScript()) return;
-                await flushPlan();
+                if (!await flushBeforeNavigation()) return;
                 setChannelId(ch);
               }
               setNewPrefill({ channel: ch, title: idea.title, domain: idea.domain, suggested, ideaId: idea.id });
@@ -558,7 +642,7 @@ export const App: React.FC = () => {
         ) : tab === "channels" ? (
           <ChannelsWorkspace channels={channels} activeId={channelId || channels[0]?.id || ""} onOpen={async (id, destination) => {
             if (!confirmLeaveScript()) return;
-            await flushPlan();
+            if (!await flushBeforeNavigation()) return;
             if (id !== channelId) setChannelId(id);
             setTab(destination);
           }} />
@@ -580,8 +664,9 @@ export const App: React.FC = () => {
               }).catch(() => {});
             }}
             onRestored={() => { api.episodes().then(setEpisodes).catch(() => {}); }}
-            onOpen={(id, t) => {
+            onOpen={async (id, t) => {
               if (id !== epId && !confirmLeaveScript()) return;
+              if (!await flushBeforeNavigation()) return;
               setEpId(id);
               setTab(t);
             }}
@@ -598,7 +683,7 @@ export const App: React.FC = () => {
               seriesId={seriesId}
               onBack={() => void navigateManage("home")}
               onOpenSeries={openSeries}
-              onOpenEpisode={(id, t) => { if (id !== epId && !confirmLeaveScript()) return; setEpId(id); setTab(t); }}
+              onOpenEpisode={async (id, t) => { if (id !== epId && !confirmLeaveScript()) return; if (!await flushBeforeNavigation()) return; setEpId(id); setTab(t); }}
               onNewEpisode={(sid) => { setNewSeriesFor(sid); setShowNew(true); }}
               onChanged={() => api.series().then(setSeriesData).catch(() => {})}
             />
@@ -758,7 +843,7 @@ export const App: React.FC = () => {
             onOpenSettings={openSettings}
             onPlanSave={async (p) => { onPlanChange(p); await flushPlan(); }}
             onPlanFlush={flushPlan}
-            onPlanReplaced={(p) => { setPlan(p); setPlanState("saved"); }}
+            onPlanReplaced={(p) => { setPlan(p); planSaves.current!.seed(channelId, epId, browserPlanRevision(p), p); setPlanState("saved"); }}
             livePreview={(id) => <SceneLivePreview sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onOpenScene={(id) => setRequestedSceneId(id)}
             onOpenStoryboard={() => setTab("storyboard")}
@@ -839,7 +924,7 @@ export const App: React.FC = () => {
         {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role={toast.err ? "alert" : "status"} title="انقر للإغلاق" onClick={() => setToast(null)}><OwnerText text={toast.msg} /></div> : null}
         {moveOpen && seriesData && epId ? (
           <MoveEpisodesDialog episodes={[epId]} current={epSeries || GENERAL_SLUG} data={seriesData} onClose={() => setMoveOpen(false)}
-            onPick={async (to) => { await flushPlan(); await epMover.move(to, [epId]); setMoveOpen(false); }} />
+            onPick={async (to) => { if (!await flushBeforeNavigation()) return; await epMover.move(to, [epId]); setMoveOpen(false); }} />
         ) : null}
         {epMover.node}
       </div>

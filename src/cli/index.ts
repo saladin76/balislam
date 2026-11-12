@@ -160,6 +160,22 @@ program
   });
 
 program
+  .command("voice-timing")
+  .description("قياس فقط (D110): هل يتجاوز توقيت كلمات التسجيلات المحلية طرفي ملفها بعد فكّه؟ يقرأ الجمل وأجزاء دفاتر الزمن ويصنّفها بقاعدة التركيب (سليم / حُصر بتنبيه / تالف). لا توليد ولا كتابة ولا حذف")
+  .argument("[episode]", "رقم الحلقة (الافتراضي: كل الحلقات)")
+  .option("--all-channels", "كل القنوات (الافتراضي: القناة الحالية أو --channel)")
+  .option("--takes", "والتسجيلات السابقة المحفوظة (takes) أيضًا")
+  .option("--all", "اعرض كل ملف، لا ما يحتاج نظرًا وحده")
+  .option("--json", "إخراج JSON")
+  .action(async (episode: string | undefined, opts: { allChannels?: boolean; takes?: boolean; all?: boolean; json?: boolean }) => {
+    if (episode !== undefined && !/^\d{3}$/.test(episode)) throw new Error("رقم الحلقة ثلاثة أرقام، مثل 001.");
+    const { channelsDir, currentChannelId, listChannels } = await import("../channel");
+    const { checkVoiceTimings, formatTimingReport } = await import("../voice/timingCheck");
+    const r = await checkVoiceTimings({ channelsDir: channelsDir(), channels: opts.allChannels ? listChannels() : [currentChannelId()], episode, takes: opts.takes === true });
+    console.log(opts.json ? JSON.stringify(r, null, 2) : formatTimingReport(r, opts.all === true));
+  });
+
+program
   .command("voice-review")
   .description("عرض اعتماد مقاطع التعليق الصوتي، أو اعتماد مقطع واحد بعد سماعه فعليًا")
   .argument("<episode>", "رقم الحلقة")

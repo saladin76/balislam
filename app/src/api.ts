@@ -103,6 +103,13 @@ export const ownerCheck = (c: CheckResult, plan?: Plan | null): CheckResult => {
   const order = planOrder(plan);
   return { ...c, issues: c.issues.map((i) => ({ ...i, message: ownerText(i.message, order) })) };
 };
+/** A refused request: the owner-facing message, plus the HTTP status and the server's code (e.g. PLAN_CONFLICT). */
+export type ApiError = Error & { status?: number; code?: string };
+export const isPlanConflict = (e: unknown) => {
+  const x = e as ApiError | null;
+  return x?.status === 409 && (x.code === "PLAN_CONFLICT" || x.code === "PLAN_REVISION_REQUIRED");
+};
+
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
@@ -113,7 +120,13 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(ownerMessage((data as { error?: string }).error ?? `تعذّر الطلب (رمز ${res.status.toLocaleString("ar-EG", { useGrouping: false })}).`));
+  if (!res.ok) {
+    const code = (data as { code?: unknown }).code;
+    // status and the server's code ride on the owner-facing error (D110: a 409 offers the merge)
+    const tag = (e: Error): ApiError => Object.assign(e, { status: res.status, ...(typeof code === "string" ? { code } : {}) });
+    try { throw new Error(ownerMessage((data as { error?: string }).error ?? `تعذّر الطلب (رمز ${res.status.toLocaleString("ar-EG", { useGrouping: false })}).`)); }
+    catch (e) { throw tag(e as Error); }
+  }
   return data as T;
 };
 
@@ -378,7 +391,8 @@ export const api = {
   restoreTrash: (id: string) => call<{ ok: boolean; entry: TrashEntry }>("/api/trash/restore", { method: "POST", json: { id } }),
   episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel).then((d) => ({ ...d, check: ownerCheck(d.check, d.plan) })),
   saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }).then((d) => ({ ...d, check: ownerCheck(d.check, d.plan) })),
-  savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
+  savePlan: (id: string, plan: Plan, channel: string, expectedRevision: string) =>
+    call<{ ok: boolean; planRevision: string }>(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan, expectedRevision } }, channel),
   /** مقاطع الشورتس (D83): الاختيار المحفوظ والمقترح ومشاهد الحلقة بمددها؛ الحفظ يكتب plan.shorts وحدها */
   shorts: (id: string) => call<ShortsRead>(`/api/episodes/${id}/shorts`),
   saveShorts: (id: string, shorts: PlanShort[]) => call<ShortsRead & { warnings: string[] }>(`/api/episodes/${id}/shorts`, { method: "PUT", json: { shorts } }),

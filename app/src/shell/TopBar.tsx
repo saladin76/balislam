@@ -36,7 +36,7 @@ type Props = {
  */
 export const TopBar: React.FC<Props> = (p) => {
   const saveLabel = !p.save ? "" : p.save.state === "error" ? "تعذّر الحفظ" : p.save.state === "saving" ? "جارٍ الحفظ…"
-    : p.save.unsaved || p.save.state === "dirty" ? "تعديلات غير محفوظة" : "محفوظ";
+    : p.save.unsaved || p.save.state === "dirty" ? "تعديلات غير محفوظة" : "محفوظ على جهازك";
   return (
     <header className="ms-hdr">
       <div className="ms-who">
@@ -68,8 +68,8 @@ export const TopBar: React.FC<Props> = (p) => {
       ) : <span />}
       <div className="ms-me">
         <NotesBadge />
-        <SyncBadge hasUnsaved={!!p.save && (p.save.unsaved || p.save.state === "dirty" || p.save.state === "saving")} />
-        {saveLabel ? <span className={`ms-save${p.save!.state === "error" ? " is-err" : saveLabel !== "محفوظ" ? " is-dirty" : ""}`} role="status">{saveLabel}</span> : null}
+        <SyncBadge hasUnsaved={!!p.save && (p.save.unsaved || p.save.state !== "saved")} />
+        {saveLabel ? <span className={`ms-save${p.save!.state === "error" ? " is-err" : saveLabel !== "محفوظ على جهازك" ? " is-dirty" : ""}`} role="status">{saveLabel}</span> : null}
         <button type="button" className="ms-ibtn" onClick={p.onToggleScheme} aria-pressed={p.scheme === "dark"}
           aria-label={p.scheme === "dark" ? "الوضع النهاري" : "الوضع الليلي"} title={p.scheme === "dark" ? "الوضع النهاري" : "الوضع الليلي"}>
           <Icon name={p.scheme === "dark" ? "sun" : "moon"} />

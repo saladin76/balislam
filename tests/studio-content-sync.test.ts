@@ -1,5 +1,5 @@
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
-import { execFileSync, spawn } from "node:child_process";
+import { execFileSync, spawn, spawnSync } from "node:child_process";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
@@ -71,8 +71,14 @@ describe("D101: تصنيف ملفات الاستوديو", () => {
       expect(isOwnerContentPath(f), f).toBe(true);
     for (const f of [LEDGER, ".env", "channels/x/episodes/001-x/storyboard.json", "channels/x/episodes/001-x/notes/inbox.json",
       "channels/x/episodes/001-x/notes/resolved.json", "channels/x/episodes/001-x/voice/index.json", "channels/x/episodes/001-x/previews/episode.mp4",
-      "channels/x/episodes/001-x/script-approved.v1.json", "src/plan/validate.ts", "package-lock.json", "app/server/api.ts", "../etc/passwd"])
+      "channels/x/episodes/001-x/script-approved.v1.json", "src/plan/validate.ts", "package-lock.json", "app/server/api.ts", "../etc/passwd",
+      // D110: the plan write lock and the rolling backup are local to the computer
+      "channels/x/episodes/001-x/plan.json.write.lock", "channels/x/episodes/001-x/plan.backup-last.json"])
       expect(isOwnerContentPath(f), f).toBe(false);
+  });
+  it("D110: قفل كتابة الخطة في .gitignore فلا يظهر ملفًا جديدًا ولا يُرفع", () => {
+    const ignored = spawnSync("git", ["check-ignore", "-q", "--no-index", "channels/balislam/episodes/001-x/plan.json.write.lock"], { cwd: path.resolve(import.meta.dirname, "..") });
+    expect(ignored.status).toBe(0);
   });
   it("رسالة الحفظ عربية وتسمي القناة والحلقة وما تغيّر", () => {
     const m = commitMessage([PLAN, SERIES]);

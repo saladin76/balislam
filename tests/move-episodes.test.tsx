@@ -1,3 +1,4 @@
+import { browserPlanRevision } from "../src/plan/revision";
 /**
  * Moving existing episodes into series and categories (owner request 11 Nov, D77): the row's visible action,
  * the selection dock, the dialog's tree (swatches, current marked, search), drag-and-drop logic, the bulk
@@ -251,7 +252,7 @@ describe("POST /api/series/move-episodes", () => {
     const stale = planOf("983-move-c");
     await call("POST", "series/move-episodes", { to: "hajj", episodes: ["983"] });
     expect(planOf("983-move-c").series.number).toBe(1);
-    const put = await call("PUT", "episodes/983/plan", { plan: stale });
+    const put = await call("PUT", "episodes/983/plan", { plan: stale, expectedRevision: await browserPlanRevision((await call("GET", "episodes/983")).body.plan) });
     expect(put.status).toBe(200);
     expect(planOf("983-move-c").series).toMatchObject({ number: 1 });
     expect(linkOf("983-move-c").series).toBe("hajj");

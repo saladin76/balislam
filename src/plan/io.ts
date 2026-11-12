@@ -1,6 +1,9 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { copyFile, readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { withPlanWrite } from "./planWriteLock";
+import { planRevisionSource, SERVER_OWNED_PLAN_FIELDS } from "./revision";
 import { readJsonFile, writeJsonAtomic } from "../io/atomicJson";
 import { parseScript } from "../script/parse";
 import { resolveScriptPath } from "../script/episodes";
@@ -21,7 +24,15 @@ export const quranPathFor = (scriptPath: string) => path.join(path.dirname(scrip
 export const readJson = <T>(file: string): Promise<T | null> => readJsonFile<T>(file);
 
 /** يكتب الخطة بلا نصوص الآيات، كتابة ذرية (ملف مؤقت ثم fsync ثم إعادة تسمية). */
-export const writePlanFile = (file: string, plan: Plan) => writeJsonAtomic(file, stripQuran(plan));
+const writePlanUnlocked = (file: string, plan: Plan) => writeJsonAtomic(file, stripQuran(plan));
+export const writePlanFile = (file: string, plan: Plan) => withPlanWrite(file, () => writePlanUnlocked(file, plan));
+export const planRevision = (plan: Plan): string => createHash("sha256").update(planRevisionSource(plan)).digest("hex");
+
+export class PlanConflictError extends Error {
+  readonly code = "PLAN_CONFLICT";
+  readonly status = 409;
+  constructor() { super("تغيّرت الخطة في نافذة أخرى أو بعملية أخرى؛ لم نكتب فوقها. تعديلك باقٍ هنا: «حمّل النسخة الأحدث وأعد تطبيق تعديلي» يدمجه فوقها."); }
+}
 
 /** يقرأ الخطة ويدمج نصوص الآيات المخزنة على الجهاز. */
 export const readPlanFile = async (scriptPath: string): Promise<Plan | null> => {
@@ -52,34 +63,44 @@ export const lastPlanBackupFor = (scriptPath: string) => path.join(path.dirname(
  * with the episode number (`overwriteDesigned: true, confirmEpisode: "<n>"`); then a timestamped backup is
  * written first. Every save also writes the rolling backup `plan.backup-last.json` before overwriting.
  */
-export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overwriteDesigned?: unknown; confirmEpisode?: unknown } = {}): Promise<{ backup?: string }> => {
+export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overwriteDesigned?: unknown; confirmEpisode?: unknown; expectedRevision?: string } = {}): Promise<{ backup?: string; planRevision: string }> => {
   const scriptPath = await resolveScriptPath(episode);
   const file = planPathFor(scriptPath);
-  const current = await readJson<Plan>(file);
-  const loss = designedPlanLoss(current, plan);
-  let backup: string | undefined;
-  if (loss.scenes.length || loss.flag) {
-    const confirmed = o.overwriteDesigned === true && String(o.confirmEpisode ?? "").trim() === episode;
-    if (!confirmed) throw new DesignedPlanReplaceError(episode, loss.scenes);
-    backup = path.basename(await backupPlanFile(scriptPath));
-  }
-  if (current) await copyFile(file, lastPlanBackupFor(scriptPath));
-  // ختم السلسلة يملكه انتماء الحلقة (seriesStore.moveEpisode)، لا الصفحة: خطة قديمة في المتصفح لا تعيد ختمًا قبل النقل (D77)
-  const next: Plan = { ...plan, updatedAt: new Date().toISOString() };
-  if (current?.series) next.series = current.series;
-  else if (current) delete next.series;
-  await writePlanFile(file, next);
-  // QA balislam 2: a scene's narration changed in the scene editor is written into script.md too, when the change
-  // can be placed unambiguously (src/script/narrationSync.ts); otherwise the divergence check names the scene.
-  if (current) {
-    const was = new Map(current.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s.narration ?? ""]));
-    for (const s of next.chapters.flatMap((c) => c.scenes)) {
-      const before = was.get(s.id);
-      if (before !== undefined && s.template !== "verse-card" && (s.narration ?? "") !== before)
-        await syncScriptNarration(scriptPath, before, s.narration ?? "");
+  return withPlanWrite(file, async () => {
+    const current = await readJson<Plan>(file);
+    if (o.expectedRevision !== undefined) {
+      const hydrated = current ? await readPlanFile(scriptPath) : null;
+      if (!hydrated || o.expectedRevision !== planRevision(hydrated)) throw new PlanConflictError();
     }
-  }
-  return backup ? { backup } : {};
+    const loss = designedPlanLoss(current, plan);
+    let backup: string | undefined;
+    if (loss.scenes.length || loss.flag) {
+      const confirmed = o.overwriteDesigned === true && String(o.confirmEpisode ?? "").trim() === episode;
+      if (!confirmed) throw new DesignedPlanReplaceError(episode, loss.scenes);
+      backup = path.basename(await backupPlanFile(scriptPath));
+    }
+    if (current) await copyFile(file, lastPlanBackupFor(scriptPath));
+    // ختم السلسلة يملكه انتماء الحلقة (seriesStore.moveEpisode)، ومقاطع الشورتس يملكها «مقاطع الشورتس» (saveShortsSelection)،
+    // لا الصفحة: خطة قديمة في المتصفح لا تعيد ختمًا قبل النقل (D77) ولا اختيار شورتس قبل حفظه (D110). الحقلان خارج البصمة
+    // (SERVER_OWNED_PLAN_FIELDS في revision.ts)، فنقل الحلقة أو حفظ الشورتس لا يجعل تعديل الصفحة التالي «قديمًا».
+    const next: Plan = { ...plan, updatedAt: new Date().toISOString() };
+    for (const k of SERVER_OWNED_PLAN_FIELDS) {
+      if (current && current[k] !== undefined) (next as Record<string, unknown>)[k] = current[k];
+      else if (current) delete next[k];
+    }
+    await writePlanUnlocked(file, next);
+    // QA balislam 2: a scene's narration changed in the scene editor is written into script.md too, when the change
+    // can be placed unambiguously (src/script/narrationSync.ts); otherwise the divergence check names the scene.
+    if (current) {
+      const was = new Map(current.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s.narration ?? ""]));
+      for (const s of next.chapters.flatMap((c) => c.scenes)) {
+        const before = was.get(s.id);
+        if (before !== undefined && s.template !== "verse-card" && (s.narration ?? "") !== before)
+          await syncScriptNarration(scriptPath, before, s.narration ?? "");
+      }
+    }
+    return { ...(backup ? { backup } : {}), planRevision: planRevision((await readPlanFile(scriptPath))!) };
+  });
 };
 
 /**
@@ -90,15 +111,18 @@ export const savePlanFromStudio = async (episode: string, plan: Plan, o: { overw
 export const saveShortsSelection = async (episode: string, shorts: PlanShort[] | null): Promise<Plan> => {
   const scriptPath = await resolveScriptPath(episode);
   const file = planPathFor(scriptPath);
-  const current = await readJson<Plan>(file);
-  if (!current) throw new Error("لا خطة لهذه الحلقة بعد؛ لم تُحفظ المقاطع.");
-  await copyFile(file, lastPlanBackupFor(scriptPath));
-  // الحقل قبل المشاهد كما يكتبه المولِّد (src/plan/generate.ts)
-  const { chapters, shorts: _old, ...rest } = current;
-  const next: Plan = shorts === null ? { ...rest, chapters }
-    : { ...rest, shorts: shorts.map((x) => ({ from: x.from, to: x.to, ...(x.title ? { title: x.title } : {}) })), chapters };
-  await writePlanFile(file, next);
-  return next;
+  // تحت قفل الخطة نفسه مع حفظ الصفحة (D110): القراءة والكتابة معًا، فلا يضيع تعديل صفحة كُتب بينهما
+  return withPlanWrite(file, async () => {
+    const current = await readJson<Plan>(file);
+    if (!current) throw new Error("لا خطة لهذه الحلقة بعد؛ لم تُحفظ المقاطع.");
+    await copyFile(file, lastPlanBackupFor(scriptPath));
+    // الحقل قبل المشاهد كما يكتبه المولِّد (src/plan/generate.ts)
+    const { chapters, shorts: _old, ...rest } = current;
+    const next: Plan = shorts === null ? { ...rest, chapters }
+      : { ...rest, shorts: shorts.map((x) => ({ from: x.from, to: x.to, ...(x.title ? { title: x.title } : {}) })), chapters };
+    await writePlanUnlocked(file, next);
+    return next;
+  });
 };
 
 export type RegenerateOptions = {
