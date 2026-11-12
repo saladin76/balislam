@@ -1,0 +1,37 @@
+> أرشيف — السلوك الحالي في studio-map.md
+
+# Studio — mandatory production-entrypoint workflow integration inventory
+
+**Evidence date: 2026-11-07. Status: UNWIRED in the independent workflow branch.** This inventory was checked against existing source on `integration/studio-20261107-release-candidate` / workflow PR #77. It does **not** approve old episodes, deploy anything or activate the six-stage gates. Owner-authenticated workflow decisions and real server evidence must be connected by the central integration conversation; do not patch other branch owners here.
+
+## Actual unguarded entrypoints (fail production acceptance until integrated)
+
+| ID | Current entrypoint | Current bypass / risk | Required gate and integration test |
+| --- | --- | --- | --- |
+| W01 | `app/server/api.ts`: `POST /api/episodes/:episode/voice` | Calls `generateVoice` directly | `generate_voice` before paid ElevenLabs, under shared artifact lock. Force/partial generation must not override approvals. |
+| W02 | `src/cli/index.ts`: `bal voice` | Exposes `--ignore-review` / `--ignore-storyboard` | `generate_voice` for actual synthesis. The bypass flags must never bypass the new workflow; `--dry-run` may remain non-production. |
+| W03 | `src/package/make.ts`: `makeEpisode` | One-command pipeline calls `generateVoice` and `packageEpisode` | Apply `generate_voice` before synthesis, `final_motion_render` before final motion, `master_render` before creating a Master candidate; preview `--no-voice` must not be publishable. |
+| W04 | `app/server/api.ts`: `POST /api/render` → `app/server/extra.ts:startRenderJob` | Enqueues `bal render` without a workflow token | Before queue execution/recovery, re-evaluate the current server-derived gate, and guard actual render process. Preview can be labeled provisional; final/master must fail closed. |
+| W05 | `app/server/extra.ts`: `POST /api/jobs` for `make / package / shorts` | Spawns subprocesses via `startJob` | Guard actual subprocess entrypoint and before any side effects; never trust an enqueue-time check alone, especially during queue recovery. |
+| W06 | `src/cli/index.ts`: `bal render --master` | Calls `renderEpisode({ quality: "master" })` directly | `master_render` at final render entrypoint, regardless of CLI flags and how invoked. |
+| W07 | `src/cli/index.ts`: `bal package` and `bal make` | Exposes `--ignore-scene-review` and high-quality Master/shorts modes | All relevant voice/motion/Master gates, including chapter shorts; ignore flags cannot authorize output. |
+| W08 | `src/render/episode.ts`: `renderEpisode` + `src/package/package.ts:packageEpisode` | Direct exports can create final files without the new workflow | Guard actual final rendering implementation (not merely UI) with the shared lock and current artifact snapshot. Master render creates an unapproved candidate, never an approved Master. |
+| W09 | `app/server/api.ts`: `PUT /api/episodes/:episode/voice-review` | Currently trusts `body.reviewer` as a typed name | Never translate this text into workflow `owner` authority; authenticate owner in the server session and verify actual approved MP3 bytes/full listening proof. |
+| W10 | `src/cli/index.ts`: `bal voice-review --reviewer` | Reviewer text can be supplied from CLI | Treat as legacy review metadata only until strong principal authentication is implemented. Never auto-upgrade into a six-stage owner approval. |
+| W11 | `app/server/api.ts`: script/plan/image/recitation write routes | Update script, source, tone, selected recitation, visual inputs without notifying workflow | Run under same artifact lock and invalidate affected stages before releasing it. Exact file epoch also detects normal edit/restore. |
+| W12 | `src/cli/index.ts`: direct script/plan/scene/voice modifications | Files may change bypassing Studio UI | All actual mutations in CLI/scripts must be covered by the shared lock and an invalidation contract; never make `GET /workflow` the only invalidation trigger. |
+| W13 | Any actual publication/upload API or external delivery script | No six-stage `publish` guard shown in the current repository route inventory | Only `publishExactMaster` may dispatch; it verifies authenticated owner, all six stages, **exact MP4 bytes and file generation**, and uploads the frozen copy. Drive transfer/checksum is not publishing approval. |
+
+Other contextual routes: `app/server/extra.ts` channel-wide `voice-sample` spends voice credits but is not tied to a single episode; the central team must classify whether it is allowed as a clearly isolated experimentation exception. `bal render-batch` can be a raw Remotion laboratory tool but must not create a publishable episode Master by changing composition/output arguments. Quran audio sync/recitation selection is not artificial recitation and must remain subject to Quran branch rules without auto-approval.
+
+## Required central acceptance procedure
+
+1. Implement a *single* authenticated production identity provider (not a user-supplied name/role), a concrete trusted episode manifest and independent semantic validators for source/Quran, visual boards, every recorded clip, full-audio listening, approved word motion, full 1× AV review and rights/actual Master review.
+2. For every W01–W13, create an isolated HTTP/CLI/queue test against the **real entrypoint** with deliberately missing/rejected/stale approvals and a fake renderer/ElevenLabs/uploader. Assert that it cannot produce files, spend credits, enqueue executable work or dispatch publication.
+3. Repeat after approving six stages, then mutate source and review evidence one at a time. Test script text, Quran comparison, storyboard image and layout, narration tone and MP3, timing/motion file, AV review cut, and exact Master bytes. Confirm derived approvals turn `needs_reapproval` with HMAC-valid persistent history and cannot revive from previous bytes.
+4. Exercise queue restart, duplicate submission, cancellation, multiple processes, three channels and identical episode names. Assert all mutations and four protected operations use the **same trusted per-episode artifact lock**, and no stale queue payload can bypass the server gate at execution time.
+5. Test `GET /api/workflow` and `POST /api/workflow/decisions` with real session identities. Reject extra JSON fields `actor/role/snapshot/evidence/files/approved`, anonymous access, reviewer pretending to be owner, and publication by reviewer even after valid owner approval.
+6. Verify that the file passed to the real uploader is the frozen SHA-256-checked copy of the exactly approved Master; do not accept a URL, filename, previous preview, status flag or stale metadata as proof. Record actual full 1× owner AV review separately from automated media tests.
+7. Execute `npm ci`, `npm run typecheck`, **all Vitest**, `npm run gate` and real route/device smoke tests in an independent clone/worktree. All tests must pass on the exact integration SHA; rerun them after any final merge changes.
+
+**Release blocker:** The independent workflow branch deliberately does not edit W01–W13 source files, because voice/render/UI owners are working on those files in other PRs. This list is therefore an actionable cross-branch integration contract, **not** a claim that the production routes are protected. The absence of an enforced integration for even one executable path prevents technical-100% delivery for the complete system.

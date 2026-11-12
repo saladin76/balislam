@@ -3,7 +3,7 @@ import type { IncomingMessage, ServerResponse } from "node:http";
 /**
  * This API intentionally has no user-login layer and is intended for the loopback-only Studio server
  * on the owner's own machine (owner decision 9 Nov, D54: the owner IS a loopback, same-origin Studio
- * request). One rule for every route (docs/studio/workflow-gates.md «حماية الخادم»):
+ * request). One rule for every route (docs/studio/studio-map.md, section ح «حماية الخادم» (D58)):
  *
  *  - every /api request: Host names this machine (localhost / 127.0.0.1 / [::1], any port — the DNS
  *    rebinding guard) and Sec-Fetch-Site is never cross-site / same-site;

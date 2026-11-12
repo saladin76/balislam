@@ -1,5 +1,5 @@
 /**
- * Funnel audit (8 Nov): the remaining items 5, 9–14, 16–18 (D38). See docs/studio/funnel-audit-20261108.md.
+ * Funnel audit (8 Nov): the remaining items 5, 9–14, 16–18 (D38). See docs/studio/archive/funnel-audit-20261108.md.
  */
 import React from "react";
 import os from "node:os";

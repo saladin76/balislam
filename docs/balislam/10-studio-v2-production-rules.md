@@ -2,7 +2,7 @@
 
 > **الحالة:** صياغة مرشحة لاعتماد صاحب المشروع؛ ليست تصريحًا بتغيير الحلقات أو النصوص أو الاعتمادات أو تشغيل الإنتاج النهائي. المرجع الشرعي هو حزمة المرجعيات الرسمية في `channels/balislam/references/`، ولا تحسم هذه الوثيقة خلافًا شرعيًا معلّقًا.
 >
-> **المرجع التقني الأعلى لمسار المشهد:** `docs/studio/scene-first-single-user-vnext.md` و`docs/studio/channel-production-policies.md`. هوية «محراب النور» ودرجات أحكامها في `docs/balislam/01-constants.md` كما هي.
+> **المرجع التقني الأعلى لمسار المشهد:** `docs/studio/studio-map.md` (السلوك الحالي) و`docs/studio/channel-production-policies.md`؛ وعقد Studio V2 الأول في الأرشيف `docs/studio/archive/scene-first-single-user-vnext.md`. هوية «محراب النور» ودرجات أحكامها في `docs/balislam/01-constants.md` كما هي.
 
 ## 1. هدف القناة وحدود هويتها
 
