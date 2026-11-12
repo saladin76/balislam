@@ -287,8 +287,8 @@ export const EpisodeTab: React.FC<{
             ))}
           </div>
           <div className="seg" role="group" aria-label="المقاس">
-            <button aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}>أفقي 16:9</button>
-            <button aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}>عمودي 9:16</button>
+            <button aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}>أفقي ١٦:٩</button>
+            <button aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}>عمودي ٩:١٦</button>
           </div>
           <span className="spacer" />
           <span className="help">{Object.keys(media.voice).length ? "المعاينة بالصوت الحقيقي حيث وُجد" : "المعاينة بتوقيت تقديري حتى يُولَّد الصوت"}</span>
@@ -581,8 +581,8 @@ const RenderBox: React.FC<{ episodeId: string; chapter?: number }> = ({ episodeI
         <b>التصدير</b>
         <span className="help">يرندر من الخطة المحفوظة إلى مجلد الحلقة out/</span>
         <span className="spacer" />
-        <button className="btn" disabled={running} onClick={() => start("landscape")}>رندر الحلقة 16:9</button>
-        {chapter !== undefined ? <button className="btn" disabled={running} onClick={() => start("portrait", chapter)}>رندر الفصل {chapter} شورت 9:16</button> : null}
+        <button className="btn" disabled={running} onClick={() => start("landscape")}>رندر الحلقة ١٦:٩</button>
+        {chapter !== undefined ? <button className="btn" disabled={running} onClick={() => start("portrait", chapter)}>رندر الفصل {arNumE(chapter)} شورت ٩:١٦</button> : null}
       </div>
       {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
       {mine.map((j) => (

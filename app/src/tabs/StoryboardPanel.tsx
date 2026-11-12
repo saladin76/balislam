@@ -356,7 +356,7 @@ export const StoryboardPanel: React.FC<{
 
         <section className="s12-tool sb-quran-text-source" aria-label="نصوص الآيات">
           <h3 className="s12-h">نصوص الآيات</h3>
-          <p className="s12-soft">تُكتب الآية داخل السكريبت: [آية: النجم 39 | النص بالتشكيل]. المقارنة تعرض الفروق ولا تعدّل النص ولا تعتمد شيئًا.</p>
+          <p className="s12-soft">تُكتب الآية داخل السكريبت: [آية: النجم ٣٩ | النص بالتشكيل]. المقارنة تعرض الفروق ولا تعدّل النص ولا تعتمد شيئًا.</p>
           {quranStatus && <p role="status">موجودة محليًا: {ar(quranStatus.existing.length)} — ناقصة: {ar(quranStatus.missing.length)} — غير صالحة: {ar(quranStatus.invalid.length)}</p>}
           {!!quranStatus?.missing.length && <p className="s12-soft">الناقص: {quranStatus.missing.map(verseRef).join("، ")}</p>}
           {!!quranStatus?.invalid.length && <p className="s12-soft">مراجع تحتاج تصحيحًا من المصدر: {quranStatus.invalid.map((x) => verseRef(x.ref) + " (" + x.reason + ")").join("، ")}</p>}

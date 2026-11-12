@@ -4,6 +4,7 @@
  */
 import { num } from "../ui/format";
 import React, { useEffect, useState } from "react";
+import { ownerText } from "../../../src/i18n/sceneNames";
 import { api } from "../api";
 import type { LabStatus, LabSummary } from "../../../src/channel/labs";
 import { labStoryboardsEnabled } from "../../../src/channel/labStoryboardsShared";
@@ -34,11 +35,11 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
       {labs.map((l) => (
         <section key={l.dir} className="lab-card">
           <div className="lab-title">
-            <h3 title={l.dir}>{l.title}</h3>
+            <h3 title={l.dir}>{ownerText(l.title)}</h3>
             <Badge s={l.status} />
             <span className="help">آخر نشاط: {date(l.lastActivity)}</span>
           </div>
-          <p>{l.purpose}</p>
+          <p>{ownerText(l.purpose)}</p>
 
           {/* ستوري بورد المختبرات (صور) لبالإسلام وحدها؛ القنوات الأخرى كما هي */}
           <LabStoryboards channel={channel} dir={l.dir} />

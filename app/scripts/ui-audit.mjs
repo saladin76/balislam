@@ -10,6 +10,10 @@
  *   - clipped: text cut by `overflow: hidden` without an ellipsis (an ellipsis is a deliberate one-line cut);
  *   - contrast: text under WCAG AA (4.5:1, 3:1 for large text) against its painted background;
  *   - console: console errors and uncaught page errors (HTTP failures are listed, not failed).
+ *   - owner-text: Western digits inside Arabic text, or a raw scene id («c1-s5»), shown to the owner (QA 12 Nov;
+ *     the same rule as `ownerTextProblems` in src/i18n/ownerTextAudit.ts). Inputs, code and Latin-only text are exempt;
+ *   - cutoff: text pushed past the left or right edge of the viewport by a clipping parent (dafatir M8 at 390px),
+ *     outside the strips that scroll sideways on purpose.
  *   - broken: a build error overlay, or no studio shell at all.
  * Not part of vitest. Read-only: every non-GET API call is aborted; ledger states are faked in the browser
  * (the GET answers are rewritten in the page), so run it against a Studio started on a COPY of channels/:
@@ -157,7 +161,11 @@ const audit = (exempt) => {
   const inView = (r) => r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
   const name = (e) => (e.tagName.toLowerCase() + (typeof e.className === "string" && e.className.trim() ? "." + e.className.trim().split(/\s+/).slice(0, 2).join(".") : "") + (e.getAttribute("aria-label") ? `[${e.getAttribute("aria-label").slice(0, 18)}]` : "") + (e.parentElement && typeof e.parentElement.className === "string" && e.parentElement.className ? "<" + e.parentElement.className.split(" ")[0] : "")).slice(0, 90);
   const skip = (e) => e.closest(".__remotion-player,video,svg,canvas,.ms-thumb,[aria-hidden='true'],.sr-only,.ms-vh");
-  const out = { narrowWrap: [], cover: [], dockHeight: [], overlap: [], clipped: [], contrast: [] };
+  const out = { narrowWrap: [], cover: [], dockHeight: [], overlap: [], clipped: [], contrast: [], ownerText: [], cutoff: [] };
+  const AR = /[\u0600-\u06FF]/;
+  const LATIN_NUM = /(?<![A-Za-z0-9._\/:#@\-])\d+(?![A-Za-z0-9_\/×\-]|[.:]\d*[A-Za-z])/;
+  const RAW_ID = /(?<![\w-])c\d+-(?:s\d+|end)(?![\w-])/;
+  const techOk = (el) => el.closest("input,textarea,select,code,pre,kbd,samp,[dir=ltr],details:not([open]),.sr-only,option,.md");
   const all = [...document.querySelectorAll("body *")];
   const seen = new Set();
   for (const e of all) {
@@ -168,6 +176,12 @@ const audit = (exempt) => {
     const r = e.getBoundingClientRect();
     if (!inView(r)) continue;
     const cs = getComputedStyle(e);
+    if (!techOk(e) && AR.test(own) && (LATIN_NUM.test(own) || RAW_ID.test(own))) out.ownerText.push(`${name(e)} «${own.slice(0, 60)}»`);
+    else if (!techOk(e) && RAW_ID.test(own)) out.ownerText.push(`${name(e)} «${own.slice(0, 60)}»`);
+    if ((r.left < -2 || r.right > vw + 2) && !e.closest(".s3-strip,.s3-reel,.ms-strip,[data-hscroll],.sb-strip,.sr-grid") && r.width < vw * 3) {
+      let sc = false; for (let a = e.parentElement; a; a = a.parentElement) { const q = getComputedStyle(a); if (/(auto|scroll)/.test(q.overflowX) && a.scrollWidth > a.clientWidth + 1) { sc = true; break; } }
+      if (!sc) out.cutoff.push(`${name(e)} ${Math.round(r.left)}..${Math.round(r.right)} of ${vw}px «${own.slice(0, 24)}»`);
+    }
     // narrow-wrap: count the rendered lines of its own text
     if (own.length >= 12) {
       const tops = new Set();
@@ -235,7 +249,7 @@ const audit = (exempt) => {
   return out;
 };
 
-const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "clipped", "contrast", "console"];
+const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "clipped", "contrast", "console", "ownerText", "cutoff"];
 (async () => {
   if (shots) await mkdir(shots, { recursive: true });
   const browser = await chromium.launch();

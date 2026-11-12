@@ -6,6 +6,7 @@
  */
 import { arDigits, num } from "../ui/format";
 import React, { useCallback, useEffect, useState } from "react";
+import { ownerText } from "../../../src/i18n/sceneNames";
 import { api } from "../api";
 import { useScrollLock } from "../ui/scrollLock";
 import { STORYBOARD_STATUS_AR, labStoryboardsEnabled, shownStatus, type StoryboardEntry, type StoryboardStatus, type StoryboardVersion } from "../../../src/channel/labStoryboardsShared";
@@ -135,7 +136,7 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
         return (
           <section key={e.slot} className="sbi-entry">
             <div className="sbi-head">
-              <h5>{e.title}</h5>
+              <h5>{ownerText(e.title).replace(/\s+·\s+/g, " — ")}</h5>
               {e.order ? <span className="sbi-order">الأمر {arDigits(String(e.order))}</span> : null}
               <span className="sbi-tabs" role="tablist">
                 {e.versions.map((v) => (

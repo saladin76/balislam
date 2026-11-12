@@ -99,7 +99,7 @@ export const ownerPreviewText = (raw: string, order: string[]): string => {
     const x = n(`${c}-s${a}`), y = n(`${c}-s${b}`);
     return x && y ? `المشاهد ${x.toLocaleString("ar-EG")}–${y.toLocaleString("ar-EG")}` : m;
   });
-  const named = ownerTextOf(ranged.replace(/\bالمشهد\s+(c\d+-s\d+|c\d+-end)\b/g, "$1"), order);
+  const named = ownerTextOf(ranged, order);
   return named.replace(/\s+·\s+/g, " — ").replace(/^(\d{3})\s+—\s+/, (m, ep: string) => `${arDigits(ep)} — `);
 };
 /** Technical text (commands, file names, keys) the owner does not need on the main screen: shown under «تفاصيل». */

@@ -9,6 +9,7 @@ import { SetBackdrop, sets } from "../../../brand/sets/index";
 import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../../src/channel/types";
 import config from "../../../config.json";
+const arDigitsLib = (s: string) => s.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
 
 const fps = config.video.fps;
 
@@ -67,7 +68,7 @@ export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: Channel
           ))}
         </div>
       </div>
-      <p className="help">قوالب «{channel?.name}» فقط ({mine.length} من {sceneCatalog.length}). مرّر الفأرة على القالب لتشاهده يتحرك. نوّع بين العائلات في الحلقة الواحدة، ولا تبنِ حلقتين متتاليتين على القالب الأساسي نفسه.</p>
+      <p className="help">قوالب «{channel?.name}» فقط ({mine.length.toLocaleString("ar-EG")} من {sceneCatalog.length.toLocaleString("ar-EG")}). مرّر الفأرة على القالب لتشاهده يتحرك. نوّع بين العائلات في الحلقة الواحدة، ولا تبنِ حلقتين متتاليتين على القالب الأساسي نفسه.</p>
       <div className="tpl-grid">
         {items.map((e) => {
           const def = templateById(e.id);
@@ -80,7 +81,7 @@ export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: Channel
                   <b>{def?.nameAr ?? e.id}</b>
                   {meta ? <span className="chip">{familyNamesAr[meta.family]}</span> : null}
                 </div>
-                <span className="help">{def?.useAr}</span>
+                <span className="help">{arDigitsLib(def?.useAr ?? "")}</span>
                 <code className="help" style={{ direction: "ltr" }}>[مشهد: {e.id}]</code>
               </div>
             </article>

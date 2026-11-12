@@ -8,7 +8,6 @@ import { countAr, ERRORS, ownerText, WARNINGS, WORDS } from "../ui/format";
 
 export type ScriptTabHandle = { goToLine: (line: number) => void; hasUnsavedResearch: () => boolean };
 
-const fmt = (sec: number) => `${Math.floor(sec / 60)}:${String(Math.round(sec % 60)).padStart(2, "0")}`;
 const ar = (n: number) => n.toLocaleString("ar-EG");
 const fmtAr = (sec: number) => `${ar(Math.floor(sec / 60))}:${ar(Math.round(sec % 60)).padStart(2, "٠")}`;
 
@@ -189,7 +188,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
             {!check.stats.divisions ? (
             <section aria-label="الطول">
               <h3 className="s12-h">الطول</h3>
-              <p className="s12-soft">سرد واحد متصل: {check.stats.totalWords} كلمة، نحو {fmt(check.stats.totalSeconds)}.</p>
+              <p className="s12-soft">سرد واحد متصل: {countAr(check.stats.totalWords, WORDS)}، نحو {fmtAr(check.stats.totalSeconds)}.</p>
             </section>
             ) : (
             <section aria-label="الفصول">
@@ -199,12 +198,12 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
                 <tbody>
                   {check.stats.chapters.map((c) => (
                     <tr key={c.number}>
-                      <td>{c.number}</td>
-                      <td>{c.words}</td>
-                      <td className={c.seconds < min || c.seconds > max ? "bad" : ""}>{fmt(c.seconds)}</td>
+                      <td>{ar(c.number)}</td>
+                      <td>{ar(c.words)}</td>
+                      <td className={c.seconds < min || c.seconds > max ? "bad" : ""}>{fmtAr(c.seconds)}</td>
                     </tr>
                   ))}
-                  <tr><th>الإجمالي</th><th>{check.stats.totalWords}</th><th>{fmt(check.stats.totalSeconds)}</th></tr>
+                  <tr><th>الإجمالي</th><th>{ar(check.stats.totalWords)}</th><th>{fmtAr(check.stats.totalSeconds)}</th></tr>
                 </tbody>
               </table>
             </section>
@@ -212,11 +211,11 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
             <ReviewPanel episodeId={episodeId} savedText={savedText} onGoTo={goToLine} />
             <section aria-label="العلامات">
               <h3 className="s12-h">العلامات</h3>
-              <p className="s12-soft s12-code">[مشهد: …] [آية: النجم 39 | نص الآية بالتشكيل] [حديث: …] [صوت: page-turn] — bridge: …</p>
+              <p className="s12-soft s12-code">[مشهد: …] [آية: النجم ٣٩ | نص الآية بالتشكيل] [حديث: …] [صوت: page-turn] — bridge: …</p>
             </section>
             <section aria-label="اعتماد السكريبت">
               <h3 className="s12-h">اعتماد السكريبت</h3>
-              <p className="s12-soft">{dirty ? "احفظ السكريبت أولًا؛ الاعتماد يكون على النسخة المحفوظة." : "يُعتمد من عمود الحلقة أعلاه."}</p>
+              <p className="s12-soft">{dirty ? "احفظ السكريبت أولًا؛ الاعتماد يكون على النسخة المحفوظة." : "يُعتمد مع اللوحات بزر واحد «اعتمد التجهيز» في الشريط أسفل «١ التجهيز»."}</p>
             </section>
           </More>
         </aside>

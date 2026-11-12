@@ -24,7 +24,7 @@ import { sceneSeconds } from "../../../src/plan/duration";
 import { Icon } from "../ui/icons";
 import { DockText } from "../shell/DockText";
 import { NO_VOICE_KEY_AFTER_NOTE, voiceResultMessage } from "./voiceResult";
-import { Num, duration as clock } from "../ui/format";
+import { Num, duration as clock, ownerText } from "../ui/format";
 
 type Props = {
   episodeId: string;
@@ -633,11 +633,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
             {isCurrent && scene?.status === "needs_revision" && scene.correction?.inbox ? (
               <p className="sp-hint" role="status">{noteInboxLine(scene.correction.inbox)}</p>
             ) : null}
-            {isCurrent && scene && !scene.readyForAv ? <p className="sp-hint">ينقصه صوت الراوي.</p> : null}
+            {/* QA 12 Nov: «ينقصه صوت الراوي» is said once, in the reasons line above (no second copy here) */}
             {/* 11 Nov: a quiet line, never a second approval: the scene is reviewed with «اعتمد المشهد» like any other */}
             {shownServer?.afterPreparation ? <p className="sp-hint s3-afterprep" role="note">{afterPreparationLine(shownServer.afterPreparation.what)}</p> : null}
             {shownServer?.blocked?.length || (shownServer && !shownServer.approved && data?.episodeBlocked?.length) ? (
-              <p className="sp-hint s3-blocked" role="alert">لا يُنتج قبل إصلاح: {[...(shownServer.blocked ?? []), ...(data?.episodeBlocked ?? [])].join(" — ")}</p>
+              <p className="sp-hint s3-blocked" role="alert">لا يُنتج قبل إصلاح: {ownerText([...(shownServer.blocked ?? []), ...(data?.episodeBlocked ?? [])].join(" — "), order)}</p>
             ) : null}
             {shownServer?.recitationPending ? (
               <p className="sp-hint" role="note">التلاوة تُضاف لاحقًا: مسودة هذه الآية صامتة مكان التلاوة، واعتمادها الآن «مشروط بالتلاوة» يكمل الترتيب؛ وحين ترفع التلاوة في الخطوة ٣ يُفتح هذا المشهد وحده لمراجعة سريعة. التجميع والنسخة النهائية لا يُفتحان قبلها.</p>

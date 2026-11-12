@@ -42,7 +42,8 @@ export const sceneNames = (order: string[], ids: string[], max = 12): string =>
 export const nameSceneIds = (message: string, order: string[]): string =>
   message
     .replace(/\b(c\d+-s\d+[a-z0-9-]*)>(c\d+-s\d+[a-z0-9-]*)\b/g, (m, a: string, b: string) => (order.includes(a) && order.includes(b) ? seamName(order, `${a}>${b}`) : m))
-    .replace(/(?<![\w-])(c\d+-s\d+(?:-[a-z0-9]+)*)(?![\w-])/g, (m, id: string) => (order.includes(id) ? sceneName(order, id) : m));
+    // «المشهد c1-s3» (a message that already says «المشهد») reads «المشهد ٣», never «المشهد المشهد ٣»
+    .replace(/(?:المشهد\s+)?(?<![\w-])(c\d+-s\d+(?:-[a-z0-9]+)*)(?![\w-])/g, (m, id: string) => (order.includes(id) ? sceneName(order, id) : m));
 /**
  * A server message as the owner reads it (funnel QA minors, 10 Nov): scene ids named «المشهد ٣» by the Studio's
  * numbering, and stand-alone Latin numbers in Arabic digits («السطر 14» → «السطر ١٤», «14.1 م.ب» → «١٤٫١ م.ب»,

@@ -425,7 +425,7 @@ export const App: React.FC = () => {
   ] : here === 1 && done[0] ? [
     { id: "one", label: "مشهدًا مشهدًا", current: tab === "episode" && sceneView === "one", onSelect: () => { setSceneView("one"); go("episode"); } },
     { id: "voice", label: "متتابعة", sub: plan ? duration(episodeLength(plan, media, config.video.fps).seconds) : undefined, current: tab === "voice", onSelect: () => go("voice") },
-    { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
+    { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount || undefined, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
   ] : here === 2 && done[0] ? [
     // D68: without recitations the same view holds only the watch-only pre-final preview, so it is named for it.
     { id: "recitations", label: recStage ? "التلاوات" : "قبل النهائية", badge: w?.progress.recitationPending?.length || undefined, current: final === "recitations", onSelect: () => setFinalView("recitations") },

@@ -656,4 +656,14 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .ms-sync-pop .acts button { font: inherit; font-size: var(--t-12); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line, rgba(127,127,127,.3)); background: none; color: inherit; cursor: pointer; }
 @media (max-width: 600px) {
   .ms-sync-pop { position: fixed; inset-inline: 16px; top: 104px; width: auto; }
+
+/* QA 12 Nov (dafatir M8, 390px): the player's control row never widens the frame past the screen —
+   the seek bar takes what is left, and on a phone the buttons are tighter. */
+.ms-pw > * { min-width: 0; max-width: 100%; }
+.ms-pc { min-width: 0; }
+.ms-pc .ms-pc-seek { flex: 1 1 40px; width: 40px; }
+@media (max-width: 480px) {
+  .ms-pc { gap: 4px; padding: 6px 6px; }
+  .ms-pc button { padding: 0 6px; }
+  .ms-pc-t { min-width: 0; }
 }

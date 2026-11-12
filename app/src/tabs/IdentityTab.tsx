@@ -62,7 +62,7 @@ const Color: React.FC<{ label: string; value: string; onChange: (v: string) => v
 
 const Ratio: React.FC<{ a: string; b: string; label: string; min?: number }> = ({ a, b, label, min = 4.5 }) => {
   const r = contrast(a, b);
-  return <span className={r >= min ? "good" : "poor"} title={`الحد الأدنى ${min}`}>{label}: {r.toFixed(1)}</span>;
+  return <span className={r >= min ? "good" : "poor"} title={`الحد الأدنى ${min.toLocaleString("ar-EG")}`}>{label}: {r.toLocaleString("ar-EG", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>;
 };
 
 const Slider: React.FC<{ label: string; value: number; min: number; max: number; step?: number; onChange: (v: number) => void; unit?: string }> = ({ label, value, min, max, step = 1, onChange, unit = "" }) => (
@@ -157,7 +157,7 @@ export const IdentityTab: React.FC<{
               <Ratio a={c.onHighlight} b={c.highlight} label="التمييز" />
               <Ratio a={c.captionInk} b={c.captionBg} label="الترجمة" />
             </div>
-            <span className="help">الأخضر يعني أن النص مقروء بوضوح (تباين 4.5 أو أكثر).</span>
+            <span className="help">الأخضر يعني أن النص مقروء بوضوح (تباين ٤٫٥ أو أكثر).</span>
           </div>
 
           <div className="group">
