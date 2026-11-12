@@ -348,7 +348,8 @@ for (const channel of selectedChannels()) {
       expect(copied[master.name], "byte for byte").toBe(await sha256File(masterFile));
       // Rule one: no trace of the production tools in anything published.
       for (const name of Object.keys(copied).filter((n) => /\.(txt|json|srt)$/.test(n)))
-        expect(findTraces([{ name, text: await readFile(path.join(folder, name), "utf8") }]), `${name}: traces`).toEqual([]);
+        expect(findTraces(await readFile(path.join(folder, name), "utf8")), `${name}: traces`).toEqual([]);
+      expect(findTraces("صُنع بأداة ElevenLabs"), "the trace check itself is live").not.toEqual([]);
       const { videoTraces, pngTraces } = await import("../../src/package/driveHandoff");
       expect(await videoTraces(path.join(folder, master.name)), "Master metadata").toEqual([]);
       for (const name of Object.keys(copied).filter((n) => n.endsWith(".png"))) expect(await pngTraces(path.join(folder, name)), name).toEqual([]);
