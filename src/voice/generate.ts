@@ -16,7 +16,7 @@ import type { VoiceProfile } from "../channel/types";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
 import { applyLexicon, loadLexicon } from "./lexicon";
-import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
+import { buildTashkeelIndex, normWord, stripTashkeel, vowelize, type TashkeelIndex } from "./tashkeel";
 import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
 import { parseScript } from "../script/parse";
 import { loadLedger, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
@@ -140,8 +140,26 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string, quranR
   });
 };
 
+/**
+ * النص المجاور لجزء في مسار الأجزاء (D94، M11): من الجزء المجاور في الخريطة ما دام نصه نص مشهده الحالي في الخطة؛
+ * وإن كان المشهد المجاور قد تغيّر نصه بعد الخريطة (تعديل جملة في الاستوديو) فنص المشهد الحالي من الخطة،
+ * لا نص الخريطة القديم. داخل المشهد نفسه يبقى نص الجزء (الخريطة تطابق المشهد، وإلا رُفضت في validatePartsContext).
+ */
+export const partNeighbourText = (
+  q: { scene: string; text: string } | undefined, self: { scene: string }, plan: Plan | undefined,
+): string | undefined => {
+  if (!q) return undefined;
+  if (q.scene === self.scene || !plan) return q.text;
+  const scene = plan.chapters.flatMap((c) => c.scenes).find((s) => s.id === q.scene);
+  if (!scene) return undefined;
+  const plain = (s: string) => stripTashkeel(s).split(/\s+/).map(normWord).filter(Boolean).join(" ");
+  const current = scene.narration?.trim() ?? "";
+  if (!plain(current).includes(plain(q.text))) return current || undefined;
+  return q.text;
+};
+
 /** مهام مسار الأجزاء (دفاتر الزمن): جزء لكل مهمة، بنبرته من خريطة النبرة ونصه المشكول منها */
-const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey: string): Promise<Job[]> => {
+const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey: string, plan?: Plan): Promise<Job[]> => {
   const dict = await loadDictionary();
   const lex = (await loadLexicon()).entries;
   let profile: VoiceProfile | undefined;
@@ -165,7 +183,7 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
     const legacyHashes = legacyTunes(layers, tone, { text: p.text }).map((l) => sha16({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(l.tune ? { tune: l.tune } : {}) })).filter((h) => h !== hash);
     // الأجزاء تُعدّ كلماتها عند التركيب: نطق القاموس من كلمة واحدة فقط هنا
     const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex, { singleToken: true });
-    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: parts[i - 1]?.text, next: parts[i + 1]?.text, tune, legacyHashes };
+    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: partNeighbourText(parts[i - 1], p, plan), next: partNeighbourText(parts[i + 1], p, plan), tune, legacyHashes };
   });
 };
 
@@ -276,7 +294,7 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
   // A narration carrying Quran (﴿…﴾, [آية], or five words of a verse of the episode) is never voiced; the
   // dry run lists it and a real run refuses (src/voice/quranGuard.ts).
   const quranRefused: string[] = [];
-  const allJobs = parts ? await partsJobsFor(parts, voiceKey) : await jobsFor(plan, voiceKey, scriptPath, quranRefused);
+  const allJobs = parts ? await partsJobsFor(parts, voiceKey, plan) : await jobsFor(plan, voiceKey, scriptPath, quranRefused);
   const jobs = allJobs.filter((j) => (!opts.only || opts.only.includes(sceneOf(j))) && !managed.has(sceneOf(j)));
   // «أعد توليد الصوت» لمشهد صوته جمل: لا يُعاد كاملًا بصمت؛ يُقال للمالك أين يولّده
   if (!opts.dryRun && opts.only?.length && opts.only.every((id) => managed.has(id)))
