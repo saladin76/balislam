@@ -1,27 +1,27 @@
 {
   "episode.mp4": {
-    "title": "V9.1 — معاينة صامتة كاملة 720p (جاهز للمراجعة، غير معتمد)",
-    "note": "السكريبت المعتمد وسبعة استشهادات بصرية صامتة؛ تقديري التوقيت بلا صوت. المراجعة 030",
-    "version": 10,
-    "updatedAt": "2026-11-11T19:05:22.528Z",
-    "sha256": "10bde1bf18f860846354e83efcc65e64970ee35b67b2fe5416abec5d3ccaacee",
-    "size": 71261686,
+    "title": "V9.2 — معاينة صامتة كاملة 720p (جاهز للمراجعة، غير معتمد)",
+    "note": "السكريبت V9.2 (الأمر 031): قسم واحد 49 مشهدًا، والمشهد الجديد c1-s48، وسبعة استشهادات بصرية صامتة. توقيت تقديري بلا صوت؛ الحركة 86%.",
+    "version": 11,
+    "updatedAt": "2026-11-12T10:15:29.523Z",
+    "sha256": "b9f5cc3f7942baad0a56ceeaae5eba089861c67730d4af722120ec7589651f79",
+    "size": 73099886,
     "source": {
       "type": "git-branch",
       "ref": "refs/heads/previews/dafatir-alzaman/001-adam-beginning/episode",
-      "commit": "4e953cc67a7683c1bb866f704bf8caa958d5ffd8",
-      "sha256": "10bde1bf18f860846354e83efcc65e64970ee35b67b2fe5416abec5d3ccaacee",
-      "size": 71261686,
+      "commit": "7541eabed9369e429aac7c46e6bd2e0195fbbddf",
+      "sha256": "b9f5cc3f7942baad0a56ceeaae5eba089861c67730d4af722120ec7589651f79",
+      "size": 73099886,
       "parts": [
         {
           "name": "part-000",
           "size": 47185920,
-          "sha256": "80c5d98c006383ec215777ce192c1e7fcf48dc6f2b24c5fce05f3224f4a64ec5"
+          "sha256": "d5822cb18a7545156523a3fb4dbf7c89f2797b7698bc1508ba87fa1c8c1f2632"
         },
         {
           "name": "part-001",
-          "size": 24075766,
-          "sha256": "b2e5038b875d500b6467dca078733987f320b975d67bf6e1cd53d0884b203ea3"
+          "size": 25913966,
+          "sha256": "213c834148caf5c757ebfaed4f1c970c25f89300634999137c58d08d8867fc82"
         }
       ]
     }

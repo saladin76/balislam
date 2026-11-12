@@ -221,6 +221,23 @@ const supersedeUnused = async (dir: string, used: Set<string>, pattern: RegExp, 
   }
 };
 
+/**
+ * D97: whole-scene voices (not sentence by sentence) that are current now and would need a new paid generation
+ * if the plan became `next` (an episode tone chosen or changed). Read only: nothing is generated or written.
+ * The parts path (a dafatir tone map) takes its tones from the map, never from plan.tone, so it is not affected.
+ */
+export const sceneVoiceToneImpact = async (scriptPath: string, plan: Plan, next: Plan): Promise<string[]> => {
+  if ((await import("./dafatirParts")).isPartsChannel(scriptPath)) return [];
+  const dir = voiceDirFor(scriptPath);
+  const index: VoiceIndex = (await readJsonFile<VoiceIndex>(path.join(dir, "index.json"))) ?? {};
+  const managed = await (await import("./sentenceVoice")).sentenceManagedScenes(scriptPath);
+  const voiceKey = `${voiceIdFor() ?? ""}|${process.env.ELEVENLABS_MODEL_ID || config.voice.modelId}`;
+  const hashes = new Set(Object.values(index).filter((c) => existsSync(path.join(dir, c.file))).map((c) => c.hash));
+  const ok = (j: Job) => hashes.has(j.hash) || Boolean(j.legacyHashes?.some((h) => hashes.has(h)));
+  const now = new Map((await jobsFor(plan, voiceKey, scriptPath)).map((j) => [j.id, ok(j)]));
+  return (await jobsFor(next, voiceKey, scriptPath)).filter((j) => !managed.has(j.id) && now.get(j.id) && !ok(j)).map((j) => j.id);
+};
+
 export const generateVoice = async (episode: string, opts: GenerateVoiceOptions = {}): Promise<VoicePlanReport> => {
   const scriptPath = await resolveScriptPath(episode);
   if (opts.dryRun) return generateVoiceLocked(episode, scriptPath, opts);

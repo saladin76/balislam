@@ -38,7 +38,7 @@
 .sv-chip { font-size: 12px; padding: 2px 9px; border-radius: 999px; background: var(--panel-2, #faf9f6); border: 1px solid var(--line, #e6e3dc); color: var(--muted, #6e726c); white-space: nowrap; }
 .sv-chip.is-generated, .sv-chip.is-scene { background: var(--accent-soft, #e3ece9); border-color: transparent; color: var(--accent, #2c5e55); }
 .sv-chip.is-heard { background: var(--ok-soft, #e6f1ea); border-color: transparent; color: var(--ok, #2f7552); font-weight: 600; }
-.sv-chip.is-stale, .sv-chip.is-missing { background: var(--warn-soft, #f6eedc); border-color: transparent; color: var(--warn, #94621a); }
+.sv-chip.is-stale, .sv-chip.is-old, .sv-chip.is-missing { background: var(--warn-soft, #f6eedc); border-color: transparent; color: var(--warn, #94621a); }
 .sv-menu { position: relative; }
 .sv-menu > summary { list-style: none; cursor: pointer; min-width: 32px; min-height: 32px; display: grid; place-items: center; border-radius: 6px; border: 1px solid var(--line-2, #d3cfc6); font-size: 18px; line-height: 1; }
 .sv-menu > summary::-webkit-details-marker { display: none; }
@@ -258,3 +258,8 @@
 .sv-fix-variants .sv-t { font-size: 16px; }
 .sv-fix-variants .sv-t[aria-pressed="true"] { border-color: currentColor; }
 .ms-pop-fl small { display: block; font-size: var(--t-12); color: var(--mute); font-weight: 400; }
+
+/* D97: a take recorded on an earlier text, and a take kept under its own tone */
+.sv-old { margin: 6px 0; padding: 6px 10px; border-radius: 8px; background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-size: 0.92em; line-height: 1.7; }
+.sv-old b { font-weight: 700; }
+.sv-rectone { margin: 4px 0; }

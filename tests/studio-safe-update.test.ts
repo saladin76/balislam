@@ -21,6 +21,7 @@ const repo = () => {
     "commit", "-q", "-m", "init"], { cwd: dir, env: gitEnv });
   return dir;
 };
+const read = (dir: string, f: string) => readFileSync(path.join(dir, f), "utf8");
 afterEach(() => { for (const d of dirs.splice(0)) rmSync(d, { force: true, recursive: true }); });
 
 describe("safe studio updater", () => {
@@ -79,7 +80,7 @@ describe("safe studio updater", () => {
     const dir = repo();
     execFileSync("git", ["branch", "-m", "main"], { cwd: dir, env: gitEnv });
     writeFileSync(path.join(dir, "note.txt"), "local unsaved edit\n");
-    const result = await applyUpdate(dir);
+    const result = await applyUpdate(dir); // no remote: stops at the fetch; the edit is untouched (D95 keeps it in any case)
     expect(result.ok).toBe(false);
     expect(readFileSync(path.join(dir, "note.txt"), "utf8")).toBe("local unsaved edit\n");
     expect(execFileSync("git", ["status", "--porcelain"], { cwd: dir, env: gitEnv }).toString()).toContain("note.txt");
@@ -109,9 +110,11 @@ describe("safe studio updater", () => {
     expect(msg).not.toContain("storyboard.json");
     expect(msg).toMatch(/ملفات متتبَّعة معدَّلة \(1\)/);
     expect(msg).not.toContain("scene-production");
+    // D95: local edits no longer block «حدّث الآن» (they are backed up and kept); here there is no
+    // remote, so the update stops at the fetch without touching the edited file.
     const result = await applyUpdate(dir);
     expect(result.ok).toBe(false);
-    expect(result.message).toContain("note.txt");
+    expect(read(dir, "note.txt")).toBe("edited\n");
     expect(result.message).not.toMatch(/\/tmp\/|\/home\//);
   }, 30_000);
 });

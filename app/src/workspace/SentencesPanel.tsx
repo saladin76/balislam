@@ -20,6 +20,7 @@ const STATUS: Record<SentenceRow["status"] | "scene" | "verse-missing" | "verse-
   missing: "بلا صوت",
   generated: "بصوت",
   stale: "تحتاج توليدًا",
+  old: "قديم — سُجّل على نص سابق",
   heard: "سمعتها",
   scene: "ضمن صوت المشهد",
   "verse-missing": "لم تُرفع التلاوة",
@@ -236,7 +237,8 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
   const sceneQueue = (s: SentenceScene): Clip[] => {
     if (s.verse) return s.verse.file ? [{ id: s.verse.id, url: recitationUrl(episodeId, channelId, s.verse.file) }] : [];
     if (!s.managed) return s.audio.file && s.audio.state !== "stale" ? [{ id: s.id, url: urlOf(s.audio.file, "voice") }] : [];
-    return s.rows.filter((r) => r.audio).map((r) => ({ id: r.id, url: urlOf(r.audio!.file, "sentences"), pauseAfterMs: r.pauseAfterMs }));
+    // A take recorded on an earlier text («قديم», D97) is heard alone, not inside the scene sequence.
+    return s.rows.filter((r) => r.audio && r.status !== "old").map((r) => ({ id: r.id, url: urlOf(r.audio!.file, "sentences"), pauseAfterMs: r.pauseAfterMs }));
   };
   /** The sentence alone: its own take, or its span of the scene's single file (estimated spans say «تقريبي»). */
   const clipOf = (s: SentenceScene, r: SentenceRow) => sentenceClip(r, s, urlOf);
@@ -534,6 +536,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
             <p className="sv-spoken sv-applied"><span>{r.appliedState === "sent" ? "نُطقت:" : "ستُنطق:"}</span> {r.applied.map((a) => `${a.word} ← ${a.say}`).join("، ")}</p>
           ) : null}
           {why ? <p className="sv-why">{why}</p> : null}
+          {takeNote(r)}
           {r.contextChanged ? <p className="sp-hint">تغيّر ما حولها منذ توليدها؛ أعد توليدها إن بدا الوصل غير طبيعي.</p> : null}
         </div>
         <div className="sv-ctl">
@@ -541,7 +544,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
           {r.audio?.origin === "scene" ? <small className="sv-origin">من صوت المشهد</small> : null}
           {r.olderTone ? <small className="sv-origin sv-older" title="تسجيلها صالح ولم يُعد توليده آليًا؛ عادت النبرات كما كانت (أُلغي قرار النبرات القوية، ١١ نوفمبر). «أعد توليد ما وُلّد بالنبرة القوية» في أعلى القائمة.">{OLDER_TONE}</small> : null}
           {r.kind === "narration" ? (
-            <button type="button" className={`btn${r.status === "missing" || r.status === "stale" ? "" : " ghost"}`} disabled={!canGen}
+            <button type="button" className={`btn${r.status === "missing" || r.status === "stale" || r.status === "old" ? "" : " ghost"}`} disabled={!canGen}
               title={noKey ? "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»" : why ?? ""}
               onClick={() => void run(`gen:${r.id}`, { ...ref(r), action: "generate" })}>{genLabel}</button>
           ) : null}
@@ -662,6 +665,13 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
    * heard); the current one is in full ink, shows its words as chips when it has a take, and has its controls
    * in one quiet row: play, tone, pause, «ولّد الجملة», «عدّل النص», «⋯». No filled button here.
    */
+  /** D97: «قديم — سُجّل على نص سابق» (the old take stays playable; «ولّد» makes the current one), and a take kept under its own tone. */
+  const takeNote = (r: SentenceRow) => r.status === "old" ? (
+    <p className="sv-old" role="status"><b>قديم — سُجّل على نص سابق.</b> {r.recordedOn ? <>سُجّل على: «{r.recordedOn}». </> : null}
+      اسمعه بزر التشغيل؛ لا يدخل صوت المشهد حتى تولّد الجملة بنصها الحالي، ويبقى محفوظًا في التسجيلات السابقة.</p>
+  ) : r.recordedTone && isTone(r.recordedTone) && r.recordedTone !== r.inheritedTone && !r.tone ? (
+    <p className="sp-hint sv-rectone">سُجّلت بنبرة «{tones[r.recordedTone].nameAr}»؛ تسجيلها صالح كما هو، ونبرة الحلقة تسري على ما يُولَّد بعده.</p>
+  ) : null;
   const paraBlock = (s: SentenceScene) => {
     const rows = s.rows;
     const r = rows.find((x) => x.id === cur) ?? rows.find((x) => x.status !== "heard") ?? rows[0];
@@ -731,6 +741,7 @@ export const SentencesPanel: React.FC<Props> = ({ episodeId, channelId, sceneId,
         ) : null}
         {r.spoken && r.spoken !== r.text && r.kind === "narration" && !r.applied.length ? <p className="sv-spoken"><span>النطق:</span> {r.spoken}</p> : null}
         {why ? <p className="sv-why">{why}</p> : null}
+        {takeNote(r)}
         {r.contextChanged ? <p className="sp-hint">تغيّر ما حولها منذ توليدها؛ أعد توليدها إن بدا الوصل غير طبيعي.</p> : null}
         <div className="sv-tools" role="group" aria-label={`أدوات الجملة ${ar(i + 1)}`}>
           <span className="sv-lb">الجملة {ar(i + 1)}{r.audio?.origin === "scene" ? <small className="sv-origin">من صوت المشهد</small> : null}{r.audio ? <small><Num>{`${(Math.round(r.audio.duration * 10) / 10).toLocaleString("ar-EG")} ث`}</Num></small> : null}</span>
