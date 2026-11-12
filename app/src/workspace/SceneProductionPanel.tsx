@@ -879,9 +879,11 @@ export const SceneProductionPanel: React.FC<Props> = ({
             ? "كل المشاهد معتمدة: اجمعها في نسخة واحدة، ثم استمع لكل وصلة بين مشهدين واعتمدها هنا."
             : pendingRecs ? "تُجمع الحلقة بعد اعتماد كل المشاهد وتلاواتها؛ بعدها تُسمع كل وصلة بين مشهدين هنا."
             : `تُجمع الحلقة بعد اعتماد كل المشاهد (${arNumOf(data.progress.approvedScenes)} من ${arNumOf(data.progress.totalScenes)} الآن)؛ بعدها تُسمع كل وصلة بين مشهدين هنا.`}</p></div>
-          <div className="sp-actions">{pendingRecs
+          <div className="sp-actions">{data.progress.canAssemble
+            ? <button className="btn primary" type="button" disabled={pending} onClick={() => void assembleScenes()}>{pending ? "جارٍ الدمج…" : "دمج المشاهد للمراجعة"}</button>
+            : pendingRecs
             ? <button className="btn primary" type="button" onClick={() => onFinalView?.("recitations")}>إلى التلاوات</button>
-            : !data.progress.canAssemble && data.progress.currentScene && onOpenScene
+            : data.progress.currentScene && onOpenScene
               ? <button className="btn primary" type="button" onClick={() => onOpenScene(data.progress.currentScene!)}>إلى المشاهد</button>
               : null}</div>
         </div>
