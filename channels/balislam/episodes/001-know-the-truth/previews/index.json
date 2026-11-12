@@ -10,5 +10,335 @@
     "note": "الفصل 4، المشاهد 1–15 · 77.9 ثانية · معاينة صامتة 1080p بتوقيت تقديري (لا تُنشر) · رفعها لا يعني اعتمادها فنيًا",
     "version": 1,
     "updatedAt": "2026-11-04T16:06:55.714Z"
+  },
+  "sb032-01-scale-landscape.mp4": {
+    "title": "032 · الميزان c1-s2…s5 أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:27:55.064Z",
+    "sha256": "8d21a7906f18f16cdb577544f7793b8f5b5a5792353ec2f52528224a854e8f5e",
+    "size": 2920864,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-01-scale-landscape",
+      "commit": "2e8728bf165d5ce0674218f0e03ca017c2706032",
+      "sha256": "8d21a7906f18f16cdb577544f7793b8f5b5a5792353ec2f52528224a854e8f5e",
+      "size": 2920864,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 2920864,
+          "sha256": "8d21a7906f18f16cdb577544f7793b8f5b5a5792353ec2f52528224a854e8f5e"
+        }
+      ]
+    }
+  },
+  "sb032-01-scale-portrait.mp4": {
+    "title": "032 · الميزان c1-s2…s5 عمودي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:04.523Z",
+    "sha256": "3fb4587163661ae0d73df4cd08d253e518decf1a543680ac2983874577fda803",
+    "size": 2407079,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-01-scale-portrait",
+      "commit": "bed7dd4f71950808ad323dba23ead1abdbe6d57b",
+      "sha256": "3fb4587163661ae0d73df4cd08d253e518decf1a543680ac2983874577fda803",
+      "size": 2407079,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 2407079,
+          "sha256": "3fb4587163661ae0d73df4cd08d253e518decf1a543680ac2983874577fda803"
+        }
+      ]
+    }
+  },
+  "sb032-02-cat-landscape.mp4": {
+    "title": "032 · القطة والمقارنة c1-s47…s50 أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:08.145Z",
+    "sha256": "16746ddabcfa289e409d19d73f67282869b165b9d8f430eb65128f1764eadc46",
+    "size": 2212716,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-02-cat-landscape",
+      "commit": "cb632d6d91b8f02149b7942836eadf258de3dec7",
+      "sha256": "16746ddabcfa289e409d19d73f67282869b165b9d8f430eb65128f1764eadc46",
+      "size": 2212716,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 2212716,
+          "sha256": "16746ddabcfa289e409d19d73f67282869b165b9d8f430eb65128f1764eadc46"
+        }
+      ]
+    }
+  },
+  "sb032-02-cat-portrait.mp4": {
+    "title": "032 · القطة والمقارنة c1-s47…s50 عمودي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:11.405Z",
+    "sha256": "ba5ab567c64772ac58576ea979f1992215d072859638da79be5fe29a7f625674",
+    "size": 1584569,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-02-cat-portrait",
+      "commit": "9fd0c2bf818b8c78faa6a9cd82073e071ca332b6",
+      "sha256": "ba5ab567c64772ac58576ea979f1992215d072859638da79be5fe29a7f625674",
+      "size": 1584569,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 1584569,
+          "sha256": "ba5ab567c64772ac58576ea979f1992215d072859638da79be5fe29a7f625674"
+        }
+      ]
+    }
+  },
+  "sb032-03-envelope-landscape.mp4": {
+    "title": "032 · الظرف c1-s54…s57 أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:14.987Z",
+    "sha256": "c102453a68915b70491d7373fcad06c034df9b4d28c5e50829870ddd82c73159",
+    "size": 2391456,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-03-envelope-landscape",
+      "commit": "5c973259bb1a5f9084ba7c4667ef3d194951eb04",
+      "sha256": "c102453a68915b70491d7373fcad06c034df9b4d28c5e50829870ddd82c73159",
+      "size": 2391456,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 2391456,
+          "sha256": "c102453a68915b70491d7373fcad06c034df9b4d28c5e50829870ddd82c73159"
+        }
+      ]
+    }
+  },
+  "sb032-04-chair-landscape.mp4": {
+    "title": "032 · الكرسي c1-s93…s97 أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:18.549Z",
+    "sha256": "24a6cb7339cf64392181f874dd5f10854442e4a5a7ecf5460601c0f557201115",
+    "size": 2748929,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-04-chair-landscape",
+      "commit": "43593158212dfc143cac5c716090f9e91eca9564",
+      "sha256": "24a6cb7339cf64392181f874dd5f10854442e4a5a7ecf5460601c0f557201115",
+      "size": 2748929,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 2748929,
+          "sha256": "24a6cb7339cf64392181f874dd5f10854442e4a5a7ecf5460601c0f557201115"
+        }
+      ]
+    }
+  },
+  "sb032-04-chair-portrait.mp4": {
+    "title": "032 · الكرسي c1-s93…s97 عمودي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:22.389Z",
+    "sha256": "9975150a5370c4c10802b52168d899907aa5bfcbcffd10578ec372688ef6fe99",
+    "size": 2417992,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-04-chair-portrait",
+      "commit": "84ccb53795d544f5b260988cc3cee6ec92dd6635",
+      "sha256": "9975150a5370c4c10802b52168d899907aa5bfcbcffd10578ec372688ef6fe99",
+      "size": 2417992,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 2417992,
+          "sha256": "9975150a5370c4c10802b52168d899907aa5bfcbcffd10578ec372688ef6fe99"
+        }
+      ]
+    }
+  },
+  "sb032-05-phone-landscape.mp4": {
+    "title": "033 · الهاتف c1-s117…s119 (بلا تعليم فوق الصورة، 033) أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 2,
+    "updatedAt": "2026-11-12T05:10:29.799Z",
+    "sha256": "3b27fa3580055b3e42383f2e8dcccfba0c0b438b3fb2b71ae828d26a7ae512e2",
+    "size": 1622302,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-05-phone-landscape",
+      "commit": "fbdd10b7f7da5809720c764a193b1bc65b96e01a",
+      "sha256": "3b27fa3580055b3e42383f2e8dcccfba0c0b438b3fb2b71ae828d26a7ae512e2",
+      "size": 1622302,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 1622302,
+          "sha256": "3b27fa3580055b3e42383f2e8dcccfba0c0b438b3fb2b71ae828d26a7ae512e2"
+        }
+      ]
+    }
+  },
+  "sb032-05-phone-portrait.mp4": {
+    "title": "033 · الهاتف c1-s117…s119 (بلا تعليم فوق الصورة، 033) عمودي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 2,
+    "updatedAt": "2026-11-12T05:10:33.499Z",
+    "sha256": "af28d64e59327cd76dc6732262d0fdc86ca2228ea6816d329a2fcc185b777b69",
+    "size": 1271904,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-05-phone-portrait",
+      "commit": "830f9d96cc2245940905b97338b87ef97ea1e1bb",
+      "sha256": "af28d64e59327cd76dc6732262d0fdc86ca2228ea6816d329a2fcc185b777b69",
+      "size": 1271904,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 1271904,
+          "sha256": "af28d64e59327cd76dc6732262d0fdc86ca2228ea6816d329a2fcc185b777b69"
+        }
+      ]
+    }
+  },
+  "sb032-06-night-landscape.mp4": {
+    "title": "032 · الجلوس الليلي ⚑ c1-s127…s130 أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:32.704Z",
+    "sha256": "cddfb6ba87eab80925f08fd8be8128556763d6ba06250d160c7537922f4b9fa2",
+    "size": 1347367,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-06-night-landscape",
+      "commit": "a91a64dd1f487072233679151065259a412add9d",
+      "sha256": "cddfb6ba87eab80925f08fd8be8128556763d6ba06250d160c7537922f4b9fa2",
+      "size": 1347367,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 1347367,
+          "sha256": "cddfb6ba87eab80925f08fd8be8128556763d6ba06250d160c7537922f4b9fa2"
+        }
+      ]
+    }
+  },
+  "sb032-07-return-landscape.mp4": {
+    "title": "032 · الرد والاعتذار c1-s135…s139 أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:36.139Z",
+    "sha256": "62ddac84efb6cb57c52e0a07b5b736c9ee5847040d998ddd53886d8cbcd70ed9",
+    "size": 1607610,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-07-return-landscape",
+      "commit": "9d85a2f2298d7365006437e2620e732857cb3422",
+      "sha256": "62ddac84efb6cb57c52e0a07b5b736c9ee5847040d998ddd53886d8cbcd70ed9",
+      "size": 1607610,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 1607610,
+          "sha256": "62ddac84efb6cb57c52e0a07b5b736c9ee5847040d998ddd53886d8cbcd70ed9"
+        }
+      ]
+    }
+  },
+  "sb032-07-return-portrait.mp4": {
+    "title": "032 · الرد والاعتذار c1-s135…s139 عمودي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:39.489Z",
+    "sha256": "cc0a661d6399085954d10cbcbff02228842536b13df2fb650d69066c75583e55",
+    "size": 1672127,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-07-return-portrait",
+      "commit": "0a502d99d0940c4fdb172feb3710aee7b3c92cb5",
+      "sha256": "cc0a661d6399085954d10cbcbff02228842536b13df2fb650d69066c75583e55",
+      "size": 1672127,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 1672127,
+          "sha256": "cc0a661d6399085954d10cbcbff02228842536b13df2fb650d69066c75583e55"
+        }
+      ]
+    }
+  },
+  "sb032-08-listen-landscape.mp4": {
+    "title": "032 · الاستماع c1-s145…s146 أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-11T21:28:42.535Z",
+    "sha256": "69d2fcc4ebe8825233c7931b0f47b57a64cf81d350301be01c32a5a75d3254b8",
+    "size": 964352,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-08-listen-landscape",
+      "commit": "7284e18042deba3abfafdc786c7fcf103f0bd635",
+      "sha256": "69d2fcc4ebe8825233c7931b0f47b57a64cf81d350301be01c32a5a75d3254b8",
+      "size": 964352,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 964352,
+          "sha256": "69d2fcc4ebe8825233c7931b0f47b57a64cf81d350301be01c32a5a75d3254b8"
+        }
+      ]
+    }
+  },
+  "sb032-09-recall-landscape.mp4": {
+    "title": "033 · تذكّر الميزان c1-s148…s150 أفقي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 2,
+    "updatedAt": "2026-11-12T05:10:36.592Z",
+    "sha256": "a43725d3d1e600b9396270f01a112d5bafd3fd7b74619033e0b4d4a191695531",
+    "size": 3443113,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-09-recall-landscape",
+      "commit": "0acf2b764fcb51ff832a65bd0f7ec9758740157e",
+      "sha256": "a43725d3d1e600b9396270f01a112d5bafd3fd7b74619033e0b4d4a191695531",
+      "size": 3443113,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 3443113,
+          "sha256": "a43725d3d1e600b9396270f01a112d5bafd3fd7b74619033e0b4d4a191695531"
+        }
+      ]
+    }
+  },
+  "sb032-09-recall-portrait.mp4": {
+    "title": "033 · تذكّر الميزان c1-s148…s150 عمودي صامت (جاهز للمراجعة)",
+    "note": "توقيت تقديري بلا صوت؛ ليس اعتمادًا",
+    "version": 1,
+    "updatedAt": "2026-11-12T05:10:40.182Z",
+    "sha256": "e53f21d943fbc0d221966067082eeaeb0622584c5ceef38378de52434f173244",
+    "size": 2277512,
+    "source": {
+      "type": "git-branch",
+      "ref": "refs/heads/previews/balislam/001-know-the-truth/sb032-09-recall-portrait",
+      "commit": "5e0a2b599468d8dd2883189e5fa1760ab3e48d21",
+      "sha256": "e53f21d943fbc0d221966067082eeaeb0622584c5ceef38378de52434f173244",
+      "size": 2277512,
+      "parts": [
+        {
+          "name": "part-000",
+          "size": 2277512,
+          "sha256": "e53f21d943fbc0d221966067082eeaeb0622584c5ceef38378de52434f173244"
+        }
+      ]
+    }
   }
 }
