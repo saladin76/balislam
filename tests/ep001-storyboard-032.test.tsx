@@ -193,6 +193,8 @@ describe("المرحلة الثانية: العناصر المعتمدة", () =>
     const html = renderToStaticMarkup(<svg><StoryPhone x={0} y={0} full={0.5} people={null} /></svg>);
     expect(html).not.toMatch(/<text/);
     expect(count(html, 'data-image="original"')).toBe(1);
+    // (033) لا تعليم فوق الصورة: الكشف هو اتساع الصورة الأصلية وحده
+    for (const f of frames(scene("c1-s118"), 6)) expect(markup(scene("c1-s118"), f)).not.toMatch(/data-reveal/);
     // الكشف في c1-s118 يتسع من القص حتى الأصل (يزيد ولا ينقص)
     const fulls = frames(scene("c1-s118"), 6).map((f) => Number(attrs(markup(scene("c1-s118"), f), "data-full")[0]));
     expect(fulls[0]).toBe(0);

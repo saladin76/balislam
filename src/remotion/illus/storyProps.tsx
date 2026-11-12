@@ -315,7 +315,6 @@ export const Ruler: React.FC<{ x: number; floor: number; h?: number; show?: numb
 
 /* ───────── الهاتف ───────── */
 
-const lerpN = (a: number, b: number, t: number) => a + (b - a) * Math.max(0, Math.min(1, t));
 
 export const PHONE_IMAGE = { x: -150, y: -230, w: 300, h: 290 } as const;
 /** نافذة القص على الصورة الأصلية نفسها: full 0 مقصوصة (بلا الرف والصندوق)، 1 كاملة */
@@ -328,7 +327,7 @@ export const phoneCrop = (full: number) => {
  * شاشة الهاتف بعين البطل: صورة واحدة (رجل يمد ذراعه، طفل يجفل، وفوقهما رف يسقط منه صندوق؛ people = الرجل والطفل).
  * القص نافذة على الصورة نفسها تتسع حتى الأصل، فلا صورة بديلة. نص الغضب أشرطة بلا حروف، والوسم الأحمر يبهت بالكشف.
  */
-export const StoryPhone: React.FC<{ x: number; y: number; full?: number; s?: number; show?: number; lines?: number; tag?: number; thumb?: number; man?: number; reveal?: number; people: React.ReactNode }> = ({ x, y, full = 0, s = 1, show = 1, lines = 3, tag = 1, thumb = 0, man = 0, reveal = 0, people }) => {
+export const StoryPhone: React.FC<{ x: number; y: number; full?: number; s?: number; show?: number; lines?: number; tag?: number; thumb?: number; man?: number; people: React.ReactNode }> = ({ x, y, full = 0, s = 1, show = 1, lines = 3, tag = 1, thumb = 0, man = 0, people }) => {
   const clip = useSvgId("phonecrop");
   if (show <= 0.001) return null;
   const W = 300, H = 560;
@@ -353,13 +352,6 @@ export const StoryPhone: React.FC<{ x: number; y: number; full?: number; s?: num
             {people}
           </g>
         </g>
-        {/* الاكتشاف: دائرة ذهبية حول الصندوق وخط من يد الرجل إليه (الصورة نفسها ثابتة، والتعليم فوقها) */}
-        {reveal > 0.01 ? (
-          <g data-reveal={reveal.toFixed(2)} opacity={Math.min(1, reveal * 1.5)}>
-            <circle cx={62} cy={-136} r={26 + 6 * (1 - reveal)} fill="none" stroke={GOLD} strokeWidth={4} />
-            <path d={`M${-10} ${-62} L${lerpN(-10, 44, reveal)} ${lerpN(-62, -118, reveal)}`} stroke={GOLD} strokeWidth={3} strokeDasharray="6 5" strokeLinecap="round" />
-          </g>
-        ) : null}
       </g>
       <rect data-crop="frame" x={c.x} y={c.y} width={c.w} height={c.h} rx={10} fill="none" stroke={mix(RED, GOLD, f)} strokeWidth={5} />
       {[80, 110, 140].slice(0, Math.max(0, Math.min(3, Math.ceil(lines)))).map((ly, i) => (

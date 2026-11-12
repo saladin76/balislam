@@ -1007,7 +1007,7 @@ const PhonePeople: React.FC = () => (
     <Figure x={160} y={0} scale={0.68} pose={POSES.flinch} look={LOOKS.boy} flip />
   </g>
 );
-type CafeState = { show: number; full: number; lines: number; tag: number; thumb: number; man: number; pose: PoseName; buzz?: number; reveal?: number };
+type CafeState = { show: number; full: number; lines: number; tag: number; thumb: number; man: number; pose: PoseName; buzz?: number };
 const cafeWorld = (frame: number, st: CafeState) => (
   <g>
     <Cafe frame={frame} />
@@ -1015,7 +1015,7 @@ const cafeWorld = (frame: number, st: CafeState) => (
     <CafeTable x={1020} frame={frame} />
     <Figure x={CAFE_HERO} y={GROUND - 30} scale={1.2} pose={POSES[st.pose]} look={hero} holding="phone" flip frame={frame} />
     {st.buzz !== undefined ? <BuzzArcs x={CAFE_HERO + 80} y={GROUND - 330} p={st.buzz} /> : null}
-    <StoryPhone x={PH[0]} y={PH[1]} s={PH_S} full={st.full} show={st.show} lines={st.lines} tag={st.tag} thumb={st.thumb} man={st.man} reveal={st.reveal ?? 0} people={<PhonePeople />} />
+    <StoryPhone x={PH[0]} y={PH[1]} s={PH_S} full={st.full} show={st.show} lines={st.lines} tag={st.tag} thumb={st.thumb} man={st.man} people={<PhonePeople />} />
   </g>
 );
 const cafeSpans = (st: CafeState, portrait = false, phoneMust = true): ShotSpan[] => [fig("hero", CAFE_HERO, 1.2, { must: !portrait && st.show < 0.05 }), ...(st.show > 0.5 ? [thing("phone", PH[0] - 190 * PH_S, PH[0] + 190 * PH_S, phoneMust)] : [])];
@@ -1102,9 +1102,9 @@ const CAFE_SHOTS: Record<string, Def> = {
       const tW = at("كاملا", 0.9);
       const kc = KC(portrait);
       const full = 0.5 * P(frame, tO, 22) + 0.5 * P(frame, tR + 10, 30);
-      const st: CafeState = { show: 1, full, lines: 3, tag: 1, thumb: 0.4 * (1 - P(frame, tO, 10)), man: P(frame, tP, 18), pose: frame < tK ? "sit-show" : frame < tV ? "sit" : "sit-show", reveal: P(frame, tK, 20) };
+      const st: CafeState = { show: 1, full, lines: 3, tag: 1, thumb: 0.4 * (1 - P(frame, tO, 10)), man: P(frame, tP, 18), pose: frame < tK ? "sit-show" : frame < tV ? "sit" : "sit-show" };
       return {
-        cam: [phoneCam(kc, portrait, 0, 1.24), kc(tO, PH[0], portrait ? 1.5 : 1.7, -170), kc(tX, PH[0], portrait ? 1.3 : 1.5, -100), kc(tK, PH[0], portrait ? 1.6 : 1.9, -230), phoneCam(kc, portrait, tW, 1.2)],
+        cam: [phoneCam(kc, portrait, 0, 1.24), kc(tO, PH[0], portrait ? 1.5 : 1.7, -170), kc(tX, PH[0], portrait ? 1.3 : 1.5, -100), phoneCam(kc, portrait, tK, 1.3), phoneCam(kc, portrait, tW, 1.2)],
         world: cafeWorld(frame, st),
         spans: [thing("photo", PH[0] - 170, PH[0] + 170)],
       };
@@ -1122,7 +1122,7 @@ const CAFE_SHOTS: Record<string, Def> = {
       const tO = at("آخر", 0.9);
       const kc = KC(portrait);
       const down = P(frame, tK, 24);
-      const st: CafeState = { show: 1 - down, full: 1, lines: 3, tag: 1, thumb: 0, man: 1 - 0.5 * P(frame, tO, 16), reveal: 1, pose: frame < tK ? "sit-show" : frame < tS ? "sit" : frame < tH ? "head-down" : "sit-show" };
+      const st: CafeState = { show: 1 - down, full: 1, lines: 3, tag: 1, thumb: 0, man: 1 - 0.5 * P(frame, tO, 16), pose: frame < tK ? "sit-show" : frame < tS ? "sit" : frame < tH ? "head-down" : "sit-show" };
       return {
         cam: portrait ? [kc(0, PH[0], 1.0, 20), kc(tK, CAFE_HERO + 60, 1.4), kc(tO, CAFE_HERO + 80, 1.5)] : [kc(0, 1180, 1.2), kc(tN, 1200, 1.26), kc(tK, 1000, 1.2), kc(tO, 980, 1.28)],
         world: <g>{cafeWorld(frame, st)}<Glow cx={CAFE_HERO} cy={GROUND - 260} r={160} color={GOLD} opacity={0.35 * P(frame, tO, 18)} /></g>,
