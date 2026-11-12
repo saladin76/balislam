@@ -51,7 +51,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
                 <figure key={f.name} className="sb-preview">
                   <video src={api.labPreviewUrl(channel, l.dir, f.name)} controls preload="metadata" playsInline />
                   <figcaption>
-                    <b>{f.title}</b> <Badge s={f.status} />
+                    <b>{ownerText(f.title)}</b> <Badge s={f.status} />
                     <span className="help">رفع رقم {num(f.version)} — {date(f.updatedAt)}</span>
                     {f.note ? <span className="help">{ownerText(f.note)}</span> : null}
                   </figcaption>
@@ -79,7 +79,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
           <h4>نتائج الفحوص التقنية</h4>
           <ul className="lab-checks">
             {l.checks.map((c) => (
-              <li key={c.name}><span className={c.ok ? "ok" : "err"}>{c.ok ? "✓" : "✗"}</span> <b>{c.name}</b>{c.detail ? ` — ${c.detail}` : ""}{c.at ? <span className="help"> ({date(c.at)})</span> : null}</li>
+              <li key={c.name}><span className={c.ok ? "ok" : "err"}>{c.ok ? "✓" : "✗"}</span> <b>{c.name}</b>{c.detail ? ` — ${ownerText(c.detail)}` : ""}{c.at ? <span className="help"> ({date(c.at)})</span> : null}</li>
             ))}
           </ul>
 
@@ -89,7 +89,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
           <h4>القرارات</h4>
           <ul>
             {l.decisions.map((d, i) => (
-              <li key={i}><Badge s={d.status} /> <b>{d.by}</b> — {date(d.at)} — {d.decision}</li>
+              <li key={i}><Badge s={d.status} /> <b>{d.by}</b> — {date(d.at)} — {ownerText(d.decision)}</li>
             ))}
           </ul>
 

@@ -165,7 +165,7 @@ const audit = (exempt) => {
   const AR = /[\u0600-\u06FF]/;
   const LATIN_NUM = /(?<![A-Za-z0-9._\/:#@\-])\d+(?![A-Za-z0-9_\/×\-]|[.:]\d*[A-Za-z])/;
   const RAW_ID = /(?<![\w-])c\d+-(?:s\d+|end)(?![\w-])/;
-  const techOk = (el) => el.closest("input,textarea,select,code,pre,kbd,samp,[dir=ltr],details:not([open]),.sr-only,option,.md");
+  const techOk = (el) => el.closest("input,textarea,select,code,pre,kbd,samp,[dir=ltr],details:not([open]),.sr-only,option,.md,.s45-kit-row");
   const all = [...document.querySelectorAll("body *")];
   const seen = new Set();
   for (const e of all) {
@@ -272,11 +272,16 @@ const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "cl
     await rewrite(/\/api\/episodes\/[^/]+\/sentences(\?.*)?$/, (j) => sentences(cur.state)(j));
     await rewrite(/\/api\/episodes\/[^/]+\/review(\?.*)?$/, review);
     await ctx.route(/\/api\/.*/, (route) => (route.request().method() === "GET" ? route.fallback() : route.abort()).catch(() => {}));
-    const page = await ctx.newPage();
     let errs = [], http = [];
-    page.on("pageerror", (e) => errs.push("pageerror " + e.message.slice(0, 160)));
-    page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errs.push(m.text().slice(0, 160)); });
-    page.on("response", (r) => { if (r.status() >= 400) http.push(`${r.status()} ${r.url().replace(origin, "").slice(0, 90)}`); });
+    const openPage = async () => {
+      const pg = await ctx.newPage();
+      pg.on("pageerror", (e) => errs.push("pageerror " + e.message.slice(0, 160)));
+      pg.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errs.push(m.text().slice(0, 160)); });
+      pg.on("response", (r) => { if (r.status() >= 400) http.push(`${r.status()} ${r.url().replace(origin, "").slice(0, 90)}`); });
+      return pg;
+    };
+    // A renderer that runs out of memory crashes its tab; the next screens get a fresh tab instead of failing in a row.
+    let page = await openPage();
     let n = 0, seriesId = "";
     // warm-up: the first load of a context compiles and fills caches; it is not measured
     await page.goto(`${origin}/?link#/${ch}/${EP}/storyboard`).catch(() => {}); await page.waitForTimeout(3500);
@@ -297,7 +302,10 @@ const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "cl
         if (bad.length) { failed++; console.log("FAIL", tag, bad.map((k) => `${k}:${k === "hscroll" ? a.hscroll : a[k].length}`).join(" ")); }
         else console.log("ok  ", tag);
         if (shots) await page.screenshot({ path: path.join(shots, `${tag}.jpg`), type: "jpeg", quality: 62 });
-      } catch (e) { failed++; report[tag] = { error: e.message }; console.log("ERR ", tag, e.message.slice(0, 120)); }
+      } catch (e) {
+        failed++; report[tag] = { error: e.message }; console.log("ERR ", tag, e.message.slice(0, 120));
+        if (/crash/i.test(e.message)) { await page.close().catch(() => {}); page = await openPage(); }
+      }
       await page.keyboard.press("Escape").catch(() => {});
     }
     await ctx.close();

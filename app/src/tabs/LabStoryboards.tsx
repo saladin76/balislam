@@ -97,7 +97,7 @@ const Version: React.FC<{ channel: string; dir: string; e: StoryboardEntry; v: S
       </span>
       <span className="help" title={v.source && v.source !== v.file ? `${v.file} ← ${v.source}` : v.file}>النسخة {num(v.version)} — {date(v.uploadedAt)}</span>
       <span>{v.title}</span>
-      {v.note ? <span className="help">{ownerText(v.note)}</span> : null}
+      {v.note ? <span className="help" title={v.note}>{labText(v.note)}</span> : null}
       {v.decision ? (
         <span className="sbi-decision">
           قرار {v.decision.by} — {date(v.decision.at)}: {v.decision.note}
@@ -107,6 +107,10 @@ const Version: React.FC<{ channel: string; dir: string; e: StoryboardEntry; v: S
   </figure>
 );
 
+/** Lab notes name scenes by their id in episode 001 («c1-s39/s40»): shown as «المشهد ٣٩/٤٠» (the id's own number), Arabic digits. */
+const labText = (t: string) => ownerText(String(t)
+  .replace(/\bc\d+-s(\d+)((?:\/s\d+)*)/g, (_m, n: string, more: string) => `المشهد ${arDigits(n + more.replace(/\/s/g, "/"))}`))
+  .replace(/\s+\u00B7\s+/g, " — ");
 export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ channel, dir }) => {
   const [entries, setEntries] = useState<StoryboardEntry[] | null>(null);
   const [err, setErr] = useState("");
@@ -136,7 +140,7 @@ export const LabStoryboards: React.FC<{ channel: string; dir: string }> = ({ cha
         return (
           <section key={e.slot} className="sbi-entry">
             <div className="sbi-head">
-              <h5>{ownerText(e.title).replace(/\s+\u00B7\s+/g, " — ")}</h5>
+              <h5>{labText(e.title)}</h5>
               {e.order ? <span className="sbi-order">الأمر {arDigits(String(e.order))}</span> : null}
               <span className="sbi-tabs" role="tablist">
                 {e.versions.map((v) => (

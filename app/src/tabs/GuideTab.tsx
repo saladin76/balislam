@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { api } from "../api";
 import { Markdown } from "../ui/Markdown";
 import type { GuideIndex } from "../../../src/channel/guide";
+import { ownerText } from "../../../src/i18n/sceneNames";
 
 export const GuideTab: React.FC<{ channel: string }> = ({ channel }) => {
   const [index, setIndex] = useState<GuideIndex | null | undefined>(undefined);
@@ -44,7 +45,7 @@ export const GuideTab: React.FC<{ channel: string }> = ({ channel }) => {
         <nav>
           {index.entries.map((e) => (
             <button key={e.file} className={e.file === file ? "active" : ""} onClick={() => setFile(e.file)} title={e.summary}>
-              {e.title}
+              {ownerText(e.title)}
             </button>
           ))}
         </nav>
