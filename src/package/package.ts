@@ -17,7 +17,7 @@ import { measureMotion, motionSummary, MOTION_MIN, type MotionReport } from "../
 import { exemptForRender } from "../render/stillness";
 import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
-import { QUALITY, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
+import { qualitySpec, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
 import { unlink } from "node:fs/promises";
 
 export type PackageOptions = {
@@ -146,7 +146,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
     // قاعدة القناة: الحركة في 80% من الوقت على الأقل (الهدف 90%) لكل فيديو منشور
     const motion: { label: string; report: MotionReport }[] = [];
     const reportFile = path.join(dir, "motion-report.md");
-    const q = QUALITY[quality];
+    const q = qualitySpec(quality);
     if (stage === "episode") {
       // نسخة أساسية جديدة: تلغي الاعتماد السابق والشورتس القديمة (كانت من نسخة أخرى)
       for (const f of await readdir(dir)) if (/-short-\d+\.(mp4|[a-z]+\.srt)$/.test(f)) await unlink(path.join(dir, f));

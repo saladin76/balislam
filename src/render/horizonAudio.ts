@@ -22,7 +22,7 @@ import { quranFromScript } from "../quran/scriptText";
 import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { stageRenderFiles, defaultRenderMediaRoot, type RenderStageFile } from "../plan/renderStage";
 import { studioMediaNamespace } from "../plan/collect";
-import { QUALITY } from "./quality";
+import { qualitySpec } from "./quality";
 import { cleanMetadata } from "./episode";
 import { putEpisodePreview, removePreview } from "./episodePreviews";
 import { measureMotion } from "./motionMeter";
@@ -131,7 +131,7 @@ export const renderHorizonAudio = async (
   try {
     const serveUrl = sandbox.serveUrl;
     const composition = await selectComposition({ serveUrl, id: "dafatir-001-horizon-audio", inputProps: { audio }, browserExecutable: browserExecutable() });
-    const q = QUALITY.preview;
+    const q = qualitySpec("preview");
     await renderMedia({ serveUrl, composition, inputProps: { audio }, codec: "h264", scale: q.scale, crf: q.crf, x264Preset: q.x264Preset, audioCodec: "aac", audioBitrate: q.audioBitrate, colorSpace: "bt709", outputLocation: temp, browserExecutable: browserExecutable(), onProgress: ({ progress }) => log(`رندر ${Math.round(progress * 100)}%`) });
     await cleanMetadata(temp, { title: "دفاتر الزمن 001 — اللقطات الست", artist: channel.name });
     if (!(await decodes(temp))) throw new Error("الملف المرندر لا يعمل كاملًا؛ لم يُرفع شيء.");

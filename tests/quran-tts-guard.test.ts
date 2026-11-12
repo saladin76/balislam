@@ -91,6 +91,55 @@ describe("the ElevenLabs client runs the guard before any request", () => {
   });
 });
 
+describe("the test-only fake voice provider (work ٤): the guard runs before it, and it never runs outside tests", () => {
+  const withEnv = async (env: Record<string, string | undefined>, fn: () => Promise<void> | void) => {
+    const saved = Object.fromEntries(Object.keys(env).map((k) => [k, process.env[k]]));
+    for (const [k, v] of Object.entries(env)) if (v === undefined) delete process.env[k]; else process.env[k] = v;
+    try { await fn(); } finally { for (const [k, v] of Object.entries(saved)) if (v === undefined) delete process.env[k]; else process.env[k] = v; }
+  };
+
+  it("is refused outside a test run and beside a real key", async () => {
+    const { fakeVoiceRefusal } = await import("../src/voice/provider");
+    expect(fakeVoiceRefusal({ BAL_VOICE_PROVIDER: "fake" })).toMatch(/للاختبارات وحدها/);
+    expect(fakeVoiceRefusal({ BAL_VOICE_PROVIDER: "fake", BAL_E2E: "1", ELEVENLABS_API_KEY: "sk-real" })).toMatch(/مفتاح صوت حقيقي/);
+    expect(fakeVoiceRefusal({ BAL_VOICE_PROVIDER: "fake", VITEST: "true", ELEVENLABS_API_KEY: "sk-real" })).toMatch(/مفتاح صوت حقيقي/);
+    expect(fakeVoiceRefusal({ BAL_VOICE_PROVIDER: "fake", BAL_E2E: "1" })).toBeNull();
+    const { elevenLabsFromEnv } = await import("../src/voice/elevenlabs");
+    await withEnv({ BAL_VOICE_PROVIDER: "fake", VITEST: undefined, BAL_E2E: undefined, ELEVENLABS_API_KEY: undefined }, () => {
+      expect(() => elevenLabsFromEnv()).toThrow(/للاختبارات وحدها/);
+    });
+    await withEnv({ BAL_VOICE_PROVIDER: "fake", ELEVENLABS_API_KEY: "sk-real-looking" }, () => {
+      expect(() => elevenLabsFromEnv()).toThrow(/مفتاح صوت حقيقي/);
+    });
+    await withEnv({ BAL_VOICE_PROVIDER: "nonsense" }, () => { expect(() => elevenLabsFromEnv()).toThrow(/غير معروف/); });
+  });
+
+  it("a verse, ﴿…﴾ or the basmala never reaches the fake provider; ordinary narration gets a tone and even timings", async () => {
+    const calls: any[] = [];
+    (globalThis as any).__balFakeVoiceCalls = calls;
+    try {
+      await withEnv({ BAL_VOICE_PROVIDER: "fake", ELEVENLABS_API_KEY: undefined }, async () => {
+        const { elevenLabsFromEnv } = await import("../src/voice/elevenlabs");
+        const client = elevenLabsFromEnv()!;
+        await expect(client.tts("قال تعالى ﴿وأن ليس للإنسان إلا ما سعى﴾")).rejects.toBeInstanceOf(QuranTtsError);
+        await expect(client.tts("نص", { scene: { id: "c1-s2", template: "verse-card" } })).rejects.toBeInstanceOf(QuranTtsError);
+        await expect(client.tts("وأن ليس للإنسان إلا ما سعى", { verses: [VERSE] })).rejects.toBeInstanceOf(QuranTtsError);
+        await expect(client.sample("﴿قل هو الله أحد﴾")).rejects.toBeInstanceOf(QuranTtsError);
+        await expect(client.soundEffect("[آية: الإخلاص 1]")).rejects.toBeInstanceOf(QuranTtsError);
+        expect(calls).toHaveLength(0);
+        const r = await client.tts("الصَّبْرُ مِفْتَاحُ الفَرَجِ.");
+        expect(calls).toHaveLength(1);
+        expect(r.audio.byteLength).toBeGreaterThan(500);
+        expect(r.alignment!.characters.join("")).toBe("الصَّبْرُ مِفْتَاحُ الفَرَجِ.");
+        const again = await client.tts("الصَّبْرُ مِفْتَاحُ الفَرَجِ.");
+        expect(again.alignment).toEqual(r.alignment); // deterministic
+        const { fakeDurationFor } = await import("../src/voice/fakeVoice");
+        expect(fakeDurationFor("ثَلَاثُ كَلِمَاتٍ هُنَا")).toBeCloseTo(0.12 + 3 * 0.42 + 0.18, 3);
+      });
+    } finally { delete (globalThis as any).__balFakeVoiceCalls; }
+  });
+});
+
 describe("generateVoice: verse scenes never produce jobs; verse text never reaches the client", () => {
   let tmp = "";
   beforeAll(() => {
@@ -172,24 +221,37 @@ describe("every TTS call site goes through the guard", () => {
   const all = SOURCE_DIRS.flatMap(files).map((f) => ({ f, src: readFileSync(path.join(repo, f), "utf8") }));
 
   it("only the client talks to the voice service", () => {
+    // Work ٤: the HTTP calls live in the provider (src/voice/provider.ts); the client builds and guards every body.
     const talk = all.filter(({ src }) => /api\.elevenlabs\.io|\/v1\/text-to-speech|\/v1\/sound-generation/.test(src)).map(({ f }) => f);
-    expect(talk).toEqual([path.join("src", "voice", "elevenlabs.ts")]);
+    expect(talk).toEqual([path.join("src", "voice", "provider.ts")]);
+    // A provider is only ever driven by the client: nothing else calls speak / speakPlain / a provider soundEffect,
+    // and nothing else builds the providers.
+    const drives = all.filter(({ src }) => /provider\.(speak|speakPlain|soundEffect)\(/.test(src)).map(({ f }) => f);
+    expect(drives).toEqual([path.join("src", "voice", "elevenlabs.ts")]);
+    const builds = all.filter(({ f, src }) => f !== path.join("src", "voice", "fakeVoice.ts") && f !== path.join("src", "voice", "provider.ts")
+      && /elevenLabsHttpProvider\(|fakeVoiceProvider\(/.test(src)).map(({ f }) => f);
+    expect(builds).toEqual([path.join("src", "voice", "elevenlabs.ts")]);
   });
 
   it("inside the client every TTS / sound request body is built after the guard", () => {
     const src = readFileSync(path.join(repo, "src", "voice", "elevenlabs.ts"), "utf8");
-    // every text-to-speech post builds its body with bodyFor
-    const posts = [...src.matchAll(/post\(`\/v1\/text-to-speech[^;]*;/g)].map((m) => m[0]);
-    expect(posts.length).toBeGreaterThanOrEqual(3);
+    // every provider speech call receives a body built by bodyFor (the guard runs while it is built)
+    const posts = [...src.matchAll(/provider\.(speak|speakPlain)\([^;]*;/g)].map((m) => m[0]);
+    expect(posts.length).toBeGreaterThanOrEqual(2);
     for (const p of posts) expect(p, p).toMatch(/,\s*(body|bodyFor\()/);
     expect(src).toMatch(/const body = bodyFor\(/);
+    // and the provider's own requests only send the body they were handed
+    const prov = readFileSync(path.join(repo, "src", "voice", "provider.ts"), "utf8");
+    const provPosts = [...prov.matchAll(/post\(`\/v1\/(text-to-speech|sound-generation)[^;]*;/g)].map((m) => m[0]);
+    expect(provPosts.length).toBeGreaterThanOrEqual(4);
+    for (const p of provPosts) expect(p, p).toMatch(/,\s*body\)/);
     // bodyFor starts with the guard and builds the context with ttsContext
     const bodyFor = src.slice(src.indexOf("const bodyFor = "), src.indexOf("const caps = capsFor(model);", src.indexOf("const bodyFor = ")));
     expect(bodyFor).toMatch(/assertNoQuranForTts\(text/);
     expect(bodyFor).toMatch(/ttsContext\(ctx\.previousText/);
     expect(bodyFor).toMatch(/ttsContext\(ctx\.nextText/);
     const at = src.indexOf("const soundEffect = ");
-    const sfx = src.slice(at, src.indexOf("/v1/sound-generation", at));
+    const sfx = src.slice(at, src.indexOf("provider.soundEffect(", at));
     expect(sfx).toMatch(/assertNoQuranForTts\(/);
   });
 
