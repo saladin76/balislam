@@ -3,7 +3,8 @@ import { templateById } from "./templates";
 import type { PlanScene } from "./types";
 import type { EpisodeMedia } from "./media";
 import { recitationSeconds } from "../quran/recitationTimeline";
-import { HZ_META, hzEstimateSeconds } from "../remotion/dafatir/horizon/meta";
+import { HZ_META, hzEstimateSeconds, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
+import { timelineFromWords } from "../remotion/dafatir/horizon/timeline";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
 
@@ -55,6 +56,16 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
       // لا مدة الملف + ذيل التصميم (لا يجتمع صمت التسجيل مع الذيل ولا الذيل مع صمت ما قبل التلاوة)
       const base = voiced.timing ? voiced.timing.seconds : voiced.duration + (m?.tail ?? config.voice.tailSeconds);
       // أقل مدة بحسب التصميم (minEnd) مقدرة على التوقيت التقديري ثم مقيسة بنسبة طول الصوت الحقيقي
+      // استشهاد بصري صامت (الأمر 032): زمن قراءة الآية يُحسب على كلمات الصوت الحقيقي نفسها التي يرسم بها HorizonShot
+      // البطاقة، فلا يقصر المشهد عنه ولا يطول بتقدير؛ و0.9 ث بعده كما في التقدير (خروج البطاقة وقلب الصفحة)
+      if (props.verseText && props.verseKey && voiced.words?.length) {
+        try {
+          const vw = verseWindow(props, timelineFromWords(hzSentences(scene.narration), voiced.words.map((w) => ({ word: w.word, start: w.start, end: w.end })), 0));
+          if (vw) return Math.max(MIN_SECONDS, base, vw[1] + 0.9);
+        } catch {
+          // عدد الكلمات مختلف: يبقى الحساب أدناه
+        }
+      }
       const est = hzEstimateSeconds(scene.narration, shot, props);
       const plain = hzEstimateSeconds(scene.narration, shot);
       const extra = Math.max(0, est - plain);
