@@ -688,6 +688,7 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
   .shell-v3 .s3-play button, .shell-v3 .s3-tools button, .shell-v3 .sv-sup, .shell-v3 .sv-play { min-width: 44px; min-height: 44px; }
   .shell-v3 .sv-sup { vertical-align: middle; font-size: 14px; }
   .shell-v3 .ms-stp { min-width: 44px; min-height: 52px; }
-  .shell-v3 .ms-stp[aria-current="step"] small { display: block; font-size: 11px; line-height: 1.2; max-width: 82px; white-space: normal; }
+  .shell-v3 .ms-stp[aria-current="step"] small { display: block; font-size: 12px; line-height: 1.2; max-width: 82px; white-space: normal; }
+  .shell-v3 .ms-stp[aria-current="step"] .n { width: 30px; height: 30px; }
   .shell-v3 .ms-save, .shell-v3 .prep-count { font-size: 13px; }
 }
