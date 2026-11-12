@@ -1411,16 +1411,19 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
     nameAr: "باب القراءة: الحلقة القادمة",
     render: (c) => {
       const { frame, z, at, end, T, P } = kit(c);
-      const tDoor = at("باب", 0.06);
-      const tNext = at("الحلقة", 0.18);
-      const tNear = at("نقترب", 0.26);
-      const tMeanings = at("معاني", 0.3);
-      const tPrayer = at("صلاتنا", 0.42);
-      const tInter = at("نتفاعل", 0.44);
+      // السكريبت المعتمد (١١ نوفمبر): «وإذا كانت الصلاة تبدأ بالتكبير، فماذا عن الكلام الذي نقرؤه بعده؟ هناك ينفتح باب الحلقة القادمة:
+      // كيف نقرأ القرآن في الصلاة بفهم وانتباه؟ كانت هذه قراءتنا الأولى من كتاب «أول مرة أصلي» للدكتور خالد أبي شادي، من «زبدة الكتب».»
+      const tWhat = at("فماذا", 0.14);
+      const tNear = at("الكلام", 0.18);
+      const tMeanings = at("نقرؤه", 0.24);
+      const tDoor = at("باب", 0.32);
+      const tNext = at("الحلقة", 0.34);
+      const tPrayer = at("الصلاة", 0.44, 2);
+      const tInter = at("بفهم", 0.48);
       const tFirstW = at("الأولى", 0.62);
       const tAuthor = end("شادي", 0.84);
       const bookS = lerp(1.3, 1.9, P(tNear - 2, tMeanings + 12));
-      const tHearts = at("بقلوبنا", 0.5);
+      const tHearts = at("وانتباه", 0.5);
       const tFirst = at("قراءتنا", 0.58);
       const tBook = at("كتاب", 0.66);
       const tChannel = at("زبدة", 0.92);
@@ -1428,8 +1431,8 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const out = P(tFirst - 10, tFirst + 8);
       const bookIn = P(tFirst - 4, tFirst + 14);
       return {
-        focus: [[tDoor, 960, 460], [tNext, 960, 240], [tNear, 960, 440], [tMeanings, 960, 460], [tPrayer, 760, 600], [tInter, 960, 560], [tHearts, 960, 560], [tFirst, 1300, 500], [tFirstW, 1300, 380], [tBook, 1300, 500], [tAuthor, 700, 520], [tChannel, 700, 620]],
-        cam: [C(0, 960, 470, 1.25), C(tMeanings - 6, 960, 520, 1.15), C(tFirst - 8, 1000, 520, 1.0), C(tChannel - 6, 820, 600, 1.15)],
+        focus: [[tWhat, 620, 330], [tNear, 960, 440], [tMeanings, 960, 460], [tDoor, 960, 460], [tNext, 960, 240], [tPrayer, 760, 600], [tInter, 960, 560], [tHearts, 960, 560], [tFirst, 1300, 500], [tFirstW, 1300, 380], [tBook, 1300, 500], [tAuthor, 700, 520], [tChannel, 700, 620]],
+        cam: [C(0, 900, 440, 1.2), C(tDoor - 6, 960, 520, 1.15), C(tFirst - 8, 1000, 520, 1.0), C(tChannel - 6, 820, 600, 1.15)],
         world: (
           <g>
             <g opacity={1 - out}>
@@ -1440,14 +1443,15 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 <rect x={-320} y={0} width={320} height={480} rx={8} fill={z.paper} stroke={z.ink} strokeWidth={7} />
                 <circle cx={-280} cy={250} r={10} fill={z.ink} />
               </g>
-              {T("bq", 960, 790, "باب القراءة", 70, ["باب", 0.06], ["القراءة", 0.1], { font: "head" })}
+              {/* «فماذا عن الكلام الذي نقرؤه بعده؟» */}
+              <g opacity={1 - P(tDoor - 6, tDoor + 6)}>{T("wq", 620, 330, "؟", 150, ["فماذا", 0.14], undefined, { font: "head" })}</g>
+              {T("bq", 960, 790, "بفهم وانتباه", 66, ["بفهم", 0.48], ["وانتباه", 0.5], { font: "head" })}
               {/* «الحلقة القادمة»: بطاقة فسفورية فوق الباب */}
-              <g transform={`translate(960 ${lerp(120, 170, P(at("الحلقة", 0.18) - 4, at("الحلقة", 0.18) + 10))})`} opacity={P(at("الحلقة", 0.18) - 4, at("الحلقة", 0.18) + 6)}>
+              <g transform={`translate(960 ${lerp(120, 170, P(tNext - 4, tNext + 10))})`} opacity={P(tNext - 4, tNext + 6)}>
                 <rect x={-210} y={-50} width={420} height={92} rx={12} fill={z.hl} stroke={z.ink} strokeWidth={5} />
               </g>
-              {T("nx", 960, 188, "الحلقة القادمة", 62, ["الحلقة", 0.18], ["القادمة", 0.22])}
-              {/* «معاني ما نقرؤه»: كتاب مفتوح كبير داخل الباب، وصفحة تُقلب عند «نقرؤه» */}
-              {/* «نقترب»: الكتاب يكبر داخل الباب كأننا ندنو منه، وتُكتب سطور «معاني» على صفحتيه */}
+              {T("nx", 960, 188, "الحلقة القادمة", 62, ["الحلقة", 0.34], ["القادمة", 0.36])}
+              {/* «الكلام الذي نقرؤه بعده»: كتاب مفتوح يكبر، وتُكتب سطوره مع «نقرؤه»، وتُقلب صفحة مع «بعده» */}
               <g transform={`translate(960 440) scale(${bookS})`} opacity={P(tNear - 4, tNear + 8)}>
                 <path d="M-80 -34 Q-40 -54 0 -34 Q40 -54 80 -34 L80 44 Q40 24 0 44 Q-40 24 -80 44 Z M0 -34 L0 44" fill={z.paper} stroke={z.ink} strokeWidth={4} />
                 {[-14, 2, 18].map((dy, i) => (
@@ -1457,19 +1461,19 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                   </g>
                 ))}
                 {(() => {
-                  const f = P(at("نقرؤه", 0.38), at("نقرؤه", 0.38) + 16, (t) => t);
+                  const f = P(at("بعده", 0.26), at("بعده", 0.26) + 16, (t) => t);
                   const on = f > 0 && f < 1;
                   const x = 80 - 160 * f;
                   return on ? <path d={`M0 -34 Q${x / 2} ${-54 + 10 * Math.sin(Math.PI * f)} ${x} -34 L${x} 44 Q${x / 2} 24 0 44 Z`} fill={z.paper} stroke={z.ink} strokeWidth={3} /> : null;
                 })()}
               </g>
-              {/* «في صلاتنا»: مصلٍّ قائم يقرأ عند الباب */}
+              {/* «في الصلاة»: مصلٍّ قائم يقرأ عند الباب */}
               <InkPerson x={640} y={700} s={0.7} pose="fold" p={P(tPrayer - 4, tPrayer + 14)} z={z} dir={1} />
-              {/* «نتفاعل معه»: خيطان فسفوريان من الصفحة إلى القلب */}
+              {/* «بفهم»: خيطان فسفوريان من الصفحة إلى القلب */}
               <Stroke d="M900 520 Q910 560 945 585" p={P(tInter - 2, tInter + 12)} c={z.hl} w={12} />
               <Stroke d="M1020 520 Q1010 560 975 585" p={P(tInter + 2, tInter + 16)} c={z.hl} w={12} />
-              {/* «بقلوبنا»: قلب يكبر ويمتلئ عند «نتفاعل» */}
-              <path d={heartPath(960, 610, 44 + 10 * Math.sin(Math.PI * P(at("نتفاعل", 0.44) - 2, at("نتفاعل", 0.44) + 16)))} fill={P(at("نتفاعل", 0.44), at("نتفاعل", 0.44) + 10) > 0.5 ? z.ink : z.paper} stroke={z.ink} strokeWidth={6} opacity={P(tHearts - 4, tHearts + 8)} />
+              {/* «وانتباه»: قلب يكبر ويمتلئ */}
+              <path d={heartPath(960, 610, 44 + 10 * Math.sin(Math.PI * P(tHearts - 2, tHearts + 16)))} fill={P(tHearts, tHearts + 10) > 0.5 ? z.ink : z.paper} stroke={z.ink} strokeWidth={6} opacity={P(tHearts - 4, tHearts + 8)} />
             </g>
             {/* قراءتنا الأولى من الكتاب، من زبدة الكتب */}
             <g transform={`translate(${lerp(1900, 1340, bookIn)} 460) rotate(-3)`} opacity={bookIn}>
