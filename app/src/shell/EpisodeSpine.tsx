@@ -40,6 +40,21 @@ export const stepsDone = (w: Pick<SceneProductionRead, "script" | "storyboard" |
   Boolean(w?.progress.publishAllowed),
 ];
 
+/**
+ * KI-054 (D121): plan errors that stop the final file and are known now (a plate with no picture, a template not in
+ * the channel's library), one line per affected scene with its reason. Informative: «اعتمد التجهيز» is not refused.
+ */
+export const PlanErrorsItem: React.FC<{ errors: { scene: string; message: string }[]; order: string[] }> = ({ errors, order }) => {
+  if (!errors.length) return null;
+  const shown = errors.slice(0, 6);
+  return (
+    <li className="is-warn spine-plan-errors"><i aria-hidden="true">!</i>
+      <span>تمنع النسخة النهائية<small>أصلحها الآن من إعدادات المشهد، فلن تُصنع النسخة النهائية وهي باقية:</small>
+        <small>{shown.map((e, i) => <React.Fragment key={`${e.scene}-${i}`}>{i ? <br /> : null}{sceneName(order, e.scene)}: {e.message}</React.Fragment>)}
+          {errors.length > shown.length ? <><br />و{arNum(errors.length - shown.length)} غيرها.</> : null}</small></span></li>
+  );
+};
+
 type Props = {
   episodeId: string; channelId: string; tab: StepTab; scriptErrors: Issue[]; onScriptLine: (line: number) => void;
   refreshKey: number;
@@ -203,6 +218,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
             ) : null}
             <li className={prep && !prep.boardsRecorded ? "is-warn" : undefined}><i aria-hidden="true">{prep && !prep.boardsRecorded ? "!" : <Icon name="check" />}</i>
               <span>اللوحات<small>{prep && !prep.boardsRecorded ? "راجعها كلها؛ ملاحظتك بجوار الزر اختيارية" : "سُجّلت مراجعتها"}</small></span></li>
+            <PlanErrorsItem errors={prep?.planErrors ?? []} order={w?.scenes.map((x) => x.id) ?? []} />
             {prep?.versesMissing.length ? (
               <li className="is-warn"><i aria-hidden="true">!</i><span>آيات بلا نصها<small>{arNum(prep.versesMissing.length)} في السكريبت</small></span></li>
             ) : null}

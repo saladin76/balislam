@@ -30,6 +30,7 @@ import { scriptTextDivergence, textDivergenceRefusal, type TextDivergence } from
 import { loadChannel } from "../channel/index";
 import { approveStoryboard as recordBoards, loadStoryboard, recordChangedBoards, storyboardStatus, versesMissingText } from "../plan/storyboard";
 import { checkVisualStoryboardSignoff } from "../plan/storyboardVisualGate";
+import { earlyPlanErrors } from "../plan/validate";
 import {
   assertSceneOwner, decideSceneProduction, inspectSceneProduction, requireScriptApproved,
 } from "./sceneService";
@@ -64,6 +65,12 @@ export type PreparationBlockers = {
    * script would hold text that is never voiced.
    */
   textDiverged: TextDivergence;
+  /**
+   * KI-054 (D121): plan errors the final file refuses that are known from the plan now (a documentary plate with no
+   * picture, a template or element not in the channel's library), per scene. Informative in step ١ «قبل أن تعتمد»:
+   * it does not block «اعتمد التجهيز»; the Master gate refuses them exactly as before.
+   */
+  planErrors: { scene: string; message: string }[];
   /** The episode's own tone (plan.tone) and the channel's, to preselect the choice in step ١. */
   episodeTone: string | null;
   channelTone: string | null;
@@ -98,6 +105,10 @@ const channelToneNow = (): string | null => {
   try { return loadChannel().voice?.tone ?? null; } catch { return null; }
 };
 
+const channelNow = (id?: string) => {
+  try { return loadChannel(id || undefined); } catch { return undefined; }
+};
+
 export const preparationBlockers = async (episode: string): Promise<PreparationBlockers> => {
   const scriptPath = await resolveScriptPath(episode);
   const check = checkForChannel(parseScript(await readFile(scriptPath, "utf8"), scriptPath));
@@ -110,6 +121,7 @@ export const preparationBlockers = async (episode: string): Promise<PreparationB
     boardsRecorded: status.ok && Boolean(status.audit?.note?.trim()),
     toneMissing: scenesWithoutTone(plan, channelToneNow(), await toneMapScenesFor(scriptPath)),
     textDiverged: await scriptTextDivergence(scriptPath, plan),
+    planErrors: earlyPlanErrors(plan, channelNow(plan.channel)),
     episodeTone: isTone(plan.tone) ? plan.tone : null,
     channelTone: channelToneNow(),
   };
