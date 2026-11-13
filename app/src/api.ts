@@ -217,7 +217,9 @@ export type PreparationRead = { scriptErrors: number; versesMissing: string[]; b
   /** QA balislam 2: scenes whose board text differs from the script, and script lines no scene says (block the approval). */
   textDiverged?: { scenes: string[]; unplaced: number[] };
   /** M1: narrated scenes with no tone at all (none of their own, the episode's or the channel's). */
-  toneMissing?: string[]; episodeTone?: string | null; channelTone?: string | null };
+  toneMissing?: string[]; episodeTone?: string | null; channelTone?: string | null;
+  /** KI-054: plan errors the final file refuses, known now, per scene (informative in «قبل أن تعتمد»). */
+  planErrors?: { scene: string; message: string }[] };
 export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number;
   /** M1: narrated scenes with no tone at all; the stopped line offers the episode tone right there. */
   toneMissing?: string[] };

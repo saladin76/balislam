@@ -150,7 +150,12 @@ for (const channel of selectedChannels()) {
       // «دفاتر الزمن»: a new episode's scenes are documentary plates; the owner uploads each plate's picture from the
       // scene settings (here a generated pattern, never a real or generated photograph).
       const plates: Record<string, string> = {};
-      for (const x of plan.chapters.flatMap((ch: any) => ch.scenes).filter((x: any) => x.template === "doc-plate" && !x.props?.image)) {
+      const bare = plan.chapters.flatMap((ch: any) => ch.scenes).filter((x: any) => x.template === "doc-plate" && !x.props?.image);
+      // KI-054: a plate with no picture is said in step ١ «قبل أن تعتمد», per scene, not first at the final file.
+      const platesEarly = await st.call("GET", `episodes/${EP}/approve-preparation`);
+      ok("blockers before the plate pictures", platesEarly);
+      expect(platesEarly.body.planErrors.map((e: any) => e.scene), "plates without a picture, named early").toEqual(bare.map((x: any) => x.id));
+      for (const x of bare) {
         const png = path.join(st.root, `${x.id}-plate.png`);
         ffmpeg(["-f", "lavfi", "-i", "mandelbrot=s=1280x720:end_pts=1", "-frames:v", "1", png]);
         const up = await st.call("POST", `episodes/${EP}/images`, { name: `${x.id}.png`, scene: x.id, data: (await readFile(png)).toString("base64") });
@@ -170,7 +175,7 @@ for (const channel of selectedChannels()) {
       expect((await st.call("POST", `episodes/${EP}/scene-av-assemble`)).status, "assemble before preparation").toBe(409);
       const blockers = await st.call("GET", `episodes/${EP}/approve-preparation`);
       ok("blockers", blockers);
-      expect(blockers.body, "nothing blocks the preparation").toMatchObject({ scriptErrors: 0, versesMissing: [], toneMissing: [], textDiverged: { scenes: [], unplaced: [] } });
+      expect(blockers.body, "nothing blocks the preparation").toMatchObject({ scriptErrors: 0, versesMissing: [], toneMissing: [], textDiverged: { scenes: [], unplaced: [] }, planErrors: [] });
       await contentSave("after step ١ edits");
 
       // ── 2. «اعتمد التجهيز»: once, from this page only, then the drafts prepare on their own ─────────────
