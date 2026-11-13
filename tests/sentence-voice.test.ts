@@ -9,6 +9,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vites
 import { encodeWav } from "../src/remotion/dafatir/audio/compose";
 import type { ElevenLabsClient } from "../src/voice/elevenlabs";
 import type { Plan } from "../src/plan/types";
+import { heavyTimeout } from "./helpers/heavyTimeout";
 import {
   addSentenceAfter, cutPoints, deleteSentence, mergeWithNext, reconcileScene, sceneNarration, sentencesFor, splitNarration, splitSentence,
 } from "../src/voice/sentences";
@@ -172,7 +173,8 @@ describe("أفعال الجمل تحفظ المعرّفات والترتيب (د
   });
 });
 
-describe("على القرص: المالك على جهازه، القص، التوليد، التركيب", () => {
+// KI-059: each test imports the voice modules and cuts real audio; under load the 5 s default was exceeded. Same checks.
+describe("على القرص: المالك على جهازه، القص، التوليد، التركيب", { timeout: heavyTimeout(5_000) }, () => {
   beforeEach(() => { process.env.BAL_CHANNEL = "balislam"; freshEpisode(); });
 
   it("كل فعل للمالك على جهازه وحده، والقراءة لا", async () => {
