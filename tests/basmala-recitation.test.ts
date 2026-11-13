@@ -152,7 +152,7 @@ describe("the basmala in the sentence path", () => {
 
 describe("the D35 gates and the Studio", () => {
   it("pending basmala: conditional approval only, a marked draft, no Master", () => {
-    expect(src("src/studio/sceneService.ts")).toMatch(/basmala \? manual\[BASMALA_KEY\]/);
+    expect(src("src/studio/sceneInputs.ts")).toMatch(/basmala \? manual\[BASMALA_KEY\]/);
     expect(src("src/render/shotsPreview.ts")).toContain("media.voice[s.id]?.basmala?.pending === true");
     expect(src("src/render/episode.ts")).toContain("والبسملة بلا تسجيلك المعتمد");
     expect(src("src/remotion/scenes/Episode.tsx")).toContain("media.voice[scene.id]?.basmala?.pending");

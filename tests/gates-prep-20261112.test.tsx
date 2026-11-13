@@ -63,7 +63,7 @@ describe("balislam 2 · one text: script.md and the scene say the same words", (
     expect(src("src/studio/preparation.ts")).toContain("textDivergenceRefusal(blockers.textDiverged");
     expect(src("src/studio/preparation.ts")).toContain("return textDivergenceRefusal(d, plan)");
     expect(src("src/studio/afterPreparation.ts")).toContain("textBlocks");
-    expect(src("src/studio/sceneService.ts")).toContain("await textBlocks(current.scriptPath, plan)");
+    expect(src("src/studio/sceneLedgerState.ts")).toContain("await textBlocks(current.scriptPath, plan)");
     expect(src("app/src/shell/EpisodeSpine.tsx")).toContain("اللوحات والسكريبت");
     // the reverse direction: «عدّل النص» and the scene editor write script.md too
     expect(src("src/voice/sentenceVoice.ts")).toContain("await syncScriptNarration(scriptPath, before, narration)");
@@ -232,7 +232,7 @@ describe("balislam 9 / zubdat D-7 / dafatir M1–M3 · preparation says what it 
 
 describe("dafatir M5 · «تغيّر بعد التجهيز» keeps every re-opened scene", () => {
   it("the read model lists every scene re-opened and not approved since; a script-only change is said", () => {
-    const svc = src("src/studio/sceneService.ts");
+    const svc = src("src/studio/sceneLedgerState.ts");
     expect(svc).toContain("const a = afterPreparationOf(data.history, s.id);");
     expect(svc).toContain("scriptOnly: Boolean(last.change.script) && !last.change.scenes.length");
     const html = renderToStaticMarkup(<AfterPreparationList scenes={[]} scriptOnly name={(id) => id} onOpenScene={() => {}} />);
@@ -242,7 +242,7 @@ describe("dafatir M5 · «تغيّر بعد التجهيز» keeps every re-open
 
 describe("gates · the order is checked before any file, in the owner's words", () => {
   it("assembly, Master and publish refusals come before ffprobe", () => {
-    const svc = src("src/studio/sceneService.ts");
+    const svc = src("src/studio/sceneDecisions.ts");
     const at = svc.indexOf("await gateOrderRefusal(p, command, current.scriptPath);");
     expect(at).toBeGreaterThan(0);
     expect(at).toBeLessThan(svc.indexOf('} else if (command.action === "assemble") {'));

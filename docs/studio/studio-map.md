@@ -13,7 +13,7 @@
 ### استوديو واحد للقنوات الثلاث
 - يعمل على جهاز المالك وحده: `cd ~/balislam && npm run app` ← `scripts/studio.mjs`، على **`http://127.0.0.1:4321`**.
 - **نسخة واحدة دائمًا:** إن كان المنفذ 4321 مشغولًا باستوديو من المجلد نفسه، يغلقه التشغيل الجديد بلطف ويأخذ مكانه (ويغلق بقايا 4322–4329). وإن كان مشغولًا ببرنامج آخر يقول ذلك بالعربية ويتوقف. لا انتقال صامت إلى 4322 (`strictPort` في `app/vite.config.ts`، و`scripts/studioInstance.mjs`).
-- **سياق المالك (بلا كلمة مرور):** كل طلب من الصفحة نفسها على 127.0.0.1 هو المالك. الطلب من عنوان أو موقع آخر يُرفض 403. السجل موقَّع بمفتاح الجهاز (`assertSceneOwner` في `src/studio/sceneService.ts`، و`src/studio/ownerContext.ts`).
+- **سياق المالك (بلا كلمة مرور):** كل طلب من الصفحة نفسها على 127.0.0.1 هو المالك. الطلب من عنوان أو موقع آخر يُرفض 403. السجل موقَّع بمفتاح الجهاز (`assertSceneOwner` في `src/studio/sceneGates.ts`، و`src/studio/ownerContext.ts`).
 - **القنوات:** «بالإسلام» (`balislam`)، و«دفاتر الزمن» (`dafatir-alzaman`)، و«زبدة الكتب» (`zubdat-alkutub`). لكل قناة مكتبتها وهويتها وقواعدها، ولا يعرض الاستوديو لقناة إلا ما يخصها.
 
 ### «كل الأماكن نسخة واحدة» (D101)
@@ -233,6 +233,7 @@
 | D119 | ١٣ نوفمبر | **فحص النطق المحلي (العمل ٩، بإذن المالك):** في «الاتصالات والمفاتيح» قسم «فحص النطق» («فحص النطق غير مثبّت» حتى «ثبّت فحص النطق» بضغطة بعد رؤية الحجم، ثم «قِس الإنذار الكاذب»، ثم «فعّل فحص النطق»)؛ وبعد التفعيل سطر «كلمة قد تكون نُطقت خطأ: …» تحت الجملة. تفريغ محلي بـ faster-whisper والصوت لا يغادر الجهاز، ولا يُفحص صف آية ولا بسملة، والتنبيه لا يمنع الاعتماد. مطفأ حتى يُقاس ويُقبل | مشترك | (هذا PR) |
 | D120 | ١٣ نوفمبر | **حذف المسارات القديمة (العمل ٧):** حُذف كود سجل المراحل الست واعتماد الصوت المنفصل وتوقيع السكريبت القديم ومراجعة المشاهد القديمة وأمرا `voice-review` و`scenes-review`؛ مساراتها في الخادم 410 لكل طلب ولا تقرأ شيئًا. وما بقي منها على جهاز المالك ينقله `npx bal migrate legacy` آليًا مع كل تشغيل للاستوديو إلى `.studio/legacy-archive/` بعد نسخة في `~/balislam-backup/legacy-migration-<الوقت>/`، ولا يصير قرار قديم اعتمادًا. لا تغيير في الشاشات | مشترك | (هذا PR) |
 | D122 | ١٣ نوفمبر | **تقسيم خادم الاستوديو (العمل ٨، الخادم):** `app/server/extra.ts` وُزّع بحسب المسؤولية على `app/server/routes/` (الصيانة، النظرة العامة، سلة الحلقات، التجهيز، النشر، المختبرات، المعاينات، السلاسل، القناة، الصوت، المهام) و`jobQueue.ts` (طابور المهام و«مشغول») و`routeContext.ts` (`RouteCtx` و`ownerRefusal`)؛ كل مسار وطريقته وحالته وردّه وفحوصه كما هي، ويحرسها جرد المسارات `tests/server-route-inventory.test.ts`. لا تغيير في الشاشات | مشترك | (هذا PR) |
+| D123 | ١٣ نوفمبر | **تقسيم سجل «إنتاج المشاهد» (العمل ٨):** `src/studio/sceneService.ts` يبقى الوحدة العامة التي يستوردها الجميع، وانفصلت البوابات عن عمليات الملفات: `sceneLedgerStore.ts` (ملف السجل الموقَّع وقفله ومسارات المشهد والتجميع وMaster وبصماتها)، `sceneInputs.ts` (مدخلات الحلقة الحالية من القرص)، `sceneLedgerState.ts` (المطابقة و«تحديث بعد التجهيز» ونموذج القراءة تحت القفل)، `sceneGates.ts` (فحص المالك وكل بوابة)، `sceneDecisions.ts` (قرارات المالك وفحوصها بالترتيب). الكود منقول حرفًا. لا تغيير في الشاشات ولا في البوابات | مشترك | (هذا PR) |
 
 ---
 
@@ -493,7 +494,7 @@ before that he watches a pre-final version with narration and no recitation. Fin
   Approval still requires listening, reciter and rights evidence (`approveOwnRecitation`).
 
 **Owner identity — no passphrase (owner decision 9 Nov 2026, supersedes D49).** The Studio asks for no passphrase and
-keeps no session or token. `assertSceneOwner()` (`src/studio/sceneService.ts`, the one owner policy) allows:
+keeps no session or token. `assertSceneOwner()` (`src/studio/sceneGates.ts`, exported by `sceneService.ts`; the one owner policy) allows:
 - a Studio HTTP request whose **socket** address is loopback (`127.0.0.1`, `::1`, `::ffff:127.0.0.1`; no header is
   trusted), that passed the same-origin check (`isTrustedLocalRequest`: no `sec-fetch-site: cross-site`; on writes a
   loopback `Origin` equal to `Host`), and whose `Host` names this machine (DNS-rebinding guard). The API runs every
@@ -512,7 +513,7 @@ The isolated V2 review API is no longer mounted (`/api/studio-v2/*` returns 410)
 #### Local state, safe update and fresh start (D51)
 
 **Ignored local runtime state.** Only files that are definitely local (signed by the machine key, or bound to local-only
-bytes) are in `.gitignore`, each with its writer: `scene-production.v1.json` + `.lock` (`src/studio/sceneService.ts`,
+bytes) are in `.gitignore`, each with its writer: `scene-production.v1.json` + `.lock` (`src/studio/sceneLedgerStore.ts`,
 `stateFileFor` / `serialized`), `workflow-approvals.json` + `.lock` (legacy, archived by `bal migrate legacy`, D120), `voice-review.json`
 (legacy, archived by `bal migrate legacy`, D120), `previews/.preview-index.lock/` (`src/render/episodePreviews.ts`) and
 every atomic-write `*.tmp` under an episode folder, and (D60) the board record `storyboard.json` (its authority is the
@@ -538,7 +539,7 @@ before the reset, and the reset happens only if the owner types «نعم» a sec
 
 #### Robustness: reconcile by scene id, locks and atomic state (D59)
 
-**Ledger reconcile by scene id** (`reconcileSceneLedger`, `src/studio/sceneService.ts`). Every ledger operation reconciles
+**Ledger reconcile by scene id** (`reconcileSceneLedger`, `src/studio/sceneLedgerState.ts`). Every ledger operation reconciles
 the signed state with the episode as it is now:
 - a scene id still present keeps its status and approval; if its own input fingerprint (`sourceSha256`: its content, its
   board record, its narration clip, its recitation) changed it is re-opened by `reviseSceneInput` (queued stays queued,
@@ -697,7 +698,7 @@ Owner: «احذف هذه الخطوة من كل القنوات» (the dock «ت�
 «اعتمد التجهيز» happens once per episode. Afterwards a change to the script or the storyboard never asks for the boards,
 the storyboard or the script again and never locks step ٢.
 
-- **Where:** `withState` in `src/studio/sceneService.ts`, under the ledger lock, after reconciling:
+- **Where:** `withState` in `src/studio/sceneLedgerState.ts`, under the ledger lock, after reconciling:
   `carryForwardAfterPreparation`. It applies when the signed history holds the owner's `approve-script` and
   `approve-storyboard` (`preparedByOwner`), `storyboard.json` still has a review note, and the script or storyboard
   decision is no longer current or a board changed.
@@ -758,7 +759,7 @@ the storyboard or the script again and never locks step ٢.
 
 قرار صاحب المشروع الحالي: **المشهد وحدة إنتاج الصوت والصورة معًا**. تظهر أربع خطوات فقط (D40، ٩ نوفمبر): التجهيز، المشاهد، النسخة النهائية (مراجعة الحلقة كاملة 1× واعتماد Master)، ثم النشر.
 - **الخطوة ١ «التجهيز»** يعدّها النظام: الستوري بورد والسكريبت والبحث في خطوة واحدة، يراجعها المالك ويعتمدها بزر واحد «اعتمد التجهيز» (راجعته بنفسي). الخادم يكتب بالترتيب اعتماد السكريبت ثم سجل اللوحات ثم اعتماد الستوري بورد، كلٌّ بفحصه، ولا يُدمج سجل ولا يُضعف فحص؛ وبعده يبدأ تجهيز المشاهد وحده (مسودات فقط، لا اعتماد).
-- **«اعتمد التجهيز» مرة واحدة للحلقة** (قرار صاحب القناة، ١١ نوفمبر، لكل القنوات، D76؛ يُبطل إعادة الاعتماد في D60/D65/D66): ملاحظته اختيارية سطرًا واحدًا بلا حد أدنى. أي تعديل بعده في السكريبت أو الستوري بورد (لوحة، نص مشهد، صيغة آية أو استشهاد من محادثة) لا يطلب اعتماد اللوحات ولا الستوري بورد ولا السكريبت من جديد ولا يقفل الخطوة ٢: يسجّله السجل وحده بحدث نظام موقَّع «تحديث بعد التجهيز» (ما تغيّر، والبصمات القديمة والجديدة، والمصدر) ينقل الاعتماد إلى البصمات الجديدة (`carryForwardAfterPreparation` في `src/studio/sceneService.ts`)، وتُعاد للمراجعة العادية في الخطوة ٢ المشاهد التي تغيّرت مدخلاتها وحدها بسطر «تغيّر بعد التجهيز — راجعه»، ويُلغى التجميع وMaster والإذن كالمعتاد. آية بلا نصها أو خطأ في نص مشهد يمنع إنتاج ذلك المشهد وحده. لا شريط «اعتمد اللوحات المتغيّرة» ولا «اعتمد لوحة/تعديل هذا المشهد».
+- **«اعتمد التجهيز» مرة واحدة للحلقة** (قرار صاحب القناة، ١١ نوفمبر، لكل القنوات، D76؛ يُبطل إعادة الاعتماد في D60/D65/D66): ملاحظته اختيارية سطرًا واحدًا بلا حد أدنى. أي تعديل بعده في السكريبت أو الستوري بورد (لوحة، نص مشهد، صيغة آية أو استشهاد من محادثة) لا يطلب اعتماد اللوحات ولا الستوري بورد ولا السكريبت من جديد ولا يقفل الخطوة ٢: يسجّله السجل وحده بحدث نظام موقَّع «تحديث بعد التجهيز» (ما تغيّر، والبصمات القديمة والجديدة، والمصدر) ينقل الاعتماد إلى البصمات الجديدة (`carryForwardAfterPreparation` في `src/studio/sceneLedgerState.ts`)، وتُعاد للمراجعة العادية في الخطوة ٢ المشاهد التي تغيّرت مدخلاتها وحدها بسطر «تغيّر بعد التجهيز — راجعه»، ويُلغى التجميع وMaster والإذن كالمعتاد. آية بلا نصها أو خطأ في نص مشهد يمنع إنتاج ذلك المشهد وحده. لا شريط «اعتمد اللوحات المتغيّرة» ولا «اعتمد لوحة/تعديل هذا المشهد».
 - **الخطوة ٢ «المشاهد»** خطوة المالك: يُعرض كل مشهد جاهزًا بنصه وحركته وصوته، و«اعتمد» أولًا؛ وبعده أزرار الحل: «الحركة غير مناسبة» و«النبرة غير مناسبة» (بملاحظة) و«أعد توليد الصوت». لا يُطلب اعتماد الفويس أوفر منفصلًا عن معاينة المشهد النهائية، وإن وجب فحص نطقه تقنيًا قبل الرندر.
 
 - القرآن نصه في السكريبت المكتوب والمراجع، والتلاوة تسجيل بشري يرفعه المالك إلى Claude. لا توليد ولا جلب ولا اختيار قارئ خارجي؛ تُحفظ حقوق الملف وتوثيقه واستماعه.
@@ -767,7 +768,7 @@ the storyboard or the script again and never locks step ٢.
 - المراجعة البشرية لا ينوب عنها اختبار أو بصمة؛ السجلات التقنية والتحقق الأمني تعمل في الخلفية. لا يُنشر إلا Master نفسه بعد موافقة المالك.
 - تظل العقود التاريخية للمراحل الست محفوظة لأغراض الترحيل، ولا تُعامل قراراتها آليًا بوصفها اعتمادًا جديدًا.
 - **محرك اعتمادات واحد** (توحيد ٨ نوفمبر): سجل «إنتاج المشاهد» (`src/studio/sceneProduction.ts` و`sceneService.ts`) هو السلطة الوحيدة: اعتماد السكريبت ← اعتماد الستوري بورد (معًا بزر «اعتمد التجهيز»، سجلان منفصلان) ← كل مشهد بالصوت والصورة بالترتيب ← اعتماد التجميع بعد مشاهدته 1× وفحص كل وصلة بين مشهدين ← اعتماد Master (الملف نفسه) ← إذن النشر. ثلاثة قرارات مستقلة بعد المشاهد. سجل المراحل الست واعتماد الصوت المنفصل وتوقيع السكريبت القديم و`scene-review.json` للقراءة فقط، ولا تمنح ولا تمنع. _(D120: حُذف كودها، وأرشف `bal migrate legacy` بياناتها؛ القسم ح.)_
-- بقرار صاحب المشروع (٩ نوفمبر) لا كلمة مرور في الاستوديو: كل طلب من الاستوديو على جهازه (127.0.0.1 ومن الصفحة نفسها) هو المالك؛ السجل يبقى موقّعًا بمفتاح الجهاز، وكل البوابات الأخرى كما هي. (`assertSceneOwner` في `src/studio/sceneService.ts` و`src/studio/ownerContext.ts`؛ الطلب من عنوان آخر أو موقع آخر 403، وسطر الأوامر على جهازه بلا كلمة مرور.) تعديل مشهد يعيد فتحه وحده، ويلغي التجميع وMaster والإذن.
+- بقرار صاحب المشروع (٩ نوفمبر) لا كلمة مرور في الاستوديو: كل طلب من الاستوديو على جهازه (127.0.0.1 ومن الصفحة نفسها) هو المالك؛ السجل يبقى موقّعًا بمفتاح الجهاز، وكل البوابات الأخرى كما هي. (`assertSceneOwner` في `src/studio/sceneGates.ts` و`src/studio/ownerContext.ts`؛ الطلب من عنوان آخر أو موقع آخر 403، وسطر الأوامر على جهازه بلا كلمة مرور.) تعديل مشهد يعيد فتحه وحده، ويلغي التجميع وMaster والإذن.
 - **الدمج في main** (قرار صاحب المشروع، ٨ نوفمبر): وافق على دمج الاستوديو الموحد (#93) في `main` والنشر مباشرة؛ التطوير بعده يُراجَع ويُدمج في `main` مع بقاء بوابة الرفع إلزامية. وما زال ممنوعًا استعمال مفاتيح الخدمة (توليد الصوت) أو نشر أي فيديو إلا بإذن صريح منه في كل مرة.
 - **الصوت جملةً جملة** (قرار صاحب المشروع، ٩ نوفمبر، D50): «الجمل» تحت معاينة المشهد في الخطوة ٢ (وكل الحلقة في «أدوات وتفاصيل»): التعليق مقسوم آليًا، ولكل جملة نص يُعدَّل ونبرة ووقفة و«ولّد» لها وحدها ببوابات التشكيل والاعتماد نفسها؛ صوت المشهد يُركَّب من جمله في `voice/index.json` نفسه، وتعديل النص يكتب نص مشهده وحده فيُعاد فتحه وحده. الآية «ارفع التلاوة» ولا تُولَّد أبدًا. لا يُحذف تسجيل مدفوع (`takes` و`voice/superseded/`).
 - **أول نسخة من النبرات** (أمر صاحب القناة ١٢ نوفمبر، D104؛ يحل محل D79): `src/voice/tones.ts` = أول نسخة في الاستوديو حرفًا (`2d8bee52`، ٣١ أكتوبر): ست نبرات، وقيمة النبرة إعداد الصوت نفسه فوق `config.voice`، بلا طبقة قناة ولا أمر أداء، ولا نبرة افتراضية. الطبقات القديمة في `voice.profileHistory` للبصمة وحدها، و`grave` لم يعد نبرة. لا يُعاد شيء آليًا: ما وُلّد بنبرة سابقة صالح «وُلّدت بنبرة سابقة»، ويُعاد بأمر المالك «أعد توليد ما وُلّد بنبرة سابقة».

@@ -157,6 +157,11 @@ describe("لا فرع بالقناة في واجهة الاعتماد", () => {
     "app/src/workspace/scene-production.css",
     "src/studio/sceneProduction.ts",
     "src/studio/sceneService.ts",
+    "src/studio/sceneLedgerStore.ts",
+    "src/studio/sceneInputs.ts",
+    "src/studio/sceneLedgerState.ts",
+    "src/studio/sceneGates.ts",
+    "src/studio/sceneDecisions.ts",
     "src/studio/prepareAll.ts",
   ];
   const channelLiteral = /["'`](balislam|dafatir-alzaman|zubdat-alkutub)["'`]/;
