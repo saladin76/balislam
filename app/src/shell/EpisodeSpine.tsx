@@ -4,9 +4,12 @@ import { ScriptFixList } from "./ScriptFixList";
 import type { Issue } from "../../../src/script/types";
 import { EpisodeTonePick, PrepareAll } from "../workspace/PrepareAll";
 import { arNum, sceneName, sceneNames } from "../workspace/sceneNames";
+import { SCENES, arabicCountAr } from "../../../src/i18n/count";
 import { citationChip, citationNotice } from "./citationNotice";
 import { DockChip, DockText } from "./DockText";
 import { Icon } from "../ui/icons";
+import { CORRECTIONS, countAr } from "../../../src/i18n/count";
+import { OwnerText } from "../ui/OwnerText";
 
 export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
 
@@ -37,6 +40,21 @@ export const stepsDone = (w: Pick<SceneProductionRead, "script" | "storyboard" |
   Boolean(w?.progress.publishAllowed),
 ];
 
+/**
+ * KI-054 (D121): plan errors that stop the final file and are known now (a plate with no picture, a template not in
+ * the channel's library), one line per affected scene with its reason. Informative: «اعتمد التجهيز» is not refused.
+ */
+export const PlanErrorsItem: React.FC<{ errors: { scene: string; message: string }[]; order: string[] }> = ({ errors, order }) => {
+  if (!errors.length) return null;
+  const shown = errors.slice(0, 6);
+  return (
+    <li className="is-warn spine-plan-errors"><i aria-hidden="true">!</i>
+      <span>تمنع النسخة النهائية<small>أصلحها الآن من إعدادات المشهد، فلن تُصنع النسخة النهائية وهي باقية:</small>
+        <small>{shown.map((e, i) => <React.Fragment key={`${e.scene}-${i}`}>{i ? <br /> : null}{sceneName(order, e.scene)}: {e.message}</React.Fragment>)}
+          {errors.length > shown.length ? <><br />و{arNum(errors.length - shown.length)} غيرها.</> : null}</small></span></li>
+  );
+};
+
 type Props = {
   episodeId: string; channelId: string; tab: StepTab; scriptErrors: Issue[]; onScriptLine: (line: number) => void;
   refreshKey: number;
@@ -47,6 +65,8 @@ type Props = {
   onState?: (w: SceneProductionRead | null) => void;
   /** M1: set the episode tone (the page saves its own plan, so no later save drops it). */
   onEpisodeTone?: (tone: string) => Promise<void>;
+  /** D-5/M4: scenes whose designed drawing was made for an earlier text (shown words-only until updated). */
+  shotMismatch?: string[];
 };
 
 /**
@@ -55,7 +75,7 @@ type Props = {
  * وملاحظة اللوحات)، أو سطرًا وزرًا إلى مكان القرار حين يكون المالك خارج خطوته؛ وفي الخطوة ١ ورقة لاصقة
  * «قبل أن تعتمد». الحالة كلها من سجل «إنتاج المشاهد» على الخادم.
  */
-export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scriptErrors, onScriptLine, refreshKey, onTab, onDecided, onOpenSettings, onState, onEpisodeTone }) => {
+export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scriptErrors, onScriptLine, refreshKey, onTab, onDecided, onOpenSettings, onState, onEpisodeTone, shotMismatch = [] }) => {
   const [w, setW] = useState<SceneProductionRead | null>(null);
   const [err, setErr] = useState("");
   const [reviewed, setReviewed] = useState(false);
@@ -99,6 +119,12 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
 
   const done = stepsDone(w);
   const current = done.findIndex((d) => !d);
+  const div = prep?.textDiverged;
+  const diverged = Boolean(div && (div.scenes.length || div.unplaced.length));
+  const divergedLine = div ? [
+    div.scenes.length ? `نص ${sceneNames(w?.scenes.map((x) => x.id) ?? [], div.scenes, 4)} يختلف عن السكريبت` : "",
+    div.unplaced.length ? `ونص في السكريبت لا يقوله أي مشهد (السطر ${div.unplaced.slice(0, 4).map((n) => arNum(n)).join("، ")})` : "",
+  ].filter(Boolean).join(" ") : "";
   const here = stepOf(tab);
 
   /** ما يلزم الآن، وزره: إما قرار يُتخذ هنا، أو انتقال إلى مكانه */
@@ -106,6 +132,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
     if (!w) return null;
     if (!done[0]) {
       if (scriptErrors.length || (prep?.scriptErrors ?? 0) > 0) return { text: "", label: "افتح السكريبت", go: "script", fix: "script" };
+      // QA balislam 2: the boards and the script must say the same text before the approval (the server refuses too).
+      if (diverged) return { text: `اللوحات والسكريبت مختلفان: ${divergedLine}. عدّل نص المشهد أو السكريبت حتى يتطابقا، ثم اعتمد التجهيز.`, label: "افتح السكريبت", go: "script", fix: "verses" };
       if (prep?.versesMissing.length) return { text: `آيات بلا نصها في السكريبت: ${arNum(prep.versesMissing.length)}. اكتب نص كل آية في سطرها ثم اعتمد التجهيز.`, label: "افتح السكريبت", go: "script", fix: "verses" };
       // Outside step ١ the decision is not repeated: step ٢ shows its own one line and one button back.
       if (stepOf(tab) !== 0) return { text: "التجهيز (الستوري بورد والسكريبت) لم يُعتمد بعد.", label: "إلى التجهيز", go: "storyboard" };
@@ -113,7 +141,7 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
     }
     if (!done[1] && !w.progress.currentScene && (w.progress.recitationPending?.length ?? 0) > 0)
       return { text: "كل المشاهد معتمدة، وآيات بانتظار تلاواتها: شاهد المعاينة قبل النهائية وارفع التلاوات.", label: "إلى التلاوات", go: "review" };
-    if (!done[1]) return { text: `${sceneName(w.scenes.map((x) => x.id), w.progress.currentScene)} ينتظر قرارك: شاهده بنصه وحركته وصوته، ثم اعتمده. (معتمد ${arNum(w.progress.approvedScenes)} من ${arNum(w.progress.totalScenes)})`, label: "إلى المشهد الحالي", go: "episode" };
+    if (!done[1]) return { text: `${sceneName(w.scenes.map((x) => x.id), w.progress.currentScene)} ينتظر قرارك: شاهده بنصه وحركته وصوته، ثم اعتمده. (مشاهد معتمدة: ${arNum(w.progress.approvedScenes)} من ${arNum(w.progress.totalScenes)})`, label: "إلى المشهد الحالي", go: "episode" };
     // Step ٣ owns everything after the scenes: assembly, its review, making and approving the final file.
     // Step ٤ owns only the publish permission and the files (funnel audit 8 Nov, D36: no bouncing).
     if (!w.assembly) return { text: "كل المشاهد معتمدة. ادمجها في نسخة واحدة للمشاهدة الكاملة.", label: "إلى التجميع", go: "review" };
@@ -180,10 +208,17 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
         <aside className="ms-note ms-spine-note" aria-label="قبل أن تعتمد">
           <h2>قبل أن تعتمد</h2>
           <ul>
-            <li className={scriptFixes ? "is-warn" : undefined}><i aria-hidden="true">{scriptFixes ? "!" : <Icon name="check" />}</i>
-              <span>السكريبت<small>{scriptFixes ? <>{arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"}</> : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
+            <li className={scriptFixes || diverged ? "is-warn" : undefined}><i aria-hidden="true">{scriptFixes || diverged ? "!" : <Icon name="check" />}</i>
+              <span>السكريبت<small>{scriptFixes ? <>قبل الاعتماد: {countAr(scriptFixes, CORRECTIONS)}</> : diverged ? "لا يطابق اللوحات (انظر أدناه)" : "بلا أخطاء تمنع الاعتماد"}</small></span></li>
+            {diverged ? (
+              <li className="is-warn"><i aria-hidden="true">!</i><span>اللوحات والسكريبت<small>{divergedLine}. ما يُعتمد يجب أن يكون ما يُنطق.</small></span></li>
+            ) : null}
+            {shotMismatch.length ? (
+              <li className="is-warn"><i aria-hidden="true">!</i><span>الرسوم<small>{arabicCountAr(shotMismatch.length, SCENES)} {shotMismatch.length === 1 ? "رسمه صُمم" : "رسمها صُمم"} لنص سابق ({sceneNames(w?.scenes.map((x) => x.id) ?? shotMismatch, shotMismatch, 4)})؛ تُعرض بالكلمات وحدها حتى تُحدَّث.</small></span></li>
+            ) : null}
             <li className={prep && !prep.boardsRecorded ? "is-warn" : undefined}><i aria-hidden="true">{prep && !prep.boardsRecorded ? "!" : <Icon name="check" />}</i>
               <span>اللوحات<small>{prep && !prep.boardsRecorded ? "راجعها كلها؛ ملاحظتك بجوار الزر اختيارية" : "سُجّلت مراجعتها"}</small></span></li>
+            <PlanErrorsItem errors={prep?.planErrors ?? []} order={w?.scenes.map((x) => x.id) ?? []} />
             {prep?.versesMissing.length ? (
               <li className="is-warn"><i aria-hidden="true">!</i><span>آيات بلا نصها<small>{arNum(prep.versesMissing.length)} في السكريبت</small></span></li>
             ) : null}
@@ -222,10 +257,10 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
           </div>
         ) : next.fix === "script" && inStep1 && scriptErrors.length ? null : next.go && (next.fix ? tab !== next.go : !STEPS[stepOf(next.go)]!.tabs.includes(tab)) ? (
           <div className="ms-dock" role="group" aria-label="الخطوة التالية">
-            {err ? <p className="ms-float spine-err" role="alert">{err}</p> : null}
+            {err ? <p className="ms-float spine-err" role="alert"><OwnerText text={err} /></p> : null}
             <div className="ms-dock-in is-wrap">
               <DockText line={next.fix === "script"
-                ? <>التجهيز لم يُعتمد بعد: {arNum(scriptFixes)} {scriptFixes === 1 ? "تصحيح ينتظرك" : "تصحيحات تنتظرك"} في السكريبت.</>
+                ? <>التجهيز لم يُعتمد بعد: في السكريبت {countAr(scriptFixes, CORRECTIONS)} قبل الاعتماد.</>
                 : next.text} />
               {/* الخطوة ٢ الآن وأنت خارج شاشتها: سطر «جاهز ١٢ من ١١٤» هنا، وفي شاشة المشاهد نفسها هناك */}
               <div className="ms-dock-ctl">
@@ -235,8 +270,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
               </div>
             </div>
           </div>
-        ) : err ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">{err}</p></div> : null
-      ) : err && !next ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">حالة الاعتمادات غير متاحة: {err}</p></div> : null}
+        ) : err ? <div className="ms-dock"><p className="ms-float spine-err" role="alert"><OwnerText text={err} /></p></div> : null
+      ) : err && !next ? <div className="ms-dock"><p className="ms-float spine-err" role="alert">حالة الاعتمادات غير متاحة: <OwnerText text={err} /></p></div> : null}
     </>
   );
 };

@@ -6,7 +6,7 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-11-11T18:35:14.887Z",
+  "updatedAt": "2026-11-12T08:40:43.244Z",
   "chapters": [
     {
       "number": 1,
@@ -23,7 +23,8 @@
           },
           "id": "c1-s1",
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "tone": "dramatic"
         },
         {
           "template": "alley-tale",

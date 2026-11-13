@@ -12,8 +12,9 @@ import { fourSteps, nextLine } from "../app/src/tabs/HomeTab";
 import { parseStudioHash, studioHash } from "../app/src/shell/route";
 import { SceneDecisionActions } from "../app/src/workspace/SceneProductionPanel";
 import type { Overview } from "../app/src/api";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const noop = () => {};
 
 const overview = (production: Partial<NonNullable<Overview["production"]>>, published = false) => ({
@@ -63,7 +64,7 @@ describe("أربع خطوات", () => {
 
   it("no Arabic copy still speaks of five steps or step ٥", () => {
     for (const f of ["app/src/shell/EpisodeSpine.tsx", "app/src/tabs/HomeTab.tsx", "app/src/workspace/SceneProductionPanel.tsx",
-      "app/src/workspace/PrepareAll.tsx", "app/src/workspace/PreFinal.tsx", "app/src/tabs/PublishTab.tsx", "app/src/api.ts", "src/studio/sceneService.ts"]) {
+      "app/src/workspace/PrepareAll.tsx", "app/src/workspace/PreFinal.tsx", "app/src/tabs/PublishTab.tsx", "app/src/api.ts", "src/studio/sceneService.ts", "src/studio/sceneLedgerStore.ts", "src/studio/sceneInputs.ts", "src/studio/sceneLedgerState.ts", "src/studio/sceneGates.ts", "src/studio/sceneDecisions.ts"]) {
       const text = src(f);
       expect(text, f).not.toMatch(/الخطوات الخمس|خمس خطوات|خمس محطات|الخطوة ٥|الخطوتين ١ و٢/);
     }

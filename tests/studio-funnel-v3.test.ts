@@ -178,7 +178,8 @@ afterAll(async () => {
 });
 
 const validScript = () => `---\ntitle: "هل نعرف الصبر حقًا؟"\ndomain: psychology\nepisode: "${EP}"\n---\n` +
-  ["تجربة", "الواقع", "الجذر", "بعين الإسلام", "في حياتك", "الخلاصة"].map((t, i) =>
+  ["تجربة"].map((t, i) => // 12 Nov: no filler line that no scene says (QA balislam 2); sections are optional (D87)
+   
     `## الفصل ${i + 1} · ${t}\n${i === 0 ? scenes.map((x) => x.narration).join("\n") : "جملة قصيرة في هذا الفصل."}\n`).join("\n") +
   "\n## الاستشهادات\n\n- مصدر | كتاب الصبر، المؤلف، ص ١٢ | فكرة الصبر\n\n## الخطوة العملية\n\nاصبر اليوم على أمر واحد صغير، ثم اكتب ما تعلمته.\n";
 const approvePrep = (body: Record<string, unknown>, headers: Record<string, string> = {}) =>
@@ -255,9 +256,16 @@ describe("«اعتمد التجهيز»: one button, both ledger records in orde
 
   it("is idempotent once approved, and the four-step summary reads it", async () => {
     const s = await state();
+    const before = (await call("GET", `episodes/${EP}/scene-prepare`)).body.job;
+    expect(before.status).toBe("done");
     const r = await approvePrep({ scriptSha256: s.script.sha256, storyboardSha256: s.storyboard.sha256, reviewed: true });
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     expect((await ledger()).history).toHaveLength(2);
+    // KI-058: a repeated «اعتمد التجهيز» writes nothing AND starts nothing: no second «جهّز كل المشاهد» in the
+    // background (it chased the scenes the owner re-opened and then held the episode when «اصنع النسخة النهائية» came).
+    expect(r.body.prepare.job?.status, "no new preparation job").not.toBe("running");
+    const after = (await call("GET", `episodes/${EP}/scene-prepare`)).body.job;
+    expect([after.status, after.startedAt], "the same finished job").toEqual(["done", before.startedAt]);
     const { summarizeSceneProduction } = await import("../src/studio/sceneService");
     const { runWithChannel } = await import("../src/channel");
     const sum = await runWithChannel(CH, () => summarizeSceneProduction(EP));
@@ -314,7 +322,8 @@ describe("after «اعتمد التجهيز»: a sentence text edit is carried f
     await editNarration("c1-s3", "والرضا راحة القلب حقًا.");
     const s = await state();
     expect(s.boards.changed).toEqual([]);
-    expect(s.afterPreparation.scenes.map((x: { id: string }) => x.id)).toEqual(["c1-s1", "c1-s3"]);
+    // QA dafatir M5 (12 Nov): the list keeps every scene re-opened and not approved since (c1-s2 from the test above).
+    expect(s.afterPreparation.scenes.map((x: { id: string }) => x.id)).toEqual(["c1-s1", "c1-s2", "c1-s3"]);
     expect(s.scenes[1].sourceSha256).toBe(before.scenes[1].sourceSha256);
   }, 60_000);
 });

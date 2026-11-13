@@ -17,7 +17,7 @@ describe("دليل دفاتر الزمن", () => {
   it("الفهرس يذكر كل صفحة في المجلد، وكل صفحة في الفهرس موجودة", async () => {
     const idx = (await readGuideIndex("dafatir-alzaman"))!;
     expect(idx.title).toBe("الدليل التشغيلي والإنتاجي الدائم — استوديو دفاتر الزمن");
-    const listed = idx.entries.map((e) => e.file).sort();
+    const listed = idx.entries.filter((e) => !e.shared).map((e) => e.file).sort();
     const onDisk = readdirSync(DIR).filter((f) => f.endsWith(".md")).sort();
     expect(listed).toEqual(onDisk);
     for (const s of ["00-start-here.md", "01-identity.md", "02-production.md", "03-tools.md", "04-technical.md", "05-content-rules.md", "06-quality.md", "07-decisions.md"]) expect(listed).toContain(s);

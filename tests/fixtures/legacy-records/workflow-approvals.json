@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 3,
+  "channel": "balislam",
+  "episode": "001-old",
+  "revision": 4,
+  "stages": {
+    "script": {
+      "status": "approved",
+      "submitted": { "by": { "id": "studio-owner", "role": "owner" }, "at": "2026-11-06T10:00:00.000Z", "contentVersion": "v1", "fingerprint": "1111111111111111111111111111111111111111111111111111111111111111", "note": "submitted for review" },
+      "approval": { "by": { "id": "studio-owner", "role": "owner" }, "at": "2026-11-06T10:05:00.000Z", "contentVersion": "v1", "artifactSha256": "2222222222222222222222222222222222222222222222222222222222222222", "artifactEpoch": "3333333333333333333333333333333333333333333333333333333333333333", "fingerprint": "1111111111111111111111111111111111111111111111111111111111111111", "note": "راجعت النص كاملًا قبل اعتماده", "evidence": ["script_validated", "sources_reviewed", "quran_compared"], "evidenceProofs": [], "prerequisiteApprovalSeq": [], "approvalEventSeq": 2 }
+    },
+    "storyboard": { "status": "approved" },
+    "voice": { "status": "approved" },
+    "motion": { "status": "draft" },
+    "av_review": { "status": "draft" },
+    "master": { "status": "draft" }
+  },
+  "history": [
+    { "seq": 1, "stage": "script", "action": "submit", "by": "studio-owner", "at": "2026-11-06T10:00:00.000Z" },
+    { "seq": 2, "stage": "script", "action": "approve", "by": "studio-owner", "at": "2026-11-06T10:05:00.000Z" }
+  ],
+  "integrity": { "alg": "HMAC-SHA256", "keyId": "0123456789abcdef", "mac": "4444444444444444444444444444444444444444444444444444444444444444" }
+}

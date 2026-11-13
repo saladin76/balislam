@@ -13,7 +13,8 @@
 import os from "node:os";
 import { execFileSync } from "node:child_process";
 import { randomUUID } from "node:crypto";
-import { open, readFile, rm, stat } from "node:fs/promises";
+import { mkdir, open, readFile, rm, stat } from "node:fs/promises";
+import path from "node:path";
 
 export type LockInfo = { pid: number; start: string | null; host: string; token: string; purpose: string; at: string };
 
@@ -83,12 +84,20 @@ export const acquireLock = async (file: string, opts: AcquireOptions): Promise<(
   const info: LockInfo = { pid: process.pid, start: processStartTime(process.pid), host: os.hostname(),
     token: randomUUID(), purpose: opts.purpose, at: new Date().toISOString() };
   const body = JSON.stringify(info);
+  let madeDir = false;
   for (let attempt = 0; ; attempt++) {
     try {
       const fd = await open(file, "wx", 0o600);
       try { await fd.writeFile(body); await fd.sync(); } finally { await fd.close(); }
       break;
     } catch (error) {
+      // QA dafatir M3: the lock's folder may not exist yet (voice/ is git-ignored, so a fresh clone or a new
+      // episode has none): create it once, then take the lock. Any other error is the caller's.
+      if ((error as NodeJS.ErrnoException).code === "ENOENT" && !madeDir) {
+        madeDir = true;
+        await mkdir(path.dirname(file), { recursive: true });
+        continue;
+      }
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
       const held = await readFile(file, "utf8").catch(() => null);
       let stale = held !== null && (lockIsStale(held) || Boolean(opts.legacyStale?.(held)));

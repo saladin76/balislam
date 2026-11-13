@@ -7,6 +7,7 @@ import { listScriptEpisodeDirs } from "../script/episodes";
 import { allToneIds } from "../voice/tones";
 import { findTraces } from "../package/traces";
 import { writeJsonAtomic } from "../io/atomicJson";
+import { withPlanWrite } from "../plan/planWriteLock";
 import {
   GENERAL_SLUG, SLUG_RE, deriveSeriesIdentity, stampSeries, validateSeries, withGeneral,
   type SeriesConfig, type SeriesContext, type SeriesStamp,
@@ -142,10 +143,13 @@ export const moveEpisode = async (ch: string, episodeDir: string, seriesId: stri
 const restampPlan = async (episodeDir: string, stamp: SeriesStamp | undefined) => {
   const f = path.join(episodeDir, "plan.json");
   if (!existsSync(f)) return;
-  const plan = JSON.parse(await readFile(f, "utf8")) as { series?: SeriesStamp };
-  if (stamp) plan.series = stamp;
-  else delete plan.series;
-  await writeJsonAtomic(f, plan);
+  // تحت قفل الخطة نفسه مع حفظ الصفحة (D110)؛ الختم خارج بصمة الخطة، فلا يصير تعديل الصفحة التالي «قديمًا»
+  await withPlanWrite(f, async () => {
+    const plan = JSON.parse(await readFile(f, "utf8")) as { series?: SeriesStamp };
+    if (stamp) plan.series = stamp;
+    else delete plan.series;
+    await writeJsonAtomic(f, plan);
+  });
 };
 
 // ———————— نقل عدة حلقات معًا، والتراجع عنه (D77) ————————
@@ -171,11 +175,14 @@ const restoreSnapshot = async (s: EpisodeMoveSnapshot) => {
   if (s.link === null) await rm(f, { force: true });
   else await writeFile(f, s.link, "utf8");
   const p = path.join(s.dir, "plan.json");
-  if (!s.plan || !existsSync(p)) return;
-  const plan = JSON.parse(await readFile(p, "utf8")) as { series?: SeriesStamp };
-  if (s.plan.had) plan.series = s.plan.series;
-  else delete plan.series;
-  await writeJsonAtomic(p, plan);
+  const was = s.plan;
+  if (!was || !existsSync(p)) return;
+  await withPlanWrite(p, async () => {
+    const plan = JSON.parse(await readFile(p, "utf8")) as { series?: SeriesStamp };
+    if (was.had) plan.series = was.series;
+    else delete plan.series;
+    await writeJsonAtomic(p, plan);
+  });
 };
 
 /**

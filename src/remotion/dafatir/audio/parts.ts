@@ -84,7 +84,7 @@ export const layoutScene = (scene: string, jobs: PartJob[], clips: Record<string
   for (const j of mine) {
     const c = clips[j.partId];
     if (!c) throw new Error(`لا تسجيل للجزء ${j.partId}`);
-    if (!(c.start <= c.speechStart && c.speechStart < c.speechEnd && c.speechEnd <= c.end && c.end <= c.duration + 1e-9)) throw new Error(`حدود غير صالحة للجزء ${j.partId}`);
+    if (!(0 <= c.start && c.start <= c.speechStart && c.speechStart < c.speechEnd && c.speechEnd <= c.end && c.end <= c.duration + 1e-9)) throw new Error(`حدود غير صالحة للجزء ${j.partId}: ${JSON.stringify(c)}. أعد معالجة التسجيل الأصلي دون توليد جديد.`);
     const lead = c.speechStart - c.start;
     const prev = parts[parts.length - 1];
     const at = prev ? prev.speechEndAt + partGap - lead : 0;

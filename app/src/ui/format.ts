@@ -9,10 +9,21 @@ import { SURAH_NAMES } from "../../../src/script/quranMeta";
 import { arNum, sceneName, sceneNo, seamName } from "../workspace/sceneNames";
 
 export { sceneName, sceneNo, seamName };
+export { ownerText, nameSceneIds } from "../../../src/i18n/sceneNames";
+import { ownerText as ownerTextOf } from "../../../src/i18n/sceneNames";
+/** The one counting formatter (Arabic-Indic digits, dual and plural agreement): `countAr(2, ERRORS)` → «خطآن». */
+export { countAr, AYAT, CITATIONS, CLIPS, CORRECTIONS, EPISODES, ERRORS, LETTERS, NOTES, PROBLEMS, SCENES, SEAMS, SENTENCES, WARNINGS, WORDS } from "../../../src/i18n/count";
 
 const AR = "٠١٢٣٤٥٦٧٨٩";
 /** «12:05» → «١٢:٠٥»; leaves Arabic-Indic digits and everything else as is. */
 export const arDigits = (s: string | number): string => String(s).replace(/\d/g, (d) => AR[Number(d)]!);
+
+/**
+ * The Arabic name of a channel's title font (KI-026): «خط العناوين «Amiri»» is read as a Latin word on an Arabic
+ * screen. The identity keeps the font's family name; the owner reads «الأميري» («الرقعة» in بالإسلام per CLAUDE.md).
+ */
+const FONT_NAMES_AR: Record<string, string> = { "Amiri": "الأميري", "Aref Ruqaa": "الرقعة", "Lalezar": "لاله زار", "IBM Plex Mono": "آي بي إم بلكس مونو" };
+export const fontNameAr = (family: string): string => FONT_NAMES_AR[family.trim()] ?? family;
 
 /** «٠٠١» or «۰۰۱» (Persian) → «001»: what the owner types, in either digit system, compared with an id. */
 export const latinDigits = (s: string): string =>
@@ -58,7 +69,8 @@ export const verseRef = (ref: string | null | undefined): string => {
   if (raw === "basmala") return "البسملة";
   const m = /^(\d{1,3})\s*[:：]\s*(\d{1,3})(?:\s*[-–]\s*(\d{1,3}))?$/.exec(raw);
   const name = m ? SURAH_NAMES[Number(m[1]) - 1] : undefined;
-  if (!m || !name) return arDigits(raw);
+  // النقطة الوسطى بجوار الأرقام العربية تُقرأ صفرًا (D61): المرجع المكتوب «طه، ١٤» بفاصلها يُعرض «طه ١٤»
+  if (!m || !name) return arDigits(raw.replace(/\s*\u00B7\s*/g, " "));
   return `${name} ${arDigits(m[2]!)}${m[3] ? `–${arDigits(m[3])}` : ""}`;
 };
 
@@ -82,3 +94,21 @@ export const zeroParts = (s: string): { text: string; zero: boolean }[] =>
 export const Num: React.FC<{ children: string | number; className?: string; title?: string }> = ({ children, className, title }) =>
   React.createElement("span", { className: className ? `num ${className}` : "num", title, dir: undefined },
     ...zeroParts(arDigits(children)).map((p, i) => (p.zero ? React.createElement("span", { key: i, className: "z" }, p.text) : p.text)));
+
+/**
+ * A preview title or note as the owner reads it (QA 12 Nov: «المشهد c1-s2 — صوت وصورة»، «032 · الميزان c1-s2…s5»):
+ * scene ids by their number (a range «c1-s2…s5» → «المشاهد ٢–٥»), the middle dot (it reads as a zero) as «—», Arabic digits.
+ * The index file keeps its own text; this is display only.
+ */
+export const ownerPreviewText = (raw: string, order: string[]): string => {
+  const n = (id: string) => { const i = order.indexOf(id); return i >= 0 ? i + 1 : null; };
+  const ranged = String(raw ?? "").replace(/\b(c\d+)-s(\d+)\s*(?:…|\.\.\.|–|-)\s*s(\d+)\b/g, (m, c: string, a: string, b: string) => {
+    const x = n(`${c}-s${a}`), y = n(`${c}-s${b}`);
+    return x && y ? `المشاهد ${x.toLocaleString("ar-EG")}–${y.toLocaleString("ar-EG")}` : m;
+  });
+  const named = ownerTextOf(ranged, order);
+  return named.replace(/\s+\u00B7\s+/g, " — ").replace(/^(\d{3})\s+—\s+/, (m, ep: string) => `${arDigits(ep)} — `);
+};
+/** Technical text (commands, file names, keys) the owner does not need on the main screen: shown under «تفاصيل». */
+export const isTechnicalNote = (s: string): boolean =>
+  /\bgit\s|\bcheckout\b|\bcommit\b|\bplan\.[a-z]|\.json\b|\.mp4\b|\bS\d{2}\b|\b[a-f0-9]{7,40}\b|\/[a-z0-9_-]+\//i.test(s);

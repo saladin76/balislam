@@ -1,12 +1,13 @@
-/** Fixes from the full-funnel walkthrough of 8 November (docs/studio/funnel-audit-20261108.md). */
+/** Fixes from the full-funnel walkthrough of 8 November (docs/studio/archive/funnel-audit-20261108.md). */
 import { spawnSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ownerMessage } from "../app/src/serverMessages";
 import { lockOwnerIsDead } from "../src/studio/sceneService";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(import.meta.dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 
 describe("رسائل الخادم للمالك بالعربية", () => {
   it("الرسائل الإنجليزية المعروفة تُعرض بالعربية مع ما يفعله المالك", () => {
@@ -20,7 +21,8 @@ describe("رسائل الخادم للمالك بالعربية", () => {
   });
   it("الرسائل غير المعروفة والعربية تمر كما هي", () => {
     expect(ownerMessage("حدّد نبرة كل مقطع")).toBe("حدّد نبرة كل مقطع");
-    expect(ownerMessage("Something new")).toBe("Something new");
+    // QA 12 Nov: an untranslated English refusal reads in Arabic first, with the server's words as the details
+    expect(ownerMessage("Something new")).toBe("تعذّر تنفيذ الطلب؛ إن تكرر فأرسل هذه الرسالة إلى Claude. (التفاصيل: Something new)");
   });
   it("كل طلب في الواجهة يمر بالترجمة", () => {
     expect(src("app/src/api.ts")).toContain("throw new Error(ownerMessage(");

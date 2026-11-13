@@ -26,7 +26,7 @@ export const ScriptFixList: React.FC<{ errors: Issue[]; onLine: (line: number) =
         <section className="fix-group" aria-label="آيات تنقصها نصوصها">
           <h3>آيات تنقصها نصوصها <span className="fix-count">{toArabicDigits(String(verses.length))}</span></h3>
           <p className="fix-how">
-            اكتب نص كل آية بالتشكيل من مصحف موثوق، في سطرها: <code dir="rtl">[آية: البقرة 30 | نص الآية]</code>
+            اكتب نص كل آية بالتشكيل من مصحف موثوق، في سطرها: <code dir="rtl">[آية: البقرة ٣٠ | نص الآية]</code>
           </p>
           <ul className="fix-chips">
             {shown.map((i, k) => (

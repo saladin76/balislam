@@ -1,9 +1,13 @@
+import { SCENES, countAr } from "../../../src/i18n/count";
 import React, { useEffect, useState } from "react";
 import { api, type OwnRecitationsRead } from "../api";
 import { RecitationItem } from "./RecitationItem";
 import { FramePlayer } from "./SceneProductionPanel";
 import { num } from "../ui/format";
 import "./scene-production.css";
+import { useChannel } from "../../../src/channel/context";
+import { versesAreCitations } from "../../../src/quran/citation";
+import { OwnerText } from "../ui/OwnerText";
 
 const ar = (n: number) => num(n);
 
@@ -25,6 +29,8 @@ export const PreFinalPanel: React.FC<{
   /** Scene order, to name scenes «المشهد ٣» instead of their ids. */
   order?: string[];
 }> = ({ episodeId, channelId, onChanged, recitationsOnly, order: orderProp }) => {
+  /** D68: in a written-citation channel the verse cards are finished silent cards, not placeholders. */
+  const cited = versesAreCitations(useChannel());
   const [pre, setPre] = useState<{ preview: string | null; entry: { version: number; updatedAt: string | null } | null } | null>(null);
   const [recs, setRecs] = useState<OwnRecitationsRead | null>(null);
   const [busy, setBusy] = useState("");
@@ -61,7 +67,7 @@ export const PreFinalPanel: React.FC<{
   };
   const makePreFinal = () => guard("prefinal", async () => {
     const r = await api.makePreFinal(episodeId, channelId);
-    setMsg(`جُمعت ${ar(r.scenes)} مشاهد${r.recitationPending.length ? `؛ ${ar(r.recitationPending.length)} آية صامتة بانتظار تلاوتها` : ""}.`);
+    setMsg(`جُمعت المشاهد (${countAr(r.scenes, SCENES)})${r.recitationPending.length ? `؛ آيات صامتة بانتظار تلاوتها: ${ar(r.recitationPending.length)}` : ""}.`);
   });
   const verses = recs?.verses ?? [];
   const keys = [...new Set(verses.map((v) => v.key))];
@@ -69,12 +75,14 @@ export const PreFinalPanel: React.FC<{
 
   if (recitationsOnly && !keys.length) return null;
   return (
-    <section className="scene-first-panel sp pf" aria-label={recitationsOnly ? "التلاوات" : "معاينة قبل النهائية والتلاوات"}>
+    <section className="scene-first-panel sp pf" aria-label={recitationsOnly ? "التلاوات" : keys.length ? "معاينة قبل النهائية والتلاوات" : "معاينة قبل النهائية"}>
       {recitationsOnly ? null : <>
       <div className="sp-row">
         <div>
           <h3>معاينة قبل النهائية</h3>
-          <p className="sp-hint">كل المشاهد الحالية بالترتيب (المعتمدة والمسودات) بصوت الراوي، والآيات صامتة بعلامة «التلاوة تُضاف لاحقًا». للمشاهدة فقط: ليست اعتمادًا ولا تجميعًا ولا نسخة نهائية.</p>
+          <p className="sp-hint">{cited
+            ? "كل المشاهد الحالية بالترتيب (المعتمدة والمسودات) بصوت الراوي، وبطاقات الآيات صامتة بنصها ومرجعها (استشهاد مكتوب). للمشاهدة فقط: ليست اعتمادًا ولا تجميعًا ولا نسخة نهائية."
+            : "كل المشاهد الحالية بالترتيب (المعتمدة والمسودات) بصوت الراوي، والآيات صامتة بعلامة «التلاوة تُضاف لاحقًا». للمشاهدة فقط: ليست اعتمادًا ولا تجميعًا ولا نسخة نهائية."}</p>
         </div>
         <div className="sp-actions">
           <button type="button" className="btn primary" aria-busy={Boolean(busy)} onClick={() => { if (!busy) void makePreFinal(); }}>
@@ -83,7 +91,7 @@ export const PreFinalPanel: React.FC<{
         </div>
       </div>
       {pre?.preview ? (
-        <FramePlayer key={`${pre.entry?.version ?? 0}`} src={api.previewUrl(episodeId, pre.preview)} label="المعاينة قبل النهائية بلا تلاوات" />
+        <FramePlayer key={`${pre.entry?.version ?? 0}`} src={api.previewUrl(episodeId, pre.preview)} label={cited ? "المعاينة قبل النهائية" : "المعاينة قبل النهائية بلا تلاوات"} />
       ) : null}
       </>}
 
@@ -99,8 +107,8 @@ export const PreFinalPanel: React.FC<{
           </ul>
         </div>
       ) : null}
-      {error ? <p className="scene-first-error" role="alert">{error}</p> : null}
-      {msg ? <p className="sp-hint" role="status">{msg}</p> : null}
+      {error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : null}
+      {msg ? <p className="sp-hint" role="status"><OwnerText text={msg} /></p> : null}
     </section>
   );
 };

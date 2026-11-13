@@ -3,6 +3,7 @@
  * audio+video scene files. No new scene render, TTS, or external Quran lookup.
  * This is NOT Master authorization or permission to publish.
  */
+import { scriptVersesAreCitations } from "../quran/citationChannel";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
@@ -10,7 +11,7 @@ import { promisify } from "node:util";
 import { writeFile, rm } from "node:fs/promises";
 import { resolveScriptPath } from "../script/episodes";
 import { putEpisodePreview } from "../render/episodePreviews";
-import { verifyVideoEvidence } from "../workflow/videoEvidence";
+import { verifyVideoEvidence } from "./videoEvidence";
 import { approvedSceneCutsForAssembly, currentSceneCutsForPreFinal } from "./sceneService";
 
 const exec = promisify(execFile);
@@ -64,7 +65,8 @@ export const assemblePreFinalPreview = async (
       throw Error("A scene changed while the pre-final preview was assembling; try again.");
     const pending = cuts.filter(c => c.recitationPending).map(c => c.sceneId);
     const saved = await putEpisodePreview(episode, PRE_FINAL_SLOT, tempVideo, {
-      title: "نسخة قبل النهائية — بلا تلاوات (للمشاهدة فقط)",
+      // D68: a written-citation channel has no recitations to wait for, so the title does not mention them.
+      title: scriptVersesAreCitations(scriptPath) ? "نسخة قبل النهائية (للمشاهدة فقط)" : "نسخة قبل النهائية — بلا تلاوات (للمشاهدة فقط)",
       note: `كل المشاهد الحالية بالترتيب، معتمدة أو مسودات${pending.length ? `؛ ${pending.length} آية صامتة «التلاوة تُضاف لاحقًا»` : ""}. ليست اعتمادًا ولا تجميعًا ولا Master.`,
     });
     return { file: saved.file, version: saved.version, scenes: cuts.length, recitationPending: pending };

@@ -434,13 +434,13 @@ export const InkMeaning: React.FC<InkMeaningProps> = (props) => {
 };
 
 export const inkMeaningSample: Omit<InkMeaningProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 1 · السؤال الذي لا يغيب",
+  eyebrow: "السؤال الذي لا يغيب",
   narration: "نصلي كل يوم. نقف، ونقرأ، ونركع، ونسجد. لكن سؤالا يستحق أن نسأله: هل يحضر قلبنا كما يحضر جسدنا؟",
   layout: "center",
   items: "الصلاة | key | نصلي\nنقف | word\nنقرأ | word\nنركع | word\nنسجد | word\nهل يحضر قلبنا كما يحضر جسدنا؟ | line | هل\nهل يحضر قلبنا كما يحضر جسدنا؟ | mark | قلبنا",
 };
 export const inkMeaningSampleEn: Omit<InkMeaningProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 1 · The question that stays",
+  eyebrow: "The question that stays",
   narration: "We pray every day. We stand, recite, bow and prostrate. But a question deserves asking: is our heart present as our body is?",
   layout: "center",
   items: "Prayer | key | pray\nstand | word\nrecite | word\nbow | word\nprostrate | word\nIs the heart present as the body is? | line | is\nIs the heart present as the body is? | mark | heart",

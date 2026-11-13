@@ -10,10 +10,18 @@ vi.mock("remotion", async (orig) => {
   const h = await import("./helpers/edgeEpisode");
   return { ...m, useCurrentFrame: () => h.edgeState.F, useVideoConfig: h.mockedVideoConfig };
 });
-const { badFrames } = await import("./helpers/edgeEpisode");
+const { badFrames, edgeChunks, episodeScenes } = await import("./helpers/edgeEpisode");
+const { heavyTimeout } = await import("./helpers/heavyTimeout");
 
 describe("حافة الإطار في الحلقة 001", () => {
-  it("كل مشاهد حكايات الحارة · landscape", async () => {
-    expect(await badFrames("landscape")).toEqual([]);
-  }, 240_000);
+  const chunks = edgeChunks();
+  it("الأجزاء تغطي كل مشاهد حكايات الحارة مرة واحدة", () => {
+    expect(chunks.flat().map((s) => s.id)).toEqual(episodeScenes().map((s) => s.id));
+    expect(chunks.length).toBeGreaterThan(0);
+  });
+  chunks.forEach((part, i) => {
+    it(`مشاهد حكايات الحارة · landscape · الجزء ${i + 1} من ${chunks.length} (${part[0]!.id} … ${part.at(-1)!.id})`, async () => {
+      expect(await badFrames("landscape", part)).toEqual([]);
+    }, heavyTimeout(120_000));
+  });
 });

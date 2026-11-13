@@ -43,7 +43,7 @@ const typeRoles: [keyof Identity["typography"], string, number, number][] = [
   ["verse", "نص الآية", 50, 130],
   ["reference", "مرجع الآية", 20, 60],
   ["caption", "الترجمة السفلية", 28, 72],
-  ["eyebrow", "عنوان الفصل الصغير", 18, 48],
+  ["eyebrow", "العنوان الصغير أعلى المشهد", 18, 48],
 ];
 const sampleEls = ["question-mark", "heart", "lightbulb", "book-open", "coin-stack", "mosque", "house-warm", "smartphone", "tree", "scale-balance", "hands-dua", "verse-frame", "hourglass-ornate", "compass-pocket"];
 
@@ -62,7 +62,7 @@ const Color: React.FC<{ label: string; value: string; onChange: (v: string) => v
 
 const Ratio: React.FC<{ a: string; b: string; label: string; min?: number }> = ({ a, b, label, min = 4.5 }) => {
   const r = contrast(a, b);
-  return <span className={r >= min ? "good" : "poor"} title={`الحد الأدنى ${min}`}>{label}: {r.toFixed(1)}</span>;
+  return <span className={r >= min ? "good" : "poor"} title={`الحد الأدنى ${min.toLocaleString("ar-EG")}`}>{label}: {r.toLocaleString("ar-EG", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}</span>;
 };
 
 const Slider: React.FC<{ label: string; value: number; min: number; max: number; step?: number; onChange: (v: number) => void; unit?: string }> = ({ label, value, min, max, step = 1, onChange, unit = "" }) => (
@@ -157,7 +157,7 @@ export const IdentityTab: React.FC<{
               <Ratio a={c.onHighlight} b={c.highlight} label="التمييز" />
               <Ratio a={c.captionInk} b={c.captionBg} label="الترجمة" />
             </div>
-            <span className="help">الأخضر يعني أن النص مقروء بوضوح (تباين 4.5 أو أكثر).</span>
+            <span className="help">الأخضر يعني أن النص مقروء بوضوح (تباين ٤٫٥ أو أكثر).</span>
           </div>
 
           <div className="group">
@@ -171,15 +171,16 @@ export const IdentityTab: React.FC<{
             <h3>الشعار والشخصيات</h3>
             <div className="colors">
               <Color id="l-tile" label="خلفية الشعار" value={th.logo.tile} onChange={(v) => setLogo("tile", v)} />
-              <Color id="l-baa" label="حرف الباء" value={th.logo.baa} onChange={(v) => setLogo("baa", v)} />
-              <Color id="l-play" label="زر التشغيل" value={th.logo.play} onChange={(v) => setLogo("play", v)} />
+              {/* أسماء ألوان الشعار من شعار القناة نفسه: «حرف الباء» لمحراب «بالإسلام» وحده */}
+              <Color id="l-baa" label={channel?.logo?.type === "emblem" && channel.logo.emblem !== "mihrab" ? "لون الشعار الأساسي" : "حرف الباء"} value={th.logo.baa} onChange={(v) => setLogo("baa", v)} />
+              <Color id="l-play" label={channel?.logo?.type === "emblem" && channel.logo.emblem !== "mihrab" ? "لون الشعار الثاني" : "زر التشغيل"} value={th.logo.play} onChange={(v) => setLogo("play", v)} />
               <Color id="ch-outline" label="حدود الشخصيات" value={th.character.outline} onChange={(v) => setChar({ outline: v })} />
               <Color id="ch-skin0" label="بشرة" value={th.character.skin[0]} onChange={(v) => setChar({ skin: [v, th.character.skin[1]] })} />
               <Color id="ch-skin1" label="بشرة الكبار" value={th.character.skin[1]} onChange={(v) => setChar({ skin: [th.character.skin[0], v] })} />
               {["الراوي", "الراوية", "الطفل", "الكبير", "الكبيرة"].map((l, i) => (
                 <Color key={l} id={`ch-g${i}`} label={`ثوب ${l}`} value={th.character.garments[i]!} onChange={(v) => { const g = [...th.character.garments] as typeof th.character.garments; g[i] = v; setChar({ garments: g }); }} />
               ))}
-              <Color id="ch-cap" label="الطاقية والخمار" value={th.character.cap} onChange={(v) => setChar({ cap: v })} />
+              <Color id="ch-cap" label="غطاء الرأس" value={th.character.cap} onChange={(v) => setChar({ cap: v })} />
             </div>
           </div>
 

@@ -11,7 +11,7 @@ import { renderMedia, selectComposition } from "@remotion/renderer";
 import { loadPlan, regeneratePlan } from "../plan/io";
 import { prepareRenderMedia } from "../plan/collect";
 import { sceneFrames } from "../plan/duration";
-import { sceneHash } from "../plan/sceneReview";
+import { sceneHash } from "../plan/sceneHash";
 import { introFramesFor } from "../remotion/scenes/ChannelIntro";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
 import { browserExecutable, createIsolatedRenderBundle } from "./bundle";

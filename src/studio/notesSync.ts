@@ -8,8 +8,13 @@
  *   - الدفع بمرجع صريح واحد: `git push origin <sha>:refs/heads/studio-notes` بلا --force وبلا --no-verify؛
  *     خطاف pre-push يتخطى بوابة الاختبارات لهذا المرجع وحده وبشرط أن شجرته صناديق ملاحظات فقط.
  *   - المرجع المحلي الوحيد الذي يُكتب: refs/studio-notes/origin (نسخة آخر ما على GitHub)، لا فرع.
- * الفشل (بلا اتصال، مصادقة، رفض) لا يرمي أبدًا: تبقى الملاحظات «بانتظار الإرسال» وتُعاد مع الملاحظة
- * التالية وعند تشغيل الاستوديو.
+ * الفشل (بلا اتصال، مصادقة، رفض) لا يرمي أبدًا: تبقى الملاحظات «بانتظار الإرسال» بسببها الحقيقي وتُعاد مع
+ * الملاحظة التالية وعند تشغيل الاستوديو، ويقرؤه مؤشر «ملاحظات لم تُرسل: N» (studioNotesStatus).
+ *
+ * صندوق المالك وحده (KI-008، D107): يرسل إلى studio-notes استوديو المالك وحده — نسخة المستودع الرئيسية (لا
+ * worktree) على فرع main، على ماك أو ويندوز، خارج الاختبارات وCI وجلسات Claude السحابية — كما يُطفأ الحفظ الآلي
+ * (D101). أي نسخة أخرى لا تدفع أبدًا؛ واختبار يطلب الإرسال صراحة (BAL_NOTES_SYNC=on) لا يدفع إلا إلى مستودع
+ * محلي على القرص، لا إلى GitHub.
  */
 import path from "node:path";
 import os from "node:os";
@@ -42,11 +47,13 @@ export const runGit = (cwd: string, args: string[], opts: { env?: Record<string,
 export const notesSyncEnabled = (env = process.env) =>
   env.BAL_NOTES_SYNC === "on" || (env.BAL_NOTES_SYNC !== "off" && !env.VITEST);
 
-/** كل صناديق الملاحظات تحت مجلد القنوات. */
+/** كل صناديق الملاحظات تحت مجلد القنوات: الصندوق العام لكل قناة (D112) وصندوق كل حلقة. */
 export const listInboxFiles = (channelsDir: string): string[] => {
   if (!existsSync(channelsDir)) return [];
   const out: string[] = [];
   for (const ch of readdirSync(channelsDir)) {
+    const general = path.join(channelsDir, ch, "notes", "inbox.json");
+    if (existsSync(general)) out.push(general);
     const eps = path.join(channelsDir, ch, "episodes");
     if (!existsSync(eps)) continue;
     for (const ep of readdirSync(eps)) {
@@ -57,9 +64,44 @@ export const listInboxFiles = (channelsDir: string): string[] => {
   return out.sort();
 };
 
+export type SyncFailure = "no-repo" | "no-remote" | "offline" | "rejected" | "auth" | "not-owner" | "error";
 export type SyncResult =
   | { ok: true; pushed: boolean; commit: string | null; notes: string[] }
-  | { ok: false; reason: "no-repo" | "no-remote" | "offline" | "rejected" | "error"; message: string; notes: string[] };
+  | { ok: false; reason: SyncFailure; message: string; notes: string[] };
+
+/** A remote on this disk (a test's bare repository), never a network URL. */
+export const isLocalRemote = (url: string) =>
+  url.startsWith("/") || url.startsWith("file://") || /^[A-Za-z]:[\\/]/.test(url);
+
+/**
+ * Is this the owner's Studio (KI-008)? Deterministic, from this copy alone — no network:
+ *   - the main checkout of the repository (not a linked worktree), on branch main;
+ *   - macOS or Windows, outside Vitest, CI and Claude's cloud sessions (CLAUDE_CODE_REMOTE), as D101 auto-save;
+ *   - BAL_NOTES_SYNC=off turns it off; BAL_NOTES_SYNC=on lifts only the platform/test/cloud condition, and then
+ *     only for a remote on this disk (a test's temporary bare repository) — never GitHub.
+ */
+export const notesSendPolicy = async (top: string, remoteUrl: string, env: NodeJS.ProcessEnv = process.env,
+  platform: NodeJS.Platform = process.platform): Promise<{ ok: true } | { ok: false; why: string }> => {
+  if (env.BAL_NOTES_SYNC === "off") return { ok: false, why: "الإرسال مطفأ في هذه النسخة (BAL_NOTES_SYNC=off)." };
+  const dirs = await runGit(top, ["rev-parse", "--git-dir", "--git-common-dir"]);
+  const [gitDir, commonDir] = dirs.ok ? dirs.out.split("\n").map((d) => path.resolve(top, d.trim())) : [];
+  if (!gitDir || !commonDir || (await realpath(gitDir).catch(() => gitDir)) !== (await realpath(commonDir).catch(() => commonDir)))
+    return { ok: false, why: "نسخة عمل منفصلة (worktree)، لا نسخة المالك." };
+  const branch = await runGit(top, ["symbolic-ref", "--quiet", "--short", "HEAD"]);
+  if (!branch.ok || branch.out !== "main") return { ok: false, why: `هذه النسخة على ${branch.ok ? `الفرع ${branch.out}` : "commit منفصل"}، لا على main.` };
+  const elsewhere = env.VITEST ? "اختبار" : env.CI ? "CI" : env.CLAUDE_CODE_REMOTE ? "جلسة سحابية" :
+    platform === "darwin" || platform === "win32" ? null : `جهاز ${platform}، لا ماك المالك`;
+  if (elsewhere && !(env.BAL_NOTES_SYNC === "on" && isLocalRemote(remoteUrl)))
+    return { ok: false, why: `${elsewhere}: لا تُرسل ملاحظات هذه النسخة إلى صندوق المالك.` };
+  return { ok: true };
+};
+
+/** GitHub refused this device's credentials (not the network): the owner's Mac needs its push sign-in. */
+export const AUTH_FAILURE = /authentication failed|could not read (?:username|password)|terminal prompts disabled|invalid username or password|permission denied|repository not found|access denied|returned error: 40[13]|\b403\b/i;
+/** Never keep a credential embedded in a remote URL in a message. */
+const scrub = (text: string) => text.replace(/(\w+:\/\/)[^@/\s]+@/g, "$1***@");
+const classify = (text: string, fallback: SyncFailure = "error"): SyncFailure =>
+  !text ? "offline" : NETWORK_FAILURE.test(text) ? "offline" : AUTH_FAILURE.test(text) ? "auth" : fallback;
 
 const repoTop = async (dir: string): Promise<string | null> => {
   const r = await runGit(dir, ["rev-parse", "--show-toplevel"]);
@@ -83,7 +125,10 @@ const parseNotes = (text: string): StudioNote[] => {
  * محاولة إرسال واحدة لكل الصناديق التي فيها ملاحظة «بانتظار الإرسال».
  * `inboxFiles` (اختياري) يحدّد الصناديق؛ وإلا تُجمع من `channelsDir`.
  */
-const syncOnce = async (opts: { channelsDir: string; remote?: string; inboxFiles?: string[] }): Promise<SyncResult> => {
+/** A failure that really is the network (QA 12 Nov): anything else (a bad remote, auth, a hook) is not «بلا اتصال». */
+export const NETWORK_FAILURE = /could not resolve (?:host|proxy)|failed to connect|connection (?:timed out|refused|reset)|timed out|network is unreachable|temporary failure in name resolution|getaddrinfo|eai_again|enotfound/i;
+type SyncOpts = { channelsDir: string; remote?: string; inboxFiles?: string[]; env?: NodeJS.ProcessEnv; platform?: NodeJS.Platform };
+const syncOnce = async (opts: SyncOpts): Promise<SyncResult> => {
   const remote = opts.remote ?? "origin";
   const files = (opts.inboxFiles ?? listInboxFiles(opts.channelsDir)).filter((f) => existsSync(f));
   const pending: { file: string; ids: string[] }[] = [];
@@ -96,8 +141,9 @@ const syncOnce = async (opts: { channelsDir: string; remote?: string; inboxFiles
   if (!pending.length) return { ok: true, pushed: false, commit: null, notes: [] };
   const fail = async (reason: Exclude<SyncResult, { ok: true }>["reason"], message: string): Promise<SyncResult> => {
     const at = new Date().toISOString();
-    for (const p of pending) await markNotesSync(p.file, p.ids, { state: "pending", at, lastError: `${reason}: ${message}`.slice(0, 300) });
-    return { ok: false, reason, message, notes: allIds };
+    const clean = scrub(message);
+    for (const p of pending) await markNotesSync(p.file, p.ids, { state: "pending", at, lastError: `${reason}: ${clean}`.slice(0, 300) });
+    return { ok: false, reason, message: clean, notes: allIds };
   };
 
   const top = await repoTop(path.dirname(pending[0]!.file));
@@ -110,15 +156,18 @@ const syncOnce = async (opts: { channelsDir: string; remote?: string; inboxFiles
   }
   const remoteUrl = await runGit(top, ["remote", "get-url", remote]);
   if (!remoteUrl.ok) return fail("no-remote", `No Git remote named ${remote}.`);
+  // KI-008: only the owner's Studio sends to his box; decided before any network call.
+  const policy = await notesSendPolicy(top, remoteUrl.out, opts.env ?? process.env, opts.platform ?? process.platform);
+  if (!policy.ok) return fail("not-owner", policy.why);
 
   // آخر ما على GitHub من الفرع (أو لا شيء: أول ملاحظة تنشئ الفرع).
   const ls = await runGit(top, ["ls-remote", "--refs", remote, NOTES_REF], { timeout: 30_000 });
-  if (!ls.ok) return fail("offline", ls.err || "Cannot reach the remote.");
+  if (!ls.ok) return fail(classify(ls.err), ls.err || "Cannot reach the remote.");
   const tip = ls.out.split(/\s+/)[0] || "";
   if (tip) {
     const fetched = await runGit(top, ["fetch", "--no-tags", "--no-write-fetch-head", "--no-recurse-submodules", remote,
       `+${NOTES_REF}:${NOTES_TRACKING_REF}`], { timeout: 60_000 });
-    if (!fetched.ok) return fail("offline", fetched.err || "Cannot fetch the notes branch.");
+    if (!fetched.ok) return fail(classify(fetched.err), fetched.err || "Cannot fetch the notes branch.");
   }
 
   const tmp = await mkdtemp(path.join(os.tmpdir(), "bal-notes-index-"));
@@ -159,7 +208,8 @@ const syncOnce = async (opts: { channelsDir: string; remote?: string; inboxFiles
         `${commit}:${NOTES_REF}`], { timeout: 120_000 });
       if (!push.ok) {
         const text = `${push.out}\n${push.err}`;
-        return fail(/rejected|non-fast-forward|fetch first|stale info/i.test(text) ? "rejected" : "offline", text.trim().slice(-400));
+        return fail(/non-fast-forward|fetch first|stale info|\[rejected\]/i.test(text) && !/pre-push hook|hook declined|رُفض الدفع/.test(text) ? "rejected"
+          : classify(text.trim()), text.trim().slice(-400));
       }
       await runGit(top, ["update-ref", NOTES_TRACKING_REF, commit]);
     }
@@ -172,14 +222,20 @@ const syncOnce = async (opts: { channelsDir: string; remote?: string; inboxFiles
 };
 
 let queue: Promise<unknown> = Promise.resolve();
+let lastAttempt: { at: string; result: SyncResult } | null = null;
+let inFlight = 0;
 /** إرسال متسلسل (لا محاولتان في الوقت نفسه)، مع إعادة واحدة إن سبقنا دفع آخر. لا يرمي أبدًا. */
-export const syncStudioNotes = (opts: { channelsDir: string; remote?: string; inboxFiles?: string[] }): Promise<SyncResult> => {
+export const syncStudioNotes = (opts: SyncOpts): Promise<SyncResult> => {
   const run = queue.then(async () => {
     try {
       const first = await syncOnce(opts);
-      return !first.ok && first.reason === "rejected" ? await syncOnce(opts) : first;
+      const r = !first.ok && first.reason === "rejected" ? await syncOnce(opts) : first;
+      lastAttempt = { at: new Date().toISOString(), result: r };
+      return r;
     } catch (error) {
-      return { ok: false as const, reason: "error" as const, message: (error as Error).message, notes: [] };
+      const r = { ok: false as const, reason: "error" as const, message: (error as Error).message, notes: [] };
+      lastAttempt = { at: new Date().toISOString(), result: r };
+      return r;
     }
   });
   queue = run.catch(() => undefined);
@@ -199,10 +255,12 @@ export const notesRetryPending = () => retryTimer !== null;
 export const scheduleStudioNotesSync = (channelsDir: string, log: (m: string) => void = (m) => console.warn(m),
   opts: { retryMs?: number; enabled?: boolean; sync?: typeof syncStudioNotes } = {}): Promise<SyncResult | null> => {
   if (!(opts.enabled ?? notesSyncEnabled())) return Promise.resolve(null);
-  return (opts.sync ?? syncStudioNotes)({ channelsDir }).then((r) => {
+  inFlight++;
+  return (opts.sync ?? syncStudioNotes)({ channelsDir }).finally(() => { inFlight--; }).then((r) => {
     if (!r.ok && r.notes.length) {
       log(`[studio] owner notes kept for later (${r.reason}): ${r.message.split("\n")[0]}`);
-      if (!retryTimer) {
+      // A copy that is not the owner's Studio never sends: retrying it would only repeat the refusal.
+      if (!retryTimer && r.reason !== "not-owner") {
         retryTimer = setTimeout(() => { retryTimer = null; void scheduleStudioNotesSync(channelsDir, log, opts); }, opts.retryMs ?? NOTES_RETRY_MS);
         (retryTimer as { unref?: () => void }).unref?.();
       }
@@ -212,4 +270,43 @@ export const scheduleStudioNotesSync = (channelsDir: string, log: (m: string) =>
     }
     return r;
   });
+};
+
+/** What the fixed indicator «ملاحظات لم تُرسل: N» shows (D102/D107): the count and the real reason of the last failure. */
+export type NotesStatus = {
+  /** Notes kept on this device that have not reached studio-notes. */
+  pending: number;
+  /** Why the newest of them is still waiting (null while it has not been tried yet). */
+  reason: SyncFailure | null;
+  /** The last error as Git said it (credentials scrubbed), for «تفاصيل». */
+  detail: string | null;
+  lastAttemptAt: string | null;
+  sending: boolean;
+  /** Where they are (channel/episode), newest first. */
+  where: { channel: string; episode: string; count: number }[];
+};
+const FAILURE_RE = /^(offline|rejected|auth|not-owner|no-repo|no-remote|error):\s*/;
+export const studioNotesStatus = async (channelsDir: string): Promise<NotesStatus> => {
+  let pending = 0, newest: { at: string; lastError?: string } | null = null;
+  const where: NotesStatus["where"] = [];
+  for (const file of listInboxFiles(channelsDir)) {
+    const inbox = await readInboxFile(file).catch(() => null);
+    const waiting = inbox?.notes.filter((n) => n.sync?.state !== "sent") ?? [];
+    if (!waiting.length) continue;
+    pending += waiting.length;
+    where.push({ channel: waiting[0]!.channel, episode: waiting[0]!.episode, count: waiting.length });
+    for (const n of waiting) {
+      const at = n.sync?.at ?? n.createdAt;
+      if (!newest || at > newest.at) newest = { at, ...(n.sync?.lastError ? { lastError: n.sync.lastError } : {}) };
+    }
+  }
+  const m = FAILURE_RE.exec(newest?.lastError ?? "");
+  return {
+    pending,
+    reason: pending && m ? (m[1] as SyncFailure) : null,
+    detail: pending && m ? newest!.lastError!.slice(m[0].length) || null : null,
+    lastAttemptAt: lastAttempt?.at ?? null,
+    sending: inFlight > 0,
+    where,
+  };
 };

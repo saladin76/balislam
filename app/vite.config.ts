@@ -34,6 +34,8 @@ export default defineConfig({
   server: {
     host: "127.0.0.1",
     port: 4321,
+    // استوديو واحد (D101): لا انتقال صامت إلى 4322 إن كان المنفذ مشغولًا (scripts/studio.mjs يغلق النسخة الأقدم)
+    strictPort: true,
     open: false,
     fs: { allow: [root] },
     watch: { ignored: ["**/channels/*/episodes/**", "**/channels/*/identity.json", "**/channels/*/channel.json", "**/channels/*/pronunciation.json", "**/channels/*/pronunciations.json", "**/channels/*/ideas.json", "**/channels/*/calendar.json", "**/.env", "**/renders/**", "**/assets/elements/**", "**/public/_render/**"] },

@@ -3,11 +3,19 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { busy, busyRefusal, handleExtra, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
+import { busy, busyRefusal, longJobs, recoverStudioQueue, renderJobs, startRenderJob } from "./jobQueue.ts";
+import { ownerRefusal } from "./routeContext.ts";
+import { handleStudioRoutes } from "./routes/index.ts";
+import { contentSyncEnabled, createContentSync, setSharedContentSync } from "./contentSync.ts";
+import { restoreUntrackedPreviews } from "./untrackedPreviews.ts";
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
 import { MAX_BODY_BYTES, readBody } from "./body.ts";
+import { writeFileAtomic, writeJsonAtomic } from "../../src/io/atomicJson.ts";
 import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
 import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
+import { captureRouteError, handleErrorRoutes, isProgrammingError, testFault } from "./errors.ts";
+import { handlePronunciationRoutes } from "./pronunciationCheck.ts";
+import { redactSecrets, secretValues } from "../../src/studio/errorLog.ts";
 
 /**
  * واجهة برمجية محلية للاستوديو: تقرأ وتكتب نفس ملفات المستودع التي تستخدمها أوامر bal.
@@ -20,7 +28,8 @@ const configFile = path.join(root, "config.json");
 const send = (res: ServerResponse, status: number, body: unknown) => {
   // No absolute path of the owner's machine in any error the browser sees (util.ts redactPaths).
   if (body && typeof body === "object" && !Array.isArray(body) && typeof (body as { error?: unknown }).error === "string")
-    body = { ...(body as object), error: redactPaths((body as { error: string }).error, root) };
+    // …and no secret either (D112): no value from .env, no device key, no credential inside a git remote URL.
+    body = { ...(body as object), error: redactSecrets(redactPaths((body as { error: string }).error, root), { values: secretValues(root) }) };
   res.statusCode = status;
   res.setHeader("content-type", "application/json; charset=utf-8");
   res.end(JSON.stringify(body));
@@ -140,6 +149,24 @@ export const balApi = (): Plugin => ({
       .then(([sweep, ch]) => sweep.sweepAllOrphanWordFixFragments(ch.channelsDir()))
       .then((n) => { if (n) console.log(`[studio] ${n} orphaned word-fix fragment(s) moved to voice/superseded/sentences.`); })
       .catch((e) => console.error("[studio] word-fix fragments:", (e as Error).message));
+    // D109: فيديوهات المعاينة القديمة التي أُزيلت من Git تبقى على جهاز المالك؛ إن حذفها تحديثٌ طبّقه كود أقدم
+    // تعود من كائنات Git المحلية مرة واحدة (app/server/untrackedPreviews.ts). جهاز المالك وحده، كالحفظ الآلي.
+    if (contentSyncEnabled()) void restoreUntrackedPreviews(root)
+      .then((r) => { if (r.restored.length) console.log(`[studio] ${r.restored.length} old preview video(s) kept on this device after they left Git.`); })
+      .catch((e) => console.error("[studio] old previews:", (e as Error).message));
+    // D120 (العمل ٧): السجلات القديمة التي لا يقرؤها شيء تُنقل مرة مع كل تشغيل إلى أرشيف محلي في .studio/ بعد نسخة في
+    // ~/balislam-backup (src/studio/legacyMigration.ts). لا شيء ⇒ لا كتابة. لا يُعتمد بها شيء ولا يُلغى. لا يعمل داخل الاختبارات.
+    if (!process.env.VITEST) void Promise.all([load("/src/studio/legacyMigration.ts"), load("/src/channel/index.ts")])
+      .then(([m, ch]) => m.migrateLegacyRecords({ channelsDir: ch.channelsDir() }))
+      .then((r) => { if (r.moved.length || r.skipped.length) console.log(`[studio] ${r.moved.length ? "legacy records archived" : "legacy records left in place"}: ${r.moved.length} moved, ${r.skipped.length} left.`); })
+      .catch((e) => console.error("[studio] legacy migration:", (e as Error).message));
+    // «كل الأماكن نسخة واحدة» (D101): حفظ محتوى المالك في main واستقبال التحديثات آليًا، على جهاز المالك وحده
+    const contentSync = createContentSync(root, {
+      canRestart: () => busy.size === 0 && ![...renderJobs.values(), ...longJobs.values()].some((j) => j.status === "running"),
+      onRestart: () => process.exit(75),
+    });
+    setSharedContentSync(contentSync);
+    contentSync.start();
     server.middlewares.use(async (req, res, next) => {
       // Anti-framing on API responses too (H1); the HTML/assets get it from studioSecurityHeaders().
       applyStudioSecurityHeaders(res);
@@ -172,11 +199,16 @@ export const balApi = (): Plugin => ({
 
         // Unified engine (2026-11-08): the scene-first ledger (src/studio/sceneService.ts) is the only
         // approval authority. The isolated V2 review API is no longer mounted, so it cannot act as a
-        // second authority; its modules stay in src/workflow/*V2* until the owner accepts the release.
+        // second authority; its modules were removed (D120).
         if (parts[0] === "studio-v2")
           return send(res, 410, { ok: false, code: "V2_SUPERSEDED", error: "استُبدلت مراجعة V2 المعزولة بالخطوات الأربع في الاستوديو: «١ التجهيز» ثم «٢ المشاهد» ثم «٣ النسخة النهائية» ثم «٤ النشر»." });
 
-        if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
+        // D112: «أرسل المشكلة» وأخطاء الواجهة (app/server/errors.ts)
+        if (await handleErrorRoutes({ req, res, parts, ch, root, load, send, readBody })) return;
+        testFault(url.pathname);
+        // العمل ٩: فحص النطق المحلي الاختياري (app/server/pronunciationCheck.ts)
+        if (await handlePronunciationRoutes({ req, res, parts, ch, load, send, readBody })) return;
+        if (await handleStudioRoutes({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
         if (parts[0] === "channels") {
           const list = channelMod.listChannels().map((id: string) => {
@@ -190,8 +222,14 @@ export const balApi = (): Plugin => ({
         if (parts[0] === "episodes" && parts.length === 1) {
           if (req.method === "POST") {
             const b = await readBody(req);
-            const { createEpisode } = await load("/src/script/episodes.ts");
-            await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title, ...(typeof b.series === "string" && b.series ? { series: b.series } : {}) });
+            const { createEpisode, EpisodeInputError } = await load("/src/script/episodes.ts");
+            try {
+              await createEpisode({ episode: b.episode, slug: b.slug, domain: b.domain, title: b.title, ...(typeof b.series === "string" && b.series ? { series: b.series } : {}) });
+            } catch (error) {
+              // QA 12 Nov: a duplicate number or a bad field is the owner's input, answered 409 in Arabic (never a 500 with a path).
+              if (error instanceof EpisodeInputError) return send(res, 409, { error: (error as Error).message, field: (error as { field?: string }).field });
+              throw error;
+            }
             return send(res, 200, { ok: true });
           }
           // الجاهزة للتشغيل فقط (لها script.md)؛ مجلدات الخطة وحدها (000-trailer، المختبرات) لا تُفتح حلقاتٍ
@@ -262,6 +300,12 @@ export const balApi = (): Plugin => ({
               const { ownerText, planOrder } = await load("/src/i18n/sceneNames.ts");
               message = ownerText(message, planOrder(await io.loadPlan(ep).catch(() => null)));
             } catch { /* the message as it is */ }
+            // A programming error that met a refusal path is still unexpected (D112): logged, and its number returned.
+            if (isProgrammingError(error)) {
+              const captured = captureRouteError(root, req, error, ch);
+              await captured.written;
+              return send(res, isOwnerAuthError(error) ? 403 : 409, { error: message, errorId: captured.id });
+            }
             return send(res, isOwnerAuthError(error) ? 403 : 409, { error: message });
           };
           if (parts[2] === "scene-production" && parts.length === 3) {
@@ -277,7 +321,12 @@ export const balApi = (): Plugin => ({
                 return { ...read, seamTimes: await assemblySeamTimes(scriptPath, plan, read.seams) };
               } catch { return read; }
             };
-            if (req.method === "GET") return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
+            if (req.method === "GET") {
+              // QA 12 Nov (all channels): a new episode is opened before its first plan exists; the plan is made here
+              // as GET /episodes/:id does (from the script), instead of a 500 «Prepare and save a storyboard plan first.».
+              if (!(await io.readPlanFile(scriptPath))) await io.regeneratePlan(ep).catch(() => null);
+              return send(res, 200, await withSeamTimes(await inspectSceneProduction(ep)));
+            }
             if (req.method === "POST") {
               const body = await readBody(req);
               // H6: the direct script/storyboard approvals carry the same checks as «اعتمد التجهيز».
@@ -395,15 +444,22 @@ export const balApi = (): Plugin => ({
           // needed, then the storyboard approval, each with its own check (src/studio/preparation.ts). Right after
           // it the scenes start preparing on their own (drafts only; nothing is submitted or approved).
           if (parts[2] === "approve-preparation" && parts.length === 3) {
-            const { approvePreparation, preparationBlockers } = await load("/src/studio/preparation.ts");
+            const { approvePreparation, preparationBlockers, isPreparationApproved } = await load("/src/studio/preparation.ts");
             if (req.method === "GET") {
               try { return send(res, 200, await preparationBlockers(ep)); } catch (error) { return refuse(error); }
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const body = await readBody(req);
+            const { requireSceneProductionReady, inspectSceneProduction } = await load("/src/studio/sceneService.ts");
+            // KI-058: a repeated press (stale page, second tab, double click) writes nothing (D76) and STARTS nothing.
+            // Before, it started a second «جهّز كل المشاهد» that chased every scene the owner re-opened afterwards
+            // and then held the episode when «اصنع النسخة النهائية» came. The queue starts only with the approval itself;
+            // later the owner's own «جهّز كل المشاهد» / «استأنف التجهيز» starts it.
+            let already = false;
+            try { already = isPreparationApproved(await inspectSceneProduction(ep)); } catch { /* approvePreparation says why */ }
             let read;
             try { read = await approvePreparation(ep, body); } catch (error) { return refuse(error); }
-            const { requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
+            if (already) return send(res, 200, { ...read, prepare: { job: prepareJob(`${ch}/${ep}`) } });
             let job = null;
             let prepareError: string | undefined;
             try { await requireSceneProductionReady(ep); job = await startPrepare(); }
@@ -441,9 +497,10 @@ export const balApi = (): Plugin => ({
             };
             const toneMissing = async () => {
               try {
-                const { scenesWithoutTone } = await load("/src/studio/preparation.ts");
+                const { scenesWithoutTone, toneMapScenesFor } = await load("/src/studio/preparation.ts");
                 const plan = await io.loadPlan(ep);
-                return plan ? scenesWithoutTone(plan, channelMod.loadChannel(ch).voice?.tone) : [];
+                // QA dafatir M1: a tone-map episode has its tones (and the basmala needs none).
+                return plan ? scenesWithoutTone(plan, channelMod.loadChannel(ch).voice?.tone, await toneMapScenesFor(scriptPath)) : [];
               } catch { return []; }
             };
             if (req.method === "GET")
@@ -462,33 +519,10 @@ export const balApi = (): Plugin => ({
             return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
           }
 
-          if (parts[2] === "workflow" && parts.length === 3) {
-            const { workflowReadForEpisode } = await load("/src/workflow/server.ts");
-            if (req.method === "GET") return send(res, 200, await workflowReadForEpisode(ep));
-            // Unified engine: the six-stage ledger is read-only (migration); it takes no new decisions.
-            if (req.method === "POST") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
-            return send(res, 405, { error: "Method not allowed" });
-          }
-
-          if (parts[2] === "script-signoff" && parts.length === 3) {
-            const { scriptSignoffStatus } = await load("/src/script/approval.ts");
-            if (req.method === "GET") return send(res, 200, await scriptSignoffStatus(scriptPath));
-            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
-            return send(res, 405, { error: "Method not allowed" });
-          }
-          if (parts[2] === "voice-review" && parts.length === 3) {
-            const plan = await io.loadPlan(ep);
-            if (!plan) throw new HttpError(404, "خطة الحلقة غير موجودة.");
-            const { loadVoiceIndex } = await load("/src/voice/generate.ts");
-            const { voiceReviewItems, episodeVoiceApproved } = await load("/src/voice/review.ts");
-            const voice = await loadVoiceIndex(ep);
-            if (req.method === "GET") {
-              return send(res, 200, { items: await voiceReviewItems(scriptPath, plan, voice), episodeApproved: await episodeVoiceApproved(scriptPath, plan, voice) });
-            }
-            // The voice is reviewed inside each scene's AV approval; no separate voice approval.
-            if (req.method === "PUT") return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
-            return send(res, 405, { error: "Method not allowed" });
-          }
+          // D120: the old approval records (six-stage ledger, old script signoff, separate voice approval) are gone;
+          // their data was archived by `bal migrate legacy`. Every method answers 410 and nothing is read.
+          if (["workflow", "script-signoff", "voice-review"].includes(parts[2] ?? "") && parts.length === 3)
+            return send(res, 410, { error: "استُبدل هذا الاعتماد بالخطوات الأربع: اعتمد من «١ التجهيز» (السكريبت والستوري بورد)، ثم «٢ المشاهد» (كل مشهد بالصوت والصورة)، ثم «٣ النسخة النهائية» (التجميع والنسخة النهائية)، ثم «٤ النشر»." });
 
           if (parts[2] === "quran-audit" && parts.length === 3) {
             if (req.method !== "GET") return send(res, 405, { error: "التدقيق للقراءة فقط." });
@@ -535,6 +569,12 @@ export const balApi = (): Plugin => ({
             try {
               assertSceneOwner();
               const key = String(body?.key ?? "");
+              // D68: a written-citation channel takes no verse recitation (the card is silent text); the basmala stays.
+              if (key !== "basmala") {
+                const { versesAreCitations } = await load("/src/quran/citation.ts");
+                const { loadChannel } = await load("/src/channel/index.ts");
+                if (versesAreCitations(loadChannel())) return send(res, 409, { error: "الآية في هذه القناة استشهاد مكتوب صامت بلا تلاوة؛ لا يُرفع لها تسجيل." });
+              }
               if (body?.action === "upload") {
                 const data = Buffer.from(String(body.data ?? "").replace(/^data:[^,]+,/, ""), "base64");
                 const candidate = await manual.prepareOwnRecitation(ep, key, String(body.name ?? ""), data);
@@ -673,7 +713,8 @@ export const balApi = (): Plugin => ({
               }
               const report = await generateVoice(ep, { client, dryRun, only: b.scenes, force: b.force });
               const plan = await io.readPlanFile(scriptPath);
-              return send(res, 200, { report, generated: !dryRun, media: await mediaFor(plan) });
+              // QA balislam 3: a dry run because there is no key is said as such (the studio never shows success for it).
+              return send(res, 200, { report, generated: !dryRun, ...(client ? {} : { noKey: true }), media: await mediaFor(plan) });
             } catch (error) {
               if ((error as { code?: string })?.code === "QURAN_TTS") return send(res, 422, { error: (error as Error).message });
               return refuse(error);
@@ -728,7 +769,7 @@ export const balApi = (): Plugin => ({
           if (parts[2] === "script" && req.method === "PUT") {
             const { text } = await readBody(req);
             if (typeof text !== "string" || !text.trim()) return send(res, 400, { error: "نص السكريبت فارغ؛ لم يُحفظ." });
-            await writeFile(scriptPath, text, "utf8");
+            await writeFileAtomic(scriptPath, text);
             const check = await checkText(text, scriptPath);
             // الخطة المصمَّمة لا تُعاد كتابتها من السكريبت أبدًا (حادثة دفاتر الزمن 001)؛ تُرجع قائمة الاختلاف فقط
             const after = await io.planAfterScriptSave(ep);
@@ -751,11 +792,13 @@ export const balApi = (): Plugin => ({
             }
           }
           if (parts[2] === "plan" && req.method === "PUT") {
-            const { plan, overwriteDesigned, confirmEpisode } = await readBody(req);
+            const { plan, overwriteDesigned, confirmEpisode, expectedRevision } = await readBody(req);
             if (!plan || !Array.isArray(plan.chapters) || plan.chapters.some((c: any) => !Array.isArray(c?.scenes))) return send(res, 400, { error: "الخطة غير مكتملة؛ لم تُحفظ." });
+            if (typeof expectedRevision !== "string" || !/^[a-f0-9]{64}$/.test(expectedRevision))
+              return send(res, 409, { error: "نسخة الصفحة قديمة أو لم تُحمّل الخطة كاملة؛ احتفظ بتعديلك ثم أعد تحميل الصفحة قبل الحفظ.", code: "PLAN_REVISION_REQUIRED" });
             // M4: designed-plan guard (D46) and a backup before the overwrite (src/plan/io.ts savePlanFromStudio)
             try {
-              const r = await io.savePlanFromStudio(ep, plan, { overwriteDesigned, confirmEpisode });
+              const r = await io.savePlanFromStudio(ep, plan, { overwriteDesigned, confirmEpisode, expectedRevision });
               return send(res, 200, { ok: true, ...r });
             } catch (error) {
               if ((error as { code?: string })?.code === "designed-plan-replace")
@@ -785,7 +828,7 @@ export const balApi = (): Plugin => ({
             if (refused) return send(res, 403, { error: refused });
             const { identity } = await readBody(req);
             if (!identity?.themes || !identity?.palettes || !identity?.typography || !identity?.motion) return send(res, 400, { error: "ملف الهوية ناقص" });
-            await writeFile(identityFile, JSON.stringify(identity, null, 2) + "\n", "utf8");
+            await writeJsonAtomic(identityFile, identity);
             return send(res, 200, { ok: true });
           }
           return send(res, 200, {
@@ -820,13 +863,16 @@ export const balApi = (): Plugin => ({
         return send(res, 404, { error: "مسار غير معروف" });
         }));
       } catch (err) {
-        if (err instanceof HttpError) return send(res, err.status, { error: err.message });
+        if (err instanceof HttpError && err.status < 500) return send(res, err.status, { error: err.message });
         // Known, owner-facing refusals (QA H4/M3): a busy lock or episode, or a state file being written / damaged.
-        if (["LOCK_BUSY", "BAD_JSON_FILE", "EPISODE_BUSY"].includes(String((err as { code?: unknown })?.code)))
-          return send(res, 409, { error: (err as Error).message });
+        if (["LOCK_BUSY", "BAD_JSON_FILE", "EPISODE_BUSY", "PLAN_CONFLICT"].includes(String((err as { code?: unknown })?.code)))
+          return send(res, 409, { error: (err as Error).message, code: String((err as { code?: unknown }).code) });
         if (isMissingFileError(err)) return send(res, 404, { error: /^ENOENT\b/.test((err as Error).message) ? "الملف المطلوب غير موجود." : (err as Error).message });
-        console.error("[studio] request failed:", url.pathname, err);
-        return send(res, 500, { error: (err as Error).message });
+        // D112: every unexpected exception is written to .studio/errors.jsonl (redacted), and its number answered
+        // with the 500 so the page can offer «أرسل المشكلة».
+        const captured = captureRouteError(root, req, err);
+        await captured.written;
+        return send(res, err instanceof HttpError ? err.status : 500, { error: (err as Error).message, errorId: captured.id });
       }
     });
   },

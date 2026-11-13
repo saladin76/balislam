@@ -14,8 +14,9 @@ import { ChannelsWorkspace } from "../app/src/tabs/ChannelsWorkspace";
 import { IntegratedReviewWorkspace } from "../app/src/workspace/IntegratedReviewWorkspace";
 import { episodeLength } from "../src/plan/episodeLength";
 import type { PlanScene } from "../src/plan/types";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const noop = () => {};
 /** Visible text only: tags (and their attributes such as title="c1-s3") removed. */
 const text = (html: string) => html.replace(/<[^>]*>/g, " ");
@@ -68,7 +69,7 @@ describe("step ١: the board viewer", () => {
     const board = src("app/src/tabs/StoryboardPanel.tsx");
     // 11 Nov: the only way to step ٢ is the «تغيّر بعد التجهيز» list, which exists only after «اعتمد التجهيز».
     expect(board.match(/onOpenScene/g)?.length).toBe(5);
-    expect(board).toContain("afterPreparation?.length && onOpenScene ? <AfterPreparationList");
+    expect(board).toContain("(afterPreparation?.length || afterPreparationScriptOnly) && onOpenScene ? <AfterPreparationList");
     expect(board).toContain("setViewing(indexOf.get(s.id) ?? 0)");
     const app = src("app/src/App.tsx");
     const branch = app.slice(app.indexOf('tab === "storyboard" ? ('), app.indexOf('tab === "voice" ? ('));
@@ -151,7 +152,7 @@ describe("one episode length", () => {
     expect(after.source).toBe("voice");
     expect(after.seconds).toBeGreaterThanOrEqual(9);
     // The home list and the storyboard both read it; the words estimate stays in the script panel.
-    expect(src("app/server/extra.ts")).toContain("length: plan ? episodeLength(plan,");
+    expect(src("app/server/routes/overview.ts")).toContain("length: plan ? episodeLength(plan,");
     expect(src("app/src/tabs/HomeTab.tsx")).not.toContain("check.seconds");
     expect(src("app/src/tabs/StoryboardPanel.tsx")).toContain("episodeLength(plan, media, fps)");
   });

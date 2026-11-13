@@ -1,15 +1,16 @@
+import { browserPlanRevision } from "../src/plan/revision";
 /**
  * Security QA (10 Nov) over the real Studio server:
  *  H1 — every response (HTML and API) refuses framing (X-Frame-Options DENY, CSP frame-ancestors 'none');
  *  H2 — EVERY mutating route goes through one middleware: loopback socket + loopback Host + a same-origin
- *       Origin or Sec-Fetch-Site; enumerated from the route names in app/server/api.ts and extra.ts;
+ *       Origin or Sec-Fetch-Site; enumerated from the route names in app/server/api.ts and app/server/routes/;
  *  H6 — the direct approve-script / approve-storyboard routes carry the «اعتمد التجهيز» checks;
  *  M4 — PUT /plan keeps the designed-plan guard (D46) and writes a backup before overwriting;
  *  C1 — /api/voice-sample is owner-only and refuses Quran before any request to the voice service.
  * All keys below are test fixtures in a temporary folder; nothing reaches a paid service.
  */
 import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
@@ -100,7 +101,8 @@ const same = () => ({ origin: `http://127.0.0.1:${port}`, "sec-fetch-site": "sam
 
 /** Every route name the two route files dispatch on, as /api/<name> and /api/episodes/<ep>/<name>. */
 const enumerateRoutes = (): string[] => {
-  const src = ["api.ts", "extra.ts"].map((f) => readFileSync(path.join(repo, "app", "server", f), "utf8")).join("\n");
+  const src = ["api.ts", ...readdirSync(path.join(repo, "app", "server", "routes")).map((f) => path.join("routes", f))]
+    .map((f) => readFileSync(path.join(repo, "app", "server", f), "utf8")).join("\n");
   const top = [...new Set([...src.matchAll(/parts\[0\] === "([a-z0-9-]+)"/g)].map((m) => m[1]!))];
   const ep = [...new Set([...src.matchAll(/parts\[2\] === "([a-z0-9-]+)"/g)].map((m) => m[1]!))];
   return [...top.map((t) => t), `episodes`, `episodes/${EP}`, ...ep.map((e) => `episodes/${EP}/${e}`), `channel`, "settings/test", "voice-sample", "labs/x/storyboards/y/1/decision"];
@@ -140,7 +142,7 @@ describe("H2: one middleware for every mutating route", () => {
     const src = readFileSync(path.join(repo, "app", "server", "api.ts"), "utf8");
     const guard = src.indexOf("studioRequestRefusal(req)");
     expect(guard).toBeGreaterThan(0);
-    expect(guard).toBeLessThan(src.indexOf("handleExtra({"));
+    expect(guard).toBeLessThan(src.indexOf("handleStudioRoutes({"));
     expect(guard).toBeLessThan(src.indexOf('parts[0] === "episodes"'));
   });
 
@@ -213,25 +215,49 @@ describe("M4: PUT /plan", { timeout: 60_000 }, () => {
     await writeFile(path.join(epDir, "plan.json"), JSON.stringify(designed(), null, 2));
     const before = await readFile(path.join(epDir, "plan.json"), "utf8");
     const flat = planOf();
-    const refused = await api("PUT", `episodes/${EP}/plan`, { plan: flat }, same());
+    const expectedRevision = await browserPlanRevision((await api("GET", `episodes/${EP}`)).body.plan);
+    const refused = await api("PUT", `episodes/${EP}/plan`, { plan: flat, expectedRevision }, same());
     expect(refused.status).toBe(409);
     expect(refused.body.lost).toEqual(["c1-s1"]);
     expect(await readFile(path.join(epDir, "plan.json"), "utf8")).toBe(before);
-    expect((await api("PUT", `episodes/${EP}/plan`, { plan: flat, overwriteDesigned: true, confirmEpisode: "001" }, same())).status).toBe(409);
+    expect((await api("PUT", `episodes/${EP}/plan`, { plan: flat, expectedRevision, overwriteDesigned: true, confirmEpisode: "001" }, same())).status).toBe(409);
 
     // An ordinary edit of the designed plan (props) is saved, after the rolling backup.
     const edited = designed();
     edited.chapters[0]!.scenes[0]!.props.text = "الصبر جميل";
-    const ok = await api("PUT", `episodes/${EP}/plan`, { plan: edited }, same());
+    const ok = await api("PUT", `episodes/${EP}/plan`, { plan: edited, expectedRevision }, same());
     expect(ok.status, JSON.stringify(ok.body)).toBe(200);
     expect(await readFile(path.join(epDir, "plan.backup-last.json"), "utf8")).toBe(before);
 
     // Explicit replacement with the episode number: a timestamped backup is written first.
-    const forced = await api("PUT", `episodes/${EP}/plan`, { plan: flat, overwriteDesigned: true, confirmEpisode: EP }, same());
+    const forced = await api("PUT", `episodes/${EP}/plan`, { plan: flat, expectedRevision: ok.body.planRevision, overwriteDesigned: true, confirmEpisode: EP }, same());
     expect(forced.status, JSON.stringify(forced.body)).toBe(200);
     expect(forced.body.backup).toMatch(/^plan\.backup-.*\.json$/);
     const backups = (await readdir(epDir)).filter((f) => /^plan\.backup-\d/.test(f));
     expect(backups).toHaveLength(1);
     expect(JSON.parse(await readFile(path.join(epDir, backups[0]!), "utf8")).chapters[0].scenes[0].props.text).toBe("الصبر جميل");
+  });
+});
+
+// Actual HTTP contract, independent of the client queue.
+describe("plan revision conflict protection", () => {
+  it("rejects missing revisions without touching the file", async () => {
+    const before = await readFile(path.join(epDir, "plan.json"), "utf8");
+    const current = (await api("GET", "episodes/" + EP)).body.plan;
+    const result = await api("PUT", "episodes/" + EP + "/plan", { plan: current }, same());
+    expect(result.status).toBe(409);
+    expect(result.body.code).toBe("PLAN_REVISION_REQUIRED");
+    expect(await readFile(path.join(epDir, "plan.json"), "utf8")).toBe(before);
+  });
+  it("accepts one simultaneous write and refuses its stale competitor", async () => {
+    const current = (await api("GET", "episodes/" + EP)).body.plan;
+    const expectedRevision = await browserPlanRevision(current);
+    const results = await Promise.all(["one", "two"].map((title) => api("PUT", "episodes/" + EP + "/plan", {
+      plan: { ...current, title }, expectedRevision,
+    }, same())));
+    expect(results.map((r) => r.status).sort()).toEqual([200, 409]);
+    expect(results.find((r) => r.status === 409)!.body.error).toContain("لم نكتب فوقها");
+    const saved = (await api("GET", "episodes/" + EP)).body.plan;
+    expect(saved.title).toBe(results[0]!.status === 200 ? "one" : "two");
   });
 });

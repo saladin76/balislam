@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
-import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
-import { api, type Overview } from "../api";
+import { ERRORS, SCENES, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
+import { api, type EpisodeContents, type Overview, type TrashEntry } from "../api";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { selectHomeCards, type HomeCardFilter, type HomeCardSort } from "./homeList";
 import { Num, arDigits, duration, episodeTitle, latinDigits, lengthSource, num } from "../ui/format";
@@ -12,6 +12,7 @@ import { GENERAL_SLUG } from "../../../src/channel/series";
 import { NewSeriesDialog, SeriesGrid } from "./Series";
 import { EPISODE_DRAG_TYPE, dragEpisodes, encodeDrag, episodesIn, seriesOfEpisode, sharedSeries } from "./seriesView";
 import { MoveEpisodesDialog, RowMoveButton, SelectionDock, useEpisodeMover } from "./MoveEpisodes";
+import { OwnerText } from "../ui/OwnerText";
 
 type StageState = "done" | "warn" | "todo" | "na";
 type Stage = { key: string; label: string; state: StageState; note: string };
@@ -21,7 +22,7 @@ type Stage = { key: string; label: string; state: StageState; note: string };
 export const stagesOf = (e: Overview): Stage[] => {
   const stale = e.package.video && e.planUpdatedAt && e.package.updatedAt && e.planUpdatedAt > e.package.updatedAt;
   return [
-    { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? (e.length ? `صالح — ${duration(e.length.seconds)}` : "صالح") : `${num(e.check.errors)} خطأ` },
+    { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? (e.length ? `صالح — ${duration(e.length.seconds)}` : "صالح") : countAr(e.check.errors, ERRORS) },
     { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.blocking ? "warn" : "done", note: !e.scenes ? "لم تُولَّد" : e.blocking ? `${num(e.blocking)} يمنع النسخة النهائية` : arabicCountAr(e.scenes, SCENES) },
     {
       key: "voice",
@@ -37,6 +38,26 @@ export const stagesOf = (e: Overview): Stage[] => {
 /** الخطوات الأربع لكل حلقة من سجل الإنتاج: أين وصلت، وما الخطوة التالية، وأين تُفتح. */
 /** The delete confirmation: the episode's number typed in either digit system («001» or «٠٠١»). */
 export const confirmsEpisode = (typed: string, id: string): boolean => latinDigits(typed.trim()) === id;
+/** KI-019: «انقلها إلى سلة المحذوفات» لا يُضغط قبل كتابة رقم الحلقة الصحيح، ولا أثناء النقل. */
+export const deleteReady = (typed: string, id: string, busy?: boolean): boolean => !busy && confirmsEpisode(typed, id);
+
+const mb = (bytes: number) => num(Math.max(0.1, Math.round(bytes / 1e5) / 10), 1);
+/**
+ * The confirmation says exactly what moves (QA balislam 7): the folder with all its files, its paid recordings and
+ * videos, into the local trash. Nothing is deleted for good, nothing goes to GitHub, the archive is not touched.
+ */
+export const trashWhat = (p?: { dir: string; trash: string; contents: EpisodeContents }): string => {
+  if (!p) return "تُنقل الحلقة كلها إلى سلة المحذوفات على جهازك؛ لا يُحذف شيء نهائيًا، ولا يُرفع شيء إلى GitHub، و«تراجع» يعيدها.";
+  const c = p.contents;
+  return [
+    `يُنقل المجلد ${p.dir} كله (${num(c.files)} ملفًا، ${mb(c.bytes)} م.ب`,
+    c.voiceFiles ? `، منها ${num(c.voiceFiles)} من ملفات الصوت والتسجيلات المدفوعة` : "",
+    c.videoFiles ? `، و${num(c.videoFiles)} فيديو` : "",
+    `) إلى سلة المحذوفات على جهازك: ${p.trash}.`,
+    " لا يُحذف شيء نهائيًا، ولا يُرفع شيء إلى GitHub، ولا يُمس أرشيف البداية النظيفة، و«تراجع» يعيدها إلى مكانها.",
+    c.tracked ? ` في المجلد ${num(c.tracked)} ملفًا من Git ستظهر محذوفة في نسختك المحلية حتى تتراجع أو يُقرَّر حذفها من main بمراجعة.` : "",
+  ].join("");
+};
 
 export type HomeStep = { n: string; title: string; done: boolean; tab: HomeStepTab };
 type HomeStepTab = "script" | "storyboard" | "episode" | "review" | "publish";
@@ -67,13 +88,23 @@ export const HomeTab: React.FC<{
   onOpen: (id: string, tab: HomeStepTab) => void;
   onNew: () => void;
   onDeleted?: (id: string) => void;
+  /** «تراجع» after a delete: the episode is back in its place (the page re-reads the list). */
+  onRestored?: (id: string) => void;
   /** The series page («#/<channel>/series/<id>») */
   onOpenSeries?: (id: string) => void;
-}> = ({ channel, onOpen, onNew, onDeleted, onOpenSeries }) => {
+}> = ({ channel, onOpen, onNew, onDeleted, onRestored, onOpenSeries }) => {
   const [series, setSeries] = useState<SeriesRead | null>(null);
   const [seriesFilter, setSeriesFilter] = useState("all");
   const [newSeries, setNewSeries] = useState<SeriesKind | null>(null);
-  const [del, setDel] = useState<{ id: string; title: string; typed: string; busy?: boolean; msg?: string } | null>(null);
+  const [del, setDel] = useState<{ id: string; title: string; typed: string; busy?: boolean; msg?: string; preview?: { dir: string; trash: string; contents: EpisodeContents } } | null>(null);
+  // QA balislam 7: what was moved to the local trash, with «تراجع» until the owner leaves the page.
+  const [trashed, setTrashed] = useState<{ entry: TrashEntry; trash: string; busy?: boolean; msg?: string } | null>(null);
+  useEffect(() => {
+    if (!del || del.preview) return;
+    let live = true;
+    api.trashPreview(del.id).then((p) => { if (live) setDel((d) => (d && d.id === del.id ? { ...d, preview: p } : d)); }, () => {});
+    return () => { live = false; };
+  }, [del?.id]); // eslint-disable-line react-hooks/exhaustive-deps
   const [items, setItems] = useState<Overview[] | null>(null);
   const [err, setErr] = useState("");
   const [search, setSearch] = useState("");
@@ -112,7 +143,7 @@ export const HomeTab: React.FC<{
     return () => { live = false; };
   }, [channel.id]);
 
-  if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p>{err}</p></div>;
+  if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p><OwnerText text={err} /></p></div>;
   if (!items) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
 
   const inSeries = series && seriesFilter !== "all" ? new Set(episodesIn(seriesFilter, series.series, items).map((e) => e.id)) : null;
@@ -128,15 +159,16 @@ export const HomeTab: React.FC<{
   ) : null;
   const deleteDialog = del ? (
     <Dialog labelledBy="del-title" onClose={() => { if (!del.busy) setDel(null); }}>
-        <div className="modal-head"><h3 id="del-title">حذف الحلقة {arDigits(del.id)} نهائيًا</h3></div>
+        <div className="modal-head"><h3 id="del-title">حذف الحلقة {arDigits(del.id)}</h3></div>
         <p>«{episodeTitle(del.title)}»</p>
-        <p className="help">تُحذف نهائيًا ولا يمكن استرجاعها: السكريبت والتشكيل والمشاهد والصوت والفيديو والصور المصغّرة، من جهازك ومن أرشيف البداية النظيفة ومن GitHub.</p>
+        <p className="help">{trashWhat(del.preview)}</p>
         <label className="field"><span>اكتب رقم الحلقة (<Num>{del.id}</Num>) للتأكيد</span><input id="del-confirm" type="text" dir="ltr" inputMode="numeric" placeholder={arDigits(del.id)} value={del.typed} onChange={(ev) => setDel({ ...del, typed: ev.target.value.trim() })} autoFocus /></label>
         {del.msg ? <p className="help" style={{ color: "var(--err)" }}>{del.msg}</p> : null}
         <div style={{ display: "flex", gap: 8, justifyContent: "flex-start" }}>
           <button
             className="btn primary danger"
             aria-busy={del.busy}
+            disabled={!deleteReady(del.typed, del.id, del.busy)}
             onClick={async () => {
               if (del.busy) return;
               if (!confirmsEpisode(del.typed, del.id)) { setDel({ ...del, msg: `اكتب رقم الحلقة (${arDigits(del.id)}) في الخانة للتأكيد.` }); document.getElementById("del-confirm")?.focus(); return; }
@@ -145,14 +177,14 @@ export const HomeTab: React.FC<{
                 const r = await api.deleteEpisode(del.id, latinDigits(del.typed.trim()));
                 setItems((xs) => (xs ?? []).filter((x) => x.id !== del.id));
                 setDel(null);
+                setTrashed({ entry: r.entry, trash: r.trash });
                 onDeleted?.(del.id);
-                if (r.note) window.alert(r.note);
               } catch (x) {
                 setDel({ ...del, busy: false, msg: (x as Error).message });
               }
             }}
           >
-            {del.busy ? "جارٍ الحذف…" : "احذف نهائيًا"}
+            {del.busy ? "جارٍ النقل…" : "انقلها إلى سلة المحذوفات"}
           </button>
           <button className="btn" disabled={del.busy} onClick={() => setDel(null)}>إلغاء</button>
         </div>
@@ -161,13 +193,36 @@ export const HomeTab: React.FC<{
 
   // The episode that waits for the owner first is lifted on a card (direction D).
   const hot = visible.find((e) => fourSteps(e).some((s) => !s.done))?.id;
+  const undo = async () => {
+    if (!trashed || trashed.busy) return;
+    setTrashed({ ...trashed, busy: true, msg: undefined });
+    try {
+      await api.restoreTrash(trashed.entry.id);
+      setTrashed(null);
+      setItems(await api.overview());
+      onRestored?.(trashed.entry.from);
+    } catch (x) {
+      setTrashed({ ...trashed, busy: false, msg: (x as Error).message });
+    }
+  };
   return (
     <div className="ledger">
       {deleteDialog}
+
       <header className="ms-hero ledger-head">
         <h1>{channel.name}</h1>
         {tagline ? <p>{tagline}</p> : null}
       </header>
+      {trashed ? (
+        // Inline under the heading (the page's own dock stays at the bottom): what moved, and «تراجع».
+        <section className="trash-undo" role="status" aria-label="نُقلت الحلقة إلى سلة المحذوفات">
+          <p>نُقلت الحلقة «{episodeTitle(trashed.entry.title || trashed.entry.from.split("/").pop() || "")}» إلى سلة المحذوفات على جهازك ({trashed.trash}). لم يُحذف شيء نهائيًا ولم يُرفع شيء.{trashed.msg ? ` ${trashed.msg}` : ""}</p>
+          <div className="trash-undo-ctl">
+            <button type="button" className="btn primary" aria-busy={trashed.busy} onClick={() => void undo()}>{trashed.busy ? "جارٍ الاسترجاع…" : "تراجع"}</button>
+            <button type="button" className="btn ghost" onClick={() => setTrashed(null)}>إغلاق</button>
+          </div>
+        </section>
+      ) : null}
       {moveDialog}
       {mover.node}
       {series ? <SeriesGrid data={series} items={items} onOpen={(id) => onOpenSeries?.(id)} onNew={setNewSeries}

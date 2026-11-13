@@ -122,14 +122,14 @@ export const KineticText: React.FC<KineticTextProps> = (props) => {
 };
 
 export const kineticTextSample: Omit<KineticTextProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 3 · السبب الأعمق",
+  eyebrow: "السبب الأعمق",
   narration: "حين نؤجّل، نشتري راحة قصيرة بثمن طويل. والقلق لا يختفي، بل يكبر كل يوم.",
   emphasis: "راحة، طويل، يكبر",
   element: "",
   stage: "theme",
 };
 export const kineticTextSampleEn: Omit<KineticTextProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 3 · The deeper cause",
+  eyebrow: "The deeper cause",
   narration: "When we delay, we buy short comfort at a long price. The worry doesn't vanish; it grows every day.",
   emphasis: "comfort, long, grows",
   element: "",

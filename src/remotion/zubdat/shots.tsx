@@ -169,11 +169,15 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const tT = at("أول", 0.06);
       const tSub = at("وكان", 0.14);
       const tDr = at("الدكتور", 0.3);
-      const tTrip = at("رحلة", 0.45);
-      const tA = at("التهيؤ", 0.6);
-      const tBst = at("نقوله", 0.7);
-      const tStep = at("بالخطوة", 0.84);
-      const tHeart = at("تهيئة", 0.92);
+      // السكريبت المعتمد (١١ نوفمبر): «يصحبنا… مِنَ التهيؤ للصلاة إلى معاني أقوالها وأفعالها. ولكننا لن نبدأ من الركوع
+      // أو السجود؛ سنبدأ مما يسبقهما: كيف نهيئ قلوبنا؟»
+      const tTrip = at("من", 0.36, 2);
+      const tA = at("التهيؤ", 0.4);
+      const tBst = at("معاني", 0.5);
+      const tNot = at("الركوع", 0.68);
+      const tStep = at("سنبدأ", 0.78);
+      const tKayf = at("كيف", 0.88);
+      const tHeart = at("نهيئ", 0.92);
       const bIn = prog(frame, tB - 10, tB + 16, outCubic);
       const bx = 1330 + 700 * (1 - bIn);
       const rot = lerp(9, -3, bIn);
@@ -184,8 +188,8 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const fill = prog(frame, tHeart - 2, tHeart + 16);
       const flag = prog(frame, tStep - 2, tStep + 14, outCubic);
       return {
-        focus: [[tT, 1330, 410], [tSub, 1330, 500], [tDr, 1250, 850], [tTrip, 950, 560], [at("معاني", 0.52), 860, 560], [tA, 760, 570], [tBst, 350, 430], [tStep, 760, 480], [tHeart, 760, 700]],
-        cam: [C(0, 1180, 500, 1.02), C(tDr - 10, 1240, 600, 1.08), C(tTrip - 2, 900, 520, 1.0), C(tBst - 4, 760, 520, 1.05), C(tHeart - 8, 820, 560, 1.15)],
+        focus: [[tT, 1330, 410], [tSub, 1330, 500], [tDr, 1250, 850], [tTrip, 950, 560], [tA, 760, 570], [tBst, 420, 470], [tNot, 420, 470], [tStep, 760, 480], [tKayf, 680, 740]],
+        cam: [C(0, 1180, 500, 1.02), C(tDr - 10, 1240, 600, 1.08), C(tTrip - 2, 900, 520, 1.0), C(tBst - 4, 760, 520, 1.05), C(tKayf - 8, 820, 600, 1.1)],
         world: (
           <g>
             {/* الكتاب: غلاف أسود بشريط فسفوري (بطاقة القناة، لا صورة الغلاف الأصلي) */}
@@ -213,19 +217,20 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             <g opacity={prog(frame, tA - 4, tA + 8)}>
               <circle cx={760} cy={570} r={46} fill={z.paper} stroke={z.ink} strokeWidth={7} />
               <circle cx={760} cy={570} r={40 * fill} fill={z.hl} />
-              {fill > 0 ? <path d={heartPath(760, 572, 18)} fill={z.ink} opacity={prog(frame, end("القلب", 0.97) - 6, end("القلب", 0.97) + 6)} /> : null}
+              {fill > 0 ? <path d={heartPath(760, 572, 18)} fill={z.ink} opacity={prog(frame, end("قلوبنا", 0.97) - 6, end("قلوبنا", 0.97) + 6)} /> : null}
             </g>
-            <Write id="sa" x={760} y={690} text="التهيؤ لها" size={66} p={wp(frame, tA, end("لها", 0.64))} c={z.ink} z={z} opacity={1 - fill} />
-            <g opacity={prog(frame, tBst - 4, tBst + 8)}>
+            <Write id="sa" x={760} y={690} text="التهيؤ للصلاة" size={66} p={wp(frame, tA, end("للصلاة", 0.46))} c={z.ink} z={z} opacity={1 - fill} />
+            {/* «لن نبدأ من الركوع أو السجود»: المحطة الثانية تخفت، والبداية من الأولى */}
+            <g opacity={prog(frame, tBst - 4, tBst + 8) * (1 - 0.65 * prog(frame, tNot - 2, tNot + 12))}>
               <circle cx={420} cy={440} r={46} fill={z.paper} stroke={z.ink} strokeWidth={7} />
             </g>
-            <Write id="sb" x={420} y={570} text="ما نقوله ونفعله" size={66} p={wp(frame, tBst - 4, end("ونفعله", 0.74))} c={z.ink} z={z} />
+            <Write id="sb" x={420} y={570} text="معاني أقوالها وأفعالها" size={52} p={wp(frame, tBst - 4, end("وأفعالها", 0.6))} c={z.ink} z={z} opacity={1 - 0.65 * prog(frame, tNot - 2, tNot + 12)} />
             {/* الخطوة الأولى: علم يُغرز في المحطة الأولى */}
             <g transform={`translate(${760} ${570 - 46 - 40 * (1 - flag)})`} opacity={flag}>
               <line x1={0} y1={0} x2={0} y2={-110} stroke={z.ink} strokeWidth={7} strokeLinecap="round" />
               <path d="M0 -110 L-70 -88 L0 -66 Z" fill={z.hl} stroke={z.ink} strokeWidth={5} strokeLinejoin="round" />
             </g>
-            <Write id="tq" x={760} y={760} text="تهيئة القلب" size={92} p={wp(frame, tHeart, end("القلب", 0.98))} c={z.ink} font="head" z={z} />
+            <Write id="tq" x={620} y={800} text="كيف نهيئ قلوبنا؟" size={76} p={wp(frame, tKayf, end("قلوبنا", 0.98))} c={z.ink} font="head" z={z} />
           </g>
         ),
       };
@@ -234,40 +239,43 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
 
   // S07 — خط الانتباه: يخرج ثم يرجع
   "attention-line": {
-    nameAr: "خط الانتباه: تشرد الخواطر ثم نرجع إلى ما نقرؤه",
+    nameAr: "خط الانتباه: يشرد الذهن ثم نعود إلى ما نقرؤه",
     render: ({ frame, z, at, end }) => {
-      const tCause = at("بالأسباب", 0.04);
-      const tFull = at("خشوعا", 0.18);
-      const tSalah = at("صلاة", 0.26);
-      const tThought = at("ترد", 0.33);
-      const tWeak = at("يضعف", 0.43);
-      const tBack = at("نرجع", 0.52);
-      const tRead = at("نقرأه", 0.6);
-      const tSay = at("ونقوله", 0.64);
-      // الأمر 008: الخشوع يزيد وينقص، نجاهد فيه، لا نيأس، ونتطلع إلى الأكمل
-      const tKh = at("الخشوع", 0.7);
-      const tUp = at("يزيد", 0.72);
-      const tDown = at("وينقص", 0.75);
-      const tJ = at("نجاهد", 0.78);
-      const tTalab = at("طلبه", 0.83);
-      const tYa = at("نيأس", 0.87);
-      const tQal = at("قل", 0.89);
-      const tAsp = at("ونتطلع", 0.91);
-      const tAkmal = at("أكمل", 0.98);
+      // السكريبت المعتمد (١١ نوفمبر): «ولا يعني هذا أن الخواطر ستنقطع تمامًا. قد يشرد الذهن، ثم ننتبه، فنعود إلى ما نقرأه ونقوله.
+      // وهذه العودة نفسها جزء من مجاهدتنا. فالخشوع يزيد وينقص؛ وما نسعى إليه ليس ادعاء الكمال، بل الاستمرار في طلبه.»
+      const tCause = at("الخواطر", 0.06);
+      const tFull = at("ستنقطع", 0.1);
+      const tSalah = at("تماما", 0.14);
+      const tThought = at("يشرد", 0.2);
+      const tWeak = at("الذهن", 0.24);
+      const tBack = at("فنعود", 0.32);
+      const tRead = at("نقرأه", 0.38);
+      const tSay = at("ونقوله", 0.42);
+      const tAwda = at("العودة", 0.48);
+      const tMuj = at("مجاهدتنا", 0.56);
+      const tKh = at("الخشوع", 0.62);
+      const tUp = at("يزيد", 0.65);
+      const tDown = at("وينقص", 0.68);
+      const tJ = at("نسعى", 0.74);
+      const tYa = at("ادعاء", 0.8);
+      const tQal = at("الكمال", 0.84);
+      const tAsp = at("الاستمرار", 0.9);
+      const tAkmal = at("طلبه", 0.97);
       const seg1 = prog(frame, tCause, tFull, (t) => t);
       const ghost = prog(frame, tFull - 4, tFull + 12);
       const seg2 = prog(frame, tThought - 2, tWeak, (t) => t);
       const seg3 = prog(frame, tWeak, tBack, (t) => t);
       const seg4 = prog(frame, tBack - 2, tRead + 8, (t) => t);
-      const truth = prog(frame, tBack + 10, tRead + 20);
+      const truth = prog(frame, tAwda - 2, tAwda + 16);
       // صفحة الفكرة الجديدة: ما سبق يبهت ولا يختفي، ويُرسم مؤشر الخشوع على الورقة نفسها
       // الأمر 010: ما سبق يُخفى تمامًا فلا يبقى طيفه فوق المؤشر
       const dim = 1 - prog(frame, tKh - 6, tKh + 12);
-      const W = [[1620, 600], [1420, 440], [1220, 660], [990, 450], [800, 580], [560, 330]] as const;
-      const segT: [number, number][] = [[tUp - 2, tUp + 14], [tDown - 2, tDown + 14], [tJ - 2, tTalab + 10], [tQal - 6, tQal + 10], [tAsp - 2, tAkmal + 4]];
+      // «الاستمرار» يمضي صاعدًا دون أن يبلغ «ادعاء الكمال» المشطوب
+      const W = [[1620, 600], [1420, 440], [1220, 660], [990, 450], [800, 580], [560, 500]] as const;
+      const segT: [number, number][] = [[tUp - 2, tUp + 14], [tDown - 2, tDown + 14], [tJ - 2, tJ + 18], [tYa - 4, tQal + 8], [tAsp - 2, tAkmal + 8]];
       const segP = segT.map(([a, b]) => prog(frame, a, b, (t) => t));
       const seg = (i: number) => `M${W[i]![0]} ${W[i]![1]} L${W[i + 1]![0]} ${W[i + 1]![1]}`;
-      // الساعي: يظهر مع «نجاهد» ويمشي على رأس المؤشر صعودًا وهبوطًا
+      // الساعي: يظهر مع «نسعى» ويمشي على رأس المؤشر صعودًا وهبوطًا
       const tipK = segP[4]! > 0 ? 4 : segP[3]! > 0 ? 3 : 2;
       const tp = segP[tipK]!;
       const sx = lerp(W[tipK]![0], W[tipK + 1]![0], tp);
@@ -275,20 +283,20 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const cloud = (k: number) => prog(frame, tThought + k * 6, tThought + k * 6 + 12, outCubic);
       return {
         camLen: 26,
-        focus: [[tCause, 1590, 500], [tFull, 860, 600], [tSalah, 860, 620], [tThought, 1200, 350], [at("الخواطر", 0.36), 1050, 250], [tWeak, 900, 260], [tBack, 700, 400], [tRead, 250, 560], [tSay, 150, 560], [tKh, 960, 200], [tUp, 1420, 400], [tDown, 1220, 700], [tJ, 1120, 500], [tYa, 800, 640], [tAsp, 700, 420], [tAkmal, 470, 250]],
+        focus: [[tCause, 1590, 500], [tFull, 860, 600], [tSalah, 860, 620], [tThought, 1200, 350], [tWeak, 900, 260], [tBack, 700, 400], [tRead, 250, 560], [tSay, 150, 560], [tAwda, 600, 600], [tMuj, 520, 720], [tKh, 960, 200], [tUp, 1420, 400], [tDown, 1220, 700], [tJ, 1120, 500], [tYa, 470, 250], [tAsp, 770, 830], [tAkmal, 560, 460]],
         cam: [C(0, 1440, 520, 1.3), C(tFull - 6, 1000, 560, 1.0), C(tThought - 2, 1130, 400, 1.22), C(tBack - 2, 760, 440, 1.14), C(tRead, 520, 560, 1.25), C(tKh - 6, 1000, 470, 1.0)],
         world: (
           <g>
             <g opacity={dim}>
-            <Write id="cs" x={1590} y={470} text="الأسباب" size={72} p={wp(frame, tCause, tCause + 14)} c={z.ink} z={z} />
+            <Write id="cs" x={1590} y={470} text="الخواطر" size={72} p={wp(frame, tCause, end("الخواطر", 0.08))} c={z.ink} z={z} />
             <Stroke d="M1720 560 L1380 560" p={seg1} c={z.ink} w={9} />
-            {/* الخشوع الكامل المتصوَّر: خط مثالي متقطع، يُشطب */}
+            {/* «ستنقطع تمامًا»: خط مثالي بلا خواطر، يُشطب */}
             <g opacity={ghost * (1 - 0.6 * prog(frame, tThought, tThought + 20))}>
               <line x1={1380} y1={560} x2={360} y2={560} stroke={z.faint} strokeWidth={6} strokeDasharray="18 16" />
             </g>
             <rect x={660} y={570} width={400} height={100} rx={16} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={prog(frame, tFull - 4, tFull + 8) * (1 - 0.5 * prog(frame, tThought, tThought + 20))} />
-            <Write id="kf" x={860} y={640} text="خشوع كامل" size={68} p={wp(frame, tFull, end("كاملا", 0.22))} c={z.ink} z={z} opacity={1 - 0.5 * prog(frame, tThought, tThought + 20)} />
-            <Cross x1={1010} x2={710} y={624} p={prog(frame, tSalah - 2, tSalah + 12)} z={z} />
+            <Write id="kf" x={860} y={640} text="ستنقطع تماما" size={64} p={wp(frame, tFull, end("تماما", 0.16))} c={z.ink} z={z} opacity={1 - 0.5 * prog(frame, tThought, tThought + 20)} />
+            <Cross x1={1010} x2={710} y={624} p={prog(frame, end("تماما", 0.16), end("تماما", 0.16) + 14)} z={z} />
             {/* الخواطر: يخرج الخط عن مساره */}
             <Stroke d="M1380 560 C1300 560 1290 430 1210 410 C1130 390 1170 300 1090 320 C1020 340 1050 262 1000 300" p={seg2} c={z.ink} w={9} />
             {/* الخواطر لا تختفي: عند «نرجع» تتنحى قليلًا إلى الأعلى وتبهت، وتبقى حاضرة */}
@@ -301,15 +309,16 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
                 <path d={`M${-r} 0 a${r * 0.6} ${r * 0.6} 0 0 1 ${r * 0.7} ${-r * 0.6} a${r * 0.7} ${r * 0.7} 0 0 1 ${r * 1.1} ${r * 0.1} a${r * 0.5} ${r * 0.5} 0 0 1 ${r * 0.2} ${r * 0.9} Z`} fill={z.faint} fillOpacity={0.25} stroke={z.ink} strokeWidth={6} strokeLinejoin="round" />
               </g>
             ))}
-            {/* يضعف الانتباه: الخط يبهت ويتقطع */}
+            {/* «الذهن» شارد: الخط يبهت ويتقطع */}
             <path d="M1000 300 C960 270 900 250 830 250" fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="10 14" opacity={0.45 * Math.min(1, seg3 * 3)} pathLength={1} />
-            {/* نرجع: يعود الخط إلى المحور حتى الكتاب */}
+            {/* «فنعود»: يعود الخط إلى المحور حتى الكتاب، و«العودة» نفسها تُبرز */}
             <Stroke d="M830 250 C700 260 700 560 560 560 L400 560" p={seg4} c={z.ink} w={10} />
             <Stroke d="M830 250 C700 260 700 560 560 560 L400 560" p={truth} c={z.hl} w={34} opacity={0.8} />
             <OpenBook x={310} y={560} s={1.1} p={prog(frame, tRead - 4, tRead + 14)} z={z} />
             {[0, 1, 2].map((k) => (
               <Stroke key={k} d={`M${215 - k * 18} ${520} q${-16} 40 0 80`} p={prog(frame, tSay + k * 3, tSay + k * 3 + 10)} c={z.ink} w={6} opacity={0.8} />
             ))}
+            <Write id="mj" x={600} y={720} text="جزء من مجاهدتنا" size={64} p={wp(frame, at("جزء", 0.52), end("مجاهدتنا", 0.57))} c={z.ink} font="head" z={z} />
             </g>
             {/* «فالخشوع يزيد وينقص»: مؤشر يعلو وينخفض على خط أساس متقطع */}
             <Write id="kh" x={960} y={210} text="الخشوع" size={84} p={wp(frame, tKh, end("الخشوع", 0.71))} c={z.ink} font="head" z={z} />
@@ -323,17 +332,18 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             {segP.map((p, i) => <Stroke key={i} d={seg(i)} p={p} c={z.ink} w={12} />)}
             <Write id="yz" x={1420} y={390} text="يزيد" size={72} p={wp(frame, tUp, end("يزيد", 0.73))} c={z.ink} z={z} />
             <Write id="yn" x={1220} y={740} text="وينقص" size={72} p={wp(frame, tDown, end("وينقص", 0.76))} c={z.ink} z={z} />
-            {/* «نجاهد أنفسنا في طلبه»: ساعٍ يصعد مع المؤشر */}
+            {/* «ما نسعى إليه»: ساعٍ يصعد مع المؤشر */}
             <g transform={`rotate(${tipK === 3 ? 8 : -14} ${sx} ${sy})`}>
               <InkPerson x={sx} y={sy - 4} s={0.42} pose="walk" p={prog(frame, tJ - 4, tJ + 10)} z={z} dir={-1} />
             </g>
-            <Write id="jh" x={1160} y={480} text="نجاهد" size={60} p={wp(frame, tJ, end("نجاهد", 0.79))} c={z.ink} font="head" z={z} />
-            {/* «ولا نيأس إذا قل»: هبوط قصير لا ينكسر فيه الخط */}
-            <Write id="ny" x={800} y={680} text="لا نيأس" size={72} p={wp(frame, tYa - 6, end("نيأس", 0.88))} c={z.ink} z={z} />
-            {/* «ونتطلع دائمًا إلى ما هو أكمل»: أفق متقطع يقترب منه المؤشر ولا يُغلق */}
-            <rect x={380} y={196} width={180} height={110} rx={16} fill={z.hl} opacity={0.75 * prog(frame, tAkmal - 2, tAkmal + 10)} />
-            <rect x={380} y={196} width={180} height={110} rx={16} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={prog(frame, tAsp, tAsp + 12)} />
-            <Write id="ak" x={470} y={272} text="أكمل" size={66} p={wp(frame, tAkmal, end("أكمل", 0.99))} c={z.ink} font="head" z={z} />
+            <Write id="jh" x={1160} y={480} text="نسعى" size={60} p={wp(frame, tJ, end("نسعى", 0.75))} c={z.ink} font="head" z={z} />
+            {/* «ليس ادعاء الكمال»: أفق متقطع يقترب منه المؤشر، والادعاء يُشطب */}
+            <rect x={300} y={196} width={340} height={110} rx={16} fill="none" stroke={z.ink} strokeWidth={5} strokeDasharray="14 12" opacity={prog(frame, tYa - 4, tYa + 8)} />
+            <Write id="ak" x={470} y={272} text="ادعاء الكمال" size={58} p={wp(frame, tYa, end("الكمال", 0.86))} c={z.ink} font="head" z={z} />
+            <Cross x1={640} x2={300} y={252} p={prog(frame, end("الكمال", 0.86), end("الكمال", 0.86) + 14)} z={z} />
+            {/* «بل الاستمرار في طلبه»: المؤشر يمضي، والكلمة تحته تُبرز */}
+            <rect x={560} y={792} width={420} height={80} rx={10} fill={z.hl} opacity={0.75 * prog(frame, tAsp - 2, tAsp + 12)} />
+            <Write id="ny" x={770} y={852} text="الاستمرار في طلبه" size={60} p={wp(frame, tAsp, end("طلبه", 0.98))} c={z.ink} font="head" z={z} />
           </g>
         ),
       };
@@ -344,18 +354,22 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
   iqbal: {
     nameAr: "الإقبال: البدن إلى القبلة والقلب معه",
     render: ({ frame, z, at, end, reg }) => {
-      const tPhrase = at("عبارة", 0.04);
-      const tBook = at("الكتاب", 0.16);
+      // السكريبت المعتمد (١١ نوفمبر): «وهنا نصل إلى كلمتين تلخصان المعنى: سر الصلاة الإقبال. نتجه بأبداننا نحو القبلة، ولكن السؤال
+      // هو: إلى أين يتجه قلبنا؟ الإقبال لا يعني أن هموم الدنيا تختفي، بل أن نعطي صلاتنا من الانتباه ما نستطيع.»
+      const tPhrase = at("كلمتين", 0.08);
+      const tBook = at("تلخصان", 0.12);
+      const tMana = at("المعنى", 0.16);
       const tSir = at("سر", 0.2);
       const tIq = at("الإقبال", 0.26);
-      const tFace = at("نستقبل", 0.32);
-      const tQibla = at("القبلة", 0.36);
-      const tBody = at("بأبداننا", 0.4);
-      const tTry = at("ونجتهد", 0.46);
-      const tHearts = at("قلوبنا", 0.52);
-      const tDunya = at("الدنيا", 0.68);
-      const tBal = at("بل", 0.8);
-      const tHaq = at("حقها", 0.9);
+      const tFace = at("نتجه", 0.3);
+      const tBody = at("بأبداننا", 0.33);
+      const tQibla = at("القبلة", 0.38);
+      const tTry = at("يتجه", 0.48);
+      const tHearts = at("قلبنا", 0.52);
+      const tHum = at("هموم", 0.62);
+      const tDunya = at("الدنيا", 0.66);
+      const tBal = at("بل", 0.74);
+      const tHaq = at("الانتباه", 0.88);
       const book = prog(frame, tPhrase - 2, tPhrase + 16) * (1 - prog(frame, tFace - 10, tFace + 8));
       const flip = prog(frame, tBook - 2, tBook + 16, (t) => t);
       const cardUp = prog(frame, tSir - 8, tSir + 10, outCubic);
@@ -365,21 +379,20 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const right = 960 + tot / 2;
       const iqX = right - w1 - 24 - w2;
       const aside = prog(frame, tBal - 2, tBal + 22);
-      const iconAt = [at("ننسى", 0.64) + 6, at("كل", 0.66), tDunya];
+      const iconAt = [tHum, tHum + 6, tDunya];
       const icon = (k: number) => prog(frame, iconAt[k]! - 4, iconAt[k]! + 12);
-      // سهم القلب يكتمل قبل ذكر اسم الله، فلا حركة جديدة عنده
-      const heartArrow = prog(frame, tTry, end("قلوبنا", 0.56), (t) => t);
-      // دائرة «حقها»: حول المصلي كله، وتبقى فوق خط الترجمة (أسفلها 860 < 880)
+      const heartArrow = prog(frame, tTry, end("قلبنا", 0.56), (t) => t);
+      // دائرة «الانتباه»: حول المصلي كله، وتبقى فوق خط الترجمة (أسفلها 860 < 880)
       reg([1130, 430, 1510, 860], tHaq);
       return {
-        focus: [[tPhrase, 960, 560], [at("القسم", 0.12), 960, 520], [tBook, 960, 560], [at("ننسى", 0.64), 1200, 450], [tSir, 1100, 232], [tIq, 850, 232], [tFace, 1320, 700], [tQibla, 420, 640], [tBody, 880, 700], [tTry, 1320, 650], [tHearts, 900, 560], [tDunya, 1300, 560], [at("الأبد", 0.76), 1200, 560], [tBal, 1250, 560], [tHaq, 1150, 560]],
+        focus: [[tPhrase, 960, 560], [tBook, 960, 560], [tMana, 960, 520], [tSir, 1100, 232], [tIq, 850, 232], [tFace, 1320, 700], [tBody, 880, 700], [tQibla, 420, 640], [at("السؤال", 0.42), 1420, 560], [tTry, 1320, 650], [tHearts, 900, 560], [tHum, 1600, 400], [tDunya, 1300, 560], [tBal, 1250, 560], [tHaq, 1150, 560]],
         cam: [C(0, 960, 470, 1.15), C(tSir - 6, 960, 400, 1.05), C(tFace - 6, 980, 560, 1.0), C(tTry - 4, 1000, 590, 1.06), C(tDunya - 6, 1060, 560, 1.0), C(tHaq - 6, 1060, 580, 1.0)],
         world: (
           <g>
             <g opacity={book}>
               <OpenBook x={960} y={560} s={1.7} p={book} z={z} flip={flip} />
-              {/* «هذا القسم»: شريط علامة فسفوري ينزل بين الصفحات */}
-              <path d={`M948 474 L974 474 L974 ${474 + 170 * prog(frame, at("القسم", 0.12) - 2, at("القسم", 0.12) + 12)} L961 ${462 + 170 * prog(frame, at("القسم", 0.12) - 2, at("القسم", 0.12) + 12)} L948 ${474 + 170 * prog(frame, at("القسم", 0.12) - 2, at("القسم", 0.12) + 12)} Z`} fill={z.hl} stroke={z.ink} strokeWidth={4} opacity={prog(frame, at("القسم", 0.12) - 2, at("القسم", 0.12) + 4)} />
+              {/* «تلخصان المعنى»: شريط علامة فسفوري ينزل بين الصفحات */}
+              <path d={`M948 474 L974 474 L974 ${474 + 170 * prog(frame, tMana - 2, tMana + 12)} L961 ${462 + 170 * prog(frame, tMana - 2, tMana + 12)} L948 ${474 + 170 * prog(frame, tMana - 2, tMana + 12)} Z`} fill={z.hl} stroke={z.ink} strokeWidth={4} opacity={prog(frame, tMana - 2, tMana + 4)} />
             </g>
             <g transform={`translate(0 ${lerp(300, 0, cardUp)})`} opacity={cardUp}>
               <Card x={960} y={232} w={tot + 120} h={160} z={z} rot={-1.5}>
@@ -392,18 +405,22 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             <Kaaba x={420} y={690} s={0.72} p={prog(frame, tQibla - 4, tQibla + 16)} z={z} />
             <Write id="qb" x={420} y={760} text="القبلة" size={68} p={wp(frame, tQibla, end("القبلة", 0.38))} c={z.ink} z={z} />
             <InkPerson x={1320} y={860} s={1.15} pose="stand" p={prog(frame, tFace - 2, tFace + 20)} z={z} dir={-1} />
-            <Arrow x1={1210} y1={720} x2={530} y2={650} p={prog(frame, tBody - 2, tBody + 18)} c={z.ink} w={9} bend={-10} />
+            <Arrow x1={1210} y1={720} x2={530} y2={650} p={prog(frame, tQibla - 2, tQibla + 16)} c={z.ink} w={9} bend={-10} />
             <Write id="bd" x={880} y={760} text="بأبداننا" size={66} p={wp(frame, tBody, end("بأبداننا", 0.42))} c={z.ink} z={z} />
+            {/* «ولكن السؤال هو: إلى أين»: علامة سؤال فوق المصلي حتى يُجاب بالقلب */}
+            <g opacity={prog(frame, at("السؤال", 0.42) - 2, at("السؤال", 0.42) + 8) * (1 - prog(frame, tHearts, tHearts + 10))}>
+              <Write id="qq" x={1450} y={600} text="؟" size={130} p={wp(frame, at("السؤال", 0.42), at("السؤال", 0.42) + 12)} c={z.ink} font="head" z={z} />
+            </g>
             {/* القلب: يُضاء ويتجه السهم الفسفوري في الجهة نفسها */}
             <path d={heartPath(1320, 650, 26)} fill={z.hl} stroke={z.ink} strokeWidth={5} opacity={prog(frame, tTry - 2, tTry + 10)} />
             <Stroke d="M1280 640 Q920 560 540 600" p={heartArrow} c={z.hl} w={28} opacity={0.95} />
-            <Write id="hb" x={900} y={540} text="قلوبنا" size={66} p={wp(frame, tHearts, end("قلوبنا", 0.56))} c={z.ink} z={z} />
-            {/* الدنيا لا تُمحى: تبقى، وتتنحى قليلًا لتأخذ الصلاة حقها */}
+            <Write id="hb" x={900} y={540} text="قلبنا" size={66} p={wp(frame, tHearts, end("قلبنا", 0.56))} c={z.ink} z={z} />
+            {/* «هموم الدنيا» لا «تختفي»: تبقى، وتتنحى قليلًا مع «بل» */}
             {([["house", 1600, 330], ["bag", 1610, 560], ["cart", 1580, 760]] as const).map(([id, x, y], k) => (
               <Icon key={id} id={id} x={x + 40 * aside} y={y} s={1.1 - 0.2 * aside} p={icon(k)} c={z.ink} opacity={1 - 0.35 * aside} />
             ))}
             <ellipse cx={1320} cy={645} rx={190} ry={215} fill="none" stroke={z.hl} strokeWidth={22} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - prog(frame, tHaq - 2, tHaq + 20)} opacity={0.95} />
-            <Write id="hq" x={1320} y={395} text="حقها من الانتباه" size={68} p={wp(frame, tHaq, end("الانتباه", 0.96))} c={z.ink} z={z} />
+            <Write id="hq" x={1320} y={395} text="من الانتباه ما نستطيع" size={60} p={wp(frame, at("من", 0.86), end("نستطيع", 0.98))} c={z.ink} z={z} />
           </g>
         ),
       };
@@ -414,27 +431,31 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
   takbir: {
     nameAr: "التكبير: ندخل الصلاة، ثم سكون عند الذكر",
     render: ({ frame, z, at, end }) => {
-      const tEnter = at("ندخل", 0.03);
-      const tSalah = at("الصلاة", 0.08);
-      const tTak = at("بالتكبير", 0.12);
+      // السكريبت المعتمد (١١ نوفمبر): «ثم نرفع أيدينا وندخل الصلاة بالتكبير: الله أكبر. كلمات نرددها كثيرًا، لكنها ليست مجرد إشارة
+      // لبداية الصلاة؛ فهي تذكير بأن الله أكبر من كل شيء. هنا ندخل عبادة لها أحكامها ومعانيها، لا تمرينًا على الهدوء فحسب.»
+      const tSalah = at("نرفع", 0.02);
+      const tRaise = at("أيدينا", 0.05);
+      const tEnter = at("وندخل", 0.08);
+      const tTak = at("بالتكبير", 0.13);
       const tA1 = at("الله", 0.16, 1);
-      const tMany = at("مرات", 0.3);
-      const tRecall = at("نستحضر", 0.42);
+      const tMany = at("نرددها", 0.3);
+      const tRecall = at("مجرد", 0.38);
+      const tCut = end("الصلاة", 0.44, 2);
       const tA2 = at("الله", 0.52, 2);
       const tEndA2 = end("شيء", 0.62);
-      const tThikr = at("الذكر", 0.66);
-      const tIbada = at("عبادة", 0.74);
-      const tTamrin = at("تمرين", 0.84);
-      const tFahasb = at("فحسب", 0.94);
+      const tThikr = at("هنا", 0.66);
+      const tIbada = at("عبادة", 0.72);
+      const tTamrin = at("تمرينا", 0.86);
+      const tFahasb = at("فحسب", 0.96);
       const mat = prog(frame, tEnter - 2, tEnter + 16);
       // الشخص والسجادة يتواريان بهدوء قبل الذكر، فيبقى الذكر وحده
       const fadeFig = 1 - prog(frame, tA1 - 22, tA1 - 8);
-      const raised = prog(frame, tTak - 2, tTak + 8);
+      const raised = prog(frame, tRaise - 2, tRaise + 8);
       const word = prog(frame, tA1 - 8, tA1 + 2);
       const ticks = (k: number) => prog(frame, tMany + k * 3, tMany + k * 3 + 6);
       const clear = 1 - prog(frame, tThikr - 2, tThikr + 18);
       return {
-        focus: [[tEnter, 960, 820], [tSalah, 960, 700], [tTak, 960, 600], [tMany, 960, 700], [at("كثيرة", 0.33), 1000, 810], [tRecall, 960, 880], [tThikr, 960, 700], [tIbada, 1260, 760], [tTamrin, 640, 760], [tFahasb, 640, 760]],
+        focus: [[tSalah, 960, 700], [tRaise, 960, 600], [tEnter, 960, 820], [tTak, 960, 600], [tMany, 960, 700], [at("كثيرا", 0.33), 1000, 810], [tRecall, 960, 880], [tThikr, 960, 700], [tIbada, 1260, 760], [tTamrin, 640, 760], [tFahasb, 640, 760]],
         still: [[tA1 - 24, end("أكبر", 0.2, 1) + 14], [tA2 - 24, tEndA2 + 14]],
         cam: [C(0, 960, 600, 1.1), C(tTak - 4, 960, 560, 1.02), C(tA1 - 30, 960, 540, 1.0), C(tMany - 2, 960, 660, 1.08), C(tA2 - 34, 960, 540, 1.0), C(tEndA2 + 14, 960, 620, 1.06)],
         world: (
@@ -456,12 +477,14 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
               {Array.from({ length: 9 }, (_, k) => (
                 <line key={k} x1={1160 - k * 50} x2={1160 - k * 50} y1={700} y2={700 - 56 * ticks(k)} stroke={z.ink} strokeWidth={9} strokeLinecap="round" opacity={ticks(k)} />
               ))}
-              <Write id="mk" x={960} y={780} text="مرات كثيرة" size={66} p={wp(frame, tMany, end("كثيرة", 0.36))} c={z.ink} z={z} />
-              <Write id="ns" x={960} y={862} text="نستحضر ما نقوله" size={62} p={wp(frame, tRecall, end("نقوله", 0.48))} c={z.ink} font="body" weight={500} z={z} />
+              <Write id="mk" x={960} y={780} text="نرددها كثيرا" size={66} p={wp(frame, tMany, end("كثيرا", 0.34))} c={z.ink} z={z} />
+              {/* «ليست مجرد إشارة لبداية الصلاة»: تُشطب قبل سكون الذكر */}
+              <Write id="ns" x={960} y={862} text="مجرد إشارة" size={62} p={wp(frame, tRecall, end("إشارة", 0.4))} c={z.ink} font="body" weight={500} z={z} />
+              <Cross x1={1130} x2={790} y={846} p={prog(frame, tCut, tCut + 10)} z={z} />
             </g>
-            <Write id="ib" x={1260} y={760} text="عبادة مشروعة" size={66} p={wp(frame, tIbada, end("مشروعة", 0.8))} c={z.ink} font="body" weight={600} z={z} />
-            <Write id="tm" x={640} y={760} text="تمرين على الهدوء" size={72} p={wp(frame, tTamrin, end("الهدوء", 0.9))} c={z.ink} z={z} />
-            <Cross x1={830} x2={450} y={744} p={prog(frame, tFahasb - 2, tFahasb + 12)} z={z} />
+            <Write id="ib" x={1280} y={760} text="عبادة لها أحكامها ومعانيها" size={54} p={wp(frame, tIbada, end("ومعانيها", 0.8))} c={z.ink} font="body" weight={600} z={z} />
+            <Write id="tm" x={620} y={760} text="تمرينا على الهدوء" size={66} p={wp(frame, tTamrin, end("الهدوء", 0.92))} c={z.ink} z={z} />
+            <Cross x1={820} x2={420} y={744} p={prog(frame, tFahasb - 2, tFahasb + 12)} z={z} />
           </g>
         ),
       };
@@ -470,29 +493,35 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
 
   // S26 — خطوة واحدة قبل الصلاة القادمة
   "one-step": {
-    nameAr: "خطوة واحدة: نتوقف قبل الصلاة القادمة ونستحضر التكبير",
+    nameAr: "خطوة واحدة: توقف لحظة واستحضر معنى الكلمة التي تفتتح بها صلاتك",
     render: ({ frame, z, at, end }) => {
-      const t0 = at("ولنجعل", 0.02);
-      const tStep = at("خطوة", 0.1, 1);
-      const tBefore = at("قبل", 0.22);
-      const tNext = at("صلاتنا", 0.26);
-      const tStop = at("نتوقف", 0.36);
-      const tRecall = at("ونستحضر", 0.45);
-      const tSmall = at("صغيرة", 0.74, 1);
-      const tDir = at("تتجه", 0.84);
-      const tGoal = at("المقصود", 0.94);
+      // السكريبت المعتمد (١١ نوفمبر): «فلنخرج من هذه الحلقة بخطوة واحدة فقط. عندما تحين صلاتك القادمة، لا تدخلها على عجل. توقف لحظة،
+      // ثم استحضر معنى الكلمة التي تفتتح بها صلاتك: الله أكبر. لا نعد بتغير فوري؛ لكن هذه خطوة يمكن أن نبدأ بها.» — سكون عند «الله أكبر».
+      const t0 = at("فلنخرج", 0.02);
+      const tStep = at("بخطوة", 0.08);
+      const tBefore = at("تحين", 0.2);
+      const tNext = at("صلاتك", 0.22);
+      const tAjal = at("على", 0.3);
+      const tStop = at("توقف", 0.38);
+      const tRecall = at("استحضر", 0.46);
+      const tOpen = at("تفتتح", 0.56);
+      const tFawri = at("بتغير", 0.74);
+      const tLakin = at("لكن", 0.8);
+      const tSmall = at("خطوة", 0.86);
+      const tDir = at("يمكن", 0.9);
+      const tGoal = at("نبدأ", 0.94);
       const line = prog(frame, t0 - 4, t0 + 22);
       const PX = 900; // الصلاة القادمة
       const note = prog(frame, tRecall - 6, tRecall + 10, outCubic);
       return {
-        focus: [[tStep, 1380, 520], [tBefore, 1020, 470], [tNext, 900, 600], [tStop, 1030, 380], [tRecall, 520, 300], [at("سندخل", 0.6), 780, 470], [tSmall, 1200, 520], [tDir, 980, 530], [tGoal, 900, 560]],
-        cam: [C(0, 960, 540, 1.05), C(tStep - 6, 1260, 520, 1.3), C(tBefore - 4, 1040, 520, 1.18), C(tRecall - 6, 820, 440, 1.12), C(tSmall - 6, 1000, 520, 1.12), C(tGoal - 8, 960, 540, 1.05)],
+        focus: [[tStep, 1380, 520], [tBefore, 1020, 470], [tNext, 900, 600], [tAjal, 1250, 760], [tStop, 1030, 380], [tRecall, 520, 300], [tOpen, 780, 470], [tFawri, 1380, 330], [tSmall, 1200, 520], [tDir, 980, 530], [tGoal, 900, 560]],
+        cam: [C(0, 960, 540, 1.05), C(tStep - 6, 1260, 520, 1.3), C(tBefore - 4, 1040, 520, 1.18), C(tRecall - 6, 820, 440, 1.12), C(tFawri - 6, 1000, 520, 1.08), C(tGoal - 8, 960, 540, 1.05)],
         world: (
           <g>
             <g transform="translate(960 560)">
               <DayStrip z={z} line={line} sun={1} ticksAll />
             </g>
-            {/* «خطوة واحدة»: سهم قصير فسفوري على خط اليوم، ويتسع قليلًا عند «صغيرة» */}
+            {/* «بخطوة واحدة»: سهم قصير فسفوري على خط اليوم، ويتسع قليلًا عند «خطوة» الثانية */}
             <g transform={`translate(1400 560) scale(${1 + 0.18 * Math.sin(Math.PI * prog(frame, tSmall - 2, tSmall + 16))})`}>
               <Stroke d="M0 0 L-110 0" p={prog(frame, tStep - 2, tStep + 10)} c={z.hl} w={30} />
               <Arrow x1={0} y1={0} x2={-120} y2={0} p={prog(frame, tStep - 2, tStep + 12)} c={z.ink} w={8} />
@@ -500,20 +529,26 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
             <Stroke d={`M1120 470 Q1020 430 ${PX + 30} 470`} p={prog(frame, tBefore - 2, tBefore + 12)} c={z.ink} w={6} />
             <circle cx={PX + 4} cy={560} r={58} fill="none" stroke={z.hl} strokeWidth={14} pathLength={1} strokeDasharray="1 1" strokeDashoffset={1 - prog(frame, tNext - 2, tNext + 14)} />
             <circle cx={PX + 4} cy={560} r={44 * prog(frame, tGoal - 2, tGoal + 12)} fill={z.hl} opacity={0.7} />
-            <Write id="nx" x={PX} y={700} text="صلاتنا القادمة" size={66} p={wp(frame, tNext, end("القادمة", 0.3))} c={z.ink} z={z} />
+            <Write id="nx" x={PX} y={700} text="صلاتك القادمة" size={66} p={wp(frame, tNext, end("القادمة", 0.26))} c={z.ink} z={z} />
+            {/* «لا تدخلها على عجل»: تُشطب مع «توقف» */}
+            <Write id="aj" x={1250} y={790} text="على عجل" size={60} p={wp(frame, tAjal, end("عجل", 0.34))} c={z.ink} z={z} />
+            <Cross x1={1370} x2={1130} y={774} p={prog(frame, tStop - 2, tStop + 10)} z={z} />
             <Pause x={1030} y={400} p={prog(frame, tStop - 2, tStop + 14)} z={z} />
-            <Write id="st" x={1030} y={310} text="نتوقف قليلا" size={64} p={wp(frame, tStop, end("قليلا", 0.4))} c={z.ink} z={z} />
+            <Write id="st" x={1030} y={310} text="توقف لحظة" size={64} p={wp(frame, tStop, end("لحظة", 0.42))} c={z.ink} z={z} />
             {/* الورقة اللاصقة: المهمة الواحدة، ومربع فارغ ينتظر التنفيذ */}
             <g transform={`translate(${520} ${300 - 120 * (1 - note)}) rotate(${-3 + 4 * (1 - note)})`} opacity={note}>
               <rect x={-250 + 8} y={-120 + 10} width={500} height={240} fill={z.ink} opacity={0.12} />
               <rect x={-250} y={-120} width={500} height={240} fill={z.hl} />
               <rect x={-60} y={-136} width={120} height={32} fill={z.paper} opacity={0.7} transform="rotate(-4)" />
-              <Write id="nt" x={0} y={-10} text="نستحضر معنى التكبير" size={64} p={wp(frame, tRecall, end("التكبير", 0.55))} c={z.ink} z={z} />
-              <rect x={-24} y={36} width={48} height={48} rx={6} fill="none" stroke={z.ink} strokeWidth={6} opacity={prog(frame, end("التكبير", 0.55), end("التكبير", 0.55) + 10)} />
+              <Write id="nt" x={0} y={-10} text="استحضر معنى الكلمة" size={64} p={wp(frame, tRecall, end("الكلمة", 0.52))} c={z.ink} z={z} />
+              <rect x={-24} y={36} width={48} height={48} rx={6} fill="none" stroke={z.ink} strokeWidth={6} opacity={prog(frame, end("الكلمة", 0.52), end("الكلمة", 0.52) + 10)} />
             </g>
-            {/* نستحضره قبل أن «ندخل» بها الصلاة: صلة من الورقة إلى الصلاة القادمة */}
-            <path d={`M640 420 Q800 470 ${PX - 30} 520`} fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="14 12" strokeLinecap="round" opacity={prog(frame, at("سندخل", 0.6) - 2, at("سندخل", 0.6) + 10)} />
-            <Arrow x1={790} y1={470} x2={PX - 34} y2={518} p={prog(frame, at("سندخل", 0.6), at("سندخل", 0.6) + 14)} c={z.ink} w={6} bend={-6} />
+            {/* «التي تفتتح بها صلاتك»: صلة من الورقة إلى الصلاة القادمة، تكتمل قبل سكون «الله أكبر» */}
+            <path d={`M640 420 Q800 470 ${PX - 30} 520`} fill="none" stroke={z.ink} strokeWidth={6} strokeDasharray="14 12" strokeLinecap="round" opacity={prog(frame, tOpen - 2, tOpen + 8)} />
+            <Arrow x1={790} y1={470} x2={PX - 34} y2={518} p={prog(frame, tOpen, tOpen + 12)} c={z.ink} w={6} bend={-6} />
+            {/* «لا نعد بتغير فوري»: يُشطب مع «لكن» */}
+            <Write id="fw" x={1380} y={330} text="تغير فوري" size={60} p={wp(frame, tFawri, end("فوري", 0.78))} c={z.ink} z={z} />
+            <Cross x1={1500} x2={1260} y={314} p={prog(frame, tLakin - 2, tLakin + 10)} z={z} />
             <Arrow x1={1270} y1={540} x2={PX + 70} y2={540} p={prog(frame, tDir - 2, tDir + 16)} c={z.ink} w={8} bend={60} />
           </g>
         ),

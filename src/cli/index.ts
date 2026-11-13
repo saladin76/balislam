@@ -160,36 +160,53 @@ program
   });
 
 program
-  .command("voice-review")
-  .description("عرض اعتماد مقاطع التعليق الصوتي، أو اعتماد مقطع واحد بعد سماعه فعليًا")
-  .argument("<episode>", "رقم الحلقة")
-  .option("--approve <sceneId>", "معرّف مقطع مسموع ومراجع يدويًا")
-  .option("--approve-episode", "اعتماد الاستماع إلى جميع المقاطع متصلة بعد اعتماد كل مقطع")
-  .option("--reviewer <name>", "اسم المراجع البشري")
-  .option("--note <text>", "ملاحظة الاستماع الفعلي إلى المقطع")
-  .action(async (episode: string, opts: { approve?: string; approveEpisode?: boolean; reviewer?: string; note?: string }) => {
-    const { resolveScriptPath } = await import("../script/episodes");
-    const { loadPlan } = await import("../plan/io");
-    const { loadVoiceIndex } = await import("../voice/generate");
-    const { approveVoiceScene, approveVoiceEpisode, voiceReviewItems, episodeVoiceApproved } = await import("../voice/review");
-    const plan = await loadPlan(episode);
-    if (!plan) throw new Error("الخطة غير موجودة.");
-    const scriptPath = await resolveScriptPath(episode);
-    const voice = await loadVoiceIndex(episode);
-    if (opts.approve) {
-      if (!opts.reviewer || !opts.note) throw new Error("الموافقة تتطلب --reviewer و--note بعد الاستماع الحقيقي.");
-      await approveVoiceScene(scriptPath, plan, voice, opts.approve, opts.reviewer, opts.note);
-    }
-    if (opts.approveEpisode) {
-      if (!opts.reviewer || !opts.note) throw new Error("اعتماد الحلقة الصوتية الكاملة يتطلب --reviewer و--note بعد الاستماع.");
-      await approveVoiceEpisode(scriptPath, plan, voice, opts.reviewer, opts.note);
-    }
-    const items = await voiceReviewItems(scriptPath, plan, voice);
-    for (const item of items) console.log(`${item.id}: ${item.state}`);
-    const pending = items.filter((item) => item.state !== "approved");
-    const whole = await episodeVoiceApproved(scriptPath, plan, voice);
-    console.log(`الصوت المعتمد ${items.length - pending.length}/${items.length}؛ الاستماع الكامل ${whole ? "معتمد" : "غير معتمد"}.`);
-    if (pending.length || !whole) process.exitCode = 1;
+  .command("voice-timing")
+  .description("قياس فقط (D110): هل يتجاوز توقيت كلمات التسجيلات المحلية طرفي ملفها بعد فكّه؟ يقرأ الجمل وأجزاء دفاتر الزمن ويصنّفها بقاعدة التركيب (سليم / حُصر بتنبيه / تالف). لا توليد ولا كتابة ولا حذف")
+  .argument("[episode]", "رقم الحلقة (الافتراضي: كل الحلقات)")
+  .option("--all-channels", "كل القنوات (الافتراضي: القناة الحالية أو --channel)")
+  .option("--takes", "والتسجيلات السابقة المحفوظة (takes) أيضًا")
+  .option("--all", "اعرض كل ملف، لا ما يحتاج نظرًا وحده")
+  .option("--json", "إخراج JSON")
+  .action(async (episode: string | undefined, opts: { allChannels?: boolean; takes?: boolean; all?: boolean; json?: boolean }) => {
+    if (episode !== undefined && !/^\d{3}$/.test(episode)) throw new Error("رقم الحلقة ثلاثة أرقام، مثل 001.");
+    const { channelsDir, currentChannelId, listChannels } = await import("../channel");
+    const { checkVoiceTimings, formatTimingReport } = await import("../voice/timingCheck");
+    const r = await checkVoiceTimings({ channelsDir: channelsDir(), channels: opts.allChannels ? listChannels() : [currentChannelId()], episode, takes: opts.takes === true });
+    console.log(opts.json ? JSON.stringify(r, null, 2) : formatTimingReport(r, opts.all === true));
+  });
+
+// العمل ٩: فحص النطق المحلي (src/voice/pronunciation/). القياس قبل التفعيل؛ التثبيت والتفعيل بزر المالك في الاستوديو.
+const pronCmd = program
+  .command("pron-check")
+  .description("فحص النطق المحلي (faster-whisper على هذا الجهاز، بلا رفع للصوت): الحالة، وقياس الإنذار الكاذب، وفحص حلقة");
+pronCmd
+  .command("status")
+  .description("هل الأداة مثبّتة ومفعّلة، وآخر قياس")
+  .option("--json", "إخراج JSON")
+  .action(async (opts: { json?: boolean }) => {
+    const { toolStatus } = await import("../voice/pronunciation/service");
+    const s = await toolStatus();
+    if (opts.json) { console.log(JSON.stringify(s, null, 2)); return; }
+    console.log(s.installed ? `مثبّت (faster-whisper ${s.version}، النموذج ${s.model})، ${s.enabled ? "مفعّل" : "غير مفعّل"}.` : "فحص النطق غير مثبّت (يُثبَّت بزر «ثبّت فحص النطق» في «الاتصالات والمفاتيح»).");
+    if (s.measurement) console.log(`آخر قياس ${s.measurement.at}: الإنذار الكاذب ${(s.measurement.rate * 100).toFixed(1)}% (${s.measurement.basis === "heard" ? "على جمل «سمعتها»" : "على كل الجمل، حدّ أعلى"}).`);
+  });
+pronCmd
+  .command("measure")
+  .description("قياس الإنذار الكاذب على جمل القنوات الثلاث المولَّدة على هذا الجهاز (يحفظ النتيجة، ولا يفعّل الفحص)")
+  .option("--per-channel <n>", "أقصى عدد جمل لكل قناة", "60")
+  .option("--channel <id...>", "قنوات بعينها (الافتراضي: الثلاث)")
+  .option("--json", "إخراج JSON")
+  .action(async (opts: { perChannel: string; channel?: string[]; json?: boolean }) => {
+    const { measureFalseAlarms } = await import("../voice/pronunciation/service");
+    const { readState, writeState } = await import("../voice/pronunciation/whisperTool");
+    const m = await measureFalseAlarms({ channels: opts.channel, perChannel: Math.max(1, Number(opts.perChannel) || 60), onProgress: (_d, _n, l) => process.stderr.write(`\r${l}        `) });
+    process.stderr.write("\n");
+    await writeState({ ...(await readState()), measurement: m });
+    if (opts.json) { console.log(JSON.stringify(m, null, 2)); return; }
+    console.log(`جمل مفرَّغة: ${m.sentences} (تعذّر ${m.failed})، نُبّه على ${m.flagged}؛ «سمعتها»: ${m.heard}، نُبّه على ${m.heardFlagged}.`);
+    for (const [c, x] of Object.entries(m.channels)) console.log(`  ${c}: ${x.sentences} جملة، تنبيه على ${x.flagged}`);
+    console.log(`الإنذار الكاذب: ${(m.rate * 100).toFixed(1)}% (${m.basis === "heard" ? "على جمل «سمعتها»" : "على كل الجمل، حدّ أعلى"}).`);
+    for (const e of m.examples) console.log(`  - ${e.channel} ${e.episode} ${e.sentenceId}: «${e.word}»${e.heard ? ` ← «${e.heard}»` : ""}`);
   });
 
 program
@@ -282,7 +299,8 @@ program
   .description("فتح الاستوديو في المتصفح")
   .action(async () => {
     const { spawn } = await import("node:child_process");
-    spawn("npx", ["vite", "--config", "app/vite.config.ts"], { cwd: projectRoot, stdio: "inherit", shell: process.platform === "win32" });
+    // نفس npm run app (D101): استوديو واحد على 4321 ومشرف يعيد تشغيله بعد التحديثات
+    spawn(process.execPath, [path.join(projectRoot, "scripts", "studio.mjs")], { cwd: projectRoot, stdio: "inherit" });
   });
 
 program
@@ -493,6 +511,25 @@ program
     else if (r.driveError) console.log(`لم يُنسخ إلى Google Drive: ${r.driveError}`);
     else console.log("مجلد Google Drive غير مضبوط (BAL_DRIVE_PREVIEWS_DIR)؛ الفيديو محلي فقط.");
     console.log(`البصمة: ${r.sha256}`);
+  });
+
+// سجل الأخطاء المحلي (D112، .studio/errors.jsonl): آخر الأخطاء مجمّعة بالرسالة
+program
+  .command("errors")
+  .description("آخر أخطاء الاستوديو على هذا الجهاز (.studio/errors.jsonl)، مجمّعة بالرسالة مع عدد مرات كل منها")
+  .option("--last <n>", "عدد السطور الأخيرة التي تُقرأ من السجل", "500")
+  .option("--limit <n>", "عدد المجموعات المعروضة", "20")
+  .option("--json", "إخراج JSON")
+  .action(async (opts: { last: string; limit: string; json?: boolean }) => {
+    const { errorsFileFor, formatErrorGroups, groupErrors, readErrorRecords } = await import("../studio/errorLog");
+    const file = errorsFileFor(projectRoot);
+    const records = (await readErrorRecords(file)).slice(-Math.max(1, Number(opts.last) || 500));
+    const groups = groupErrors(records);
+    const shown = file.startsWith(projectRoot + path.sep) ? path.relative(projectRoot, file) : file;
+    if (opts.json) { console.log(JSON.stringify({ file: shown, records: records.length, groups }, null, 2)); return; }
+    if (!records.length) { console.log("لا أخطاء مسجلة على هذا الجهاز."); return; }
+    console.log(formatErrorGroups(groups, Math.max(1, Number(opts.limit) || 20)));
+    console.log(`\n${records.length} خطأ في ${groups.length} مجموعة (${shown}). لإرسال خطأ: «أرسل المشكلة» في الاستوديو.`);
   });
 
 // صندوق ملاحظات المالك (docs/studio/notes-inbox.md): Claude يبدأ كل جلسة عمل بـ «bal notes --open»
@@ -724,21 +761,15 @@ program
   });
 
 program
-  .command("scenes-review")
-  .description("سجل المراجعة القديم للمشاهد (للقراءة فقط؛ الاعتماد الآن في «٢ المشاهد»)")
-  .argument("<episode>", "رقم الحلقة")
-  .action(async (episode: string) => {
-    const { resolveScriptPath } = await import("../script/episodes");
-    const { loadPlan, regeneratePlan } = await import("../plan/io");
-    const { loadSceneLedger, sceneReviewItems, sceneReviewSummary } = await import("../plan/sceneReview");
-    const file = await resolveScriptPath(episode);
-    const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
-    const items = sceneReviewItems(plan, await loadSceneLedger(file));
-    const mark = { ok: "✓ سليم", fix: "✗ يحتاج إصلاحًا", pending: "… لم يُراجع", changed: "! تغيّر بعد المراجعة" } as const;
-    for (const i of items) console.log(`${mark[i.status]} · ${i.id}${i.note ? ` — ${i.note}` : ""}`);
-    const s = sceneReviewSummary(items);
-    console.log(`سليم ${s.ok} من ${s.total}${s.done ? " ✓" : ""}. القرار الآن من الاستوديو: «٢ المشاهد» (يُعتمد كل مشهد بصوته وصورته).`);
-    if (!s.done) process.exitCode = 1;
+  .command("migrate")
+  .description("ترحيل السجلات القديمة: نسخة احتياطية ثم أرشيف محلي، ولا يُعتمد بها شيء (يعمل آليًا مع تشغيل الاستوديو)")
+  .argument("<what>", "legacy")
+  .option("--dry-run", "اعرض ما سيُرحَّل دون تغيير")
+  .action(async (what: string, opts: { dryRun?: boolean }) => {
+    if (what !== "legacy") throw new Error("المتاح: bal migrate legacy");
+    const { channelsDir } = await import("../channel");
+    const { migrateLegacyRecords, legacyMigrationSummary } = await import("../studio/legacyMigration");
+    console.log(legacyMigrationSummary(await migrateLegacyRecords({ channelsDir: channelsDir(), dryRun: opts.dryRun === true })));
   });
 
 program

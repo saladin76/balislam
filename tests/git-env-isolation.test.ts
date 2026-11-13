@@ -1,6 +1,6 @@
 import { describe, expect, it, afterEach } from "vitest";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { REPO_LOCATING_GIT_VARS, childEnv, cleanGitEnv, scrubProcessGitEnv } from "../scripts/git-env.mjs";
@@ -101,7 +101,7 @@ describe("عزل بيئة Git للعمليات الفرعية", () => {
     const gate = readFileSync(path.join(root, "scripts", "gate.mjs"), "utf8");
     expect(gate).toMatch(/const gateEnv = \(\) => childEnv\(/);
     expect(gate).toMatch(/env: gateEnv\(\)/);
-    for (const f of ["scripts/gate.mjs", "scripts/docs-sync.mjs", "scripts/install-hooks.mjs", "app/server/update.ts", "app/server/extra.ts"]) {
+    for (const f of ["scripts/gate.mjs", "scripts/docs-sync.mjs", "scripts/install-hooks.mjs", "app/server/update.ts", ...readdirSync(path.join(root, "app/server/routes")).map((f) => `app/server/routes/${f}`), "app/server/jobQueue.ts", "app/server/routeContext.ts"]) {
       const s = readFileSync(path.join(root, f), "utf8");
       // لا عملية git فرعية ببيئة منسوخة من process.env دون تنظيف
       expect(s, f).not.toMatch(/execFile\("git"[^)]*\.\.\.process\.env/);

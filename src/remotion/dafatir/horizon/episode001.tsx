@@ -593,7 +593,8 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
 
 // ─────────── لقطتان مصممتان قبل هذا البناء (اختبار «خط الأفق»)، بخروج بخفوت الحبر ───────────
 const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, endCam: Cam): React.FC<HzProps> =>
-  function Legacy({ t, tl, dur, exit, p }) {
+  // inner: اللقطة نفسها بلا خطافات، لفحص كلماتها على النص الحالي (src/plan/shotWords.ts)
+  Object.assign(function Legacy({ t, tl, dur, exit, p }: HzProps) {
     // الخفوت يبدأ حين يُغلق الراوي الفكرة (كالدفتر)، لا بعد ذيل ساكن
     const close = React.useContext(SceneCloseContext);
     const f0 = close !== undefined ? Math.min(dur - 0.75, close + EXIT_BEAT) : dur - 0.75;
@@ -606,7 +607,7 @@ const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, e
         </div>
       </>
     );
-  };
+  }, { inner: Comp });
 
 // الأثر وحدوده (الأمر 019، E2): يبدأ بالدفتر نفسه بدل كادر ممتلئ بلون الورق. يتراجع من قرب «العتبة» إلى الدفتر كاملًا
 // في أول 0.8 ث (قبل نافذة ذكر الله)، ويسكن عليه حتى «شواهد»، ثم يخفت الدفتر ويُكمل النزول في الطبقات كما كان.

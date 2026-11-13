@@ -208,7 +208,7 @@ export const SimStage: React.FC<SimStageProps> = (props) => {
 };
 
 export const simStageSample: Omit<SimStageProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 2 · الجليس",
+  eyebrow: "الجليس",
   kicker: "ركّز معي",
   title: "لو مررت على محل عطور،",
   location: "زيارة محل العطور",
@@ -224,7 +224,7 @@ export const simStageSample: Omit<SimStageProps, "themeId" | "orientation"> = {
   narration: "طيب لو مررت على محل عطور، ستخرج منه بريح طيبة حتى لو لم تشترِ شيئًا.",
 };
 export const simStageSampleEn: Omit<SimStageProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 2 · Company",
+  eyebrow: "Company",
   kicker: "Picture this",
   title: "If you sat two hours in a sheep pen,",
   location: "Inside the pen",

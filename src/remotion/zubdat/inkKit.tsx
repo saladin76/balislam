@@ -101,11 +101,18 @@ export const Stroke: React.FC<{ d: string; p: number; c: string; w?: number; fil
   );
 
 /** نص يُكتب من بداية السطر (يمين العربية) لحظة نطقه، والقلم عند رأس الكتابة */
+/**
+ * «لا نص على الشاشة إلا ما يُنطق» وقت العرض (D-5): يضعه InkShot حول المشهد، فلا تُكتب عبارة لم تعد في نص المشهد
+ * (لقطة صُممت على نص سابق). بلا مزوّد: كل نص يُكتب (المختبرات والنماذج).
+ */
+export const InkSpokenContext = React.createContext<((text: string) => boolean) | null>(null);
+
 export const Write: React.FC<{
   x: number; y: number; text: string; size: number; p: number; c: string; font?: Font; weight?: number;
   anchor?: "middle" | "start" | "end"; opacity?: number; pen?: boolean; z?: Z; id: string;
 }> = ({ x, y, text, size, p, c, font = "hand", weight = 400, anchor = "middle", opacity = 1, pen = true, z, id }) => {
-  if (p <= 0) return null;
+  const isSpoken = React.useContext(InkSpokenContext);
+  if (p <= 0 || (isSpoken && !isSpoken(text))) return null;
   // القياس تقديري (الخط الفعلي قد يختلف قليلًا)، فالعرض مُوسَّع للكشف، ولا قصّ بعد اكتمال الكتابة
   const w = measure(text, size, fam(font), weight) * 1.18 + size * 0.4;
   const right = anchor === "middle" ? x + w / 2 : anchor === "start" ? x + size * 0.2 : x + w;

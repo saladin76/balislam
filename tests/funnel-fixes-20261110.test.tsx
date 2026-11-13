@@ -9,8 +9,9 @@ import { currentPrepareView } from "../src/studio/prepareAll";
 import { scenesWithoutTone } from "../src/studio/preparation";
 import { nameSceneIds, planOrder, sceneNames } from "../src/i18n/sceneNames";
 import type { Plan } from "../src/plan/types";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(import.meta.dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const order = ["c1-s1", "c1-s2", "c1-s3", "c2-s1"];
 
 describe("scene names on the server (shared formatter)", () => {
@@ -90,7 +91,7 @@ describe("M3: failures expire when the scene succeeds or its inputs change", () 
 
 describe("M7 / owner decision 10 Nov: citations never block; the Master job reads true", () => {
   it("no citation gate in Master, the legacy publish stage or the script signoff", () => {
-    for (const f of ["src/render/episode.ts", "src/workflow/server.ts", "src/script/approval.ts"]) {
+    for (const f of ["src/render/episode.ts"]) {
       const code = src(f);
       expect(code, f).not.toMatch(/reviewSummary\(/);
       expect(code, f).not.toContain("توثيق الاستشهادات غير مكتمل");
@@ -113,7 +114,7 @@ describe("M7 / owner decision 10 Nov: citations never block; the Master job read
     expect(classifyFailure({ code: 1, signal: null, browserLost: true, peakMB: 900, log: ["Error: boom"] }).kind).toBe("browser-crash");
   });
   it("frame progress moves the 4K make past 60%; machine lines and English memory warnings stay out of the log", async () => {
-    const { progressFrom, ownerLogLine, MEMORY_NOTE } = await import("../app/server/extra");
+    const { progressFrom, ownerLogLine, MEMORY_NOTE } = await import("../app/server/jobQueue");
     const job = { kind: "make", pct: 60 } as Parameters<typeof progressFrom>[0];
     progressFrom(job, "   FRAMES الحلقة 50");
     expect(job.pct).toBe(79);

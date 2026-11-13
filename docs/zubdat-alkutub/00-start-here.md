@@ -28,15 +28,14 @@
 
 ## ٣. كيف تعرف النسخة الإنتاجية الحالية لكل حلقة
 
-- **المعاينة النشطة:** `previews/episode.mp4` داخل مجلد الحلقة. عنوانها وملاحظتها في `previews/index.json`، ويُذكر فيه رقم الأمر وطريق الرجوع إلى النسخة السابقة.
+- **المعاينة النشطة:** previews/episode.mp4 داخل مجلد الحلقة (خانة النسخة المجمعة نفسها؛ محلية على جهاز المالك ولا تُتتبَّع في Git منذ D109). عنوانها وملاحظتها في `previews/index.json`، ويُذكر فيه رقم الأمر وطريق الرجوع إلى النسخة السابقة.
 - **الحلقة 001:** المرجع المعتمد بصريًا هو **النسخة 011**:
   - المدة 7:41.4.
-  - الملف `channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/episode.mp4`.
+  - الملف channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/previews/episode.mp4 على جهاز المالك (أُزيل من Git في D109، ونسخته على جهازه باقية).
   - لا تُغيَّر إلا بتوجيه إخراجي مستقل.
 - **حالة الاعتمادات:** من الأوامر الآتية (كلها للقراءة فقط):
   - `BAL_CHANNEL=zubdat-alkutub npx bal review <الحلقة>`: سجل التوثيق.
   - `… npx bal storyboard <الحلقة>`: اعتماد الستوري بورد.
-  - `… npx bal scenes-review <الحلقة>`: مراجعة المشاهد.
   - `… npx bal tashkeel <الحلقة>`: تغطية التشكيل.
 - **نسخة المراجعة الحالية للحلقة 001:** `previews/review-018.mp4`، وهي غير معتمدة للنشر. وسجل النسخ في `channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/docs/production-log.md`.
 - **النسخة النهائية 4K:** لم تُصنع لأي حلقة بعد (٥ نوفمبر ٢٠٢٦).

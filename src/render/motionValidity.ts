@@ -1,5 +1,5 @@
 import type { Plan } from "../plan/types";
-import { sceneHash } from "../plan/sceneReview";
+import { sceneHash } from "../plan/sceneHash";
 import type { StoryboardMotion } from "./storyboardMotion";
 
 /**

@@ -26,7 +26,7 @@ describe("المرجع الدائم لاستوديو زبدة الكتب", () =>
     const idx = (await readGuideIndex("zubdat-alkutub"))!;
     expect(idx.title).toBe("المرجع الدائم لاستوديو زبدة الكتب — الهندسة والإنتاج ومعايير التطوير");
     expect(idx.navLabel).toBe("مرجع الاستوديو");
-    expect(idx.entries.map((e) => e.file).sort()).toEqual(pages);
+    expect(idx.entries.filter((e) => !e.shared).map((e) => e.file).sort()).toEqual(pages);
     for (const s of ["00-start-here.md", "01-identity.md", "02-architecture.md", "03-workflow.md", "04-rules.md", "05-quality.md", "06-decisions.md", "07-lessons.md", "CHANGELOG.md"]) expect(pages).toContain(s);
     for (const e of idx.entries) expect((await readGuidePage("zubdat-alkutub", e.file))?.length, e.file).toBeGreaterThan(300);
     expect(await readGuidePage("zubdat-alkutub", "../../.env")).toBeNull();

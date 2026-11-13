@@ -409,6 +409,9 @@ const saveRecord = async (episodeDir: string, rec: HandoffRecord) => {
 export type HandoffDeps = {
   facts?: (episode: string) => Promise<PublishHandoffFacts>;
   text?: (facts: PublishHandoffFacts) => Promise<string>;
+  /** Test hooks only (KI-060): order the background steps deterministically. */
+  beforeRecord?: (rec: HandoffRecord) => Promise<void>;
+  onSettled?: (job: HandoffJob) => void;
 };
 
 /** Gate message in the owner's language; the ledger's own reason follows. */
@@ -440,16 +443,27 @@ export const startDriveHandoff = async (episode: string, trigger: HandoffJob["tr
     return deliverToDrive({ facts, root: drive.root!, publishText: text,
       onProgress: (p) => { job.pct = p.pct; job.current = p.current; } });
   };
+  /**
+   * KI-060: the record is written before the status leaves «running», on both paths, so no newer job can start
+   * while an older one's record is still pending; and only the job the table still holds may write, so a job
+   * abandoned by a reset (stale generation) never overwrites a newer job's record.
+   */
+  const current = () => jobs.get(key) === job;
+  const settle = async (rec: HandoffRecord, done: Partial<HandoffJob>) => {
+    await deps.beforeRecord?.(rec);
+    if (current()) await saveRecord(episodeDir, rec);
+    Object.assign(job, { ...done, current: "", finishedAt: new Date().toISOString() });
+  };
   void runWithChannel(channel, async () => {
     try {
       const result = await work();
-      await saveRecord(episodeDir, result);
-      Object.assign(job, { status: "done", pct: 100, current: "", finishedAt: new Date().toISOString() });
+      await settle(result, { status: "done", pct: 100 });
     } catch (e) {
       const error = (e as Error).message || "تعذّر الإرسال إلى Drive.";
-      Object.assign(job, { status: "error", error, current: "", finishedAt: new Date().toISOString() });
-      await saveRecord(episodeDir, { status: "error", at: new Date().toISOString(), error }).catch(() => undefined);
+      await settle({ status: "error", at: new Date().toISOString(), error }, { status: "error", error })
+        .catch(() => Object.assign(job, { status: "error", error, current: "", finishedAt: new Date().toISOString() }));
     }
+    deps.onSettled?.(job);
   });
   return job;
 };

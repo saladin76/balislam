@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { notifyPlanServerFields } from "../planServerFields";
 import { api, type EpisodeMoveResult, type MoveEpisodesResult, type SeriesRead } from "../api";
 import { EPISODES, arabicCountAr } from "../../../src/i18n/count";
 import { SERIES_KIND_AR } from "../../../src/channel/series";
@@ -6,6 +7,7 @@ import { arDigits } from "../ui/format";
 import { Dialog } from "../ui/Dialog";
 import { Icon } from "../ui/icons";
 import { moveTargetRows, selectionLabel } from "./seriesView";
+import { OwnerText } from "../ui/OwnerText";
 
 /**
  * Moving existing episodes between series and categories (owner request, 11 Nov, D77): one dialog (a tree of
@@ -84,8 +86,10 @@ export const MoveEpisodesDialog: React.FC<{
             </button>
           ))}
         </div>
-        <p className="help">تُختم الحلقة بهوية السلسلة الجديدة وقالبها الآن، وتأخذ الرقم التالي فيها. السكريبت ومشاهده واعتماداته لا تُلمس.</p>
-        {err ? <p className="help" style={{ color: "var(--err)" }} role="alert">{err}</p> : null}
+        <p className="help">{(data.series.find((s) => s.id === to)?.kind ?? "series") === "category"
+          ? "تُختم الحلقة بهوية التصنيف وقالبه الآن؛ التصنيف بلا ترتيب فلا تأخذ رقمًا فيه. السكريبت ومشاهده واعتماداته لا تُلمس."
+          : "تُختم الحلقة بهوية السلسلة الجديدة وقالبها الآن، وتأخذ الرقم التالي فيها. السكريبت ومشاهده واعتماداته لا تُلمس."}</p>
+        {err ? <p className="help" style={{ color: "var(--err)" }} role="alert"><OwnerText text={err} /></p> : null}
         <div className="sr-dialog-acts">
           <button type="submit" className="btn primary" disabled={!to || to === current} aria-busy={busy}>{busy ? "جارٍ النقل…" : to && to !== current ? `انقل إلى «${rows.find((r) => r.id === to)?.name ?? data.series.find((s) => s.id === to)?.name ?? ""}»` : "اختر سلسلة"}</button>
           <button type="button" className="btn" onClick={onClose} disabled={busy}>إلغاء</button>
@@ -122,6 +126,7 @@ export const useEpisodeMover = (onChanged: () => Promise<void> | void) => {
   changed.current = onChanged;
   const move = useCallback(async (to: string, ids: string[]) => {
     const r = await api.moveEpisodes(to, ids);
+    notifyPlanServerFields(ids);
     await changed.current();
     setToast({ line: movedLine(r), token: r.undo, err: !r.ok });
     return r;
@@ -132,6 +137,7 @@ export const useEpisodeMover = (onChanged: () => Promise<void> | void) => {
     setToast({ line: "جارٍ التراجع…" });
     try {
       const r = await api.undoMoveEpisodes(token);
+      notifyPlanServerFields(r.results.map((x) => x.episode));
       await changed.current();
       setToast({ line: undoneLine(r.results), err: !r.ok });
     } catch (x) { setToast({ line: (x as Error).message, err: true }); }

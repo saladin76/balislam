@@ -6,7 +6,7 @@ export const SECTION_TITLES: Record<StudioSection, string> = {
   home: "حلقات القناة", ops: "غرفة العمليات والمراقبة", channels: "إدارة القنوات", review: "المراجعة المتكاملة", research: "البحث والتحضير", script: "السكريبت",
   storyboard: "الستوري بورد", voice: "صوت الحلقة", episode: "محرر المشاهد", publish: "النشر والتسليم",
   identity: "الهوية البصرية", library: "مكتبة الأصول والقوالب", channel: "إعدادات القناة",
-  settings: "الاتصالات والمفاتيح", guide: "دليل الاستوديو", labs: "مختبرات الإنتاج", treviews: "المراجعات الفنية", series: "السلسلة",
+  settings: "الاتصالات والمفاتيح", guide: "مرجع الاستوديو", labs: "مختبرات الإنتاج", treviews: "المراجعات الفنية", series: "السلسلة",
 };
 
 type IconName = "grid" | "monitor" | "layers" | "play" | "library" | "lab" | "review" | "palette" | "sliders" | "plug" | "book" | "menu" | "close";

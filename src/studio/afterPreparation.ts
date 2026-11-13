@@ -18,6 +18,30 @@ import { parseScript } from "../script/parse";
 import { checkForChannel } from "../script/checkChannel";
 import type { Plan } from "../plan/types";
 import { versesMissingText } from "../plan/storyboard";
+import { DIVERGED_SCENE, scriptTextDivergence, unplacedLine } from "../plan/scriptSync";
+
+/**
+ * QA balislam 2 (12 Nov): the script and a scene's narration say different text. Always applied (not only after a
+ * carry-forward): what is produced must be what was approved. A differing scene is blocked alone; script text that
+ * no scene says blocks every scene not yet approved (shown once).
+ */
+export const textBlocks = async (scriptPath: string, plan: Plan): Promise<ProductionBlocks> => {
+  const scenes: Record<string, string[]> = {};
+  const episode: string[] = [];
+  try {
+    const d = await scriptTextDivergence(scriptPath, plan);
+    for (const id of d.scenes) scenes[id] = [DIVERGED_SCENE];
+    if (d.unplaced.length) episode.push(unplacedLine(d.unplaced));
+  } catch (error) {
+    episode.push(`تعذّر مقارنة السكريبت باللوحات: ${(error as Error).message}`);
+  }
+  return { scenes, episode };
+};
+const mergeBlocks = (a: ProductionBlocks, b: ProductionBlocks): ProductionBlocks => {
+  const scenes: Record<string, string[]> = { ...a.scenes };
+  for (const [id, why] of Object.entries(b.scenes)) scenes[id] = [...(scenes[id] ?? []), ...why];
+  return { scenes, episode: [...a.episode, ...b.episode] };
+};
 
 /** The ledger's history action of the system event. Never an owner command (not in SCENE_ACTIONS). */
 export const AFTER_PREPARATION_ACTION = "update-after-preparation" as const;
@@ -37,7 +61,10 @@ export const NO_BLOCKS: ProductionBlocks = { scenes: {}, episode: [] };
 
 const norm = (t: string) => t.replace(/[ً-ْٰـ]/g, "").replace(/\s+/g, " ").trim();
 
-export const productionBlocks = async (scriptPath: string, plan: Plan): Promise<ProductionBlocks> => {
+export const productionBlocks = async (scriptPath: string, plan: Plan): Promise<ProductionBlocks> =>
+  mergeBlocks(await scriptBlocks(scriptPath, plan), await textBlocks(scriptPath, plan));
+
+const scriptBlocks = async (scriptPath: string, plan: Plan): Promise<ProductionBlocks> => {
   const scenes: Record<string, string[]> = {};
   const add = (id: string, why: string) => { (scenes[id] ??= []).push(why); };
   for (const id of versesMissingText(plan)) add(id, "آية بلا نصها: اكتب نص الآية في سطرها في السكريبت.");

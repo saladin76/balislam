@@ -10,6 +10,10 @@
  *   - clipped: text cut by `overflow: hidden` without an ellipsis (an ellipsis is a deliberate one-line cut);
  *   - contrast: text under WCAG AA (4.5:1, 3:1 for large text) against its painted background;
  *   - console: console errors and uncaught page errors (HTTP failures are listed, not failed).
+ *   - owner-text: Western digits inside Arabic text, or a raw scene id («c1-s5»), shown to the owner (QA 12 Nov;
+ *     the same rule as `ownerTextProblems` in src/i18n/ownerTextAudit.ts). Inputs, code and Latin-only text are exempt;
+ *   - cutoff: text pushed past the left or right edge of the viewport by a clipping parent (dafatir M8 at 390px),
+ *     outside the strips that scroll sideways on purpose.
  *   - broken: a build error overlay, or no studio shell at all.
  * Not part of vitest. Read-only: every non-GET API call is aborted; ledger states are faked in the browser
  * (the GET answers are rewritten in the page), so run it against a Studio started on a COPY of channels/:
@@ -49,6 +53,8 @@ const { chromium } = load();
 const approveAll = (j) => { j.scenes.forEach((s) => { s.approved = true; s.status = "approved"; }); j.progress.currentScene = null; j.progress.approvedScenes = j.scenes.length; };
 const ledger = (state) => (j) => {
   if (!j || !j.script || state === "prep") return j;
+  // D112 err-card: a ledger answer the scenes panel cannot render, so its screen boundary shows the crash card
+  if (state === "crash") { j.script.approved = true; j.storyboard.approved = true; j.progress = null; j.scenes = null; return j; }
   const ids = j.scenes.map((s) => s.id);
   if (state === "changed") {
     // 11 Nov: boards edited after «اعتمد التجهيز» — carried forward by the ledger; three scenes re-open in step ٢ (no re-approval)
@@ -142,6 +148,10 @@ const CASES = [
   ["s3-master", (c) => `#/${c}/${EP}/review`, "master", pill("النسخة الأساسية")],
   ["s4-publish", (c) => `#/${c}/${EP}/publish`, "publish"],
   ["gear", (c) => `#/${c}`, "scenes", click(".ms-gear", 500), true],
+  // D112: the crash card with «أرسل المشكلة» (a scene ledger answer the panel cannot render), and the corner card for an
+  // error that did not break the screen (thrown in the page). Both errors are on purpose: not counted as console errors.
+  ["err-card", (c) => `#/${c}/${EP}/episode`, "crash"],
+  ["err-notice", (c) => `#/${c}/${EP}/episode`, "scenes", async (p) => { await p.evaluate(() => { setTimeout(() => { throw new Error("ui-audit: deliberate error"); }, 0); }); await p.waitForTimeout(700); }],
   ...["ops", "channels", "channel", "settings", "identity", "library", "labs", "guide", "treviews"].map((t) => [`adm-${t}`, (c) => `#/${c}/${t}`, "scenes"]),
 ].filter(([id]) => !only || only.split(",").some((f) => id.startsWith(f)));
 
@@ -157,7 +167,11 @@ const audit = (exempt) => {
   const inView = (r) => r.bottom > 0 && r.top < vh && r.right > 0 && r.left < vw;
   const name = (e) => (e.tagName.toLowerCase() + (typeof e.className === "string" && e.className.trim() ? "." + e.className.trim().split(/\s+/).slice(0, 2).join(".") : "") + (e.getAttribute("aria-label") ? `[${e.getAttribute("aria-label").slice(0, 18)}]` : "") + (e.parentElement && typeof e.parentElement.className === "string" && e.parentElement.className ? "<" + e.parentElement.className.split(" ")[0] : "")).slice(0, 90);
   const skip = (e) => e.closest(".__remotion-player,video,svg,canvas,.ms-thumb,[aria-hidden='true'],.sr-only,.ms-vh");
-  const out = { narrowWrap: [], cover: [], dockHeight: [], overlap: [], clipped: [], contrast: [] };
+  const out = { narrowWrap: [], cover: [], dockHeight: [], overlap: [], clipped: [], contrast: [], ownerText: [], cutoff: [] };
+  const AR = /[\u0600-\u06FF]/;
+  const LATIN_NUM = /(?<![A-Za-z0-9._\/:#@\-])\d+(?![A-Za-z0-9_\/×\-]|[.:]\d*[A-Za-z])/;
+  const RAW_ID = /(?<![\w-])c\d+-(?:s\d+|end)(?![\w-])/;
+  const techOk = (el) => el.closest("input,textarea,select,code,pre,kbd,samp,[dir=ltr],details:not([open]),.sr-only,option,.md,.s45-kit-row");
   const all = [...document.querySelectorAll("body *")];
   const seen = new Set();
   for (const e of all) {
@@ -168,6 +182,12 @@ const audit = (exempt) => {
     const r = e.getBoundingClientRect();
     if (!inView(r)) continue;
     const cs = getComputedStyle(e);
+    if (!techOk(e) && AR.test(own) && (LATIN_NUM.test(own) || RAW_ID.test(own))) out.ownerText.push(`${name(e)} «${own.slice(0, 60)}»`);
+    else if (!techOk(e) && RAW_ID.test(own)) out.ownerText.push(`${name(e)} «${own.slice(0, 60)}»`);
+    if ((r.left < -2 || r.right > vw + 2) && !e.closest(".s3-strip,.s3-reel,.ms-strip,[data-hscroll],.sb-strip,.sr-grid") && r.width < vw * 3) {
+      let sc = false; for (let a = e.parentElement; a; a = a.parentElement) { const q = getComputedStyle(a); if (/(auto|scroll)/.test(q.overflowX) && a.scrollWidth > a.clientWidth + 1) { sc = true; break; } }
+      if (!sc) out.cutoff.push(`${name(e)} ${Math.round(r.left)}..${Math.round(r.right)} of ${vw}px «${own.slice(0, 24)}»`);
+    }
     // narrow-wrap: count the rendered lines of its own text
     if (own.length >= 12) {
       const tops = new Set();
@@ -220,7 +240,7 @@ const audit = (exempt) => {
     // the bar must stay on screen: a card floating above it must never push it below the fold
     if (q.bottom > vh + 1 || q.top < 0) out.dockHeight.push(`${name(d)} off screen (${Math.round(q.top)}..${Math.round(q.bottom)} of ${vh}px)`); }
   // overlaps of controls and headings within the same layer
-  const layer = (e) => e.closest(".ms-dock,.s3-reel,.ms-float,.ms-hdr,.modal,[role=dialog],.ms-band,.ms-pop,.ms-menu,.ms-note");
+  const layer = (e) => e.closest(".ms-dock,.s3-reel,.ms-float,.ms-hdr,.modal,[role=dialog],.ms-band,.ms-pop,.ms-menu,.ms-note,.error-notice");
   const ints = [...document.querySelectorAll("button,a,input,select,textarea,summary,h1,h2,h3,label,.btn")].filter(vis).filter((e) => !skip(e) && inView(e.getBoundingClientRect()));
   for (let i = 0; i < ints.length; i++) for (let j = i + 1; j < ints.length; j++) {
     const a = ints[i], b = ints[j]; if (a.contains(b) || b.contains(a) || layer(a) !== layer(b)) continue;
@@ -235,7 +255,7 @@ const audit = (exempt) => {
   return out;
 };
 
-const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "clipped", "contrast", "console"];
+const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "clipped", "contrast", "console", "ownerText", "cutoff"];
 (async () => {
   if (shots) await mkdir(shots, { recursive: true });
   const browser = await chromium.launch();
@@ -258,11 +278,19 @@ const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "cl
     await rewrite(/\/api\/episodes\/[^/]+\/sentences(\?.*)?$/, (j) => sentences(cur.state)(j));
     await rewrite(/\/api\/episodes\/[^/]+\/review(\?.*)?$/, review);
     await ctx.route(/\/api\/.*/, (route) => (route.request().method() === "GET" ? route.fallback() : route.abort()).catch(() => {}));
-    const page = await ctx.newPage();
+    // D112: reporting an error answers a fake record number; nothing reaches the server (registered last = matched first).
+    await ctx.route(/\/api\/errors(\/send)?(\?.*)?$/, (route) => route.fulfill({ json: route.request().url().includes("/send")
+      ? { noteId: "n0000000000", box: "episode", channel: ch, episode: EP } : { id: "e0000000000", message: "Error: ui-audit: deliberate error" } }).catch(() => {}));
     let errs = [], http = [];
-    page.on("pageerror", (e) => errs.push("pageerror " + e.message.slice(0, 160)));
-    page.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errs.push(m.text().slice(0, 160)); });
-    page.on("response", (r) => { if (r.status() >= 400) http.push(`${r.status()} ${r.url().replace(origin, "").slice(0, 90)}`); });
+    const openPage = async () => {
+      const pg = await ctx.newPage();
+      pg.on("pageerror", (e) => errs.push("pageerror " + e.message.slice(0, 160)));
+      pg.on("console", (m) => { if (m.type() === "error" && !/Failed to load resource/.test(m.text())) errs.push(m.text().slice(0, 160)); });
+      pg.on("response", (r) => { if (r.status() >= 400) http.push(`${r.status()} ${r.url().replace(origin, "").slice(0, 90)}`); });
+      return pg;
+    };
+    // A renderer that runs out of memory crashes its tab; the next screens get a fresh tab instead of failing in a row.
+    let page = await openPage();
     let n = 0, seriesId = "";
     // warm-up: the first load of a context compiles and fills caches; it is not measured
     await page.goto(`${origin}/?link#/${ch}/${EP}/storyboard`).catch(() => {}); await page.waitForTimeout(3500);
@@ -277,13 +305,18 @@ const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "cl
         if (act) await act(page);
         const a = await page.evaluate(audit, Boolean(exempt));
         if (probe) console.log("probe", tag, JSON.stringify(await page.evaluate(probe).catch((e) => e.message)));
+        // the err-* cases throw on purpose (React logs the caught render error too)
+        if (id.startsWith("err-")) errs = errs.filter((e) => e.startsWith("pageerror ") && !/ui-audit: deliberate error/.test(e));
         a.console = [...new Set(errs)].slice(0, 8); a.http = [...new Set(http)].slice(0, 8);
         const bad = FAIL_KEYS.filter((k) => a[k]?.length) .concat(a.hscroll > 1 ? ["hscroll"] : []);
         report[tag] = { ...a, bad };
         if (bad.length) { failed++; console.log("FAIL", tag, bad.map((k) => `${k}:${k === "hscroll" ? a.hscroll : a[k].length}`).join(" ")); }
         else console.log("ok  ", tag);
         if (shots) await page.screenshot({ path: path.join(shots, `${tag}.jpg`), type: "jpeg", quality: 62 });
-      } catch (e) { failed++; report[tag] = { error: e.message }; console.log("ERR ", tag, e.message.slice(0, 120)); }
+      } catch (e) {
+        failed++; report[tag] = { error: e.message }; console.log("ERR ", tag, e.message.slice(0, 120));
+        if (/crash/i.test(e.message)) { await page.close().catch(() => {}); page = await openPage(); }
+      }
       await page.keyboard.press("Escape").catch(() => {});
     }
     await ctx.close();

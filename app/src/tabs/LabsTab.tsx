@@ -4,10 +4,12 @@
  */
 import { num } from "../ui/format";
 import React, { useEffect, useState } from "react";
+import { ownerText } from "../../../src/i18n/sceneNames";
 import { api } from "../api";
 import type { LabStatus, LabSummary } from "../../../src/channel/labs";
 import { labStoryboardsEnabled } from "../../../src/channel/labStoryboardsShared";
 import { LabStoryboards } from "./LabStoryboards";
+import { OwnerText } from "../ui/OwnerText";
 
 const STATUS_AR: Record<LabStatus, string> = { experimental: "تجريبي", review: "جاهز للمراجعة", approved: "معتمد", rejected: "مرفوض" };
 const Badge: React.FC<{ s: LabStatus }> = ({ s }) => <span className={`lab-badge lab-${s}`}>{STATUS_AR[s]}</span>;
@@ -21,7 +23,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
     api.labs(channel).then((r) => setLabs(r.labs), (e: Error) => setErr(e.message));
   }, [channel]);
 
-  if (err) return <div className="panel"><p className="err">{err}</p></div>;
+  if (err) return <div className="panel"><p className="err"><OwnerText text={err} /></p></div>;
   if (!labs) return <div className="panel"><p className="muted">جارٍ تحميل المختبرات…</p></div>;
   if (!labs.length) return <div className="panel"><p className="muted">لا مختبرات لهذه القناة.</p></div>;
 
@@ -34,11 +36,11 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
       {labs.map((l) => (
         <section key={l.dir} className="lab-card">
           <div className="lab-title">
-            <h3 title={l.dir}>{l.title}</h3>
+            <h3 title={l.dir}>{ownerText(l.title)}</h3>
             <Badge s={l.status} />
             <span className="help">آخر نشاط: {date(l.lastActivity)}</span>
           </div>
-          <p>{l.purpose}</p>
+          <p>{ownerText(l.purpose)}</p>
 
           {/* ستوري بورد المختبرات (صور) لبالإسلام وحدها؛ القنوات الأخرى كما هي */}
           <LabStoryboards channel={channel} dir={l.dir} />
@@ -50,9 +52,9 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
                 <figure key={f.name} className="sb-preview">
                   <video src={api.labPreviewUrl(channel, l.dir, f.name)} controls preload="metadata" playsInline />
                   <figcaption>
-                    <b>{f.title}</b> <Badge s={f.status} />
+                    <b>{ownerText(f.title)}</b> <Badge s={f.status} />
                     <span className="help">رفع رقم {num(f.version)} — {date(f.updatedAt)}</span>
-                    {f.note ? <span className="help">{f.note}</span> : null}
+                    {f.note ? <span className="help">{ownerText(f.note)}</span> : null}
                   </figcaption>
                 </figure>
               ))}
@@ -67,7 +69,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
             <tbody>
               {l.tools.map((t) => (
                 <tr key={t.name}>
-                  <td>{t.name}{t.note ? <div className="help">{t.note}</div> : null}</td>
+                  <td>{t.name}{t.note ? <div className="help">{ownerText(t.note)}</div> : null}</td>
                   <td><Badge s={t.status} /></td>
                   <td>{t.promotedTo ? <span>انتقلت — <code dir="ltr">{t.promotedTo}</code></span> : <span className="muted">لا</span>}</td>
                 </tr>
@@ -78,7 +80,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
           <h4>نتائج الفحوص التقنية</h4>
           <ul className="lab-checks">
             {l.checks.map((c) => (
-              <li key={c.name}><span className={c.ok ? "ok" : "err"}>{c.ok ? "✓" : "✗"}</span> <b>{c.name}</b>{c.detail ? ` — ${c.detail}` : ""}{c.at ? <span className="help"> ({date(c.at)})</span> : null}</li>
+              <li key={c.name}><span className={c.ok ? "ok" : "err"}>{c.ok ? "✓" : "✗"}</span> <b>{c.name}</b>{c.detail ? ` — ${ownerText(c.detail)}` : ""}{c.at ? <span className="help"> ({date(c.at)})</span> : null}</li>
             ))}
           </ul>
 
@@ -88,7 +90,7 @@ export const LabsTab: React.FC<{ channel: string }> = ({ channel }) => {
           <h4>القرارات</h4>
           <ul>
             {l.decisions.map((d, i) => (
-              <li key={i}><Badge s={d.status} /> <b>{d.by}</b> — {date(d.at)} — {d.decision}</li>
+              <li key={i}><Badge s={d.status} /> <b>{d.by}</b> — {date(d.at)} — {ownerText(d.decision)}</li>
             ))}
           </ul>
 

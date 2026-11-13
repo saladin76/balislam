@@ -6,12 +6,15 @@
  */
 import { SECTION_TITLES, type StudioSection } from "../ui/StudioSidebar";
 
-export type StudioRoute = { channel?: string; episode?: string; tab?: StudioSection; /** «#/<channel>/series/<id>»: a series page */ series?: string };
+export type StudioRoute = { channel?: string; episode?: string; tab?: StudioSection; /** «#/<channel>/series/<id>»: a series page */ series?: string;
+  /** «#/<channel>/<episode>/episode/<scene id>»: the scene on screen in step ٢ (QA 12 Nov: a reload kept only the step). */
+  scene?: string };
 
 const EPISODE_STEPS: StudioSection[] = ["research", "script", "storyboard", "voice", "episode", "review", "publish"];
 const CHANNEL = /^[a-z0-9][a-z0-9-]{0,40}$/;
 const EPISODE = /^\d{3,4}$/;
 const SERIES = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const SCENE = /^[a-z0-9]+(?:-[a-z0-9]+){0,4}$/;
 const isTab = (t: string): t is StudioSection => Object.prototype.hasOwnProperty.call(SECTION_TITLES, t);
 
 export const parseStudioHash = (hash: string): StudioRoute => {
@@ -22,7 +25,7 @@ export const parseStudioHash = (hash: string): StudioRoute => {
   const out: StudioRoute = { channel: parts[0] };
   if (parts[1] === "series") return parts[2] && SERIES.test(parts[2]) ? { ...out, tab: "series", series: parts[2] } : out;
   if (parts.length >= 3 && EPISODE.test(parts[1]!) && isTab(parts[2]!) && EPISODE_STEPS.includes(parts[2]!))
-    return { ...out, episode: parts[1], tab: parts[2] };
+    return { ...out, episode: parts[1], tab: parts[2], ...(parts[2] === "episode" && parts[3] && SCENE.test(parts[3]) ? { scene: parts[3] } : {}) };
   if (parts.length >= 2 && EPISODE.test(parts[1]!)) return { ...out, episode: parts[1], tab: "script" };
   if (parts.length >= 2 && isTab(parts[1]!) && !EPISODE_STEPS.includes(parts[1]!)) return { ...out, tab: parts[1] };
   return out;
@@ -30,7 +33,8 @@ export const parseStudioHash = (hash: string): StudioRoute => {
 
 export const studioHash = (r: StudioRoute): string => {
   if (!r.channel || !CHANNEL.test(r.channel)) return "";
-  if (r.tab && EPISODE_STEPS.includes(r.tab)) return r.episode && EPISODE.test(r.episode) ? `#/${r.channel}/${r.episode}/${r.tab}` : `#/${r.channel}`;
+  if (r.tab && EPISODE_STEPS.includes(r.tab)) return r.episode && EPISODE.test(r.episode)
+    ? `#/${r.channel}/${r.episode}/${r.tab}${r.tab === "episode" && r.scene && SCENE.test(r.scene) ? `/${r.scene}` : ""}` : `#/${r.channel}`;
   if (r.tab === "series") return r.series && SERIES.test(r.series) ? `#/${r.channel}/series/${r.series}` : `#/${r.channel}`;
   return r.tab ? `#/${r.channel}/${r.tab}` : `#/${r.channel}`;
 };
@@ -59,7 +63,7 @@ export const bootPlace = (b: BootInput): StudioRoute & { tab: StudioSection } =>
   const keep = b.navigation === "reload" || /(?:^\?|&)link(?:[=&]|$)/.test(b.search ?? "");
   if (!keep) return { channel: storedChannel ?? r.channel, episode: storedEpisode, tab: "home" };
   const storedTab = b.stored.tab && isTab(b.stored.tab) ? b.stored.tab : undefined;
-  return { channel: r.channel ?? storedChannel, episode: r.episode ?? storedEpisode, tab: r.tab ?? storedTab ?? "home", ...(r.series ? { series: r.series } : {}) };
+  return { channel: r.channel ?? storedChannel, episode: r.episode ?? storedEpisode, tab: r.tab ?? storedTab ?? "home", ...(r.series ? { series: r.series } : {}), ...(r.scene ? { scene: r.scene } : {}) };
 };
 
 /** «reload» only when the browser says this load is a reload of the same page; anything else is a fresh open. */

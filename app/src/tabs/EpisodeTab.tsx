@@ -1,5 +1,6 @@
 import { OverlayToggles } from "../ui/Overlays";
-import { SCENES, arabicCountAr, everyWeekday } from "../../../src/i18n/count";
+import { CLIPS, SCENES, WORDS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
+const arNumE = (n: number) => n.toLocaleString("ar-EG");
 import { resolveOverlays } from "../../../brand/identity/index";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import type { PlayerRef } from "@remotion/player";
@@ -20,6 +21,7 @@ import { ImageField } from "../ui/ImageField";
 import { StoryboardPanel } from "./StoryboardPanel";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
 import { api, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
+import { NO_VOICE_KEY } from "../workspace/voiceResult";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 import { TRANSITION_HELP } from "../../../src/plan/transitions";
@@ -32,6 +34,7 @@ import { More } from "../shell/Screen";
 import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
 import { episodeLength } from "../../../src/plan/episodeLength";
 import { duration, lengthSource, num, sceneName, seconds, verseRef } from "../ui/format";
+import { OwnerText } from "../ui/OwnerText";
 
 type Scope = "scene" | "chapter" | "episode";
 
@@ -260,7 +263,8 @@ export const EpisodeTab: React.FC<{
               const d = templateById(s.template);
               return (
                 <div key={s.id} className="scene-item" role="button" tabIndex={0} aria-selected={s.id === scene.id} onClick={() => setSelectedId(s.id)} onKeyDown={(e) => e.key === "Enter" && setSelectedId(s.id)}>
-                  <span className="t">{d?.nameAr ?? s.template}</span>
+                  {/* dafatir QA: every row said only «مشهد خط الأفق»; the scene number comes first */}
+                  <span className="t"><b className="scene-no">{sceneName(allScenes.map((x) => x.scene.id), s.id)}</b> — {d?.nameAr ?? s.template}</span>
                   <span style={{ display: "flex", gap: 4 }}>
                     {voiceState(s) === "ok" ? <span className="badge voice">صوت</span> : voiceState(s) === "stale" ? <span className="badge edited">صوت قديم</span> : null}
                     {s.edited ? <span className="badge edited">معدّل</span> : null}
@@ -285,8 +289,8 @@ export const EpisodeTab: React.FC<{
             ))}
           </div>
           <div className="seg" role="group" aria-label="المقاس">
-            <button aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}>أفقي 16:9</button>
-            <button aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}>عمودي 9:16</button>
+            <button aria-pressed={orientation === "landscape"} onClick={() => setOrientation("landscape")}>أفقي ١٦:٩</button>
+            <button aria-pressed={orientation === "portrait"} onClick={() => setOrientation("portrait")}>عمودي ٩:١٦</button>
           </div>
           <span className="spacer" />
           <span className="help">{Object.keys(media.voice).length ? "المعاينة بالصوت الحقيقي حيث وُجد" : "المعاينة بتوقيت تقديري حتى يُولَّد الصوت"}</span>
@@ -579,16 +583,16 @@ const RenderBox: React.FC<{ episodeId: string; chapter?: number }> = ({ episodeI
         <b>التصدير</b>
         <span className="help">يرندر من الخطة المحفوظة إلى مجلد الحلقة out/</span>
         <span className="spacer" />
-        <button className="btn" disabled={running} onClick={() => start("landscape")}>رندر الحلقة 16:9</button>
-        {chapter !== undefined ? <button className="btn" disabled={running} onClick={() => start("portrait", chapter)}>رندر الفصل {chapter} شورت 9:16</button> : null}
+        <button className="btn" disabled={running} onClick={() => start("landscape")}>رندر الحلقة ١٦:٩</button>
+        {chapter !== undefined ? <button className="btn" disabled={running} onClick={() => start("portrait", chapter)}>رندر الفصل {arNumE(chapter)} شورت ٩:١٦</button> : null}
       </div>
-      {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
+      {err ? <div className="help" style={{ color: "var(--err)" }}><OwnerText text={err} /></div> : null}
       {mine.map((j) => (
         <div key={j.id} className="job">
           <span style={{ minWidth: 150 }}>{j.chapter ? `الفصل ${j.chapter} — عمودي` : `الحلقة — ${j.orientation === "portrait" ? "عمودي" : "أفقي"}`}</span>
           <span className="bar"><i style={{ width: `${j.status === "done" ? 100 : j.pct}%`, background: j.status === "error" ? "var(--err)" : undefined }} /></span>
           <span style={{ minWidth: 90, fontVariantNumeric: "tabular-nums" }}>
-            {j.status === "running" ? (j.queued ? "في الطابور" : `${j.pct}%`) : j.status === "done" ? "جاهز" : j.error ?? "فشل"}
+            {j.status === "running" ? (j.queued ? "في الطابور" : `${j.pct}%`) : j.status === "done" ? "جاهز" : <OwnerText text={j.error ?? "فشل"} />}
           </span>
           {j.status === "done" && j.output ? <a className="btn small" href={api.videoUrl(j.episode, j.output)} target="_blank" rel="noreferrer">فتح</a> : null}
           {j.status === "running" ? <button className="btn ghost small" onClick={() => void api.cancelJob(j.id).catch((x) => setErr((x as Error).message))}>إلغاء</button> : null}
@@ -617,7 +621,7 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
           try {
             const r = await api.voice(episodeId, { scenes: [sceneId], force: state === "ok" });
             onMedia(r.media);
-            setMsg(r.report ? `تم (${r.report.chars} حرفًا ≈ ${r.report.credits} رصيد)` : `أُعيد توليد جمل المشهد (${r.sentences?.generated ?? 0}).`);
+            setMsg(r.noKey || (!r.generated && !r.sentences) ? NO_VOICE_KEY : r.report ? `تم (${r.report.chars} حرفًا ≈ ${r.report.credits} رصيد)` : `أُعيد توليد جمل المشهد (${r.sentences?.generated ?? 0}).`);
           } catch (e) {
             setMsg((e as Error).message);
           } finally {
@@ -628,13 +632,13 @@ const SceneVoice: React.FC<{ episodeId: string; sceneId: string; state: "none" |
         {busy ? "جارٍ التوليد…" : state === "ok" ? "أعد توليد صوت هذا المشهد" : "ولّد صوت هذا المشهد"}
       </button>
       {!hasKeys ? <span className="help">يتطلب مفتاح الصوت من <KeysLink /></span> : null}
-      {msg ? <span className="help">{msg}</span> : null}
+      {msg ? <span className="help"><OwnerText text={msg} /></span> : null}
     </div>
   );
 };
 
 /** صوت الحلقة كلها: تقدير التكلفة أولًا، ثم التوليد بتأكيد. */
-export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void }> = ({ episodeId, hasKeys, onMedia }) => {
+export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: (m: EpisodeMedia) => void; /** scene order, to name scenes «المشهد ٣» */ order?: string[] }> = ({ episodeId, hasKeys, onMedia, order = [] }) => {
   const [est, setEst] = useState<VoiceReport | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState("");
@@ -670,7 +674,7 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
                 const r = await api.voice(episodeId, {});
                 onMedia(r.media);
                 if (r.report) setEst(r.report);
-                setMsg(`وُلّد ${r.report?.toGenerate.length ?? 0} مقطعًا.`);
+                setMsg(r.noKey || !r.generated ? NO_VOICE_KEY : `وُلّدت المقاطع (${countAr(r.report?.toGenerate.length ?? 0, CLIPS)}).`);
                 setEst((await api.voice(episodeId, { dryRun: true })).report);
               } catch (e) {
                 setMsg((e as Error).message);
@@ -679,24 +683,28 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
               }
             }}
           >
-            {busy ? "جارٍ التوليد…" : `ولّد ${est.toGenerate.length} مقطعًا`}
+            {busy ? "جارٍ التوليد…" : `ولّد المقاطع (${arNumE(est.toGenerate.length)})`}
           </button>
         ) : null}
       </div>
       {est ? (
         <div className="help" style={{ fontVariantNumeric: "tabular-nums" }}>
-          {est.toGenerate.length === 0 ? `كل المشاهد (${est.total}) لها صوت مطابق.` : `للتوليد ${est.toGenerate.length} من ${est.total} مشهدًا: ${est.chars} حرفًا ≈ ${est.credits} رصيد ElevenLabs. المحفوظ: ${est.cached.length}.`}
+          {/* QA 12 Nov (dafatir M10): this tool counts the whole-scene clips only; scenes voiced sentence by sentence are counted in «الجمل» */}
+          {est.toGenerate.length === 0 ? `لا مقطع يحتاج توليدًا بهذه الأداة (المحفوظة: ${arNumE(est.total)}).` : `المقاطع للتوليد: ${arNumE(est.toGenerate.length)} من ${arNumE(est.total)} — الحروف: ${arNumE(est.chars)} ≈ ${arNumE(est.credits)} من رصيد الصوت. المحفوظة: ${arNumE(est.cached.length)}.`}
+          {managedOf(est) ? ` المشاهد المسجّلة جملةً جملة (${countAr(managedOf(est), SCENES)}) تُفحص وتُولَّد في «الجمل» تحت كل مشهد، ولا تدخل هذا العدّ ولا نسبة التشكيل أدناه.` : ""}
           {!hasKeys ? <> (أضف مفتاح الصوت من <KeysLink /> لتفعيل التوليد)</> : ""}
         </div>
       ) : null}
-      {est?.tashkeel ? <TashkeelBox t={est.tashkeel} /> : null}
-      {msg ? <div className="help">{msg}</div> : null}
+      {est?.tashkeel ? <TashkeelBox t={est.tashkeel} order={order} /> : null}
+      {msg ? <div className="help"><OwnerText text={msg} /></div> : null}
     </div>
   );
 };
 
+/** Scenes voiced sentence by sentence, which the whole-scene voice tool does not count (generate.ts `skipped`). */
+const managedOf = (est: VoiceReport | null): number => (est?.tashkeel as unknown as { skipped?: { managedScenes?: number } } | undefined)?.skipped?.managedScenes ?? 0;
 /** مدقق التشكيل: نسبة التغطية، والكلمات التي ستُنطق بلا تشكيل، والكلمات التي لها أكثر من نطق. */
-const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
+const TashkeelBox: React.FC<{ t: TashkeelReport; order: string[] }> = ({ t, order }) => {
   const pct = Math.round(t.coverage * 1000) / 10;
   const color = t.ok ? "var(--ok)" : "var(--err)";
   return (
@@ -704,24 +712,24 @@ const TashkeelBox: React.FC<{ t: TashkeelReport }> = ({ t }) => {
       <span style={{ color, fontWeight: 600 }}>
         {!t.file
           ? "التشكيل: لا توجد نسخة مشكولة (tashkeel.md) لهذه الحلقة؛ التوليد متوقف حتى تُضاف."
-          : `التشكيل: ${pct}% (${t.covered} من ${t.words} كلمة) — الحد ${Math.round(t.min * 100)}% ${t.ok ? "✓" : "— التوليد متوقف حتى يكتمل"}`}
+          : `التشكيل: ${arNumE(pct)}٪ (${arNumE(t.covered)} من ${countAr(t.words, WORDS)}) — الحد ${arNumE(Math.round(t.min * 100))}٪ ${t.ok ? "✓" : "— التوليد متوقف حتى يكتمل"}`}
       </span>
       {t.gaps.length ? (
         <details open={!t.ok}>
-          <summary>كلمات ستُنطق بلا تشكيل ({t.words - t.covered})</summary>
+          <summary>كلمات ستُنطق بلا تشكيل ({arNumE(t.words - t.covered)})</summary>
           {t.gaps.map((g, i) => (
             <div key={`${g.sceneId}-${i}`}>
-              <b dir="ltr">{g.sceneId}</b>: {g.words.join("، ")}
+              <b title={g.sceneId}>{sceneName(order, g.sceneId)}</b>: {g.words.join("، ")}
             </div>
           ))}
         </details>
       ) : null}
       {t.ambiguous.length ? (
         <details>
-          <summary>كلمات لها أكثر من نطق في الملف ({t.ambiguous.length}) — راجع أن كل موضع بنطقه الصحيح</summary>
+          <summary>كلمات لها أكثر من نطق في الملف ({arNumE(t.ambiguous.length)}) — راجع أن كل موضع بنطقه الصحيح</summary>
           {t.ambiguous.map((a) => (
             <div key={a.word}>
-              {a.forms.join(" / ")} ← <span dir="ltr">{a.scenes.join(", ")}</span>
+              {a.forms.join(" / ")} ← <span title={a.scenes.join(", ")}>{a.scenes.map((id) => sceneName(order, id)).join("، ")}</span>
             </div>
           ))}
         </details>

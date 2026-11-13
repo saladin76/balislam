@@ -274,7 +274,7 @@ export const GlowStory: React.FC<GlowStoryProps> = (props) => {
 };
 
 export const glowStorySample: Omit<GlowStoryProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 3 · عند الإشارة الحمراء",
+  eyebrow: "عند الإشارة الحمراء",
   quote: "ليتني أملك سيارة أكبر.",
   highlight: "سيارة أكبر",
   variant: "narrator-m",
@@ -286,7 +286,7 @@ export const glowStorySample: Omit<GlowStoryProps, "themeId" | "orientation"> = 
   narration: "عند الإشارة الحمراء، كان كل واحد ينظر إلى ما في يد غيره.",
 };
 export const glowStorySampleEn: Omit<GlowStoryProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 3 · At the red light",
+  eyebrow: "At the red light",
   quote: "I wish I had a bigger car.",
   highlight: "bigger car",
   variant: "narrator-m",

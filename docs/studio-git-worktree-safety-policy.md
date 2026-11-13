@@ -5,7 +5,7 @@
 ## What is protected in this patch
 
 1. `scripts/git-env.mjs` cleans repository-location environment variables (`GIT_DIR`, `GIT_COMMON_DIR`, `GIT_WORK_TREE`, `GIT_INDEX_FILE`, object directories etc.) before child processes. Call `childEnv(extra)`, which also removes any location variables mistakenly passed in `extra`.
-2. `scripts/gate.mjs`, `scripts/docs-sync.mjs`, `scripts/install-hooks.mjs`, `app/server/update.ts` and `app/server/extra.ts` apply the clean environment when running subprocesses.
+2. `scripts/gate.mjs`, `scripts/docs-sync.mjs`, `scripts/install-hooks.mjs`, `app/server/update.ts` and the route files in `app/server/routes/` apply the clean environment when running subprocesses.
 3. Vitest setup scrubs these variables before tests; Git-test helpers pass clean env explicitly. Tests use **temporary test repositories** and compare original temp-repository `.git/config` and branch/stash references.
 4. `scripts/install-hooks.mjs` refuses to run shared Git `core.hooksPath` writes when `root/.git` is a **file** (linked worktree); this prevents incidental changes from `npm ci`/prepare inside detached Studio previews.
 5. Existing commands do **not** automatically `git stash`, `git reset --hard`, rewrite local primary branches or merge production commits.

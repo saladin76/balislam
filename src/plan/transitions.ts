@@ -183,7 +183,7 @@ export const transitionIssues = (scene: PlanScene, prev: PlanScene | undefined):
   if (!r.ok) return [{ level: "error", message: `الانتقال: ${r.error}` }];
   const t = r.t;
   const out: TransitionIssue[] = [];
-  if (!prev) return [{ level: "error", message: "الانتقال: أول مشهد في الفصل لا مشهد قبله يُنتقل منه (والشورت يبدأ بلا انتقال)؛ احذف الحقل." }];
+  if (!prev) return [{ level: "error", message: "الانتقال: أول مشهد في الحلقة لا مشهد قبله يُنتقل منه (والشورت يبدأ بلا انتقال)؛ احذف الحقل." }];
   for (const s of [scene, prev]) {
     const why = NO_TRANSITION_TEMPLATES[s.template];
     if (why) out.push({ level: "error", message: `الانتقال غير مدعوم مع قالب «${s.template}»: ${why}.` });
@@ -203,4 +203,4 @@ export const transitionIssues = (scene: PlanScene, prev: PlanScene | undefined):
 
 /** نص المساعدة في الاستوديو */
 export const TRANSITION_HELP =
-  "فارغ = كما هو (تلاشٍ قصير). cut قطع مباشر · fade مزج · push left|right|up|down · zoom in|out [x y] · mask arch|circle|wipe [x y | اتجاه] · through xA yA [xB yB] (عنصر مشترك) · morph شكل شكل [x y] (circle، arch، square، star) · light [x y] · carry left|right (استمرار المشي). ثم اختياريًا dur إطارات (6..60) وease linear|in|out|inout|spring. النقاط نسبية للإطار (0..1).";
+  "فارغ = كما هو (تلاشٍ قصير). اكتب واحدة: cut (قطع مباشر)، fade (مزج)، push مع اتجاه left/right/up/down (دفع)، zoom in أو out (تقريب أو إبعاد)، mask مع arch/circle/wipe (كشف بقناع: قوس، دائرة، مسح)، through (عبر عنصر مشترك)، morph (تحوّل شكل إلى شكل: circle، arch، square، star)، light (ومضة ضوء)، carry left أو right (استمرار المشي). وبعدها اختياريًا dur ثم عدد الإطارات (من ٦ إلى ٦٠)، وease ثم نوع التسارع (linear ثابت، in، out، inout، spring مرن). المواضع نسبة من الإطار بين ٠ و١.";

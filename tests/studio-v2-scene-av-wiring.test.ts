@@ -2,13 +2,14 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const src = (file: string) => readFileSync(path.join(root, file), "utf8");
+const src = (file: string) => panelSource(file);
 
 describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
   it("exposes one current scene at a time with no browser-side approval authority", () => {
-    const service = src("src/studio/sceneService.ts");
+    const service = src("src/studio/sceneGates.ts");
     expect(service).toContain("assertCurrentSceneRenderAllowed");
     expect(service).toContain("assertSceneOwner();");
     expect(service).toContain("sceneFirstProgress(state).currentScene !== sceneId");
@@ -22,7 +23,7 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(server).toContain("await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256)");
     expect(server).toContain("verifyBeforePublish: () => assertCurrentSceneRenderAllowed(");
     expect(server).toContain("await recordSceneRenderEvidence(ep, sceneId, expectedSha256)");
-    const ledger = src("src/studio/sceneService.ts");
+    const ledger = src("src/studio/sceneLedgerStore.ts") + src("src/studio/sceneDecisions.ts");
     expect(ledger).toContain("previewInputs?: Record<string");
     expect(ledger).toContain("proof.sourceSha256 !== scene.sourceSha256");
     expect(ledger).toContain("proof.videoSha256 !== resultSha256");

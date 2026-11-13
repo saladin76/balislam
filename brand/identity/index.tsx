@@ -24,7 +24,7 @@ export type OverlayKey = keyof Overlays;
 export const overlayKeys: OverlayKey[] = ["captions", "chapterLabel", "motif", "watermark"];
 export const overlayNamesAr: Record<OverlayKey, string> = {
   captions: "الترجمة السفلية",
-  chapterLabel: "عنوان الفصل في الأعلى",
+  chapterLabel: "عنوان القسم في الأعلى",
   motif: "زخرفة الخلفية",
   watermark: "شعار القناة في الزاوية",
 };

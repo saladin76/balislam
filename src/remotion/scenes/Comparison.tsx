@@ -342,7 +342,7 @@ export const Comparison: React.FC<ComparisonProps> = (props) => {
 
 /** محتوى تجريبي لمعاينة القالب. */
 export const comparisonSample: Omit<ComparisonProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 3 · السبب الأعمق",
+  eyebrow: "السبب الأعمق",
   rightTitle: "ما نظنه",
   rightItems: "التأجيل كسل\nأحتاج حماسًا لأبدأ\nسأبدأ غدًا بنشاط أكبر",
   rightElement: "head-tangle",
@@ -354,7 +354,7 @@ export const comparisonSample: Omit<ComparisonProps, "themeId" | "orientation"> 
 };
 /** English preview content (same shape; first side = reading start). */
 export const comparisonSampleEn: Omit<ComparisonProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 3 · The deeper cause",
+  eyebrow: "The deeper cause",
   rightTitle: "What we think",
   rightItems: "Procrastination is laziness\nI need motivation to start\nTomorrow I'll have more energy",
   rightElement: "head-tangle",

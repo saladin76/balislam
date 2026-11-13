@@ -13,9 +13,11 @@
     "stills": "node bin/bal.mjs stills",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "app": "vite --config app/vite.config.ts",
+    "app": "node scripts/studio.mjs",
     "check": "npm run typecheck && npm test",
     "gate": "node scripts/gate.mjs",
+    "e2e": "vitest run --config vitest.e2e.config.ts",
+    "e2e:ui": "tsx tests/e2e/ui/studio-journey.mjs",
     "prepare": "node scripts/install-hooks.mjs"
   },
   "repository": {

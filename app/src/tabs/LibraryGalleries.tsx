@@ -9,12 +9,14 @@ import { SetBackdrop, sets } from "../../../brand/sets/index";
 import type { Identity } from "../../../brand/identity/index";
 import type { ChannelInfo } from "../../../src/channel/types";
 import config from "../../../config.json";
+const arDigitsLib = (s: string) => s.replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
 
 const fps = config.video.fps;
 
 /** معاينة قالب: لقطة ثابتة، وتتحرك عند المرور عليها. */
 const TemplatePreview: React.FC<{ entry: (typeof sceneCatalog)[number]; identity?: Identity; channel?: ChannelInfo }> = ({ entry, identity, channel }) => {
   const ref = useRef<PlayerRef>(null);
+  const [playing, setPlaying] = useState(false);
   const frames = Math.round(entry.seconds * fps);
   const Comp = useMemo(() => {
     const C: React.FC<Record<string, unknown>> = (p) => (
@@ -27,9 +29,9 @@ const TemplatePreview: React.FC<{ entry: (typeof sceneCatalog)[number]; identity
   return (
     <div
       className="tpl-prev"
-      onMouseEnter={() => ref.current?.play()}
+      onMouseEnter={() => { if (window.matchMedia("(hover: hover)").matches) { ref.current?.play(); setPlaying(true); } }}
       onMouseLeave={() => {
-        ref.current?.pause();
+        ref.current?.pause(); setPlaying(false);
         ref.current?.seekTo(Math.round(frames * 0.6));
       }}
     >
@@ -46,6 +48,7 @@ const TemplatePreview: React.FC<{ entry: (typeof sceneCatalog)[number]; identity
         loop
         acknowledgeRemotionLicense
       />
+      <button type="button" className="tpl-preview-toggle" aria-pressed={playing} onClick={() => { if (playing) ref.current?.pause(); else ref.current?.play(); setPlaying(!playing); }}>{playing ? "أوقف المثال" : "شاهد مثالًا"}</button>
     </div>
   );
 };
@@ -67,7 +70,7 @@ export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: Channel
           ))}
         </div>
       </div>
-      <p className="help">قوالب «{channel?.name}» فقط ({mine.length} من {sceneCatalog.length}). مرّر الفأرة على القالب لتشاهده يتحرك. نوّع بين العائلات في الحلقة الواحدة، ولا تبنِ حلقتين متتاليتين على القالب الأساسي نفسه.</p>
+      <p className="help">قوالب «{channel?.name}» فقط ({mine.length.toLocaleString("ar-EG")} من {sceneCatalog.length.toLocaleString("ar-EG")}). اضغط «شاهد مثالًا» أو مرّر الفأرة على القالب لتشاهده يتحرك. نوّع بين العائلات في الحلقة الواحدة، ولا تبنِ حلقتين متتاليتين على القالب الأساسي نفسه.</p>
       <div className="tpl-grid">
         {items.map((e) => {
           const def = templateById(e.id);
@@ -80,8 +83,8 @@ export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: Channel
                   <b>{def?.nameAr ?? e.id}</b>
                   {meta ? <span className="chip">{familyNamesAr[meta.family]}</span> : null}
                 </div>
-                <span className="help">{def?.useAr}</span>
-                <code className="help" style={{ direction: "ltr" }}>[مشهد: {e.id}]</code>
+                <span className="help">{arDigitsLib(def?.useAr ?? "")}</span>
+                <details className="tpl-code"><summary>تفاصيل للمطور</summary><code className="help" dir="ltr">[مشهد: {e.id}]</code></details>
               </div>
             </article>
           );

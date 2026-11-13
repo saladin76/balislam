@@ -11,12 +11,12 @@ import { resolveScriptPath } from "../script/episodes";
 import { loadPlan, readJson, regeneratePlan } from "../plan/io";
 import type { Plan } from "../plan/types";
 import { voiceIdFor, type ElevenLabsClient } from "./elevenlabs";
-import { effectiveTone, isTone, layersOf, legacyTunes, TONE_PRESET_VERSION, voiceSettingsFor, type VoiceLayers } from "./tones";
+import { effectiveLegacyTone, effectiveTone, isTone, layersOf, legacyTunes, TONE_PRESET_VERSION, voiceSettingsFor, type VoiceLayers } from "./tones";
 import type { VoiceProfile } from "../channel/types";
 import { loadChannel } from "../channel/index";
 import { alignmentToWords, applyDictionary, wordsForCaptions, type TimedWord } from "./words";
 import { applyLexicon, loadLexicon } from "./lexicon";
-import { buildTashkeelIndex, vowelize, type TashkeelIndex } from "./tashkeel";
+import { buildTashkeelIndex, normWord, stripTashkeel, vowelize, type TashkeelIndex } from "./tashkeel";
 import { tashkeelBlockMessage, tashkeelReport, type TashkeelReport } from "./tashkeelReport";
 import { parseScript } from "../script/parse";
 import { loadLedger, reviewItems, reviewSummary, type ReviewSummary } from "../script/review";
@@ -43,10 +43,10 @@ export type VoiceClip = {
    * الصوت جملةً جملة (D50، src/voice/sentenceVoice.ts): الملف مركّب من تسجيلات جمل المشهد ووقفاتها.
    * مشهد له جمل لا يولّده المسار العام ولا مسار الأجزاء، ولا يُحذف مقطعه في التنظيف.
    */
-  sentences?: { hash: string; ids: string[] };
+  sentences?: { hash: string; ids: string[]; /** D110: sentences whose word timings ran past their file and were clamped to it (ms) */ clamped?: Record<string, number> };
   /**
    * إصدار النبرات الذي وُلّد به المقطع (src/voice/tones.ts). غيابه = الإصدار ١ (الحالي، كما قبل D70 وبعد إلغائه).
-   * مقطع بالإصدار ٢ (النبرة القوية المُلغاة) صالح ولا يُعاد آليًا، ويظهر عليه «وُلّد بالنبرة القوية (المُلغاة)».
+   * مقطع بإصدار سابق (١ طبقة القناة أو ٢ القوي) صالح ولا يُعاد آليًا، ويظهر عليه «وُلّد بنبرة سابقة».
    */
   presetVersion?: number;
   /**
@@ -69,7 +69,7 @@ const loadDictionary = async () => readJson<{ entries?: { text: string; say: str
 type Job = { id: string; /** المشهد (في مسار الأجزاء: مشهد الجزء) */ scene?: string; narration: string; spoken: string; original: string[]; owner: number[]; hash: string;
   /** النص المرسل فعلًا بعد قاموس النطق للقناة (pronunciations.json): خارج البصمة، فلا يُبطل مقطعًا قائمًا */
   send?: string; sendOwner?: number[]; prev?: string; next?: string; voiceId?: string; tune?: { stability: number; style: number; speed: number };
-  /** بصمات المقطع نفسه بإعدادات النبرة القوية المُلغاة (الإصدار ٢): تسجيل بها صالح ولا يُعاد آليًا */
+  /** بصمات المقطع نفسه بإعدادات النبرات السابقة (الإصداران ١ و٢): تسجيل بها صالح ولا يُعاد آليًا */
   legacyHashes?: string[];
   /** the episode's verse texts, for the Quran guard (never sent) */
   verses?: string[] };
@@ -133,15 +133,33 @@ const jobsFor = async (plan: Plan, voiceKey: string, scriptPath?: string, quranR
     const { tailSeconds: _t, creditsPerChar: _c, ...tts } = config.voice;
     const extraFor = (t: typeof tune) => ({ ...(t ? { tune: t } : {}), ...(s.voice ? { voice: s.voice } : {}) });
     const hash = sha16({ spoken: d.spoken, voiceKey, v: tts, ...extraFor(tune) });
-    // إصدار النبرات ليس سببًا لإعادة التوليد: بصمة المقطع بإعدادات النبرة القوية المُلغاة (الإصدار ٢) تبقى صالحة
-    const legacyHashes = legacyTunes(layers, toneId, { text: s.narration }).map((l) => sha16({ spoken: d.spoken, voiceKey, v: tts, ...extraFor(l.tune) })).filter((h) => h !== hash);
+    // إصدار النبرات ليس سببًا لإعادة التوليد: بصمة المقطع بإعدادات النبرات السابقة (الإصداران ١ و٢) تبقى صالحة
+    const legacyHashes = legacyTunes(layers, effectiveLegacyTone(s.tone, plan.tone, channelTone), { text: s.narration }).map((l) => sha16({ spoken: d.spoken, voiceKey, v: tts, ...extraFor(l.tune) })).filter((h) => h !== hash);
     const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex);
     return { id: s.id, scene: s.id, narration: s.narration.trim(), spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: neighbour(k, -1), next: neighbour(k, 1), voiceId: s.voice || undefined, tune, legacyHashes, verses };
   });
 };
 
+/**
+ * النص المجاور لجزء في مسار الأجزاء (D94، M11): من الجزء المجاور في الخريطة ما دام نصه نص مشهده الحالي في الخطة؛
+ * وإن كان المشهد المجاور قد تغيّر نصه بعد الخريطة (تعديل جملة في الاستوديو) فنص المشهد الحالي من الخطة،
+ * لا نص الخريطة القديم. داخل المشهد نفسه يبقى نص الجزء (الخريطة تطابق المشهد، وإلا رُفضت في validatePartsContext).
+ */
+export const partNeighbourText = (
+  q: { scene: string; text: string } | undefined, self: { scene: string }, plan: Plan | undefined,
+): string | undefined => {
+  if (!q) return undefined;
+  if (q.scene === self.scene || !plan) return q.text;
+  const scene = plan.chapters.flatMap((c) => c.scenes).find((s) => s.id === q.scene);
+  if (!scene) return undefined;
+  const plain = (s: string) => stripTashkeel(s).split(/\s+/).map(normWord).filter(Boolean).join(" ");
+  const current = scene.narration?.trim() ?? "";
+  if (!plain(current).includes(plain(q.text))) return current || undefined;
+  return q.text;
+};
+
 /** مهام مسار الأجزاء (دفاتر الزمن): جزء لكل مهمة، بنبرته من خريطة النبرة ونصه المشكول منها */
-const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey: string): Promise<Job[]> => {
+const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey: string, plan?: Plan): Promise<Job[]> => {
   const dict = await loadDictionary();
   const lex = (await loadLexicon()).entries;
   let profile: VoiceProfile | undefined;
@@ -162,10 +180,10 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
     const tone = isTone(p.tone) ? p.tone : undefined;
     const tune = voiceSettingsFor(profile, tone);
     const hash = sha16({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) });
-    const legacyHashes = legacyTunes(layers, tone, { text: p.text }).map((l) => sha16({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(l.tune ? { tune: l.tune } : {}) })).filter((h) => h !== hash);
+    const legacyHashes = legacyTunes(layers, effectiveLegacyTone(p.tone), { text: p.text }).map((l) => sha16({ part: p.partId, spoken: d.spoken, voiceKey, v: tts, ...(l.tune ? { tune: l.tune } : {}) })).filter((h) => h !== hash);
     // الأجزاء تُعدّ كلماتها عند التركيب: نطق القاموس من كلمة واحدة فقط هنا
     const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, lex, { singleToken: true });
-    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: parts[i - 1]?.text, next: parts[i + 1]?.text, tune, legacyHashes };
+    return { id: p.partId, scene: p.scene, narration: p.text, spoken: d.spoken, original: d.original, owner: d.owner, hash, send: l.spoken.join(" "), sendOwner: l.owner, prev: partNeighbourText(parts[i - 1], p, plan), next: partNeighbourText(parts[i + 1], p, plan), tune, legacyHashes };
   });
 };
 
@@ -190,7 +208,7 @@ export type GenerateVoiceOptions = {
    */
   testOnlySkipGates?: boolean;
   /**
-   * «أعد توليد ما وُلّد بالنبرة القوية» (أمر المالك الصريح وحده): المقاطع المولَّدة بإعدادات النبرة القوية المُلغاة تُعاد
+   * «أعد توليد ما وُلّد بنبرة سابقة» (أمر المالك الصريح وحده): المقاطع المولَّدة بإعدادات نبرة سابقة تُعاد
    * بالإعدادات الحالية. بدونه لا يُعاد مقطع لأن النبرات تغيّرت أبدًا (لا «جهّز كل المشاهد» ولا «ولّد الصوت»).
    */
   upgradeTone?: boolean;
@@ -202,7 +220,7 @@ export type GenerateVoiceOptions = {
  */
 /** قفل صوت الحلقة (QA H4): تشغيلان لتوليد صوت الحلقة نفسها لا يجتمعان أبدًا، ولو من عمليتين مختلفتين. */
 export const voiceLockFileFor = (scriptPath: string) => path.join(voiceDirFor(scriptPath), ".voice.lock");
-export const VOICE_BUSY_MESSAGE = "يُولَّد صوت هذه الحلقة الآن في مهمة أخرى (مثل «جهّز كل المشاهد» أو «ولّد الصوت» أو سطر الأوامر). انتظر انتهاءها ثم أعد المحاولة؛ لم يُصرف شيء.";
+export const VOICE_BUSY_MESSAGE = "يُولَّد صوت هذه الحلقة الآن في مهمة أخرى (مثل «ابدأ التجهيز» أو «ولّد الصوت» أو سطر الأوامر). انتظر انتهاءها ثم أعد المحاولة؛ لم يُصرف شيء.";
 
 /**
  * ملفات الصوت التي لم يعد يشير إليها أي مشهد لا تُحذف أبدًا (تسجيل مدفوع): تُنقل إلى voice/superseded/.
@@ -276,7 +294,7 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
   // A narration carrying Quran (﴿…﴾, [آية], or five words of a verse of the episode) is never voiced; the
   // dry run lists it and a real run refuses (src/voice/quranGuard.ts).
   const quranRefused: string[] = [];
-  const allJobs = parts ? await partsJobsFor(parts, voiceKey) : await jobsFor(plan, voiceKey, scriptPath, quranRefused);
+  const allJobs = parts ? await partsJobsFor(parts, voiceKey, plan) : await jobsFor(plan, voiceKey, scriptPath, quranRefused);
   const jobs = allJobs.filter((j) => (!opts.only || opts.only.includes(sceneOf(j))) && !managed.has(sceneOf(j)));
   // «أعد توليد الصوت» لمشهد صوته جمل: لا يُعاد كاملًا بصمت؛ يُقال للمالك أين يولّده
   if (!opts.dryRun && opts.only?.length && opts.only.every((id) => managed.has(id)))
@@ -499,7 +517,7 @@ export const synthesizeLines = async (
     const d = applyDictionary(text, dict, tk ? vowelize(words, tk) : undefined);
     const tune = voiceSettingsFor(profile, toneId);
     const hash = sha16({ spoken: d.spoken, voiceKey, v: tts, ...(tune ? { tune } : {}) });
-    const legacy = legacyTunes(layers, toneId, { text }).map((l) => sha16({ spoken: d.spoken, voiceKey, v: tts, ...(l.tune ? { tune: l.tune } : {}) }));
+    const legacy = legacyTunes(layers, effectiveLegacyTone(channelTone), { text }).map((l) => sha16({ spoken: d.spoken, voiceKey, v: tts, ...(l.tune ? { tune: l.tune } : {}) }));
     const have = index[line.id];
     if (!opts.force && have && (have.hash === hash || legacy.includes(have.hash)) && existsSync(path.join(opts.dir, have.file))) {
       out[line.id] = have;

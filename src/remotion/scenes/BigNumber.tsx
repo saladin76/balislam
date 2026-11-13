@@ -225,7 +225,7 @@ export const BigNumber: React.FC<BigNumberProps> = (props) => {
 
 /** محتوى تجريبي لمعاينة القالب. */
 export const bigNumberSample: Omit<BigNumberProps, "themeId" | "orientation"> = {
-  eyebrow: "الفصل 2 · من أين يأتي التأجيل؟",
+  eyebrow: "من أين يأتي التأجيل؟",
   number: "٢٠٪",
   caption: "من الناس يصفون أنفسهم بأنهم مؤجّلون مزمنون",
   source: "رقم توضيحي للمعاينة",
@@ -234,7 +234,7 @@ export const bigNumberSample: Omit<BigNumberProps, "themeId" | "orientation"> = 
 };
 /** English preview content (digits and % come out Western via <Digits>). */
 export const bigNumberSampleEn: Omit<BigNumberProps, "themeId" | "orientation"> = {
-  eyebrow: "Chapter 2 · Where does procrastination come from?",
+  eyebrow: "Where does procrastination come from?",
   number: "20%",
   caption: "of people describe themselves as chronic procrastinators",
   source: "Illustrative figure for preview",

@@ -12,9 +12,9 @@ import type { LabSummary } from "../../src/channel/labs";
 import type { StoryboardEntry, StoryboardStatus, StoryboardVersion } from "../../src/channel/labStoryboardsShared";
 import type { TechReviewSummary } from "../../src/channel/techReviews";
 import type { ScriptSaveReply } from "./planGuard";
-import type { WorkflowApprovalView } from "../../src/workflow/uiProjection";
-import type { WorkflowStage } from "../../src/workflow/gates";
 import { ownerJob, ownerMessage } from "./serverMessages";
+import { emitStudioError } from "./errorEvents";
+import { ownerText, planOrder } from "../../src/i18n/sceneNames";
 import type { LexiconCommand, SentenceCommand, SentencesRead, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 
@@ -36,8 +36,6 @@ export type EpisodeData = { channel: ChannelInfo; script: string; plan: Plan; ch
 export type TashkeelReport = { file: boolean; words: number; covered: number; coverage: number; min: number; ok: boolean; gaps: { sceneId: string; words: string[]; narration: string }[]; ambiguous: { word: string; forms: string[]; scenes: string[] }[] };
 export type ReviewItem = { key: string; kind: "ayah" | "hadith" | "other"; label: string; ref: string; detail: string; text?: string; line: number; hash: string; status: "pending" | "changed" | "verified" | "rejected"; note?: string; at?: string };
 export type ReviewSummary = { total: number; verified: number; pending: number; changed: number; rejected: number; ok: boolean };
-export type SceneReviewItem = { id: string; hash: string; status: "pending" | "changed" | "ok" | "fix"; note?: string; at?: string };
-export type SceneReviewSummary = { total: number; ok: number; fix: number; pending: number; changed: number; done: boolean };
 export type VoiceReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; tashkeel?: TashkeelReport; review?: ReviewSummary };
 export type Overview = {
   id: string;
@@ -93,6 +91,22 @@ const withChannel = (url: string) => (currentChannel ? `${url}${url.includes("?"
 /** The scene-preparation queue's errors in Arabic (P-07). */
 const prepareRead = (r: ScenePrepareRead): ScenePrepareRead => ({ ...r, job: r.job ? ownerJob(r.job as ScenePrepareJob & { log?: string[] }) : r.job });
 
+/**
+ * The script check as the owner reads it (QA 12 Nov: «جملة من 27 كلمة»، «(السطر 15)»): every message with
+ * Arabic-Indic digits and scene names («المشهد ٥») instead of ids. The server's own messages stay as they are (CLI, tests).
+ */
+export const ownerCheck = (c: CheckResult, plan?: Plan | null): CheckResult => {
+  if (!c?.issues) return c;
+  const order = planOrder(plan);
+  return { ...c, issues: c.issues.map((i) => ({ ...i, message: ownerText(i.message, order) })) };
+};
+/** A refused request: the owner-facing message, plus the HTTP status and the server's code (e.g. PLAN_CONFLICT). */
+export type ApiError = Error & { status?: number; code?: string };
+export const isPlanConflict = (e: unknown) => {
+  const x = e as ApiError | null;
+  return x?.status === 409 && (x.code === "PLAN_CONFLICT" || x.code === "PLAN_REVISION_REQUIRED");
+};
+
 const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, channel?: string): Promise<T> => {
   const url = channel ? `${path}${path.includes("?") ? "&" : "?"}channel=${encodeURIComponent(channel)}` : withChannel(path);
   const res = await fetch(url, {
@@ -103,9 +117,21 @@ const call = async <T>(path: string, init?: RequestInit & { json?: unknown }, ch
     body: init?.json !== undefined ? JSON.stringify(init.json) : init?.body,
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(ownerMessage((data as { error?: string }).error ?? `خطأ ${res.status}`));
+  if (!res.ok) {
+    const code = (data as { code?: unknown }).code;
+    // D112: an unexpected server error was logged with this number; the page offers «أرسل المشكلة».
+    const errorId = (data as { errorId?: unknown }).errorId;
+    if (typeof errorId === "string" && /^e[0-9a-f]{10}$/.test(errorId))
+      emitStudioError({ id: errorId, source: "server", kind: "route", message: String((data as { error?: unknown }).error ?? "") });
+    // status and the server's code ride on the owner-facing error (D110: a 409 offers the merge)
+    const tag = (e: Error): ApiError => Object.assign(e, { status: res.status, ...(typeof code === "string" ? { code } : {}) });
+    try { throw new Error(ownerMessage((data as { error?: string }).error ?? `تعذّر الطلب (رمز ${res.status.toLocaleString("ar-EG", { useGrouping: false })}).`)); }
+    catch (e) { throw tag(e as Error); }
+  }
   return data as T;
 };
+/** For feature modules with their own client (pronunciationApi.ts): the same channel, errors and «أرسل المشكلة». */
+export const apiCall = call;
 
 
 /** What changed in a scene re-opened after «اعتمد التجهيز». */
@@ -129,7 +155,7 @@ export type SceneProductionRead = {
    * 11 Nov: the latest «تحديث بعد التجهيز» — a change after «اعتمد التجهيز» carried forward by the ledger (signed system
    * event). Its scenes re-open for review in step ٢; nothing is approved again. null when there was none.
    */
-  afterPreparation?: { at: string; script: boolean; scenes: { id: string; what: AfterPreparationWhat[] }[] } | null;
+  afterPreparation?: { at: string; script: boolean; scriptOnly?: boolean; scenes: { id: string; what: AfterPreparationWhat[] }[] } | null;
   /** Script errors that belong to no single scene: no scene not yet approved is produced until they are fixed. */
   episodeBlocked?: string[];
   scenes: { id: string; status: "queued" | "in_review" | "approved" | "needs_revision";
@@ -149,7 +175,9 @@ export type SceneProductionRead = {
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
       /** صندوق الملاحظات (docs/studio/notes-inbox.md): أُرسلت إلى Claude أو بانتظار الإرسال، ورده بعد git pull. */
-      inbox?: { id: string; sync: "pending" | "sent"; status: "open" | "in-progress" | "fixed" | "wont-fix"; answer: string | null } } }[];
+      inbox?: { id: string; sync: "pending" | "sent"; status: "open" | "in-progress" | "fixed" | "wont-fix"; answer: string | null;
+        /** Why it still waits: the last failed send («offline» only for a real network failure). */
+        reason?: "offline" | "rejected" | "no-repo" | "no-remote" | "error" } } }[];
   /** «جاهز ١٢ من ٣١»: approved, submitted, or with a current draft. */
   prepared?: { ready: number; total: number };
   assembly: { sha256: string; approved: boolean } | null;
@@ -181,11 +209,17 @@ export type ScenePrepareJob = {
   voice: { needed: number; generated: number; status: string; error?: string };
   rendered: string[]; failed: { id: string; error: string }[]; error?: string;
   /** Not rendered on purpose: waiting for a voice that cannot be made now, or the same inputs failed last run. */
-  skipped?: { id: string; reason: "voice" | "failed-before"; error?: string }[];
+  skipped?: { id: string; reason: "voice" | "sentences" | "after-gap" | "blocked" | "failed-before"; error?: string; gap?: string }[];
 };
+export type EpisodeContents = { files: number; bytes: number; voiceFiles: number; videoFiles: number; tracked: number };
+export type TrashEntry = { id: string; channel: string; from: string; at: string; title?: string; contents: EpisodeContents };
 export type PreparationRead = { scriptErrors: number; versesMissing: string[]; boardsRecorded: boolean;
+  /** QA balislam 2: scenes whose board text differs from the script, and script lines no scene says (block the approval). */
+  textDiverged?: { scenes: string[]; unplaced: number[] };
   /** M1: narrated scenes with no tone at all (none of their own, the episode's or the channel's). */
-  toneMissing?: string[]; episodeTone?: string | null; channelTone?: string | null };
+  toneMissing?: string[]; episodeTone?: string | null; channelTone?: string | null;
+  /** KI-054: plan errors the final file refuses, known now, per scene (informative in «قبل أن تعتمد»). */
+  planErrors?: { scene: string; message: string }[] };
 export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number;
   /** M1: narrated scenes with no tone at all; the stopped line offers the episode tone right there. */
   toneMissing?: string[] };
@@ -258,7 +292,7 @@ export const api = {
   sentenceAction: (episode: string, channel: string, body: SentenceCommand) =>
     call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome }>(
       `/api/episodes/${episode}/sentences`, { method: "POST", json: body }, channel),
-  /** «أعد توليد ما وُلّد بالنبرة القوية» (بعد إلغاء D70، ١١ نوفمبر): dryRun يعرض العدد والحروف، ثم التوليد بضغطة المالك */
+  /** «أعد توليد ما وُلّد بنبرة سابقة» (بعد استعادة أول نسخة من النبرات، ١٢ نوفمبر): dryRun يعرض العدد والحروف، ثم التوليد بضغطة المالك */
   toneUpgrade: (episode: string, channel: string, dryRun: boolean) =>
     call<{ plan?: ToneUpgradePlan; result?: ToneUpgradeResult; media?: EpisodeMedia }>(`/api/episodes/${episode}/voice/upgrade-tone`, { method: "POST", json: { dryRun } }, channel),
   /** قاموس النطق للقناة: تعديل كلمة أو حذفها */
@@ -292,32 +326,6 @@ export const api = {
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
       method: "DELETE",
     }, channel).then(prepareRead),
-  workflow: (episode: string, channel?: string) => call<{
-    approvals: WorkflowApprovalView;
-    fingerprints: Partial<Record<WorkflowStage, string>>;
-    revision: number;
-  }>(`/api/episodes/${episode}/workflow`, undefined, channel),
-  workflowDecision: (episode: string, channel: string,
-    decision: { action: "submit" | "approve" | "reject" | "reopen"; stage: WorkflowStage;
-      expectedFingerprint: string; note: string; confirmWatched?: boolean }) =>
-    call<{ approvals: WorkflowApprovalView }>(`/api/episodes/${episode}/workflow`, {
-      method: "POST", json: decision,
-    }, channel),
-  scriptSignoff: (episode: string) =>
-    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(`/api/episodes/${episode}/script-signoff`),
-  approveScriptSignoff: (episode: string, reviewer: string, note: string) =>
-    call<{ approved: boolean; changed: boolean; needsReview?: boolean; signedAt?: string; reviewer?: string }>(
-      `/api/episodes/${episode}/script-signoff`, { method: "PUT", json: { reviewer, note, confirm: true } }),
-  voiceReview: (episode: string, channel: string) =>
-    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
-      `/api/episodes/${episode}/voice-review`, undefined, channel),
-  approveVoiceScene: (episode: string, channel: string, data: { sceneId: string; reviewer: string; note: string }) =>
-    call<{ items: { id: string; state: "needs_tone" | "missing_audio" | "pending" | "changed" | "approved" }[]; episodeApproved: boolean }>(
-      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: data }, channel),
-  approveVoiceEpisode: (episode: string, channel: string, reviewer: string, note: string) =>
-    call<{ items: { id: string; state: string }[]; episodeApproved: boolean }>(
-      `/api/episodes/${episode}/voice-review`, { method: "PUT", json: { scope: "episode", reviewer, note } }, channel),
-
   /** المراجعات الفنية للقناة (توصيات المنفّذ وشرائطها ومقاطعها) */
   techReviews: (channel: string) => call<{ reviews: TechReviewSummary[] }>("/api/tech-reviews", undefined, channel),
   techReviewFileUrl: (channel: string, dir: string, id: string, rel: string) => `/api/tech-reviews/${encodeURIComponent(dir)}/${encodeURIComponent(id)}/${rel.split("/").map(encodeURIComponent).join("/")}?channel=${encodeURIComponent(channel)}`,
@@ -351,14 +359,17 @@ export const api = {
   undoMoveEpisodes: (token: string) => call<{ ok: boolean; results: EpisodeMoveResult[] }>("/api/series/move-episodes/undo", { method: "POST", json: { token } }),
   research: (id: string) => call<{ text: string; exists: boolean; label: string }>(`/api/episodes/${id}/research`),
   saveResearch: (id: string, text: string) => call<{ ok: boolean }>(`/api/episodes/${id}/research`, { method: "PUT", json: { text } }),
-  sceneReview: (id: string) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`),
-  setSceneReview: (id: string, b: { id: string; status: "ok" | "fix" | "pending"; note?: string }) => call<{ items: SceneReviewItem[]; summary: SceneReviewSummary; criteria: string[] }>(`/api/episodes/${id}/scene-review`, { method: "PUT", json: b }),
   review: (id: string) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`),
   setReview: (id: string, b: { key: string; status: "verified" | "rejected" | "pending"; note?: string }) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`, { method: "PUT", json: b }),
-  deleteEpisode: (id: string, confirm: string) => call<{ ok: boolean; archived: number; pushed: boolean; note?: string }>(`/api/episodes/${id}`, { method: "DELETE", json: { confirm } }),
-  episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel),
-  saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }),
-  savePlan: (id: string, plan: Plan) => call(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan } }),
+  /** QA balislam 7: «حذف الحلقة» moves the folder into the local trash (nothing deleted, nothing pushed); «تراجع» restores. */
+  trashPreview: (id: string) => call<{ dir: string; trash: string; contents: EpisodeContents }>(`/api/episodes/${id}/trash-preview`),
+  deleteEpisode: (id: string, confirm: string) => call<{ ok: boolean; dir: string; trash: string; entry: TrashEntry; tracked: number }>(`/api/episodes/${id}`, { method: "DELETE", json: { confirm } }),
+  trashList: () => call<{ trash: string; items: TrashEntry[] }>("/api/trash"),
+  restoreTrash: (id: string) => call<{ ok: boolean; entry: TrashEntry }>("/api/trash/restore", { method: "POST", json: { id } }),
+  episode: (id: string, channel?: string) => call<EpisodeData>(`/api/episodes/${id}`, undefined, channel).then((d) => ({ ...d, check: ownerCheck(d.check, d.plan) })),
+  saveScript: (id: string, text: string) => call<{ check: CheckResult; plan: Plan } & ScriptSaveReply>(`/api/episodes/${id}/script`, { method: "PUT", json: { text } }).then((d) => ({ ...d, check: ownerCheck(d.check, d.plan) })),
+  savePlan: (id: string, plan: Plan, channel: string, expectedRevision: string) =>
+    call<{ ok: boolean; planRevision: string }>(`/api/episodes/${id}/plan`, { method: "PUT", json: { plan, expectedRevision } }, channel),
   /** مقاطع الشورتس (D83): الاختيار المحفوظ والمقترح ومشاهد الحلقة بمددها؛ الحفظ يكتب plan.shorts وحدها */
   shorts: (id: string) => call<ShortsRead>(`/api/episodes/${id}/shorts`),
   saveShorts: (id: string, shorts: PlanShort[]) => call<ShortsRead & { warnings: string[] }>(`/api/episodes/${id}/shorts`, { method: "PUT", json: { shorts } }),
@@ -367,7 +378,7 @@ export const api = {
   /** على خطة مصمَّمة يرفض الخادم (409) إلا بـ confirmRegenerate من planGuard.ts (رقم الحلقة مكتوبًا) */
   regenerate: (id: string, confirm: { overwriteDesigned?: true; confirmEpisode?: string } = {}) =>
     call<{ plan: Plan; backup?: string }>(`/api/episodes/${id}/plan/regenerate`, { method: "POST", json: confirm }),
-  check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }),
+  check: (text: string) => call<CheckResult>("/api/check", { method: "POST", json: { text } }).then((c) => ownerCheck(c)),
   identity: () => call<{ identity: Identity; defaults: Identity }>("/api/identity"),
   saveIdentity: (identity: Identity) => call("/api/identity", { method: "PUT", json: { identity } }),
   render: (b: { episode: string; orientation: string; chapter?: number }) => call<RenderJob>("/api/render", { method: "POST", json: b }).then(ownerJob),
@@ -376,7 +387,7 @@ export const api = {
   libraryImageUrl: (file: string) => withChannel(`/api/library-images/file/${encodeURIComponent(file)}`),
   uploadLibraryImage: (b: { slot: string; name: string; data: string }) => call<{ file: string }>("/api/library-images", { method: "POST", json: b }),
   uploadImage: (id: string, b: { name: string; data: string; scene: string }) => call<{ file: string; media: EpisodeMedia }>(`/api/episodes/${id}/images`, { method: "POST", json: b }),
-  voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport | null; generated: boolean; media: EpisodeMedia;
+  voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport | null; generated: boolean; noKey?: boolean; media: EpisodeMedia;
       /** M5: a scene voiced sentence by sentence was regenerated sentence by sentence. */
       sentences?: { generated: number; composed: { sceneId: string; composed: boolean; reason?: string } | null } }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
   overview: () => call<Overview[]>("/api/overview"),
@@ -395,6 +406,17 @@ export const api = {
   createChannel: (b: { id: string; name: string; language: string; nameLatin?: string; quran: boolean }) => call("/api/channels", { method: "POST", json: b }),
   updateStatus: (force = false) => call<{ available: boolean; behind: number; changes: string[]; error?: string; blocked?: string; local?: number; conflicts?: UpdateConflict[] }>(`/api/update${force ? "?force=1" : ""}`),
   applyUpdate: () => call<{ ok: boolean; message: string; reinstalled?: boolean; restart?: boolean; conflicts?: UpdateConflict[] }>("/api/update", { method: "POST", json: {} }),
+  /** D101: حالة «كل الأماكن نسخة واحدة» (الحفظ الآلي في main واستقبال التحديثات) */
+  syncStatus: () => call<SyncStatus>("/api/sync"),
+  /** D112: a page error, written to .studio/errors.jsonl on this device (app/server/errors.ts) */
+  reportError: (b: { kind: "render" | "window" | "rejection"; message: string; stack?: string; componentStack?: string; label?: string;
+    route?: string; channel?: string; episode?: string; sceneId?: string }) => call<{ id: string; message: string }>("/api/errors", { method: "POST", json: b }),
+  /** D112: «أرسل المشكلة» — an `error` note in the episode's box (or the channel's general box), sent like the other notes */
+  sendError: (id: string) => call<{ noteId: string; box: "episode" | "general"; channel: string; episode: string }>("/api/errors/send", { method: "POST", json: { id } }),
+  /** D107: «ملاحظات لم تُرسل: N» (src/studio/notesSync.ts studioNotesStatus) */
+  notesStatus: () => call<NotesStatus>("/api/notes/status"),
+  syncNow: () => call<SyncStatus>("/api/sync", { method: "POST", json: {} }),
+  restartStudio: () => call<{ ok: boolean; message: string }>("/api/sync/restart", { method: "POST", json: {} }),
   /** D95: «أبقِ نسختي» أو «خذ الجديد» لملف واحد تعارض فيه تعديل المالك مع التحديث */
   resolveUpdateConflict: (file: string, choice: "mine" | "new") => call<{ ok: boolean; message: string }>("/api/update/resolve", { method: "POST", json: { file, choice } }),
   kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan" }>(`/api/episodes/${id}/kit`),
@@ -435,7 +457,23 @@ export const api = {
       status: { missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } }>(
       `/api/episodes/${id}/quran-text-only`, { method: "POST", json: { confirm: true } }),
   storyboardReport: (id: string) => call<{ markdown: string }>(`/api/episodes/${id}/storyboard-report`),
-  setStoryboard: (id: string, action: "approve" | "revoke", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
+  setStoryboard: (id: string, action: "approve", auditNote?: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`, { method: "PUT", json: { action, auditNote } }),
   longJobs: () => call<LongJob[]>("/api/jobs").then((js) => js.map(ownerJob)),
   videoUrl: (episode: string, file: string) => withChannel(`/api/episodes/${episode}/video/${encodeURIComponent(file)}`),
+};
+
+/** D107: src/studio/notesSync.ts NotesStatus */
+export type NotesStatus = {
+  pending: number;
+  reason: "offline" | "rejected" | "auth" | "not-owner" | "no-repo" | "no-remote" | "error" | null;
+  detail: string | null; lastAttemptAt: string | null; sending: boolean;
+  where: { channel: string; episode: string; count: number }[];
+};
+
+/** D101: app/server/contentSync.ts SyncState */
+export type SyncStatus = {
+  enabled: boolean;
+  state: "off" | "synced" | "saving" | "pending" | "updating" | "conflict" | "error";
+  message: string; pending: string[]; skipped: string[]; conflicts: number;
+  lastSavedAt?: string; lastCommit?: string; lastUpdateAt?: string; updateNote?: string; restartNeeded?: boolean; supervised: boolean;
 };

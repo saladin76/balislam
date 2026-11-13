@@ -1,4 +1,9 @@
 import { UpdateBanner } from "./ui/UpdateBanner";
+import { PlanSaveQueue } from "./planSaveQueue";
+import { PlanBackupRestore, PlanSaveRecovery, clearPlanBackup, readPlanBackup } from "./PlanSaveRecovery";
+import { withServerFields } from "./planMerge";
+import { PLAN_SERVER_FIELDS_EVENT, type PlanServerFieldsDetail } from "./planServerFields";
+import { browserPlanRevision } from "../../src/plan/revision";
 import { SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
 import "./studio-shell.css";
 import "./shell/shell.css";
@@ -7,13 +12,13 @@ import { Band, type ManageItem } from "./shell/Band";
 import { EpisodeSpine, STEPS, stepOf, stepsDone, type StepTab } from "./shell/EpisodeSpine";
 import { useColorScheme } from "./ui/colorScheme";
 import { episodeLength } from "../../src/plan/episodeLength";
-import { duration, episodeTitle, num } from "./ui/format";
+import { arDigits, arNum, countAr, duration, episodeTitle, latinDigits, num, WORDS } from "./ui/format";
 import config from "../../config.json";
 import { LOCK_COPY, LockedStep, lockedStep, nextAction } from "./shell/LockedStep";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { IdentityProvider, type Identity } from "../../brand/identity/index";
 import type { Plan } from "../../src/plan/types";
-import { api, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary, type SceneProductionRead } from "./api";
+import { api, isPlanConflict, setApiChannel, type ChannelSummary, type CheckResult, type EpisodeData, type EpisodeSummary, type SceneProductionRead } from "./api";
 import { scriptSaveMessage } from "./planGuard";
 import { channelInfo, defaultChannel, type ChannelInfo } from "../../src/channel/types";
 import { emptyMedia, type EpisodeMedia } from "../../src/plan/media";
@@ -43,9 +48,16 @@ import { SettingsTab } from "./tabs/SettingsTab";
 import { GuideTab } from "./tabs/GuideTab";
 import { LabsTab } from "./tabs/LabsTab";
 import { TechReviewsTab } from "./tabs/TechReviewsTab";
-import { ChannelProvider } from "../../src/channel/context";
+import { ChannelProvider, useChannel } from "../../src/channel/context";
+import { channelPlaceholders } from "../../src/channel/placeholders";
+import { recitationStageNeeded } from "../../src/quran/citation";
+import { shotWordIssues } from "../../src/plan/shotWords";
+import { hasBasmala } from "../../src/voice/basmala";
 import { bootPlace, navigationKind, parseStudioHash, studioHash } from "./shell/route";
 import { StudioErrorBoundary } from "./shell/ErrorBoundary";
+import { ErrorNotice } from "./ui/ErrorNotice";
+import { OwnerText } from "./ui/OwnerText";
+import { splitOwnerDetails } from "./serverMessages";
 
 type Tab = StudioSection;
 type FinalView = "recitations" | "seams" | "master";
@@ -102,7 +114,7 @@ export const App: React.FC = () => {
   if (channelId) setApiChannel(channelId);
   // دليل الاستوديو: يظهر في القائمة فقط للقناة التي لها دليل (docs/<القناة>/guide.json)
   const [hasGuide, setHasGuide] = useState(false);
-  const [guideLabel, setGuideLabel] = useState("دليل الاستوديو");
+  const [guideLabel, setGuideLabel] = useState("مرجع الاستوديو");
   // مختبرات الإنتاج: تظهر في القائمة فقط للقناة التي لها مختبر (مجلد فيه lab.json)
   const [hasLabs, setHasLabs] = useState(false);
   // المراجعات الفنية: تظهر فقط للقناة التي فيها مراجعة (tech-reviews/)
@@ -110,7 +122,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     if (!channelId) return setHasGuide(false), setHasLabs(false), setHasTechReviews(false);
     let live = true;
-    api.guideIndex(channelId).then((r) => { if (!live) return; setHasGuide(Boolean(r.index)); setGuideLabel(r.index?.navLabel || "دليل الاستوديو"); }, () => live && setHasGuide(false));
+    api.guideIndex(channelId).then((r) => { if (!live) return; setHasGuide(Boolean(r.index)); setGuideLabel(r.index?.navLabel || "مرجع الاستوديو"); }, () => live && setHasGuide(false));
     api.labs(channelId).then((r) => live && setHasLabs(r.labs.length > 0), () => live && setHasLabs(false));
     api.techReviews(channelId).then((r) => live && setHasTechReviews(r.reviews.length > 0), () => live && setHasTechReviews(false));
     return () => {
@@ -136,7 +148,14 @@ export const App: React.FC = () => {
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
   const [viewSceneId, setViewSceneId] = useState<string | undefined>();
-  useEffect(() => { setRequestedSceneId(undefined); setViewSceneId(undefined); setSceneView("one"); setFinalView(null); }, [channelId, epId]);
+  /** The scene on screen in step ٢ (in the address bar, so a reload keeps it); the boot route's scene is used once. */
+  const [shownScene, setShownScene] = useState<string | undefined>(bootRoute.scene);
+  const bootScene = useRef<string | undefined>(bootRoute.scene);
+  useEffect(() => {
+    const keep = bootScene.current;
+    bootScene.current = undefined;
+    setRequestedSceneId(undefined); setViewSceneId(keep); setShownScene(keep); setSceneView("one"); setFinalView(null);
+  }, [channelId, epId]);
   /** The ledger read by the spine: a locked step renders one `LockedStep` (D52). */
   const [ledger, setLedger] = useState<{ key: string; w: SceneProductionRead | null } | null>(null);
   const [plan, setPlan] = useState<Plan | null>(null);
@@ -147,6 +166,13 @@ export const App: React.FC = () => {
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
   const [planState, setPlanState] = useState<"saved" | "dirty" | "saving" | "error">("saved");
+  /** The last refused save was a revision conflict (409): the recovery offers the three-way merge (D110). */
+  const [planConflict, setPlanConflict] = useState(false);
+  /** D110: «ch/ep» whose browser copy (PlanSaveRecovery) is cleared when its edit is saved; re-read on each tick. */
+  const clearBackupOnSave = useRef<string | null>(null);
+  const [backupTick, setBackupTick] = useState(0);
+  /** Counts successful plan saves: step ٢ reads the ledger again after each (dafatir M6). */
+  const [planSaved, setPlanSaved] = useState(0);
   const [ident, setIdent] = useState<{ draft: Identity; saved: Identity; defaults: Identity } | null>(null);
   const [toast, setToast] = useState<{ msg: string; err?: boolean } | null>(null);
   const [showNew, setShowNew] = useState(false);
@@ -160,16 +186,30 @@ export const App: React.FC = () => {
   const scriptRef = useRef<ScriptTabHandle>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   /** آخر خطة لم تُحفظ بعد (تنتظر مؤقت الحفظ التلقائي) */
-  const pendingPlan = useRef<{ ep: string; plan: Plan } | null>(null);
+  const planSaves = useRef<PlanSaveQueue<Plan> | null>(null);
+  if (!planSaves.current) planSaves.current = new PlanSaveQueue(async (item, expectedRevision) => {
+    const result = await api.savePlan(item.episode, item.value, item.channel, expectedRevision);
+    return result.planRevision;
+  });
   /** نص السكريبت غير المحفوظ (لا يُستبدل عند إعادة تحميل الحلقة) */
   const scriptDirtyRef = useRef(false);
 
-  const say = (msg: string, err = false) => {
+  // QA 12 Nov: a warning the owner must read stays long enough to read it (the script-save list vanished in ٢ ث).
+  const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const say = (msg: string, err = false, ms = 2600) => {
     setToast({ msg, err });
-    setTimeout(() => setToast(null), 2600);
+    if (toastTimer.current) clearTimeout(toastTimer.current);
+    // KI-009: a refusal with folded technical details stays long enough to open «تفاصيل».
+    const wait = splitOwnerDetails(msg).details === null ? ms : Math.max(ms, 12_000);
+    toastTimer.current = setTimeout(() => setToast(null), wait);
   };
 
-  const reloadChannels = useCallback(() => api.channels().then(setChannels).catch((e) => say(e.message, true)), []);
+  // QA 12 Nov: a fresh browser (no channel stored, no hash) takes the first channel at once, so «مرجع القناة»,
+  // the labs and the guide are offered before the owner picks a channel.
+  const reloadChannels = useCallback(() => api.channels().then((list) => {
+    setChannels(list);
+    setChannelId((c) => c || list[0]?.id || "");
+  }).catch((e) => say(e.message, true)), []);
   const reloadKeys = useCallback(
     () =>
       api.keys().then(({ keys }) => setKeysOk({ voice: Boolean(keys.ELEVENLABS_API_KEY?.set && keys.ELEVENLABS_VOICE_ID?.set), quran: false })).catch(() => {}),
@@ -180,6 +220,7 @@ export const App: React.FC = () => {
     reloadKeys();
   }, [reloadChannels, reloadKeys]);
 
+  const prevChannel = useRef("");
   // عند تغيير القناة: حلقاتها وهويتها
   useEffect(() => {
     setApiChannel(channelId);
@@ -189,16 +230,21 @@ export const App: React.FC = () => {
     loadedKey.current = "";
     episodesOf.current = "";
     const ch = channelId;
+    const switched = Boolean(prevChannel.current && prevChannel.current !== ch);
+    if (ch) prevChannel.current = ch;
     api.episodes().then((list) => {
       if (channelRef.current !== ch) return;
       episodesOf.current = ch;
       setEpisodes(list);
       const want = pendingOpen.current;
       pendingOpen.current = null;
+      // QA 12 Nov: switching channels comes back to the episode last open in that channel (per-channel memory).
+      const remembered = switched ? store.get(`bal-episode:${ch}`) : null;
       if (want && list.some((e) => e.id === want.ep)) {
         setEpId(want.ep);
         setTab(want.tab);
-      } else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
+      } else if (remembered && list.some((e) => e.id === remembered)) setEpId(remembered);
+      else setEpId((cur) => (list.some((e) => e.id === cur) ? cur : (list[0]?.id ?? "")));
     }).catch((e) => say(e.message, true));
     api.identity().then(({ identity, defaults }) => {
       if (channelRef.current === ch) setIdent({ draft: identity, saved: identity, defaults });
@@ -213,27 +259,41 @@ export const App: React.FC = () => {
   const flushPlan = useCallback(async () => {
     if (saveTimer.current) clearTimeout(saveTimer.current);
     saveTimer.current = null;
-    const p = pendingPlan.current;
-    pendingPlan.current = null;
-    if (!p) return;
+    if (!planSaves.current!.hasPending) return;
     setPlanState("saving");
+    const item = planSaves.current!.snapshot;
+    const key = item ? item.channel + "/" + item.episode : null;
     try {
-      await api.savePlan(p.ep, p.plan);
+      await planSaves.current!.flush();
       setPlanState("saved");
+      setPlanConflict(false);
+      setPlanSaved((n) => n + 1);
+      // D110: the browser copy of a refused or restored edit goes once that edit is saved
+      if (key && clearBackupOnSave.current === key) {
+        clearPlanBackup(item!.channel, item!.episode);
+        clearBackupOnSave.current = null;
+        setBackupTick((n) => n + 1);
+      }
     } catch (e) {
+      if (key) clearBackupOnSave.current = key;
+      setPlanConflict(isPlanConflict(e));
       setPlanState("error");
       say((e as Error).message, true);
+      throw e;
     }
   }, []);
+  const flushBeforeNavigation = useCallback(() => flushPlan().then(() => true, () => false), [flushPlan]);
 
   const loadEpisode = useCallback(async (id: string, opts: { keepScript?: boolean } = {}) => {
     // الحلقة تخص القناة الحالية لحظة الطلب؛ إن تبدّلت القناة أثناء الحفظ يُلغى التحميل
     const ch = channelRef.current;
-    await flushPlan();
+    if (!await flushBeforeNavigation()) return;
     if (channelRef.current !== ch || episodeRef.current !== id) return;
     api.episode(id, ch).then((d) => {
       if (channelRef.current !== ch || episodeRef.current !== id) return;
+      if (planSaves.current!.hasPending) return;
       setPlan(d.plan);
+      planSaves.current!.seed(ch, id, browserPlanRevision(d.plan), d.plan);
       setChannel(d.channel);
       if (!(opts.keepScript && scriptDirtyRef.current)) {
         setScript(d.script);
@@ -245,7 +305,7 @@ export const App: React.FC = () => {
       setPlanState("saved");
 
     }).catch((e) => say(e.message, true));
-  }, [flushPlan, channelId]);
+  }, [flushBeforeNavigation, channelId]);
   // تُحمَّل الحلقة بعد وصول قائمة حلقات القناة الحالية فقط، فلا تُطلب حلقة القناة السابقة بعد التبديل
   useEffect(() => {
     if (!epId || episodesOf.current !== channelId || !episodes?.some((e) => e.id === epId)) return;
@@ -253,6 +313,7 @@ export const App: React.FC = () => {
     if (loadedKey.current === key) return;
     loadedKey.current = key;
     store.set("bal-episode", epId);
+    store.set(`bal-episode:${channelId}`, epId);
     setPlan(null);
     loadEpisode(epId);
   }, [epId, channelId, episodes, loadEpisode]);
@@ -266,24 +327,42 @@ export const App: React.FC = () => {
   // The address bar always names the current channel, episode and step (a link the owner can keep).
   useEffect(() => {
     const ch = channelId || channels[0]?.id || "";
-    const next = studioHash({ channel: ch, episode: epId, tab, series: seriesId });
+    const next = studioHash({ channel: ch, episode: epId, tab, series: seriesId, scene: tab === "episode" ? shownScene : undefined });
     if (!next || (window.location.hash === next && !window.location.search)) return;
     // `?link` (and any query) is dropped once applied: a later restore of this tab is a fresh open again (D85).
     try { window.history.replaceState(null, "", `${window.location.pathname}${next}`); } catch { /* not critical */ }
-  }, [channelId, channels, epId, tab, seriesId]);
+  }, [channelId, channels, epId, tab, seriesId, shownScene]);
+
+  // D110: moving the episode (series stamp) or saving its shorts writes plan.json on the server. Both fields are
+  // outside the plan revision, so a pending edit stays valid; the page takes the new fields and, when nothing
+  // is pending, the server's current revision, so the next edit is never refused as stale.
+  useEffect(() => {
+    const h = (e: Event) => {
+      const detail = (e as CustomEvent<PlanServerFieldsDetail>).detail;
+      const ch = channelRef.current, id = episodeRef.current;
+      if (!id || !detail?.episodes?.includes(id) || (detail.channel && detail.channel !== ch)) return;
+      api.episode(id, ch).then((d) => {
+        if (channelRef.current !== ch || episodeRef.current !== id) return;
+        setPlan((prev) => (prev ? withServerFields(prev, d.plan) : d.plan));
+        if (!planSaves.current!.hasPending) planSaves.current!.seed(ch, id, browserPlanRevision(d.plan), d.plan);
+      }).catch(() => {});
+    };
+    window.addEventListener(PLAN_SERVER_FIELDS_EVENT, h);
+    return () => window.removeEventListener(PLAN_SERVER_FIELDS_EVENT, h);
+  }, []);
 
   /** حفظ تلقائي للخطة بعد توقف التعديل */
   const onPlanChange = useCallback((p: Plan) => {
     setPlan(p);
     setPlanState("dirty");
-    pendingPlan.current = { ep: epId, plan: p };
+    planSaves.current!.enqueue(channelRef.current, epId, p);
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    saveTimer.current = setTimeout(() => void flushPlan(), 700);
+    saveTimer.current = setTimeout(() => { void flushPlan().catch(() => {}); }, 700);
   }, [epId, flushPlan]);
 
   const saveScript = async () => {
     // تعديلات المشاهد المعلّقة تُحفظ أولًا، ثم يعيد الخادم بناء الخطة مع إبقائها
-    await flushPlan();
+    if (!await flushBeforeNavigation()) return;
     let r;
     try {
       r = await api.saveScript(epId, script);
@@ -294,14 +373,15 @@ export const App: React.FC = () => {
     setSavedScript(script);
     setCheck(r.check);
     setPlan(r.plan);
+    planSaves.current!.seed(channelRef.current, epId, browserPlanRevision(r.plan), r.plan);
     setPlanState("saved");
     // M2: step ١'s approval state (script fingerprint, blockers) is re-read at once, so «اعتمد التجهيز»
     // never sends the fingerprint of the script before this save.
     setHomeKey((k) => k + 1);
     api.episode(epId).then((d) => { setMedia(d.media); setExtra({ issues: d.issues, keys: d.keys }); }).catch(() => {});
     // خطة مصمَّمة: لم تُلمس، وتُذكر المشاهد التي اختلف نصها عن السكريبت
-    const note = scriptSaveMessage(r);
-    say(note.msg, note.warn);
+    const note = scriptSaveMessage(r, r.plan?.chapters.flatMap((c) => c.scenes.map((x) => x.id)) ?? []);
+    say(note.msg, note.warn, note.warn ? 9000 : undefined);
   };
 
   const scriptDirty = script !== savedScript;
@@ -310,7 +390,7 @@ export const App: React.FC = () => {
   // تنبيه قبل إغلاق الصفحة إن بقي شيء غير محفوظ
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
-      if (scriptDirtyRef.current || researchDirty || pendingPlan.current) {
+      if (scriptDirtyRef.current || researchDirty || planSaves.current!.hasPending) {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
         e.returnValue = "";
@@ -333,9 +413,11 @@ export const App: React.FC = () => {
     if (!r.channel) return;
     const want = { ep: r.episode ?? epId, tab: r.tab ?? tab };
     if (r.series) setSeriesId(r.series);
+    if (r.scene && want.ep === epId && r.channel === (channelId || channels[0]?.id)) setViewSceneId(r.scene);
     if (want.ep === epId && want.tab === tab && r.channel === (channelId || channels[0]?.id)) return;
     if (!confirmLeaveScript()) return;
-    void flushPlan().then(() => {
+    void flushBeforeNavigation().then((saved) => {
+      if (!saved) return;
       if (r.channel !== channelId) {
         pendingOpen.current = r.episode ? { ep: r.episode, tab: want.tab } : null;
         if (!r.episode) setTab(want.tab);
@@ -354,7 +436,7 @@ export const App: React.FC = () => {
 
   const navigateManage = async (next: Tab) => {
     if (!next || !confirmLeaveScript()) return;
-    await flushPlan();
+    if (!await flushBeforeNavigation()) return;
     if (next === "settings" && EPISODE_TABS.includes(tab)) setSettingsReturn(tab);
     setTab(next);
   };
@@ -379,26 +461,33 @@ export const App: React.FC = () => {
   const here = inEpisode ? stepOf(tab as StepTab) : -1;
   const go = (next: Tab) => { if (next !== tab && !confirmLeaveScript()) return; setTab(next); };
   const fixCount = w?.scenes.filter((x) => x.status === "needs_revision").length ?? 0;
+  // D68: a written-citation channel has no recitations to upload, unless the episode holds the basmala (the owner's own recording).
+  const planScenesAll = plan ? plan.chapters.flatMap((c) => c.scenes) : [];
+  // D-5/M4: designed drawings made for an earlier text, for «قبل أن تعتمد» (the scene shows words only until updated)
+  // (no hook here: after the loading return; shotWordIssues memoizes each scene itself)
+  const shotMismatch = plan ? shotWordIssues(plan, channel.name).map((i) => i.sceneId) : [];
+  const recStage = recitationStageNeeded(channel, planScenesAll, planScenesAll.some((x) => hasBasmala(x.narration)));
   const autoFinal: FinalView = !w ? "recitations" : (w.progress.recitationPending?.length ?? 0) > 0 || !w.progress.canAssemble ? "recitations" : !w.progress.assemblyApproved ? "seams" : "master";
   const final: FinalView = finalView ?? autoFinal;
   const views: HeaderView[] = tab === "home" || tab === "library" || (tab === "guide" && hasGuide) ? [
-    { id: "home", label: "الحلقات", sub: episodes ? String(episodes.length) : undefined, current: tab === "home", onSelect: () => void navigateManage("home") },
+    { id: "home", label: "الحلقات", sub: episodes ? arNum(episodes.length) : undefined, current: tab === "home", onSelect: () => void navigateManage("home") },
     { id: "library", label: "مكتبة القناة", current: tab === "library", onSelect: () => void navigateManage("library") },
     ...(hasGuide ? [{ id: "guide", label: "مرجع القناة", current: tab === "guide", onSelect: () => void navigateManage("guide") }] : []),
   ] : !inEpisode ? [] : here === 0 ? [
-    { id: "storyboard", label: "اللوحات والنص", sub: plan ? String(plan.chapters.reduce((n, c) => n + c.scenes.length, 0)) : undefined, current: tab === "storyboard", onSelect: () => go("storyboard") },
-    { id: "script", label: "السكريبت", sub: check ? `${num(check.stats.totalWords)} كلمة` : undefined, current: tab === "script", onSelect: () => go("script") },
+    { id: "storyboard", label: "اللوحات والنص", sub: plan ? arNum(plan.chapters.reduce((n, c) => n + c.scenes.length, 0)) : undefined, current: tab === "storyboard", onSelect: () => go("storyboard") },
+    { id: "script", label: "السكريبت", sub: check ? countAr(check.stats.totalWords, WORDS) : undefined, current: tab === "script", onSelect: () => go("script") },
     { id: "research", label: "البحث والمصادر", current: tab === "research", onSelect: () => go("research") },
   ] : here === 1 && done[0] ? [
     { id: "one", label: "مشهدًا مشهدًا", current: tab === "episode" && sceneView === "one", onSelect: () => { setSceneView("one"); go("episode"); } },
     { id: "voice", label: "متتابعة", sub: plan ? duration(episodeLength(plan, media, config.video.fps).seconds) : undefined, current: tab === "voice", onSelect: () => go("voice") },
-    { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
+    { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount || undefined, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
   ] : here === 2 && done[0] ? [
-    { id: "recitations", label: "التلاوات", badge: w?.progress.recitationPending?.length || undefined, current: final === "recitations", onSelect: () => setFinalView("recitations") },
-    { id: "seams", label: "الوصلات", sub: w?.seams.length ? String(w.seams.length) : undefined, current: final === "seams", onSelect: () => setFinalView("seams") },
+    // D68: without recitations the same view holds only the watch-only pre-final preview, so it is named for it.
+    { id: "recitations", label: recStage ? "التلاوات" : "قبل النهائية", badge: w?.progress.recitationPending?.length || undefined, current: final === "recitations", onSelect: () => setFinalView("recitations") },
+    { id: "seams", label: "الوصلات", sub: w?.assembly && w.seams.length ? arNum(w.seams.length) : undefined, current: final === "seams", onSelect: () => setFinalView("seams") },
     { id: "master", label: "النسخة الأساسية", sub: "4K", current: final === "master", onSelect: () => setFinalView("master") },
   ] : [];
-  const stepSub = here === 0 ? (done[0] ? "معتمد" : "ينتظرك") : here === 1 && w ? `${w.progress.approvedScenes} من ${w.progress.totalScenes}`
+  const stepSub = here === 0 ? (done[0] ? "معتمد" : "ينتظرك") : here === 1 && w ? `${arNum(w.progress.approvedScenes)} من ${arNum(w.progress.totalScenes)}`
     : here === 2 && done[0] ? views.find((v) => v.current)?.label : here === 3 && done[3] ? "مأذون" : undefined;
   const epTitle = episodeTitle(episodes?.find((e) => e.id === epId)?.title || plan?.title || "");
   const channelName = channels.find((c) => c.id === cid)?.name ?? channel.name;
@@ -410,7 +499,7 @@ export const App: React.FC = () => {
   const bandSeries = bandSeriesId ? seriesData?.series.find((x) => x.id === bandSeriesId) : undefined;
   const seriesNames = seriesData && seriesData.series.length > 1 ? Object.fromEntries(seriesData.series.map((x) => [x.id, x.name])) : null;
   const screenLabel = inEpisode && here >= 0 ? `الخطوة ${STEPS[here]!.n} «${STEPS[here]!.title}»` : tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "هذه الشاشة";
-  const openSeries = (id: string) => { if (!confirmLeaveScript()) return; void flushPlan().then(() => { setSeriesId(id); setTab("series"); }); };
+  const openSeries = (id: string) => { if (!confirmLeaveScript()) return; void flushBeforeNavigation().then((saved) => { if (!saved) return; setSeriesId(id); setTab("series"); }); };
 
   return (
     <IdentityProvider identity={ident.draft}>
@@ -420,7 +509,7 @@ export const App: React.FC = () => {
         channels={channels}
         channelId={cid}
         channelName={channelName}
-        onChannel={async (next) => { if (next === channelId) return; if (!confirmLeaveScript()) return; await flushPlan(); setChannelId(next); }}
+        onChannel={async (next) => { if (next === channelId) return; if (!confirmLeaveScript()) return; if (!await flushBeforeNavigation()) return; setChannelId(next); }}
         onHome={() => void navigateManage("home")}
         episode={inEpisode ? { id: epId, title: epTitle } : null}
         steps={inEpisode ? { done, here, sub: stepSub } : null}
@@ -438,7 +527,7 @@ export const App: React.FC = () => {
         <TopBar
           episodes={inEpisode ? episodes : null}
           episodeId={epId}
-          onEpisode={async (id) => { if (!confirmLeaveScript()) return; await flushPlan(); setEpId(id); }}
+          onEpisode={async (id) => { if (!confirmLeaveScript()) return; if (!await flushBeforeNavigation()) return; setEpId(id); }}
           seriesNames={seriesNames}
           title="الاستوديو"
           views={views}
@@ -446,7 +535,44 @@ export const App: React.FC = () => {
           scheme={scheme}
           onToggleScheme={toggleScheme}
         />
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty} />
+        {planState === "error" && planSaves.current!.hasPending ? (
+          <PlanSaveRecovery
+            queue={planSaves.current!}
+            conflict={planConflict}
+            retry={flushPlan}
+            latest={async (ch, id) => (await api.episode(id, ch)).plan}
+            revisionOf={browserPlanRevision}
+            onPlan={(p) => { setPlan(p); setPlanState("dirty"); }}
+            onLeft={(ch, id) => {
+              clearBackupOnSave.current = null; // the way out keeps the copy: «استعد تعديلي المحفوظ» offers it back
+              setBackupTick((n) => n + 1);
+              setPlanConflict(false); setPlanState("saved");
+              say("فُتحت النسخة المحفوظة؛ تعديلك في الملف المنزَّل وفي هذا المتصفح.");
+              if (ch === channelRef.current && id === episodeRef.current) void loadEpisode(id);
+            }}
+          />
+        ) : null}
+        {(() => {
+          const backup = inEpisode && plan && planState === "saved" && !planSaves.current!.hasPending ? readPlanBackup(channelRef.current, epId) : null;
+          void backupTick;
+          return backup ? (
+            <PlanBackupRestore
+              key={channelRef.current + "/" + epId + backup.at}
+              channel={channelRef.current} episode={epId} backup={backup}
+              latest={async () => (await api.episode(epId, channelRef.current)).plan}
+              apply={async (merged, theirs) => {
+                const ch = channelRef.current;
+                planSaves.current!.rebase(ch, epId, browserPlanRevision(theirs), theirs, merged);
+                clearBackupOnSave.current = ch + "/" + epId;
+                setPlan(merged); setPlanState("dirty");
+                await flushPlan();
+              }}
+              onDropped={() => setBackupTick((n) => n + 1)}
+            />
+          ) : null;
+        })()}
+        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty || planState !== "saved"} />
+        <ErrorNotice />
         {!EPISODE_TABS.includes(tab) && tab !== "home" && tab !== "series" ? (
           <div className="page-head"><h1>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</h1></div>
         ) : null}
@@ -459,6 +585,7 @@ export const App: React.FC = () => {
             channelId={channelId}
             tab={tab as StepTab}
             scriptErrors={check.issues.filter((i) => i.level === "error")}
+            shotMismatch={shotMismatch}
             onScriptLine={(line) => {
               if (tab === "script") { scriptRef.current?.goToLine(line); return; }
               if (!confirmLeaveScript()) return;
@@ -493,19 +620,20 @@ export const App: React.FC = () => {
             onOpen={async (ch, id, t) => {
               if (ch === (channelId || channels[0]?.id)) {
                 if (id !== epId && !confirmLeaveScript()) return;
+                if (!await flushBeforeNavigation()) return;
                 setEpId(id);
                 setTab(t);
                 return;
               }
               if (!confirmLeaveScript()) return;
-              await flushPlan();
+              if (!await flushBeforeNavigation()) return;
               pendingOpen.current = { ep: id, tab: t };
               setChannelId(ch);
             }}
             onStartIdea={async (ch, idea, suggested) => {
               if (ch !== (channelId || channels[0]?.id)) {
                 if (!confirmLeaveScript()) return;
-                await flushPlan();
+                if (!await flushBeforeNavigation()) return;
                 setChannelId(ch);
               }
               setNewPrefill({ channel: ch, title: idea.title, domain: idea.domain, suggested, ideaId: idea.id });
@@ -516,7 +644,7 @@ export const App: React.FC = () => {
         ) : tab === "channels" ? (
           <ChannelsWorkspace channels={channels} activeId={channelId || channels[0]?.id || ""} onOpen={async (id, destination) => {
             if (!confirmLeaveScript()) return;
-            await flushPlan();
+            if (!await flushBeforeNavigation()) return;
             if (id !== channelId) setChannelId(id);
             setTab(destination);
           }} />
@@ -537,8 +665,10 @@ export const App: React.FC = () => {
                 }
               }).catch(() => {});
             }}
-            onOpen={(id, t) => {
+            onRestored={() => { api.episodes().then(setEpisodes).catch(() => {}); }}
+            onOpen={async (id, t) => {
               if (id !== epId && !confirmLeaveScript()) return;
+              if (!await flushBeforeNavigation()) return;
               setEpId(id);
               setTab(t);
             }}
@@ -555,7 +685,7 @@ export const App: React.FC = () => {
               seriesId={seriesId}
               onBack={() => void navigateManage("home")}
               onOpenSeries={openSeries}
-              onOpenEpisode={(id, t) => { if (id !== epId && !confirmLeaveScript()) return; setEpId(id); setTab(t); }}
+              onOpenEpisode={async (id, t) => { if (id !== epId && !confirmLeaveScript()) return; if (!await flushBeforeNavigation()) return; setEpId(id); setTab(t); }}
               onNewEpisode={(sid) => { setNewSeriesFor(sid); setShowNew(true); }}
               onChanged={() => api.series().then(setSeriesData).catch(() => {})}
             />
@@ -620,8 +750,9 @@ export const App: React.FC = () => {
           <div className="empty-state"><h2>جارٍ قراءة حالة الحلقة…</h2></div>
         ) : lockedStep(tab as StepTab, ledger?.w ?? null) ? (() => {
           const n = lockedStep(tab as StepTab, ledger!.w)!;
-          const next = nextAction(ledger!.w);
-          const verses = plan.chapters.flatMap((c) => c.scenes).filter((x) => x.template === "verse-card" && x.ayahKey).length;
+          // QA 12 Nov (balislam 15): the locked «٤ النشر» points to step ٣ only (docs/studio-interface.md)
+          const next = n === 3 ? { label: "إلى النسخة النهائية", tab: "review" as const } : nextAction(ledger!.w);
+          const verses = recStage;
           return (
             <LockedStep step={n} {...LOCK_COPY[n]} action={{ label: next.label, onClick: () => { if (confirmLeaveScript()) setTab(next.tab); } }}
               nowNote={n === 2 && verses ? "التلاوات تُضاف آخرًا، ويمكنك تسجيل الآيات ورفعها من الآن؛ لا يُعتمد شيء غيرها هنا قبل أوانه." : undefined}
@@ -640,6 +771,7 @@ export const App: React.FC = () => {
             onSigned={() => setHomeKey((k) => k + 1)}
             refreshKey={homeKey}
             afterPreparation={w?.afterPreparation?.scenes.filter((x) => w.scenes.find((y) => y.id === x.id)?.afterPreparation)}
+            afterPreparationScriptOnly={Boolean(w?.afterPreparation?.scriptOnly)}
             onOpenScene={(id) => { setViewSceneId(id); setTab("episode"); }}
           /></div>
         ) : tab === "voice" ? (
@@ -713,7 +845,7 @@ export const App: React.FC = () => {
             onOpenSettings={openSettings}
             onPlanSave={async (p) => { onPlanChange(p); await flushPlan(); }}
             onPlanFlush={flushPlan}
-            onPlanReplaced={(p) => { setPlan(p); setPlanState("saved"); }}
+            onPlanReplaced={(p) => { setPlan(p); planSaves.current!.seed(channelId, epId, browserPlanRevision(p), p); setPlanState("saved"); }}
             livePreview={(id) => <SceneLivePreview sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onOpenScene={(id) => setRequestedSceneId(id)}
             onOpenStoryboard={() => setTab("storyboard")}
@@ -725,6 +857,9 @@ export const App: React.FC = () => {
             onView={setSceneView}
             thumb={(id) => <SceneThumb sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onUpdated={() => setHomeKey(k => k + 1)}
+            onState={(st) => setLedger({ key: `${channelId}/${epId}`, w: st })}
+            onShownScene={(id) => setShownScene(id ?? undefined)}
+            planSaved={planSaved}
             editor={(sceneId, onSelect) => (
               <EpisodeTab
                 key={epId}
@@ -755,6 +890,8 @@ export const App: React.FC = () => {
 
         {showNew ? (
           <NewEpisode
+            channelId={channelId || channels[0]?.id}
+            taken={(episodes ?? []).map((e) => e.id)}
             domains={Object.entries(channels.find((c) => c.id === (channelId || channels[0]?.id))?.domains ?? defaultChannel.domains).map(([id, d]) => [id, d.name])}
             suggested={newPrefill?.suggested ?? String((episodes?.reduce((m, e) => Math.max(m, Number(e.id)), 0) ?? 0) + 1).padStart(3, "0")}
             initialTitle={newPrefill?.title}
@@ -786,10 +923,10 @@ export const App: React.FC = () => {
             }}
           />
         ) : null}
-        {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role="status">{toast.msg}</div> : null}
+        {toast ? <div className={`toast ${toast.err ? "err" : ""}`} role={toast.err ? "alert" : "status"} title="انقر للإغلاق" onClick={() => setToast(null)}><OwnerText text={toast.msg} /></div> : null}
         {moveOpen && seriesData && epId ? (
           <MoveEpisodesDialog episodes={[epId]} current={epSeries || GENERAL_SLUG} data={seriesData} onClose={() => setMoveOpen(false)}
-            onPick={async (to) => { await flushPlan(); await epMover.move(to, [epId]); setMoveOpen(false); }} />
+            onPick={async (to) => { if (!await flushBeforeNavigation()) return; await epMover.move(to, [epId]); setMoveOpen(false); }} />
         ) : null}
         {epMover.node}
       </div>
@@ -799,33 +936,101 @@ export const App: React.FC = () => {
   );
 };
 
-const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; series?: [string, string][]; initialSeries?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ domains, suggested, initialTitle, initialDomain, series = [], initialSeries, onClose, onCreated }) => {
+/**
+ * A folder name from the Arabic title (readable Latin), or «episode-٠٠٢» when nothing is left. KI-024: the vowels the
+ * title carries are kept («أَوَّلُ مَرَّةٍ أُصَلِّي» → «awwal-marra-usalli»: fatha/kasra/damma, the shadda doubles, the
+ * last vowel and tanween of each word dropped as in a pause, «ال» dropped); a title without them stays consonantal.
+ */
+const AR_LATIN: Record<string, string> = { ا: "a", أ: "a", إ: "i", آ: "a", ء: "", ؤ: "u", ئ: "i", ب: "b", ت: "t", ث: "th", ج: "j", ح: "h", خ: "kh", د: "d", ذ: "dh", ر: "r", ز: "z", س: "s", ش: "sh", ص: "s", ض: "d", ط: "t", ظ: "z", ع: "a", غ: "gh", ف: "f", ق: "q", ك: "k", ل: "l", م: "m", ن: "n", ه: "h", ة: "a", و: "w", ي: "y", ى: "a" };
+/** Letters that carry a vowel rather than sound one: with a written vowel on them they add only that vowel. */
+const CARRIERS = new Set(["ا", "أ", "إ", "ء", "ؤ", "ئ", "ع"]);
+const SHORT: Record<string, string> = { "\u064E": "a", "\u0650": "i", "\u064F": "u", "\u0670": "a" };
+const slugWord = (raw: string): string => {
+  let w = raw.normalize("NFC").replace(/\u0640/g, "");
+  // the article: «الشَّمْس» → «شَمْس» (its assimilating shadda goes with it)
+  if (/^[اٱ]ل/.test(w) && [...w.replace(/[\u064B-\u065F\u0670]/g, "")].length > 3) w = w.slice(2).replace(/^\u0652/, "").replace(/^(.)([\u064B-\u0650]?)\u0651/u, "$1$2");
+  // vowel: a short vowel from a mark (said inside the word, dropped at its end); long: «ا» «و» «ي» «ة» said in full
+  const out: { s: string; vowel: boolean; long?: boolean }[] = [];
+  let skipped = "";
+  const chars = [...w];
+  const vowelled = chars.some((c) => c in SHORT);
+  for (let i = 0; i < chars.length; i++) {
+    const c = chars[i]!, next = chars[i + 1] ?? "";
+    const prev = out[out.length - 1];
+    if (c in SHORT) { out.push({ s: SHORT[c]!, vowel: true }); skipped = ""; continue; }
+    if (c === "\u0651" && skipped) { const y = AR_LATIN[skipped]!; out.push({ s: y, vowel: false }, { s: y, vowel: false }); skipped = ""; continue; }
+    if (c === "\u0651") { const cons = [...out].reverse().find((x) => !x.vowel); if (cons) out.splice(out.lastIndexOf(cons) + 1, 0, { s: cons.s, vowel: false }); continue; }
+    if (/[\u064B-\u065F]/.test(c)) continue; // sukun, tanween, the rest
+    if (/[a-z0-9]/i.test(c)) { out.push({ s: c.toLowerCase(), vowel: false }); continue; }
+    if (!(c in AR_LATIN)) continue;
+    const hasVowel = next in SHORT || (next === "\u0651" && (chars[i + 2] ?? "") in SHORT);
+    if (vowelled) {
+      // a long vowel after its own short vowel adds nothing: «ـَا» «ـُو» «ـِي» «ـَة»
+      if (prev?.vowel && ((c === "ا" || c === "ى" || c === "ة") && prev.s === "a" || c === "و" && prev.s === "u" && !hasVowel || c === "ي" && prev.s === "i" && !hasVowel)) { prev.long = true; skipped = c; continue; }
+      if (CARRIERS.has(c) && hasVowel) { skipped = ""; continue; }
+      // «ة» is said «a» and closes the word: the case vowel on it is never said
+      if (c === "ة") { out.push({ s: "a", vowel: true, long: true }); skipped = ""; while (i + 1 < chars.length && /[\u064B-\u065F]/.test(chars[i + 1]!)) i++; continue; }
+    }
+    skipped = "";
+    out.push({ s: AR_LATIN[c]!, vowel: c === "ا" || c === "ى" || c === "ة", long: c === "ا" || c === "ى" || c === "ة" });
+  }
+  // the pause: the last written short vowel of the word is not said
+  while (vowelled && out.length > 1 && out[out.length - 1]!.vowel && !out[out.length - 1]!.long) out.pop();
+  return out.map((x) => x.s).join("");
+};
+export const autoSlug = (title: string, episode: string): string => {
+  const words = latinDigits(title).trim().split(/\s+/).map(slugWord).filter((w) => w.length > 1).slice(0, 4);
+  const slug = words.join("-").replace(/[^a-z0-9-]/g, "").replace(/-+/g, "-").replace(/^-|-$/g, "").slice(0, 40).replace(/-$/, "");
+  return slug || `episode-${latinDigits(episode) || "new"}`;
+};
+const NewEpisode: React.FC<{ channelId?: string; taken?: string[]; domains: [string, string][]; suggested: string; initialTitle?: string; initialDomain?: string; series?: [string, string][]; initialSeries?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ channelId = "", taken = [], domains, suggested, initialTitle, initialDomain, series = [], initialSeries, onClose, onCreated }) => {
+  const ph = channelPlaceholders(useChannel().id);
   const [inSeries, setInSeries] = useState(initialSeries && series.some(([id]) => id === initialSeries) ? initialSeries : GENERAL_SLUG);
-  const [episode, setEpisode] = useState(suggested);
+  const [episode, setEpisode] = useState(arDigits(suggested));
   const [slug, setSlug] = useState("");
   const [domain, setDomain] = useState(initialDomain && domains.some(([d]) => d === initialDomain) ? initialDomain : (domains[0]?.[0] ?? ""));
   const [title, setTitle] = useState(initialTitle ?? "");
-  const [err, setErr] = useState("");
+  const [err, setErr] = useState<{ field?: string; msg: string } | null>(null);
+  const [busy, setBusy] = useState(false);
+  const number = latinDigits(episode.trim());
+  const folder = slug.trim() || autoSlug(title, number);
+  const fieldErr = (f: string) => (err?.field === f ? err.msg : "");
   return (
     <Dialog as="form" labelledBy="new-episode-title" onClose={onClose} width={520}
+        noValidate
         onSubmit={async (e) => {
           e.preventDefault();
-          setErr("");
+          if (busy) return;
+          // QA 12 Nov: Arabic messages next to the field, never the browser's English tooltip or a silent no-op.
+          if (!title.trim()) return setErr({ field: "title", msg: "اكتب عنوان الحلقة أولًا." });
+          if (!/^\d{3}$/.test(number)) return setErr({ field: "episode", msg: "الرقم ثلاث خانات، مثل ٠٠٢." });
+          if (taken.includes(number)) return setErr({ field: "episode", msg: `الحلقة ${arDigits(number)} موجودة بالفعل؛ اختر رقمًا آخر.` });
+          if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(folder)) return setErr({ field: "slug", msg: "اسم المجلد بحروف إنجليزية صغيرة وأرقام وشرطات فقط، مثل family-conflict." });
+          setErr(null);
+          setBusy(true);
           try {
-            await api.createEpisode({ episode, slug, domain, title, ...(inSeries && inSeries !== GENERAL_SLUG ? { series: inSeries } : {}) });
-            onCreated(episode);
+            await api.createEpisode({ episode: number, slug: folder, domain, title: title.trim(), ...(inSeries && inSeries !== GENERAL_SLUG ? { series: inSeries } : {}) });
+            onCreated(number);
           } catch (x) {
-            setErr((x as Error).message);
+            const m = (x as Error).message;
+            setErr({ field: /رقم|الحلقة .* موجودة/.test(m) ? "episode" : /المجلد/.test(m) ? "slug" : undefined, msg: m });
+          } finally {
+            setBusy(false);
           }
         }}
       >
         <div className="modal-head"><h3 id="new-episode-title">حلقة جديدة</h3></div>
         <div className="modal-body" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-          <label className="field"><span>العنوان (سؤال)</span><input id="new-title" type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="لماذا نؤجّل ما نعرف أنه مهم؟" required /></label>
-          <div style={{ display: "grid", gridTemplateColumns: "100px 1fr", gap: 10 }}>
-            <label className="field"><span>الرقم</span><input id="new-number" type="text" value={episode} onChange={(e) => setEpisode(e.target.value)} pattern="\d{3}" required /></label>
-            <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="new-slug" type="text" dir="ltr" value={slug} onChange={(e) => setSlug(e.target.value.toLowerCase())} placeholder="procrastination" pattern="[a-z0-9]+(-[a-z0-9]+)*" required /></label>
+          <label className="field"><span>العنوان (سؤال)</span><input id="new-title" type="text" value={title} onChange={(e) => { setTitle(e.target.value); if (err?.field === "title") setErr(null); }} placeholder={`مثال: ${ph.episodeTitle}`} aria-invalid={Boolean(fieldErr("title"))} aria-describedby={fieldErr("title") ? "new-title-err" : undefined} />
+            {fieldErr("title") ? <span id="new-title-err" className="help" role="alert" style={{ color: "var(--err)" }}>{fieldErr("title")}</span> : null}</label>
+          <div className="new-ep-grid" style={{ display: "grid", gridTemplateColumns: "100px minmax(0, 1fr)", gap: 10 }}>
+            <label className="field"><span>الرقم</span><input id="new-number" type="text" inputMode="numeric" value={episode} onChange={(e) => { setEpisode(arDigits(latinDigits(e.target.value))); if (err?.field === "episode") setErr(null); }} aria-invalid={Boolean(fieldErr("episode"))} aria-describedby={fieldErr("episode") ? "new-number-err" : undefined} /></label>
+            <label className="field"><span>اسم المجلد بالإنجليزية (اختياري)</span><input id="new-slug" type="text" dir="ltr" value={slug} onChange={(e) => { setSlug(e.target.value.toLowerCase()); if (err?.field === "slug") setErr(null); }} placeholder={title.trim() ? folder : ph.episodeSlug} aria-invalid={Boolean(fieldErr("slug"))} aria-describedby="new-slug-help" /></label>
           </div>
+          {fieldErr("episode") ? <span id="new-number-err" className="help" role="alert" style={{ color: "var(--err)" }}>{fieldErr("episode")}</span> : null}
+          <span id="new-slug-help" className="help" style={fieldErr("slug") ? { color: "var(--err)" } : undefined} role={fieldErr("slug") ? "alert" : undefined}>
+            {fieldErr("slug") || (slug.trim() ? "" : title.trim() ? `إن تركته فارغًا يُسمّى المجلد «${folder}».` : "إن تركته فارغًا يُسمّى المجلد من العنوان تلقائيًا.")}
+          </span>
           {series.length > 1 ? (
             <label className="field">
               <span>السلسلة أو التصنيف (تأخذ الحلقة قالبه وهويته الآن)</span>
@@ -840,10 +1045,10 @@ const NewEpisode: React.FC<{ domains: [string, string][]; suggested: string; ini
               {domains.map(([v, l]) => <option key={v} value={v}>{l}</option>)}
             </select>
           </label>
-          {err ? <div className="help" style={{ color: "var(--err)" }}>{err}</div> : null}
+          {err && !err.field ? <div className="help" role="alert" style={{ color: "var(--err)" }}>{err.msg}</div> : null}
           <div style={{ display: "flex", gap: 8, justifyContent: "flex-end" }}>
             <button type="button" className="btn" onClick={onClose}>إلغاء</button>
-            <button type="submit" className="btn primary">إنشاء</button>
+            <button type="submit" className="btn primary" disabled={busy}>{busy ? "جارٍ الإنشاء…" : "إنشاء"}</button>
           </div>
         </div>
     </Dialog>

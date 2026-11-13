@@ -12,6 +12,7 @@ import path from "node:path";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { encodeWav } from "../src/remotion/dafatir/audio/compose";
 import type { ElevenLabsClient } from "../src/voice/elevenlabs";
+import { heavyTimeout } from "./helpers/heavyTimeout";
 import {
   reconcileScene, recordedOnOtherText, sentencesFor, sentenceStatus, stableSentenceId, type Sentence, type SentenceAudio,
 } from "../src/voice/sentences";
@@ -142,7 +143,8 @@ afterAll(() => {
   if (tmp) rmSync(tmp, { recursive: true, force: true });
 });
 
-describe("مشهد «قديم» بعد نقل المعرّفات: كل فعل على جملة يعمل (D-1، D-3)", () => {
+// KI-059: the first request / action loads the Studio modules cold; under load the 5 s default was exceeded. Same checks.
+describe("مشهد «قديم» بعد نقل المعرّفات: كل فعل على جملة يعمل (D-1، D-3)", { timeout: heavyTimeout(5_000) }, () => {
   beforeEach(ownerState);
 
   it("القراءة تعرض «قديم» بتسجيله القديم، بمعرّفات ثابتة بين قراءتين، ولا تكتب شيئًا", async () => {
@@ -239,7 +241,7 @@ describe("مشهد «قديم» بعد نقل المعرّفات: كل فعل ع
   });
 });
 
-describe("نبرة الحلقة لا تُبطل التسجيلات بصمت (D-4)", () => {
+describe("نبرة الحلقة لا تُبطل التسجيلات بصمت (D-4)", { timeout: heavyTimeout(5_000) }, () => {
   beforeEach(async () => {
     await ownerState();
     writePlan(`${T1} ${T2_OLD} ${T3}`);
@@ -263,8 +265,9 @@ describe("نبرة الحلقة لا تُبطل التسجيلات بصمت (D-4
     const before = readFileSync(path.join(EP(), "voice", "sentences.json"), "utf8");
     const planBefore = readFileSync(path.join(EP(), "plan.json"), "utf8");
     expect((await sv.readSentences("986")).scenes[0]!.rows.map((r) => r.status)).toEqual(["generated", "generated", "generated"]);
-    // «grave» is the channel layer alone: the same sound, nothing to regenerate
-    expect((await sv.toneChangeImpact("986", "grave")).sentences).toEqual([]);
+    // no tone: the same sound, nothing to regenerate; grave is no tone any more (first tones restored)
+    expect((await sv.toneChangeImpact("986", null)).sentences).toEqual([]);
+    await expect(sv.toneChangeImpact("986", "grave")).rejects.toThrow(/غير معروفة/);
     const calm = await sv.toneChangeImpact("986", "calm");
     expect(calm.sentences).toHaveLength(3);
     expect(calm.scenes).toEqual([]);

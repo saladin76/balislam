@@ -7,7 +7,7 @@
 import { existsSync } from "node:fs";
 import { readJsonFile, writeJsonAtomic } from "../io/atomicJson";
 import path from "node:path";
-import { sceneHash } from "./sceneReview";
+import { sceneHash } from "./sceneHash";
 import { createHash } from "node:crypto";
 import type { PlanScene } from "./types";
 import type { Plan } from "./types";
@@ -164,12 +164,12 @@ export const recordBoardsAfterPreparation = async (scriptPath: string, plan: Pla
   return { record, scenes: changed };
 };
 
-/** سحب الاعتماد (يعيد الحلقة إلى «لم يُعتمد»). */
-export const revokeStoryboard = async (scriptPath: string): Promise<StoryboardRecord> => {
-  const rec: StoryboardRecord = { version: 1, scenes: {} };
-  await writeJsonAtomic(storyboardFileFor(scriptPath), rec);
-  return rec;
-};
+/**
+ * No withdrawal (QA balislam 1, 12 Nov; D76): «اعتمد التجهيز» is given once per episode and later changes are carried
+ * forward by the ledger. Emptying the board record used to re-open step ١ in one click; it no longer exists, and the
+ * studio's PUT storyboard «revoke» is refused with this line.
+ */
+export const STORYBOARD_REVOKE_REFUSED = "لا يُسحب اعتماد التجهيز: يُعتمد مرة واحدة للحلقة، وأي تعديل بعده يسجّله النظام وتُراجَع مشاهده في «٢ المشاهد» (D76).";
 
 /** المشاهد المطلوبة غير المعتمدة في الستوري بورد (للصوت: المشاهد التي سيُولَّد صوتها فقط). */
 export const unapprovedScenes = (status: StoryboardStatus, ids?: string[]) => (ids ?? Object.keys(status.scenes)).filter((i) => status.scenes[i] !== "approved");

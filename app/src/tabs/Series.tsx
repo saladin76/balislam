@@ -14,13 +14,16 @@ import { Providers } from "../../../src/remotion/Providers";
 import { styleNameAr } from "../../../src/plan/styles";
 import { templateDefs } from "../../../src/plan/templates";
 import { tones, toneIds } from "../../../src/voice/tones";
-import { Num, arDigits, episodeTitle } from "../ui/format";
+import { Num, arDigits, episodeTitle, fontNameAr } from "../ui/format";
 import { Icon } from "../ui/icons";
 import { Dialog } from "../ui/Dialog";
 import { EPISODE_DRAG_TYPE, breadcrumb, decodeDrag, dropVerdict, episodesIn, kindAr, parentChoices, seriesGrid, seriesOfEpisode, suggestSlug } from "./seriesView";
 import { MoveEpisodesDialog, RowMoveButton, useEpisodeMover } from "./MoveEpisodes";
 import { fourSteps, nextLine } from "./HomeTab";
 import "./series.css";
+import { useChannel } from "../../../src/channel/context";
+import { channelPlaceholders } from "../../../src/channel/placeholders";
+import { OwnerText } from "../ui/OwnerText";
 
 type StepTab = "script" | "storyboard" | "episode" | "review" | "publish";
 const toneName = (t: string) => (tones as Record<string, { nameAr: string }>)[t]?.nameAr ?? t;
@@ -118,6 +121,7 @@ export const SeriesGrid: React.FC<{
 // ———————————————————— New series / category ————————————————————
 
 export const NewSeriesDialog: React.FC<{ kind: SeriesKind; data: SeriesRead; parent?: string; onClose: () => void; onCreated: (id: string) => void }> = ({ kind: k0, data, parent: p0, onClose, onCreated }) => {
+  const ph = channelPlaceholders(useChannel().id);
   const [kind, setKind] = useState<SeriesKind>(k0);
   const [name, setName] = useState("");
   const [latin, setLatin] = useState("");
@@ -143,8 +147,8 @@ export const NewSeriesDialog: React.FC<{ kind: SeriesKind; data: SeriesRead; par
             <button key={k} type="button" role="radio" aria-checked={kind === k} onClick={() => setKind(k)}>{SERIES_KIND_AR[k]}<small>{k === "series" ? "حلقات مرتّبة بأرقام" : "بلا ترتيب، وقد يحوي سلاسل"}</small></button>
           ))}
         </div>
-        <label className="field"><span>الاسم</span><input id="sr-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} placeholder={kind === "series" ? "ليالي رمضان" : "الأسرة"} autoFocus /></label>
-        <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="sr-latin" dir="ltr" value={latin} onChange={(e) => setLatin(e.target.value)} placeholder="ramadan-nights" /><small className="help">يُحفظ باسم <bdi dir="ltr">{id}</bdi>، ولا يتغير بعد الإنشاء.</small></label>
+        <label className="field"><span>الاسم</span><input id="sr-name" value={name} onChange={(e) => setName(e.target.value)} required maxLength={40} placeholder={kind === "series" ? ph.seriesName : ph.categoryName} autoFocus /></label>
+        <label className="field"><span>اسم المجلد بالإنجليزية</span><input id="sr-latin" dir="ltr" value={latin} onChange={(e) => setLatin(e.target.value)} placeholder={ph.seriesSlug} /><small className="help">يُحفظ باسم <bdi dir="ltr">{id}</bdi>، ولا يتغير بعد الإنشاء.</small></label>
         <label className="field"><span>داخل</span>
           <select id="sr-parent" value={parent} onChange={(e) => setParent(e.target.value)}>
             <option value="">أعلى القناة</option>
@@ -153,7 +157,7 @@ export const NewSeriesDialog: React.FC<{ kind: SeriesKind; data: SeriesRead; par
         </label>
         <label className="field"><span>وصف قصير (اختياري)</span><input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={140} /></label>
         <p className="help">الهوية مشتقة من هوية القناة وحدها: لون من لوحتها، وزخرفة من زخارفها، وخط عناوينها نفسه. تُضبط بعد الإنشاء في «هوية السلسلة».</p>
-        {err ? <p className="help" style={{ color: "var(--err)" }} role="alert">{err}</p> : null}
+        {err ? <p className="help" style={{ color: "var(--err)" }} role="alert"><OwnerText text={err} /></p> : null}
         <div className="sr-dialog-acts">
           <button type="submit" className="btn primary" aria-busy={busy}>{busy ? "جارٍ الإنشاء…" : "أنشئ"}</button>
           <button type="button" className="btn" onClick={onClose}>إلغاء</button>
@@ -222,7 +226,7 @@ export const SeriesPage: React.FC<{
   const mover = useEpisodeMover(async () => { await load(); onChanged?.(); });
   useEffect(() => { setPane("episodes"); setData(null); void load(); }, [channel.id, seriesId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p>{err}</p></div>;
+  if (err) return <div className="empty-state"><h2>تعذّر التحميل</h2><p><OwnerText text={err} /></p></div>;
   if (!data || !items) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
   const saved = data.series.find((x) => x.id === seriesId);
   if (!saved || !draft) return <div className="empty-state"><h2>السلسلة غير موجودة</h2><button className="btn" type="button" onClick={onBack}>إلى حلقات القناة</button></div>;
@@ -262,7 +266,7 @@ export const SeriesPage: React.FC<{
           <button key={k} type="button" role="tab" aria-selected={pane === k} onClick={() => setPane(k)}>{l}</button>
         ))}
       </div>
-      {msg ? <p className={`sr-msg${msg.err ? " is-err" : ""}`} role={msg.err ? "alert" : "status"}>{msg.text}</p> : null}
+      {msg ? <p className={`sr-msg${msg.err ? " is-err" : ""}`} role={msg.err ? "alert" : "status"}><OwnerText text={msg.text} /></p> : null}
 
       {pane === "episodes" ? (
         <>
@@ -350,7 +354,7 @@ const IdentityEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
   const parts = d.emblem.parts;
   return (
     <section className="sr-editor" aria-label="هوية السلسلة">
-      <p className="help">كل اختيار هنا من هوية القناة وحدها: لا لون ولا خط ولا زخرفة من خارجها. خط العناوين <bdi>«{rules.fonts.heading}»</bdi> ثابت.</p>
+      <p className="help">كل اختيار هنا من هوية القناة وحدها: لا لون ولا خط ولا زخرفة من خارجها. خط العناوين «{fontNameAr(rules.fonts.heading)}» ثابت.</p>
       <fieldset><legend>لون السلسلة (من لوحة القناة)</legend>
         <div className="sr-swatches" role="radiogroup" aria-label="لون السلسلة">
           {rules.accents.map((a) => (
@@ -414,7 +418,7 @@ const TemplateEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
       <p className="help">افتراضيات الحلقات الجديدة فيها: تُختم في الحلقة لحظة إنشائها، فلا تتغير حلقة قائمة إن تغيّر القالب. ومبدأ التنوّع يبقى: الحلقة تأخذ أسلوبًا يختلف عن أسلوب الحلقة قبلها.</p>
       <fieldset><legend>قالب السكريبت</legend>
         <div className="sr-seg" role="radiogroup">
-          <button type="button" role="radio" aria-checked={(t.script?.source ?? "channel") === "channel"} onClick={() => set({ script: { source: "channel" } })}>قالب القناة بعناوين فصول السلسلة</button>
+          <button type="button" role="radio" aria-checked={(t.script?.source ?? "channel") === "channel"} onClick={() => set({ script: { source: "channel" } })}>قالب القناة</button>
           <button type="button" role="radio" aria-checked={t.script?.source === "series"} onClick={() => set({ script: { source: "series" } })}>قالب خاص بالسلسلة</button>
         </div>
         {t.script?.source === "series" ? <p className="help">يُقرأ من <bdi dir="ltr">templates/{channelId}/series/{draft.id}/script.md</bdi>، وإن لم يوجد فقالب القناة.</p> : null}
@@ -442,12 +446,12 @@ const TemplateEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
           <select value={t.thumbnail?.layout ?? "badge"} onChange={(e) => set({ thumbnail: { layout: e.target.value as "channel" | "badge" } })}><option value="badge">مصغّرة القناة مع شارة السلسلة</option><option value="channel">مصغّرة القناة كما هي</option></select>
         </label>
         <label className="field"><span>سرعة الإلقاء (كلمة في الدقيقة)</span><input type="number" min={90} max={170} value={t.pacing?.wordsPerMinute ?? ""} placeholder="مثل القناة" onChange={(e) => set({ pacing: { ...t.pacing, wordsPerMinute: e.target.value ? Number(e.target.value) : undefined } })} /></label>
-        <label className="field"><span>طول الفصل (ثانية)</span><input type="number" min={20} max={600} value={t.pacing?.chapterSeconds ?? ""} placeholder="مثل القناة" onChange={(e) => set({ pacing: { ...t.pacing, chapterSeconds: e.target.value ? Number(e.target.value) : undefined } })} /></label>
+        <label className="field"><span>طول القسم الاختياري (ثانية)</span><input type="number" min={20} max={600} value={t.pacing?.chapterSeconds ?? ""} placeholder="مثل القناة" onChange={(e) => set({ pacing: { ...t.pacing, chapterSeconds: e.target.value ? Number(e.target.value) : undefined } })} /></label>
       </div>
-      <fieldset><legend>بنية الفصول</legend>
-        <p className="sp-hint">فارغ: سرد واحد متصل بلا فصول، كقالب القناة (D87). العناوين هنا تُطبَّق فقط على سكريبت فيه «## الفصل N».</p>
-        <label className="field sr-inline"><span>عدد الفصول</span><input type="number" min={1} max={12} value={count || ""} placeholder="سرد واحد" onChange={(e) => { const n = Number(e.target.value) || 0; set({ chapters: n ? { count: n, titles: Array.from({ length: n }, (_, i) => titles[i] ?? "") } : {} }); }} /></label>
-        {count ? <ol className="sr-chapters">{Array.from({ length: count }, (_, i) => <li key={i}><input aria-label={`عنوان الفصل ${arDigits(i + 1)}`} value={titles[i] ?? ""} placeholder={`الفصل ${arDigits(i + 1)}`} onChange={(e) => { const next = Array.from({ length: count }, (_, j) => (j === i ? e.target.value : titles[j] ?? "")); set({ chapters: { count, titles: next } }); }} /></li>)}</ol> : null}
+      <fieldset><legend>أقسام اختيارية</legend>
+        <p className="sp-hint">فارغ: سرد واحد متصل، كقالب القناة. الأقسام اختيارية، وعناوينها هنا لا تُطبَّق إلا على سكريبت قُسّم بعناوين أقسام.</p>
+        <label className="field sr-inline"><span>عدد الأقسام</span><input type="number" min={1} max={12} value={count || ""} placeholder="سرد واحد" onChange={(e) => { const n = Number(e.target.value) || 0; set({ chapters: n ? { count: n, titles: Array.from({ length: n }, (_, i) => titles[i] ?? "") } : {} }); }} /></label>
+        {count ? <ol className="sr-chapters">{Array.from({ length: count }, (_, i) => <li key={i}><input aria-label={`عنوان القسم ${arDigits(i + 1)}`} value={titles[i] ?? ""} placeholder={`القسم ${arDigits(i + 1)}`} onChange={(e) => { const next = Array.from({ length: count }, (_, j) => (j === i ? e.target.value : titles[j] ?? "")); set({ chapters: { count, titles: next } }); }} /></li>)}</ol> : null}
       </fieldset>
       <fieldset><legend>حزمة النشر</legend>
         <div className="sr-grid2">
@@ -462,7 +466,7 @@ const TemplateEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
 
 // ———————————————————— Menus and dialogs ————————————————————
 
-const SeriesMenu: React.FC<{ general: boolean; archived: boolean; canDelete: boolean; onRename: () => void; onMove: () => void; onArchive: () => void; onDelete: () => void }> = (p) => {
+export const SeriesMenu: React.FC<{ general: boolean; archived: boolean; canDelete: boolean; onRename: () => void; onMove: () => void; onArchive: () => void; onDelete: () => void }> = (p) => {
   const [open, setOpen] = useState(false);
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -474,12 +478,13 @@ const SeriesMenu: React.FC<{ general: boolean; archived: boolean; canDelete: boo
   const items = [
     { label: "أعد التسمية…", on: p.onRename },
     ...(p.general ? [] : [{ label: "انقل إلى تصنيف…", on: p.onMove }, { label: p.archived ? "أعدها نشطة" : "أرشف", on: p.onArchive }]),
-    ...(p.general ? [] : [{ label: p.canDelete ? "احذف…" : "احذف… (انقل حلقاتها أولًا)", on: p.onDelete, danger: true }]),
+    // KI-021: سلسلة فيها حلقات لا تُحذف (الخادم يرفض)، فالعنصر معطّل بسببه ولا يفتح تأكيدًا يُرفض بعده
+    ...(p.general ? [] : [{ label: p.canDelete ? "احذف…" : "احذف… (انقل حلقاتها أولًا)", on: p.onDelete, danger: true, disabled: !p.canDelete }]),
   ];
   return (
     <div className="row-menu sr-menu" ref={box}>
       <button type="button" className="ledger-more" aria-haspopup="menu" aria-expanded={open} aria-label="خيارات السلسلة" title="خيارات السلسلة" onClick={() => setOpen((v) => !v)}>⋯</button>
-      {open ? <div className="row-menu-pop" role="menu">{items.map((it) => <button key={it.label} type="button" role="menuitem" className={"danger" in it && it.danger ? "is-danger" : undefined} onClick={() => { setOpen(false); it.on(); }}>{it.label}</button>)}</div> : null}
+      {open ? <div className="row-menu-pop" role="menu">{items.map((it) => { const off = "disabled" in it && it.disabled; return <button key={it.label} type="button" role="menuitem" className={"danger" in it && it.danger ? "is-danger" : undefined} disabled={off} aria-disabled={off || undefined} onClick={() => { if (off) return; setOpen(false); it.on(); }}>{it.label}</button>; })}</div> : null}
     </div>
   );
 };

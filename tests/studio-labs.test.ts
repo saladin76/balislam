@@ -66,7 +66,7 @@ describe("مختبرات الإنتاج", () => {
   });
 
   it("مسار المعاينة في الاستوديو لا يخدم إلا مختبرات القناة المطلوبة", () => {
-    const src = readFileSync("app/server/extra.ts", "utf8");
+    const src = readFileSync("app/server/routes/labs.ts", "utf8");
     expect(src).toMatch(/parts\[0\] === "labs"[\s\S]*listLabDirs\(episodesDir\)[\s\S]*dirs\.includes\(parts\[1\]\)/);
   });
 });

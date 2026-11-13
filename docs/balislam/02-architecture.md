@@ -16,7 +16,7 @@
 | المسار | ما فيه |
 | --- | --- |
 | `channels/balislam/` | `channel.json` (المجالات، الأساليب، القواعد، المكتبة، الصوت، `production`)، والهوية، وقاموس النطق، والمرجعيات الرسمية `references/`، والحلقات `episodes/` |
-| `channels/balislam/episodes/<الحلقة>/` | `script.md`، `research.md`، `plan.json`، `scene-review.json`، `previews/` (والصوت والمخرجات حين تُولَّد) |
+| `channels/balislam/episodes/<الحلقة>/` | `script.md`، `research.md`، `plan.json`، `previews/` (والصوت والمخرجات حين تُولَّد) |
 | `channels/balislam/episodes/900-engine-lab/` | مختبر المحرك: معاينات اختبارات المحرك (لا تُنشر ولا تُعد حلقة) |
 | `templates/balislam/` | قالب السكريبت للقناة |
 | `brand/` | الهويات المعتمدة (`brand/identity/approved.ts`)، والثيمات، والعناصر ودليل تصميمها `brand/elements/GUIDE.md` |
@@ -36,7 +36,7 @@
 1. **السكريبت:** `script.md` بقالب `templates/balislam/script.md`. يُقرأ بـ`parseScript` (`src/script/parse.ts`) ويُفحص بـ`checkForChannel` (`src/script/checkChannel.ts`).
    - **الأقسام اختيارية (D82، اعتمده صاحب المشروع ١١ نوفمبر (D83)):** السكريبت نص متصل؛ «## الفصل N» أو «## الفصل N · عنوان» تقسيم إنتاجي داخلي 0..N. بلا أي عنوان قسم يُقرأ النص قسمًا ضمنيًا واحدًا (رقمه 1، بلا عنوان) فتبقى المعرّفات `c1-sN`. لا يُشترط عدد الأقسام إلا بـ`script.fixedChapters = true` في `channel.json`، وعنوان القسم بيانات إنتاج لا تُنطق ولا تُترجم ولا تظهر على الشاشة إلا بـ`script.divisionTitlesOnScreen = true` (`src/script/divisions.ts`). القاعدة واحدة للقنوات الثلاث.
    - **سرد واحد بلا فصول (D87، طلب صاحب القناة ١١ نوفمبر، القنوات الثلاث):** قوالب السكريبت (`templates/<القناة>/script.md` و`templates/_neutral/script.md`) نص متصل بلا «## الفصل N»، وإرشاداتها فقرات تُكتب فوقها (المحلل لا يدعم تعليقًا لا يُقرأ). الخطة بقسم واحد بلا عنوان لا يظهر لها «الفصل ١» في الاستوديو (`showsDivision` و`isSingleNarration` في `src/script/divisions.ts`: رأس المشهد، الجمل، الوصلات، اللوحات، قائمة المشاهد، جدول الطول في السكريبت، ونطاق «الفصل» في المعاينة)، ووصف النشر المولَّد بلا قائمة فصول ولا «في هذه الحلقة» (`generatePublishKit` في `src/package/social.ts`). `config.json` ← `episode.chapters` لا يُقرأ إلا مع `script.fixedChapters = true` (لا قناة تطلبه). شاشة النهاية تحتفظ بتعديلها حين يتغير عدد الأقسام (`c6-end` ← `c1-end`، `generatePlan` في `src/plan/generate.ts`). ونقل ملفات الصوت المحلية إلى المعرّفات الجديدة على جهاز المالك: `npx bal remap-scene-ids <الحلقة>` (تجربة، والكتابة بـ`--apply`؛ `remapLocalVoice` في `src/plan/remapIds.ts`، من `versions/*/id-map.json`)؛ و`--with-changed-text` (D89) ينقل أيضًا ما تغيّر نص مشهده بعد تسجيله فيظهر «قديم» في مشهده حتى يُولَّد.
-   - **الشورتس:** من `plan.shorts` (من مشهد إلى مشهد، `src/plan/shorts.ts`)، وفي الخطة القديمة بلا مقاطع شورت لكل قسم كما كان، وفي النص المتصل بلا مقاطع لا شورتس. **صاحب القناة يحدد المقاطع بنفسه (D83):** «٤ النشر ← الشورتس والريلز ← مقاطع الشورتس» (`app/src/tabs/ShortsPicker.tsx`): لكل شورت مشهد بداية ونهاية (ولو عبر الأقسام) وعنوان اختياري للنشر وحده، مع إضافة وحذف وترتيب ومدة تقريبية ونص المقطع؛ يُحفظ عبر `GET/PUT /api/episodes/<ep>/shorts` (`checkShortsInput` ثم `saveShortsSelection` في `src/plan/io.ts`) في `plan.shorts` وحدها بلا أثر على بصمة مشهد أو اعتماد. حتى ستة، والعنوان يمر على فحص الآثار. الاختيار مسموح قبل اعتماد النسخة الأساسية، والصناعة بعده وحده (القاعدة الرابعة).
+   - **الشورتس:** من `plan.shorts` (من مشهد إلى مشهد، `src/plan/shorts.ts`)، وفي الخطة القديمة بلا مقاطع شورت لكل قسم كما كان، وفي النص المتصل بلا مقاطع لا شورتس. **صاحب القناة يحدد المقاطع بنفسه (D83):** «٢ المشاهد ← أدوات وتفاصيل ← مقاطع الشورتس» في أي وقت (D102)، و«٤ النشر ← الشورتس والريلز ← مقاطع الشورتس» بعد Master (`app/src/tabs/ShortsPicker.tsx`): لكل شورت مشهد بداية ونهاية (ولو عبر الأقسام) وعنوان اختياري للنشر وحده، مع إضافة وحذف وترتيب ومدة تقريبية ونص المقطع؛ يُحفظ عبر `GET/PUT /api/episodes/<ep>/shorts` (`checkShortsInput` ثم `saveShortsSelection` في `src/plan/io.ts`) في `plan.shorts` وحدها بلا أثر على بصمة مشهد أو اعتماد. حتى ستة، والعنوان يمر على فحص الآثار. الاختيار مسموح قبل اعتماد النسخة الأساسية، والصناعة بعده وحده (القاعدة الرابعة).
 2. **الخطة:** `generatePlan` (`src/plan/generate.ts`) تحوّل كل فقرة إلى مشهد:
    - القالب من علامة `[مشهد: …]` أو أسلوب الحلقة (`styleTemplate` في `src/plan/styles.ts`)، و`[آية: …]` بطاقة آية، و`[حديث: …]` بطاقة حديث.
    - الحقول الأولية من `defaultsFor` (`src/plan/generate.ts`)، ثم أدوات المحرك المختومة (`applyEngineDefaults` في `src/plan/engine.ts`)، ثم الإخراج الآلي للقوالب المصوَّرة (`directIllus` في `src/plan/illusDirect.ts`: المزاج يتبع قوس الحلقة، والمكان يتبدل، وحركة البطل من معنى الكلمات).
@@ -49,7 +49,7 @@
    - `Episode` (`src/remotion/scenes/Episode.tsx`): الافتتاحية ثم المشاهد متتالية (`Series`)، ومدة كل مشهد من `sceneFrames` (`src/plan/duration.ts`: من الصوت إن وُجد وإلا من طول النص أو المدة اليدوية)، والانتقال الصالح عند كل حد.
    - `SceneFromPlan` (`src/remotion/scenes/components.tsx`) يختار مكوّن القالب ويمرر له حقول المشهد كما هي.
    - توقيت الكلمات من الصوت (`toFrames`) أو تقديرًا (`estimateTimings` في `src/remotion/scenes/timing.ts`)، وعليه تقع أحداث المشهد.
-7. **المراجعة:** مراجعة كل مشهد بعد تنفيذه (`src/plan/sceneReview.ts`)، وقياس الحركة (`src/render/motionMeter.ts`).
+7. **المراجعة:** مراجعة كل مشهد بعد تنفيذه باعتماده بالصوت والصورة في سجل «إنتاج المشاهد» (`src/studio/sceneService.ts`؛ بصمة المشهد `src/plan/sceneHash.ts`)، وقياس الحركة (`src/render/motionMeter.ts`).
 8. **النسخة النهائية:** `assertMasterReady` (`src/render/episode.ts`) لا يسمح بها قبل اكتمال الشروط (الفحص، التوثيق، الصوت، التلاوة، الستوري بورد، مراجعة المشاهد). جودة master من `src/render/quality.ts`.
 9. **النشر:** `packageEpisode` (`src/package/package.ts`)، وفحص الآثار `findTraces` (`src/package/traces.ts`)، وتنظيف البيانات الوصفية `cleanMetadata` (`src/render/episode.ts`).
 
@@ -80,7 +80,7 @@
   - `ChannelTab.tsx` و`ChannelBrand.tsx`: إعدادات القناة، ولوحة «أدوات المحرك» (`EnginePanel`).
   - `GuideTab.tsx`: «مرجع الاستوديو» (هذا المرجع).
   - `LabsTab.tsx`: «مختبرات الإنتاج»؛ وفي «بالإسلام» قسم «ستوري بورد · صور» (`app/src/tabs/LabStoryboards.tsx`): الأحدث أولًا، والنسخ السابقة بأزرار، والمقارنة جنبًا إلى جنب، والتكبير (ملء الشاشة و100% و200% والأصل في تبويب جديد)، وزر القرار. ومعاينات الفيديو تحت «المعاينات · فيديو» كما هي.
-- **الخادم** `app/server/api.ts` و`app/server/extra.ts`: يقرأ ويكتب ملفات القناة والحلقات مباشرة (لا قاعدة بيانات)، ويشغّل المهام الطويلة والرندر عبر `bin/bal.mjs` داخل طابور الاستوديو `studioPool` (`startRenderJob`، `startJob`). حفظ القناة يمر بفحص الشكل (ومنه `engineDefaultsIssues`).
+- **الخادم** `app/server/api.ts` ومسارات app/server/routes/ بحسب المسؤولية (D122؛ حفظ القناة في `app/server/routes/channel.ts`، والطابور في `app/server/jobQueue.ts`): يقرأ ويكتب ملفات القناة والحلقات مباشرة (لا قاعدة بيانات)، ويشغّل المهام الطويلة والرندر عبر `bin/bal.mjs` داخل طابور الاستوديو `studioPool` (`startRenderJob`، `startJob`). حفظ القناة يمر بفحص الشكل (ومنه `engineDefaultsIssues`).
 - **الدليل:** `src/channel/guide.ts` يقرأ `docs/balislam/guide.json` وصفحاته فقط (للقراءة، ولا يقبل مسارًا خارجه).
 - مصدر الحقيقة ملفات المستودع؛ الاستوديو يعرضها ويعدّلها، فلا نسختان مختلفتان.
 

@@ -2,7 +2,7 @@ node_modules/
 # رابط node_modules (ليس مجلدًا) لا يُحفظ أيضًا
 node_modules
 .env
-# جلسات المالك على جهازه (D49): بصمات رموز الجلسة فقط، محلية ولا تُرفع أبدًا
+# جلسات المالك على جهازه (D49): بصمات رموز الجلسة فقط، محلية ولا تُرفع أبدًا؛ وسجل الأخطاء .studio/errors.jsonl (D112)
 .studio/
 out/
 renders/
@@ -16,6 +16,8 @@ channels/*/episodes/*/status.json
 channels/*/episodes/*/plan.local.json
 # النسخة الاحتياطية قبل الكتابة الصريحة فوق خطة مصمَّمة (bal plan --force-overwrite-designed): على الجهاز فقط
 channels/*/episodes/*/plan.backup-*.json
+# قفل كتابة الخطة (D110): حفظ الصفحة والشورتس وختم السلسلة تحته؛ محلي ولا يُرفع
+channels/*/episodes/*/plan.json.write.lock
 assets/recitations/**/*.wav
 assets/recitations/**/*.mp3
 assets/sfx/**/*.wav
@@ -50,27 +52,36 @@ channels/*/episodes/*/scene-workflow.v2.json.*.tmp
 
 # فيديوهات المعاينات على Google Drive لا في Git (قرار صاحب المشروع، ٨ نوفمبر ٢٠٢٦):
 # يُحفظ previews/index.json وحده (العنوان والبصمة ورابط Drive). الملفات المتتبَّعة قبل هذا القرار
-# تبقى حتى تنظيف السجل بموافقة صاحب المشروع.
+# تبقى حتى تنظيف السجل بموافقة صاحب المشروع. وD109 (١٢ نوفمبر): أُزيل من التتبّع ما لا يستعمله شيء، والباقي
+# مقفل بقائمة في tests/no-tracked-preview-videos.test.ts، فلا يدخل Git فيديو معاينة جديد ولو بـ git add -f.
 channels/*/episodes/*/previews/*.mp4
 channels/*/episodes/*/previews/history/
+channels/*/episodes/*/previews/*.mov
+channels/*/episodes/*/previews/*.webm
+channels/*/episodes/*/previews/*.mkv
+channels/*/episodes/*/previews/*.m4v
+channels/*/episodes/*/previews/*.MP4
 
 # صندوق ملاحظات المالك (docs/studio/notes-inbox.md): يكتبه الاستوديو محليًا ويُرفع وحده إلى الفرع studio-notes،
 # فلا يُتتبع على main (وإلا عطّل git pull والتحديث). ردود Claude في notes/resolved.json وهي متتبَّعة على main.
 channels/*/episodes/*/notes/inbox.json
 channels/*/episodes/*/notes/*.json.*.tmp
+# الصندوق العام للقناة: «أرسل المشكلة» لخطأ بلا حلقة (D112)، بالقاعدة نفسها
+channels/*/notes/inbox.json
+channels/*/notes/*.json.*.tmp
 
 # حالة الاستوديو المحلية لكل حلقة (لا تُرفع، ولا تمنع زر «حدّث الآن»؛ app/server/update.ts).
 # كلها موقَّعة بمفتاح الجهاز أو مربوطة بملفات محلية لا توجد في Git، فلا معنى لها على نسخة أخرى:
 # - سجل اعتماد المشاهد الموقَّع (src/studio/sceneService.ts: stateFileFor، والقفل serialized، والكتابة الذرية)
 channels/*/episodes/*/scene-production.v1.json
 channels/*/episodes/*/scene-production.v1.json.lock
-# - نسخة السكريبت كما اعتُمد، موقَّعة ومربوطة بجيله في السجل (src/studio/scriptScope.ts، D66)
+# - نسخة السكريبت كما اعتُمد (D66، أُلغيت بـ D76؛ قديمة، يؤرشفها `bal migrate legacy`، D120)
 channels/*/episodes/*/script-approved.v1.json
 channels/*/episodes/*/script-approved.v1.json.*.tmp
-# - سجل المراحل الست القديم الموقَّع (src/workflow/store.ts: ledgerFile، withLock، persist)
+# - سجلات قديمة لا يقرؤها شيء (D120): ينقلها `bal migrate legacy` إلى .studio/legacy-archive/ عند تشغيل الاستوديو؛
+#   تبقى متجاهَلة إن عادت من نسخة قديمة (سجل المراحل الست، واعتماد الصوت المنفصل، ونسخة السكريبت المعتمدة القديمة)
 channels/*/episodes/*/workflow-approvals.json
 channels/*/episodes/*/workflow-approvals.json.lock
-# - اعتماد الصوت مربوط ببايتات voice/*.mp3 المحلية (src/voice/review.ts: voiceReviewFile)
 channels/*/episodes/*/voice-review.json
 # - قفل فهرس المعاينات (مجلد مؤقت؛ src/render/episodePreviews.ts: withPreviewIndexLock)
 channels/*/episodes/*/previews/.preview-index.lock/
@@ -82,8 +93,8 @@ channels/*/episodes/*/storyboard.json
 # - ملفات الكتابة الذرية المؤقتة لكل كاتب في مجلد الحلقة (*.<uuid>.tmp)
 channels/*/episodes/*/*.tmp
 channels/*/episodes/*/**/*.tmp
-# ليست هنا عمدًا (متتبَّعة أو موثَّقة «في Git»): script-signoff.json وreview.json
-# وscene-review.json وpublish.json وnotes/resolved.json. لا تمنع «حدّث الآن» منذ D95: تُحفظ نسخة احتياطية منها وتبقى.
+# ليست هنا عمدًا (متتبَّعة أو موثَّقة «في Git»): review.json وpublish.json وnotes/resolved.json
+# (وscript-signoff.json وscene-review.json القديمان: يؤرشفهما `bal migrate legacy`، D120). لا تمنع «حدّث الآن» منذ D95: تُحفظ نسخة احتياطية منها وتبقى.
 
 # الوصلات التي سمعها المالك في النسخة المجمعة (M6): حالة محلية مربوطة ببصمة التجميع، لا تُرفع
 channels/*/episodes/*/seam-checks.local.json

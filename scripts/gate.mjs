@@ -15,6 +15,7 @@ import { existsSync, lstatSync, mkdtempSync, readFileSync, readdirSync, rmSync, 
 import os from "node:os";
 import path from "node:path";
 import { childEnv } from "./git-env.mjs";
+import { contentOnlyFiles } from "./contentPaths.mjs";
 
 const root = path.resolve(import.meta.dirname, "..");
 const args = process.argv.slice(2);
@@ -149,6 +150,24 @@ if (commit) {
     }
     if (ci.status !== 0) fail("بوابة التسليم: فشل تثبيت الاعتماديات؛ رُفض الدفع.");
   }
+}
+
+// بوابة المحتوى (D101): دفعٌ كل ما لمسته commits مداه ملفات «محتوى مالك» (scripts/contentPaths.mjs) — حفظ
+// الاستوديو الآلي — يمر على فحوص البيانات نفسها لا على اختبارات الكود. القرار بالفرق الفعلي لكل commit في المدى
+// (لا برسالة ولا بمتغير بيئة)، ومشروط بأن بداية المدى سلف للمدفوع. أي ملف آخر = البوابة الكاملة كما هي.
+const contentOnlyFilesRange = (() => {
+  if (!commit || !range || !range.includes("..")) return null;
+  const [from, to] = range.split("..");
+  const files = contentOnlyFiles(root, from, commit, gateEnv());
+  return files && to ? { from, files } : null;
+})();
+if (contentOnlyFilesRange) {
+  console.log(`بوابة التسليم: الدفع محتوى مالك فقط (${contentOnlyFilesRange.files.length} ملف)؛ تعمل بوابة المحتوى (D101).`);
+  CHECKS.splice(0, CHECKS.length,
+    { name: "بوابة المحتوى", cmd: "npx", args: ["tsx", path.join("scripts", "contentGate.mts"), "--base", contentOnlyFilesRange.from, ...contentOnlyFilesRange.files] },
+    // قواعد الهوية والسلاسل والسرد الواحد تقرأ ملفات القنوات نفسها
+    { name: "اختبارات قواعد القنوات", cmd: "npx", args: ["vitest", "run", "tests/identity-approved.test.ts", "tests/series.test.ts", "tests/one-narration.test.ts"] },
+  );
 }
 
 const results = [];

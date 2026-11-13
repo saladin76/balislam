@@ -107,11 +107,15 @@ export type SeriesStamp = {
 };
 
 /** أجزاء شعار كل قناة (باسم الشعار المعتمد لا باسم القناة)، والألوان المحجوزة التي لا تصير لون سلسلة. */
-export const EMBLEM_PARTS: Record<string, { parts: { id: string; nameAr: string }[]; reservedAccents?: string[]; card?: "dark" | "light" }> = {
+/**
+ * reservedAccents: ألوان لا تصير لون سلسلة أبدًا (الفسفوري للفكرة وحدها). signalAccents: ألوان وظيفية في الهوية
+ * (البرتقالي للشطب والتنبيه في زبدة الكتب): تُختار صراحةً فقط، ولا تكون اللون الافتراضي المشتق.
+ */
+export const EMBLEM_PARTS: Record<string, { parts: { id: string; nameAr: string }[]; reservedAccents?: string[]; signalAccents?: string[]; card?: "dark" | "light" }> = {
   mihrab: { parts: [{ id: "arch", nameAr: "قوس المحراب" }, { id: "sun", nameAr: "نقطة الشمس" }, { id: "seal", nameAr: "الختم" }, { id: "star8", nameAr: "النجمة الثمانية" }] },
   "horizon-book": { parts: [{ id: "book", nameAr: "الدفتر المفتوح" }, { id: "hourglass", nameAr: "الساعة الرملية" }, { id: "sun", nameAr: "شمس الغروب" }, { id: "ribbon", nameAr: "شريط التاريخ" }] },
   // الفسفوري للفكرة وحدها («idea-only»): لا يصير لون سلسلة ولا شارة
-  "highlighter-z": { parts: [{ id: "card", nameAr: "بطاقة الكتاب" }, { id: "bar", nameAr: "ضربة القلم" }, { id: "sticky", nameAr: "الورقة اللاصقة" }, { id: "counter", nameAr: "عدّاد الأفكار" }], reservedAccents: ["#E8F542"], card: "light" },
+  "highlighter-z": { parts: [{ id: "card", nameAr: "بطاقة الكتاب" }, { id: "bar", nameAr: "ضربة القلم" }, { id: "sticky", nameAr: "الورقة اللاصقة" }, { id: "counter", nameAr: "عدّاد الأفكار" }], reservedAccents: ["#E8F542"], signalAccents: ["#FF6B4A"], card: "light" },
 };
 
 export const MOTIF_AR: Record<string, string> = { arches: "الأقواس", girih: "النجمة الثمانية (گره)", stars: "النجوم", horizon: "خط الأفق", "ink-lines": "خطوط الحبر", ruled: "سطور الدفتر" };
@@ -208,9 +212,12 @@ export const deriveSeriesIdentity = (channel: ApprovedIdentity & { id?: string }
   const paletteHex0 = a.palette.map((p) => norm(p.hex));
   const lum0 = [...paletteHex0].sort((x, y) => luminance(y) - luminance(x));
   const cardBg = EMBLEM_PARTS[a.emblem]?.card === "light" ? lum0[0]! : lum0[lum0.length - 1]!;
-  const sig = choices.filter((c) => a.signature.map(norm).includes(c));
-  const pool = (sig.length ? sig : choices).filter((c) => contrast(c, cardBg) >= 3);
-  const preferred = [...(pool.length ? pool : choices)].sort((x, y) => hexToHsl(y)[1] - hexToHsl(x)[1] || contrast(y, cardBg) - contrast(x, cardBg))[0]!;
+  // لون الشطب والتنبيه لا يكون الافتراضي (يبقى اختيارًا صريحًا للمالك)
+  const signal = new Set((EMBLEM_PARTS[a.emblem]?.signalAccents ?? []).map(norm));
+  const quiet = choices.filter((c) => !signal.has(c));
+  const sig = quiet.filter((c) => a.signature.map(norm).includes(c));
+  const pool = (sig.length ? sig : quiet.length ? quiet : choices).filter((c) => contrast(c, cardBg) >= 3);
+  const preferred = [...(pool.length ? pool : quiet.length ? quiet : choices)].sort((x, y) => hexToHsl(y)[1] - hexToHsl(x)[1] || contrast(y, cardBg) - contrast(x, cardBg))[0]!;
   const base = wantBase && choices.includes(wantBase) ? wantBase : preferred;
   if (wantBase && wantBase !== base) clamped.push(`اللون ${wantBase} ليس من لوحة القناة المسموحة؛ استُعمل ${base}.`);
   const lw = overrides.accent?.lightness, cw = overrides.accent?.chroma;
@@ -315,7 +322,8 @@ export const validateTemplate = (t: SeriesTemplate, ctx: SeriesContext): string[
   const e: string[] = [];
   for (const st of t.styles ?? []) if (!ctx.styles.includes(st)) e.push(`الأسلوب «${st}» ليس من أساليب القناة.`);
   for (const sh of t.shots ?? []) if (!ctx.templates.includes(sh)) e.push(`القالب «${sh}» ليس من مكتبة القناة.`);
-  if (t.tone && !ctx.tones.includes(t.tone)) e.push(`النبرة «${t.tone}» غير معروفة.`);
+  // grave (D70) is no tone since the first tones were restored: a saved one is read as «no tone», not refused
+  if (t.tone && t.tone !== "grave" && !ctx.tones.includes(t.tone)) e.push(`النبرة «${t.tone}» غير معروفة.`);
   const wpm = t.pacing?.wordsPerMinute;
   if (wpm !== undefined && (wpm < 90 || wpm > 170)) e.push("سرعة الإلقاء بين ٩٠ و١٧٠ كلمة في الدقيقة.");
   const cs = t.pacing?.chapterSeconds;
@@ -358,15 +366,14 @@ export const publishTitle = (pattern: string | undefined, v: { series: string; n
 export const defaultTitlePattern = (kind: SeriesKind) => (kind === "series" ? "{series} | الحلقة {n}: {title}" : "");
 
 /**
- * النبرة الافتراضية لقالب السلسلة: لا نبرة (كما كانت النبرة قبل D70: نبرة الحلقة يختارها المالك في التجهيز، أو نبرة
- * القناة إن حُددت). أُلغي افتراضي «قوي رزين» مع إلغاء D70 (١١ نوفمبر)؛ والسلسلة أو الخطة التي حفظت grave تبقى صالحة
- * ويُحل grave إلى طبقة القناة وحدها (src/voice/tones.ts).
+ * النبرة الافتراضية لقالب السلسلة: لا نبرة (نبرة الحلقة يختارها المالك في التجهيز، أو نبرة القناة إن حُددت).
+ * النبرات هي أول نسخة المُستعادة (١٢ نوفمبر، src/voice/tones.ts)؛ معرّف لا يوجد فيها (grave القديم) = بلا نبرة.
  */
 export const DEFAULT_SERIES_TONE = "";
 /** القالب كما يُختم: نسخة مستقلة، والنبرة كما اختيرت في السلسلة (بلا نبرة = ترث الحلقة نبرتها كالمعتاد) */
 export const effectiveTemplate = (t: SeriesTemplate | undefined): SeriesTemplate => {
   const copy = JSON.parse(JSON.stringify(t ?? {})) as SeriesTemplate;
-  if (!copy.tone) delete copy.tone;
+  if (!copy.tone || copy.tone === "grave") delete copy.tone;
   if (!DEFAULT_SERIES_TONE) return copy;
   return { ...copy, tone: copy.tone || DEFAULT_SERIES_TONE };
 };

@@ -21,7 +21,8 @@ export const shotText = (s: PlanScene): string => {
     case "noor-text":
       return (p.text || "جملة التعليق نفسها، كلمة كلمة وقت نطقها") + (p.subtitle ? ` · ${p.subtitle}` : "");
     case "verse-card":
-      return `${p.reference ?? ""} (نص الآية المكتوب في السكريبت، ينتظر التدقيق الشرعي)`;
+      // بلا النقطة الوسطى بين السورة والآية: بجوار الأرقام العربية تُقرأ صفرًا (D61)
+      return `${(p.reference ?? "").replace(/\s*\u00B7\s*/g, " ")} (نص الآية المكتوب في السكريبت، ينتظر التدقيق الشرعي)`;
     case "symbolic":
       return p.caption ?? "";
     case "timeline":

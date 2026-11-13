@@ -9,8 +9,9 @@ import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { StudioErrorBoundary, crashReport, homeHref } from "../app/src/shell/ErrorBoundary";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 const crashed = (props: Partial<React.ComponentProps<typeof StudioErrorBoundary>> = {}) => {
   const b = new StudioErrorBoundary({ scope: "screen", children: null, ...props });
@@ -24,7 +25,7 @@ describe("ErrorBoundary — no white page (D89)", () => {
     expect(renderToStaticMarkup(<>{b.render()}</>)).toBe("<p>الاستوديو</p>");
   });
 
-  it("the card: Arabic title, the error text to copy, retry (the one filled button), home, copy; nothing cleared", () => {
+  it("the card (D112): Arabic title, «أرسل المشكلة» (the one filled button), retry, home, the error text under «تفاصيل»; nothing cleared", () => {
     const { html } = crashed({ label: "الخطوة ٢ «المشاهد»" });
     const t = text(html);
     expect(t).toContain("الخطوة ٢ «المشاهد» — تعذّر العرض");
@@ -32,9 +33,10 @@ describe("ErrorBoundary — no white page (D89)", () => {
     expect(t).toContain("لم يُمسح شيء ولم يُحذف");
     expect(html).toContain("Rendered more hooks than during the previous render.");
     expect(html).toContain("SentencesPanel");
-    expect(html).toMatch(/<textarea[^>]*readOnly|<textarea[^>]*readonly/i);
+    expect(html).toContain("<summary>تفاصيل</summary>");
     const buttons = [...html.matchAll(/<button[^>]*>([^<]*)<\/button>/g)].map((m) => m[1]);
-    expect(buttons).toEqual(["أعد المحاولة", "ارجع إلى الرئيسية", "انسخ نص الخطأ"]);
+    expect(buttons).toEqual(["أرسل المشكلة", "أعد المحاولة", "ارجع إلى الرئيسية"]);
+    expect(html).toMatch(/<button[^>]*btn primary[^>]*>أرسل المشكلة/);
     expect(html.match(/btn primary/g)).toHaveLength(1);
     expect(html).toContain('role="alert"');
   });

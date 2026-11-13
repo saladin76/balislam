@@ -160,6 +160,10 @@ table.stats td.bad { color: var(--warn); font-weight: 600; }
 .empty-state h2 { font-family: var(--f-head); color: var(--ink); margin: 0; }
 .toast { position: fixed; bottom: 18px; left: 50%; transform: translateX(-50%); background: var(--ink); color: var(--panel); padding: 8px 18px; border-radius: 999px; z-index: 60; font-size: 13px; }
 .toast.err { background: var(--err); }
+/* KI-009: the server's own technical words, folded under «تفاصيل» beside the Arabic message */
+.owner-details { display: block; margin-top: 4px; font-size: 12px; opacity: .85; }
+.owner-details > summary { cursor: pointer; display: inline; text-decoration: underline dotted; }
+.owner-details > code { display: block; margin-top: 4px; white-space: pre-wrap; overflow-wrap: anywhere; max-height: 9em; overflow: auto; font-size: 12px; text-align: left; }
 
 /* الرئيسية */
 .home { overflow: auto; padding: 22px 26px 60px; display: flex; flex-direction: column; gap: 22px; }
@@ -526,7 +530,7 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .sb-previews { display: grid; gap: 10px; padding: 16px 0 8px; border-bottom: 1px solid var(--line, #ddd); }
 .sb-previews h3 { margin: 0; }
 .sb-reviews { margin: 0; padding-inline-start: 18px; display: grid; gap: 8px; }
-.sb-previews-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); gap: 16px; }
+.sb-previews-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 420px), 1fr)); gap: 16px; }
 .sb-preview { margin: 0; display: grid; gap: 6px; min-width: 0; }
 .sb-preview video { width: 100%; aspect-ratio: 16 / 9; background: #000; border-radius: 8px; direction: ltr; }
 .sb-preview figcaption { display: grid; gap: 2px; }
@@ -830,3 +834,11 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .md-media video { width: 100%; max-width: 760px; border-radius: 8px; background: #000; }
 .md-media figcaption { font-size: 0.88em; opacity: 0.8; }
 .treviews-strips summary { cursor: pointer; font-weight: 700; margin: 1em 0 0.5em; }
+/* zubdat D-18: the selected row's badges stay small chips, and the title keeps one or two lines */
+.scene-item .badge { white-space: nowrap; align-self: start; line-height: 1.6; }
+.scene-item .t { min-width: 0; overflow-wrap: anywhere; }
+/* QA 12 Nov (390px): a segmented control wraps on a phone instead of pushing a choice off screen */
+@media (max-width: 600px) {
+  .seg { display: flex; flex-wrap: wrap; max-width: 100%; }
+  .seg button { flex: 1 1 auto; }
+}

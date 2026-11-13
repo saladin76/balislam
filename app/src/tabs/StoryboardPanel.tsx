@@ -15,12 +15,13 @@ import { langPack } from "../../../src/i18n/packs";
 import { SceneComp } from "../ui/Preview";
 import { api, type AfterPreparationWhat, type CloudPreviewJob, type EpisodePreview, type LongJob, type ReviewItem, type StoryboardInfo } from "../api";
 import { episodeLength } from "../../../src/plan/episodeLength";
-import { duration, lengthSource, num, sceneName, verseRef } from "../ui/format";
-import { BoardViewer, type BoardShot } from "./BoardViewer";
+import { duration, isTechnicalNote, lengthSource, num, ownerPreviewText, sceneName, verseRef } from "../ui/format";
+import { BOARD_APPROVED_TITLE, BoardViewer, boardsApprovedText, type BoardShot } from "./BoardViewer";
 import config from "../../../config.json";
 import { Hint, More } from "../shell/Screen";
 import { AfterPreparationList, BoardAuditLog } from "./BoardAuditLog";
 import "../shell/screens-s12.css";
+import { OwnerText } from "../ui/OwnerText";
 
 const ar = (n: number) => num(n);
 const fmtAr = (sec: number) => duration(Math.floor(sec));
@@ -97,8 +98,10 @@ export const StoryboardPanel: React.FC<{
   refreshKey?: number;
   /** 11 Nov: scenes re-opened by the latest «تحديث بعد التجهيز» (from the ledger), and the way to each in step ٢. */
   afterPreparation?: { id: string; what: AfterPreparationWhat[] }[];
+  /** QA dafatir M5: the latest change after «اعتمد التجهيز» changed the script only (no scene re-opened). */
+  afterPreparationScriptOnly?: boolean;
   onOpenScene?: (id: string) => void;
-}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, onSigned, refreshKey, afterPreparation, onOpenScene }) => {
+}> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, refreshKey, afterPreparation, afterPreparationScriptOnly, onOpenScene }) => {
   const [viewing, setViewing] = useState<number | null>(null);
   const [citations, setCitations] = useState<ReviewItem[] | null>(null);
   useEffect(() => {
@@ -108,10 +111,7 @@ export const StoryboardPanel: React.FC<{
   const [info, setInfo] = useState<StoryboardInfo | null>(null);
   const [job, setJob] = useState<LongJob | null>(null);
   const [err, setErr] = useState("");
-  const [busy, setBusy] = useState(false);
   const [reportBusy, setReportBusy] = useState(false);
-  const [visualReviewNote, setVisualReviewNote] = useState("");
-  const [visualReviewed, setVisualReviewed] = useState(false);
   const [details, setDetails] = useState(false);
   const [quranStatus, setQuranStatus] = useState<{ missing: string[]; existing: string[]; invalid: { ref: string; reason: string }[] } | null>(null);
   const [quranBusy, setQuranBusy] = useState(false);
@@ -204,29 +204,8 @@ export const StoryboardPanel: React.FC<{
     />
   );
 
-  useEffect(() => {
-    setVisualReviewNote("");
-    setVisualReviewed(false);
-  }, [episodeId, plan.updatedAt]);
   const st = info?.status;
   const motion = info?.motion;
-  const act = async (action: "approve" | "revoke") => {
-    const auditNote = visualReviewNote.trim();
-    if (action === "approve" && !visualReviewed) {
-      setErr("الاعتماد هنا للـStoryboard المرئي فقط: افتح اللوحات كلها، ثم أكّد مشاهدتها (الملاحظة اختيارية، سطر واحد).");
-      return;
-    }
-    setBusy(true);
-    setErr("");
-    try {
-      setInfo(await api.setStoryboard(episodeId, action, action === "approve" ? auditNote : undefined));
-      onSigned?.();
-    } catch (e) {
-      setErr((e as Error).message);
-    } finally {
-      setBusy(false);
-    }
-  };
   const measure = async () => {
     setErr("");
     try {
@@ -269,9 +248,7 @@ export const StoryboardPanel: React.FC<{
   const noVoice = !Object.keys(media.voice).length;
 
   const auditLog = (
-    <BoardAuditLog st={st} channelId={channel.id} episodeId={episodeId} note={visualReviewNote} onNote={setVisualReviewNote}
-      reviewed={visualReviewed} onReviewed={setVisualReviewed} busy={busy} onAct={(a) => void act(a)}
-      error={undefined} />
+    <BoardAuditLog st={st} channelId={channel.id} episodeId={episodeId} />
   );
   // شاشة واحدة: شبكة اللوحات؛ وملاحظة مراجعتها تُكتب بجوار «اعتمد التجهيز» في عمود الحلقة (D40)،
   // وكل ما سواها (سجل مراجعة اللوحات، الآيات، الفحص الفني، المعاينات) في «أدوات وتفاصيل».
@@ -281,13 +258,14 @@ export const StoryboardPanel: React.FC<{
         <Hint>راجع كل لوحة: صورتها ونص تعليقها.</Hint>
         <span className="s12-num" title={lengthSource(length)}>
           {arabicCountAr(sceneCount, SCENES)} — {duration(length.seconds)} <span className="s12-soft">({lengthSource(length)})</span>
-          {st && st.approved ? <span className="s12-soft"> — معتمد {ar(st.approved)}</span> : null}
+          {/* KI-015: عدد اللوحات المعتمدة في التجهيز، لا عدد المشاهد المعتمدة في الخطوة ٢ */}
+          {st && st.approved ? <span className="s12-soft"> — {boardsApprovedText(st.approved)}</span> : null}
         </span>
-        {!info && err ? <p className="s12-alert" role="alert">{err}</p> : null}
+        {!info && err ? <p className="s12-alert" role="alert"><OwnerText text={err} /></p> : null}
       </header>
 
       {/* 11 Nov: what changed after «اعتمد التجهيز», informative; each scene opens in step ٢ (no re-approval here) */}
-      {afterPreparation?.length && onOpenScene ? <AfterPreparationList scenes={afterPreparation} name={(id) => sceneName(order, id)} onOpenScene={onOpenScene} /> : null}
+      {(afterPreparation?.length || afterPreparationScriptOnly) && onOpenScene ? <AfterPreparationList scenes={afterPreparation ?? []} scriptOnly={afterPreparationScriptOnly} name={(id) => sceneName(order, id)} onOpenScene={onOpenScene} /> : null}
 
       {rows.map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter s12-chapter">
@@ -307,7 +285,7 @@ export const StoryboardPanel: React.FC<{
                   <div className="sb-txt s12-txt">
                     <p className="s12-shot-meta">
                       <span className="s12-id">{sceneName(order, s.id)}</span>
-                      {state === "approved" ? <span className="s12-mark ok" title="معتمد">معتمد</span> : state === "changed" ? <span className="s12-mark warn" title="تغيّر بعد الاعتماد">تغيّر</span> : state === "new" && st?.approved ? <span className="s12-mark warn" title="أُضيفت بعد الاعتماد">جديدة</span> : null}
+                      {state === "approved" ? <span className="s12-mark ok" title={BOARD_APPROVED_TITLE}>لوحة معتمدة</span> : state === "changed" ? <span className="s12-mark warn" title="تغيّر بعد الاعتماد">تغيّر</span> : state === "new" && st?.approved ? <span className="s12-mark warn" title="أُضيفت بعد الاعتماد">جديدة</span> : null}
                       <span className="spacer" />
                       <span className="s12-time">{fmtAr(from / fps)}</span>
                     </p>
@@ -362,10 +340,10 @@ export const StoryboardPanel: React.FC<{
       ) : null}
 
       {/* فيديوهات الحلقة ظاهرة دائمًا تحت اللوحات، لا مطوية: هي ما يُراجَع */}
-      <Previews episodeId={episodeId} />
+      <Previews episodeId={episodeId} order={order} />
 
       <More>
-        {err ? <p className="s12-alert" role="alert">{err}</p> : null}
+        {err ? <p className="s12-alert" role="alert"><OwnerText text={err} /></p> : null}
         {job?.status === "error" ? <p className="s12-alert">المهمة فشلت؛ لم تُعتمد نتيجة جديدة. {job.error || ""}</p> : null}
 
         <section className="s12-tool" aria-label="عرض اللوحات">
@@ -380,7 +358,7 @@ export const StoryboardPanel: React.FC<{
 
         <section className="s12-tool sb-quran-text-source" aria-label="نصوص الآيات">
           <h3 className="s12-h">نصوص الآيات</h3>
-          <p className="s12-soft">تُكتب الآية داخل السكريبت: [آية: النجم 39 | النص بالتشكيل]. المقارنة تعرض الفروق ولا تعدّل النص ولا تعتمد شيئًا.</p>
+          <p className="s12-soft">تُكتب الآية داخل السكريبت: [آية: النجم ٣٩ | النص بالتشكيل]. المقارنة تعرض الفروق ولا تعدّل النص ولا تعتمد شيئًا.</p>
           {quranStatus && <p role="status">موجودة محليًا: {ar(quranStatus.existing.length)} — ناقصة: {ar(quranStatus.missing.length)} — غير صالحة: {ar(quranStatus.invalid.length)}</p>}
           {!!quranStatus?.missing.length && <p className="s12-soft">الناقص: {quranStatus.missing.map(verseRef).join("، ")}</p>}
           {!!quranStatus?.invalid.length && <p className="s12-soft">مراجع تحتاج تصحيحًا من المصدر: {quranStatus.invalid.map((x) => verseRef(x.ref) + " (" + x.reason + ")").join("، ")}</p>}
@@ -394,9 +372,9 @@ export const StoryboardPanel: React.FC<{
             </button>
           </div>
           {quranAudit && <div role="status" className="s12-audit">
-            <p>بيئة مرجع المصحف: {quranAudit.environment}. المطابقة التقنية ليست اعتمادًا شرعيًا.</p>
+            <p>{MUSHAF_ENV_AR[quranAudit.environment] ?? "المقارنة بنص السكريبت المحلي."} المطابقة التقنية ليست اعتمادًا شرعيًا.</p>
             {quranAudit.audits.map((a) => <div key={a.key}>
-              <strong>{verseRef(a.key)}: {a.status === "match" ? "مطابق تقنيًا — يحتاج قرار المراجع" : a.status === "differs" ? "توجد فروق" : a.reason ?? a.status}</strong>
+              <strong>{verseRef(a.key)}: {a.status === "match" ? "مطابق تقنيًا — يحتاج قرار المراجع" : a.status === "differs" ? "توجد فروق" : a.reason ?? AUDIT_STATUS_AR[a.status] ?? "لم يُقارَن"}</strong>
               {!a.numbers.ok && <p className="warn">{a.numbers.notes.join("؛ ")}</p>}
               {a.ops.length > 0 && <ul>{a.ops.map((op, i) => <li key={i}>
                 الموضع {ar(op.at + 1)}، {op.cls}، {op.op}: في السكريبت «{op.shown || "∅"}»، في المصحف «{op.ref || "∅"}»
@@ -430,6 +408,15 @@ export const StoryboardPanel: React.FC<{
   );
 };
 
+/** «مقارنة مع المصحف» in Arabic (QA 12 Nov: «local-script-evidence-only»، «pending» were shown as they are). */
+const MUSHAF_ENV_AR: Record<string, string> = {
+  "local-script-evidence-only": "لا نسخة مرجعية من المصحف على هذا الجهاز؛ عُرض نص السكريبت وحده للمراجعة.",
+};
+const AUDIT_STATUS_AR: Record<string, string> = {
+  pending: "لم يُقارَن بعد بنسخة مرجعية — يحتاج مراجعتك",
+  missing: "لا نص آية مكتوب في السكريبت",
+  failed: "تعذّرت المقارنة",
+};
 /** ملفات المراجعة والاعتماد للحلقة (reviews/): تقارير داخلية تُفتح في نافذة مستقلة، لا تُنشر. */
 const Reviews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
   const [files, setFiles] = useState<{ name: string; title: string; note: string; mtime: number }[]>([]);
@@ -481,7 +468,7 @@ const CloudDownload: React.FC<{ episodeId: string; file: EpisodePreview; onDone:
 };
 
 /** معاينات الحلقة المرفوعة للمراجعة (previews/): صامتة وخفيفة، لا تُنشر. */
-const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
+const Previews: React.FC<{ episodeId: string; order: string[] }> = ({ episodeId, order }) => {
   const [files, setFiles] = useState<EpisodePreview[]>([]);
   const [auto, setAuto] = useState(false);
   const [tick, setTick] = useState(0);
@@ -505,9 +492,11 @@ const Previews: React.FC<{ episodeId: string }> = ({ episodeId }) => {
                   {f.driveUrl ? <a className="btn small" href={f.driveUrl} target="_blank" rel="noreferrer">افتحه على Google Drive</a> : null}
                 </div>}
             <figcaption>
-              <b>{f.title}</b>
+              <b title={f.title}>{ownerPreviewText(f.title, order)}</b>
               <span className="help">رفع رقم {ar(f.version)}{f.updatedAt ? ` — ${new Date(f.updatedAt).toLocaleString("ar-EG", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span>
-              {f.note ? <span className="help">{f.note}</span> : null}
+              {f.note ? (isTechnicalNote(f.note)
+                ? <details className="help"><summary>تفاصيل</summary><span dir="auto">{f.note}</span></details>
+                : <span className="help">{ownerPreviewText(f.note, order)}</span>) : null}
             </figcaption>
           </figure>
         ))}

@@ -73,11 +73,11 @@ describe("عزل المكتبة: قالب السلسلة من مكتبة قنا�
     const b = ctxFor("balislam");
     expect(validateSeries(S({ template: { styles: ["doc-plate"] } }), [], b).join()).toContain("أساليب القناة");
   });
-  it("القالب بلا نبرة افتراضيًا كما قبل D70 (أُلغي «قوي رزين»)، وgrave المحفوظ يبقى صالحًا ولا يُعرض للاختيار", () => {
+  it("القالب بلا نبرة افتراضيًا، وgrave المحفوظ يُقرأ «بلا نبرة» (أول نسخة من النبرات) ولا يُعرض للاختيار", () => {
     expect(DEFAULT_SERIES_TONE).toBe("");
     expect(effectiveTemplate({}).tone).toBeUndefined();
     expect("tone" in effectiveTemplate({ tone: "" })).toBe(false);
-    expect(effectiveTemplate({ tone: "grave" }).tone).toBe("grave");
+    expect("tone" in effectiveTemplate({ tone: "grave" })).toBe(false);
     expect(toneIds as string[]).not.toContain("grave");
     expect(effectiveTemplate({ tone: "documentary" }).tone).toBe("documentary");
   });
@@ -153,7 +153,7 @@ describe("الختم وحزمة النشر", () => {
     const first = withSeriesStamp<P>(p0, null, st);
     expect(first.series).toBe(st);
     expect(first.tone).toBeUndefined();
-    expect(withSeriesStamp<P>(p0, null, stampSeries({ ...s, template: { ...s.template, tone: "grave" } }, "balislam", 1)).tone).toBe("grave");
+    expect(withSeriesStamp<P>(p0, null, stampSeries({ ...s, template: { ...s.template, tone: "grave" } }, "balislam", 1)).tone).toBeUndefined();
     const later = stampSeries({ ...s, name: "اسم جديد" }, "balislam", 1);
     expect(withSeriesStamp<P>(p0, first, later).series?.name).toBe("ليالي رمضان");
     const old = withSeriesStamp<P>(p0, p0, later);
@@ -198,7 +198,7 @@ describe("الحفظ على القرص: «عام» للقائم، وختم ال�
   beforeAll(() => {
     for (const k of ENV) saved[k] = process.env[k];
     tmp = mkdtempSync(path.join(os.tmpdir(), "bal-series-"));
-    for (const ch of CHANNELS) cpSync(path.join("channels", ch), path.join(tmp, ch), { recursive: true, filter: (s) => !/[\\/]episodes([\\/]|$)/.test(s) });
+    for (const ch of CHANNELS) cpSync(path.join("channels", ch), path.join(tmp, ch), { recursive: true, filter: (s) => !/[\\/](episodes|series)([\\/]|$)/.test(s) });
     // one existing episode with no series file: it is in «عام»
     const ep = path.join(tmp, "balislam", "episodes", "001-old");
     mkdirSync(ep, { recursive: true });

@@ -5,11 +5,19 @@ import { parseCameraPlan, parseCameraPlanLines, parsePoseTimeline } from "./dire
 import { lightingIssues } from "./lighting";
 import { transitionIssues } from "./transitions";
 import type { Plan } from "./types";
+import { shotWordPlanIssues } from "./shotWords";
 import { langPack, langPacks } from "../i18n/packs";
 import { isCuratedBeat, isDrawable, needsElement, parseBeats } from "./beats";
 import { elementExclusion, excludeReasonAr, figuresAllowed, setExclusion, templateExclusion, type LibraryRules } from "../channel/library";
 
-export type PlanIssue = { level: "error" | "warning"; sceneId: string; message: string };
+export type PlanIssue = {
+  level: "error" | "warning"; sceneId: string; message: string;
+  /**
+   * KI-054: an error the final file refuses that is known from the plan itself (a plate with no picture, something not
+   * in the channel's library). `earlyPlanErrors` says it in step ١ «قبل أن تعتمد», per scene. No gate reads this field.
+   */
+  early?: true;
+};
 
 /**
  * فحص الخطة قبل الرندر النهائي: ما لا يجوز نشره (حديث بلا نص، آية بنص مؤقت)
@@ -23,7 +31,7 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
   // مكتبة القناة: ما ليس منها خطأ يمنع النسخة النهائية (لا خلط بين القنوات)
   const lib: LibraryRules | null = channel?.rules ? { id: channel.id, rules: { faces: Boolean(channel.rules.faces), quran: Boolean(channel.rules.quran), hadith: Boolean(channel.rules.hadith) }, library: channel.library } : null;
   const notOurs = (sceneId: string, what: string, why: keyof typeof excludeReasonAr | null) => {
-    if (lib && why) out.push({ level: "error", sceneId, message: `${what} ليس من مكتبة هذه القناة (${excludeReasonAr[why]}).` });
+    if (lib && why) out.push({ level: "error", sceneId, message: `${what} ليس من مكتبة هذه القناة (${excludeReasonAr[why]}).`, early: true });
   };
   if (plan.lang && langPacks[plan.lang] && !langPack(plan.lang).ready)
     out.push({ level: "error", sceneId: "-", message: `لغة «${langPack(plan.lang).nameAr}» في مرحلة التجهيز: تخطيط القوالب من اليسار لليمين لم يُفعَّل بعد، فلا تخرج منها نسخة نهائية.` });
@@ -122,10 +130,20 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         if (empty.length) out.push({ level: "warning", sceneId: s.id, message: `${NEEDS_ELEMENT}: ${empty.join("، ")} — تظهر الكلمة بلا رسمة. إن كان للمعنى رسمة تخدمه فصمّم عنصرًا جديدًا بهوية القناة وأضفه لمكتبتها وقائمة المعاني؛ ولا تضع عنصرًا قريبًا أو عامًّا.` });
       }
       if (s.template === "doc-plate" && !p.image?.trim())
-        out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد." });
+        out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد.", early: true });
       if (s.backdrop && !hasElement(s.backdrop)) out.push({ level: "warning", sceneId: s.id, message: `الخلفية «${s.backdrop}» غير موجودة.` });
     }
   // Isolated policy review: never infer an approval from a creative heuristic.
   out.push(...channelProductionIssues(plan, channel));
+  // اللقطات المصمَّمة على نص سابق (D-5، M4): تنبيه واضح، والقالب يعرض الكلمات وحدها بدل الرسم الخاطئ
+  out.push(...shotWordPlanIssues(plan, (channel as { name?: string } | undefined)?.name));
   return out;
 };
+
+/**
+ * KI-054 (D121): the plan errors that stop «اصنع النسخة النهائية» and are known from the plan from the start, per
+ * scene, for step ١ «قبل أن تعتمد» and the preparation read. The same issues as `planIssues` (nothing is added or
+ * removed there): the Master gate still refuses them exactly as before; here they are only said earlier.
+ */
+export const earlyPlanErrors = (plan: Plan, channel?: Parameters<typeof planIssues>[1]): { scene: string; message: string }[] =>
+  planIssues(plan, channel).filter((i) => i.level === "error" && i.early && i.sceneId !== "-").map((i) => ({ scene: i.sceneId, message: i.message }));

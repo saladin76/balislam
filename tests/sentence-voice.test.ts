@@ -5,10 +5,11 @@
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { encodeWav } from "../src/remotion/dafatir/audio/compose";
 import type { ElevenLabsClient } from "../src/voice/elevenlabs";
 import type { Plan } from "../src/plan/types";
+import { heavyTimeout } from "./helpers/heavyTimeout";
 import {
   addSentenceAfter, cutPoints, deleteSentence, mergeWithNext, reconcileScene, sceneNarration, sentencesFor, splitNarration, splitSentence,
 } from "../src/voice/sentences";
@@ -172,7 +173,8 @@ describe("أفعال الجمل تحفظ المعرّفات والترتيب (د
   });
 });
 
-describe("على القرص: المالك على جهازه، القص، التوليد، التركيب", () => {
+// KI-059: each test imports the voice modules and cuts real audio; under load the 5 s default was exceeded. Same checks.
+describe("على القرص: المالك على جهازه، القص، التوليد، التركيب", { timeout: heavyTimeout(5_000) }, () => {
   beforeEach(() => { process.env.BAL_CHANNEL = "balislam"; freshEpisode(); });
 
   it("كل فعل للمالك على جهازه وحده، والقراءة لا", async () => {
@@ -260,6 +262,33 @@ describe("على القرص: المالك على جهازه، القص، الت�
     expect(sent).toHaveLength(2);
     expect(sentencesDoc().scenes["c1-s1"].sentences[0].audio).toEqual(da.audio);
     expect(again.read.scenes[0]!.rows[1]!.takes).toBe(2);
+  }, 60_000);
+
+  it("D110: توقيت جملة يتجاوز ملفها قليلًا يُحصر عند التركيب، ويظهر في صفها «التوقيت ضُبط قليلًا»", async () => {
+    writeOldSceneAudio(0.5);
+    const sv = await import("../src/voice/sentenceVoice");
+    const init = await sv.sentenceAction("987", { action: "init", sceneId: "c1-s1" });
+    // a fake client (no paid voice): one take for the second sentence
+    await sv.sentenceAction("987", { action: "generate", id: init.read.scenes[0]!.rows[1]!.id }, { client: fakeClient([]), testOnlySkipApprovalGates: true });
+    const file = path.join(EP_DIR(), "voice", "sentences.json");
+    const doc = sentencesDoc();
+    const b = doc.scenes["c1-s1"].sentences[1];
+    // the length the stitcher decodes (not the duration stored at generation)
+    const { ffmpegDuration } = await import("../src/voice/timingCheck");
+    const decoded = await ffmpegDuration(path.join(EP_DIR(), "voice", "sentences", b.audio.file), 44100);
+    // 60 ms past the decoded file: an encoder-size overshoot (≤ 150 ms), clamped with a note, never refused
+    b.audio.words[b.audio.words.length - 1].end = decoded + 0.06;
+    writeFileSync(file, JSON.stringify(doc, null, 2));
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const r = await sv.sentenceAction("987", { action: "pause", id: b.id, ms: 450 });
+    warn.mockRestore();
+    expect(r.composed).toMatchObject({ sceneId: "c1-s1", composed: true });
+    const clamped = index()["c1-s1"].sentences.clamped;
+    expect(Object.keys(clamped)).toEqual([b.id]);
+    expect(clamped[b.id]).toBeGreaterThanOrEqual(55);
+    expect(clamped[b.id]).toBeLessThanOrEqual(65);
+    const rows = (await sv.readSentences("987")).scenes[0]!.rows;
+    expect(rows.map((x) => x.timingClamped === null)).toEqual([true, false]);
   }, 60_000);
 
   it("التشكيل تحت الحد يوقف توليد الجملة برسالة واضحة، ولا طلب", async () => {

@@ -1,5 +1,7 @@
 import { designedScenes } from "../../src/plan/designed";
 import type { Plan } from "../../src/plan/types";
+import { arDigits, sceneNames } from "../../src/i18n/sceneNames";
+import { SCENES, countAr } from "../../src/i18n/count";
 
 /** رد الخادم على حفظ السكريبت (PUT /script). */
 export type ScriptSaveReply = {
@@ -14,13 +16,14 @@ export const DESIGNED_PLAN_KEPT = "حُفظ السكريبت. الخطة لم ت
  * رسالة واحدة قصيرة بعد حفظ السكريبت. على خطة مصمَّمة تُذكر المشاهد التي اختلف نصها عن السكريبت
  * (وأسطر السكريبت التي لا مشهد لها) حتى لا يفترق النص عن الخطة بصمت.
  */
-export const scriptSaveMessage = (r: ScriptSaveReply): { msg: string; warn: boolean } => {
+export const scriptSaveMessage = (r: ScriptSaveReply, order: string[] = []): { msg: string; warn: boolean } => {
   if (!r.planUnchanged) return { msg: "حُفظ السكريبت وتحدّثت المشاهد مع إبقاء تعديلاتك", warn: false };
   const ids = r.divergence?.scenes.map((s) => s.id) ?? [];
   const lines = r.divergence?.unplaced.map((u) => u.line) ?? [];
   const parts = [DESIGNED_PLAN_KEPT];
-  if (ids.length) parts.push(`مشاهد نصها في السكريبت يختلف عن الخطة: ${ids.slice(0, 8).join("، ")}${ids.length > 8 ? ` و${ids.length - 8} غيرها` : ""}.`);
-  if (lines.length) parts.push(`نص في السكريبت بلا مشهد (السطر ${lines.slice(0, 6).join("، ")}${lines.length > 6 ? "…" : ""}).`);
+  // QA 12 Nov: scenes by their number («المشهد ٥»), never «c1-s5»; Arabic-Indic digits.
+  if (ids.length) parts.push(`مشاهد نصها في السكريبت يختلف عن الخطة: ${order.length ? sceneNames(order, ids, 8) : countAr(ids.length, SCENES)}${order.length && ids.length > 8 ? ` و${arDigits(String(ids.length - 8))} غيرها` : ""}.`);
+  if (lines.length) parts.push(`نص في السكريبت بلا مشهد (السطر ${arDigits(lines.slice(0, 6).join("، "))}${lines.length > 6 ? "…" : ""}).`);
   return { msg: parts.join(" "), warn: ids.length + lines.length > 0 };
 };
 
@@ -32,6 +35,7 @@ export const confirmRegenerate = (episode: string, plan: Plan | null, ask: (mess
   { overwriteDesigned?: true; confirmEpisode?: string } | null => {
   const n = designedScenes(plan).length;
   if (!n) return {};
-  const typed = ask(`ستُمحى ${n} مشهدًا مصمَّمًا في الحلقة ${episode} وتُستبدل بمشاهد عامة من القالب. تُحفظ نسخة احتياطية من الخطة أولًا.\nللمتابعة اكتب رقم الحلقة (${episode}):`);
-  return typed?.trim() === episode ? { overwriteDesigned: true, confirmEpisode: episode } : null;
+  const typed = ask(`ستُمحى المشاهد المصمَّمة (${countAr(n, SCENES)}) في الحلقة ${arDigits(episode)} وتُستبدل بمشاهد عامة من القالب. تُحفظ نسخة احتياطية من الخطة أولًا.\nللمتابعة اكتب رقم الحلقة (${arDigits(episode)}):`);
+  const latin = (typed ?? "").trim().replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+  return latin === episode ? { overwriteDesigned: true, confirmEpisode: episode } : null;
 };

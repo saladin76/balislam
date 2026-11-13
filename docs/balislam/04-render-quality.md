@@ -11,7 +11,7 @@
 
 ## طابور الرندر وإدارة الذاكرة (الأمران 009–010)
 
-**أين:** `src/render/pool.ts` (`RenderPool`)، وطابور الاستوديو `studioPool` في `app/server/extra.ts`، والأمر `npx bal -c balislam render-batch <تكوين…> --out <مجلد>` في `src/cli/index.ts`.
+**أين:** `src/render/pool.ts` (`RenderPool`)، وطابور الاستوديو `studioPool` في `app/server/jobQueue.ts`، والأمر `npx bal -c balislam render-batch <تكوين…> --out <مجلد>` في `src/cli/index.ts`.
 
 | القدرة | التنفيذ |
 | --- | --- |
@@ -22,7 +22,7 @@
 | إيقاف نظيف | كل مهمة في مجموعة عمليات (`processTree`، `treeRssMB`)، فلا يبقى متصفح يتيم |
 | الاستعادة | السجل على القرص؛ بعد إعادة تشغيل الاستوديو تُستعاد المنتظرة والمنقطعة وتوقف اليتيمة، ولا تُعاد المنتهية ولا يتلف ناتجها |
 | إعادة الفاشل وحده | `render-batch --retry` |
-| الإلغاء | زر في الاستوديو (مسار الإلغاء في `app/server/extra.ts`)، وCtrl-C في `render-batch` |
+| الإلغاء | زر في الاستوديو (مسار الإلغاء في `app/server/routes/jobs.ts`)، وCtrl-C في `render-batch` |
 
 **مهم:** رندر الاستوديو يشغّل `bin/bal.mjs render` داخل `studioPool` (`startRenderJob`). تشغيل `npx bal render` من الطرفية مباشرة لا يمر بالطابور؛ للرندر المتعدد استعمل `render-batch`.
 **الاختبارات:** `tests/render-pool.test.ts` (بعمليات حقيقية؛ اختبار الاستعادة معزول عن رندرات الجهاز الأخرى بـ`foreign: () => []`).
@@ -38,7 +38,7 @@
 
 | الفحص | الموضع |
 | --- | --- |
-| مراجعة كل مشهد بعد تنفيذه (المعايير الثلاثة) | `src/plan/sceneReview.ts` (`sceneHash`، `sceneReviewItems`، `setSceneReview`)، و`npx bal -c balislam scenes-review <الحلقة>`، والقرار في `scene-review.json` |
+| مراجعة كل مشهد بعد تنفيذه (المعايير الثلاثة) | اعتماد كل مشهد بالصوت والصورة في «٢ المشاهد» (`src/studio/sceneService.ts`)، وبصمة المشهد `sceneHash` (`src/plan/sceneHash.ts`). سجل المراجعة القديم وأمره حُذفا (D120) |
 | قياس الحركة | `measureMotion` (`src/render/motionMeter.ts`)، و`npx bal motion <ملف>`؛ والسكون المقصود مستثنى (`intendedStillness` في `src/render/stillness.ts`): بطاقة الآية، وتمهيدها (أي جملة تسبق بطاقة الآية مباشرة وتنتهي بنقطتين، في أي قالب)، وكلمة ذكر الله ±0.25 ث، والدعاء المقتبس «…» الذي يبدأ بـ«اللهم/ربنا/رب/ربي» من أوله إلى آخره |
 | قياس الستوري بورد | `measureStoryboardMotion` (`src/render/storyboardMotion.ts`) |
 | شروط النسخة النهائية | `assertMasterReady` (`src/render/episode.ts`) |
@@ -49,7 +49,7 @@
 - **بوابة التسليم:** `.githooks/pre-push` ← `scripts/gate.mjs --commit <sha> --range <مدى>`: نسخة مؤقتة منفصلة من الـcommit المدفوع، ثم `tsc --noEmit` و`vitest run` كاملين برموز خروجهما الحقيقية، ثم تزامن التوثيق (`scripts/docs-sync.mjs`). أي فشل يرفض الدفع. تُثبَّت بـ`npm install` (`scripts/install-hooks.mjs`).
 - **لا تُفحص نتيجة اختبار عبر أنبوب يخفي رمز الخروج** (`| grep`، `| tail`) قبل قرار دفع.
 - **الحماية البعيدة:** حماية الفروع وGitHub Actions غير متاحة لهذا المستودع (خاص على خطة مجانية، وActions متوقفة بسبب الفوترة)، فالبوابة المحلية هي خط الدفاع.
-- اختبارات «بالإسلام» الأساسية: `tests/engine-permanent.test.tsx`، `tests/transitions.test.tsx`، `tests/lighting.test.ts`، `tests/lighting-support.test.ts`، `tests/camera-composed.test.ts`، `tests/character-motion.test.ts`، `tests/figure-view.test.ts`، `tests/illus-direction.test.ts`، `tests/dua-board.test.ts`، `tests/no-unfit-element.test.ts`، `tests/identity-approved.test.ts`، `tests/master-gates.test.ts`، `tests/scene-review.test.ts`، `tests/stillness-merge.test.ts`، `tests/stillness-dua.test.ts`، `tests/dua-board-sacred.test.ts`، `tests/render-pool.test.ts`، `tests/balislam-reference.test.ts`.
+- اختبارات «بالإسلام» الأساسية: `tests/engine-permanent.test.tsx`، `tests/transitions.test.tsx`، `tests/lighting.test.ts`، `tests/lighting-support.test.ts`، `tests/camera-composed.test.ts`، `tests/character-motion.test.ts`، `tests/figure-view.test.ts`، `tests/illus-direction.test.ts`، `tests/dua-board.test.ts`، `tests/no-unfit-element.test.ts`، `tests/identity-approved.test.ts`، `tests/master-gates.test.ts`، `tests/legacy-migration.test.ts`، `tests/stillness-merge.test.ts`، `tests/stillness-dua.test.ts`، `tests/dua-board-sacred.test.ts`، `tests/render-pool.test.ts`، `tests/balislam-reference.test.ts`.
 
 ## أعطال وملاحظات معروفة
 

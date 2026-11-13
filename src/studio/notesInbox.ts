@@ -17,7 +17,7 @@ import path from "node:path";
 import { createHash, randomUUID } from "node:crypto";
 import { mkdir, open, readFile, rename, rm } from "node:fs/promises";
 
-export type NoteKind = "motion" | "tone" | "general";
+export type NoteKind = "motion" | "tone" | "general" | "error";
 export type NoteStatus = "open" | "in-progress" | "fixed" | "wont-fix";
 export const NOTE_STATUSES: readonly NoteStatus[] = ["open", "in-progress", "fixed", "wont-fix"];
 
@@ -46,6 +46,15 @@ export type StudioNote = {
   status: "open";
   fixedBy: null;
   answer: null;
+  /**
+   * «أرسل المشكلة» (D112): خطأ التقطه الاستوديو آليًا، منقَّحًا (`src/studio/errorLog.ts`)، مع آخر ٢٠ سطرًا من سجل
+   * الأخطاء. موجود في ملاحظة `kind: "error"` وحدها.
+   */
+  error?: StudioNoteError;
+};
+export type StudioNoteError = {
+  id: string; at: string; source: "server" | "ui"; kind: string; route: string; method?: string;
+  message: string; stack: string; label?: string | null; episode: string | null; commit: string; log: string[];
 };
 export type NoteSync = { state: "pending" | "sent"; at?: string; commit?: string; lastError?: string };
 export type LocalNote = StudioNote & { sync?: NoteSync };
@@ -59,11 +68,15 @@ export type JoinedNote = Omit<StudioNote, "status" | "fixedBy" | "answer"> & {
   sync: NoteSync["state"] | "remote";
 };
 
+/** `episodeDir` is an episode folder, or a channel folder for its general box (an error with no episode, D112). */
 export const notesDirFor = (episodeDir: string) => path.join(episodeDir, "notes");
 export const inboxFileFor = (episodeDir: string) => path.join(notesDirFor(episodeDir), "inbox.json");
 export const resolvedFileFor = (episodeDir: string) => path.join(notesDirFor(episodeDir), "resolved.json");
-/** مسار الصندوق داخل المستودع (posix)، وهو وحده ما يُسمح به على الفرع studio-notes. */
-export const INBOX_PATH_RE = /^channels\/[a-z0-9-]+\/episodes\/[^/]+\/notes\/inbox\.json$/;
+/**
+ * مسار الصندوق داخل المستودع (posix)، وهو وحده ما يُسمح به على الفرع studio-notes: صندوق الحلقة، أو الصندوق العام
+ * للقناة `channels/<القناة>/notes/inbox.json` (خطأ بلا حلقة، D112). النمط نفسه في `.githooks/pre-push`.
+ */
+export const INBOX_PATH_RE = /^channels\/[a-z0-9-]+\/(?:episodes\/[^/]+\/)?notes\/inbox\.json$/;
 
 const NOTE_PREFIX_RE = /^\[(الحركة|النبرة) @(\d{1,3}:\d{2})\]\s*/;
 /** «[الحركة @0:12] …» ← النوع واللحظة والنص (problemNote في SceneProductionPanel). */
@@ -146,6 +159,33 @@ export const appendStudioNote = async (episodeDir: string, input: {
   return publicNote(note);
 };
 
+/**
+ * «أرسل المشكلة» (D112): ملاحظة من نوع `error` في صندوق الحلقة، أو في الصندوق العام للقناة (`boxDir` = مجلد القناة،
+ * `episode` = ""). مرة واحدة لكل خطأ: الضغطة الثانية تعيد الملاحظة نفسها. الخطأ وسطور السجل منقَّحة قبل الوصول هنا.
+ */
+export const appendErrorNote = async (boxDir: string, input: {
+  channel: string; episode: string; sceneId: string | null; error: StudioNoteError; createdAt?: string;
+}): Promise<StudioNote> => {
+  const createdAt = input.createdAt ?? new Date().toISOString();
+  const first = input.error.message.split("\n")[0]!.slice(0, 300);
+  const note: LocalNote = {
+    id: noteIdFor(input.channel, input.episode, input.error.id, 0, createdAt),
+    channel: input.channel, episode: input.episode, sceneId: input.sceneId ?? "",
+    kind: "error", note: first, raw: `[خطأ] ${first}`, tone: null, timecode: null, createdAt,
+    sceneInputSha256: "", previewSha256: "", ledgerSeq: 0,
+    status: "open", fixedBy: null, answer: null, error: input.error,
+    sync: { state: "pending" },
+  };
+  const file = inboxFileFor(boxDir);
+  return withFileMutex(file, async () => {
+    const inbox = await readInboxFile(file);
+    const existing = inbox.notes.find((n) => n.kind === "error" && n.error?.id === input.error.id);
+    if (existing) return publicNote(existing);
+    await writeJsonAtomic(file, { schemaVersion: 1, notes: [...inbox.notes, note] });
+    return publicNote(note);
+  });
+};
+
 /** يعلّم ملاحظات بعينها بحالة الإرسال، بإعادة قراءة الملف (لا يمحو ملاحظة أُضيفت أثناء الإرسال). */
 export const markNotesSync = async (inboxFile: string, ids: readonly string[], sync: NoteSync): Promise<void> => {
   if (!ids.length) return;
@@ -182,14 +222,21 @@ export const joinNotes = (notes: readonly (StudioNote | LocalNote)[], resolved: 
   });
 
 /** حالة ملاحظة التصحيح كما يعرضها الاستوديو تحت الملاحظة (مربوطة برقم الحدث في السجل). */
-export type CorrectionInboxView = { id: string; sync: NoteSync["state"]; status: NoteStatus; answer: string | null };
+/** Why a note still waits (QA 12 Nov: a failed push read «بلا اتصال»): the reason of the last failed send, if any. */
+export type NoteSyncReason = "offline" | "rejected" | "auth" | "not-owner" | "no-repo" | "no-remote" | "error";
+export type CorrectionInboxView = { id: string; sync: NoteSync["state"]; status: NoteStatus; answer: string | null; reason?: NoteSyncReason };
+const syncReason = (lastError?: string): NoteSyncReason | undefined => {
+  const r = /^(offline|rejected|auth|not-owner|no-repo|no-remote|error):/.exec(lastError ?? "")?.[1];
+  return r as NoteSyncReason | undefined;
+};
 export const correctionInboxView = async (episodeDir: string, ledgerSeq: number): Promise<CorrectionInboxView | null> => {
   try {
     const inbox = await readInbox(episodeDir);
-    const note = [...inbox.notes].reverse().find((n) => n.ledgerSeq === ledgerSeq);
+    const note = [...inbox.notes].reverse().find((n) => n.kind !== "error" && n.ledgerSeq === ledgerSeq);
     if (!note) return null;
     const r = (await readResolved(episodeDir)).resolutions[note.id];
-    return { id: note.id, sync: note.sync?.state ?? "pending", status: r?.status ?? "open", answer: r?.answer ?? null };
+    const reason = note.sync?.state === "sent" ? undefined : syncReason(note.sync?.lastError);
+    return { id: note.id, sync: note.sync?.state ?? "pending", status: r?.status ?? "open", answer: r?.answer ?? null, ...(reason ? { reason } : {}) };
   } catch { return null; }
 };
 

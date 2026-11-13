@@ -255,6 +255,10 @@ const arabicDigits = (s: string) => s.replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧
  * تظهر كاملة في نصف ثانية قبل التلاوة ثم تسكن تمامًا؛ النص كما ورد من المصدر بلا تعديل.
  * فوقها اسم السورة ورقم الآية، وتحتها اسم القارئ إن وُجد.
  */
+/** مرجع بطاقة الحبر بلا «·»: «طه · ١٤» ← «طه، الآية ١٤»، و«المؤمنون · ١–٢» ← «المؤمنون، الآيتان ١–٢». */
+export const inkVerseReference = (reference: string): string =>
+  reference.replace(/\s*·\s*/, /[–-]/.test(reference) ? "، الآيتان " : "، الآية ").replace(/\s*·\s*/g, "، ");
+
 const VerseInk: React.FC<VerseCardProps> = (props) => {
   const { orientation, text, reference, reciter } = props;
   const frame = useSceneFrame();
@@ -270,7 +274,8 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
   const size = Math.round(baseVerse * fit * (portrait ? 1 : 1.08));
   const inP = props.recitationDuration && props.recitationDuration > 0 ? 1 : fade(frame, 0, 14);
   const pending = !text.trim() || text === VERSE_PLACEHOLDER;
-  const ref = reference.replace(/\s*·\s*/, /[–-]/.test(reference) ? " · الآيتان " : " · الآية ");
+  // «·» بجوار الأرقام العربية يُقرأ «٠» (D61): الفاصل فاصلة عربية، «سورة طه، الآية ١٤»
+  const ref = inkVerseReference(reference);
   return (
     <SceneShell {...props} exitFrames={props.recitationDuration ? 0 : undefined} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: portrait ? 56 : 44, padding: portrait ? "0 80px 220px" : "0 220px 40px", opacity: inP }}>

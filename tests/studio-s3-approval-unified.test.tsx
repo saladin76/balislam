@@ -13,9 +13,10 @@ import { SceneProductionPanel } from "../app/src/workspace/SceneProductionPanel"
 import type { SceneProductionRead } from "../app/src/api";
 import type { Plan } from "../src/plan/types";
 import { channelInfo, type ChannelConfig } from "../src/channel/types";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.join(__dirname, "..");
-const src = (rel: string) => readFileSync(path.join(root, rel), "utf8");
+const src = (rel: string) => panelSource(rel);
 const EPISODES = {
   balislam: "001-know-the-truth",
   "zubdat-alkutub": "001-awwal-marra-osalli",
@@ -157,6 +158,11 @@ describe("لا فرع بالقناة في واجهة الاعتماد", () => {
     "app/src/workspace/scene-production.css",
     "src/studio/sceneProduction.ts",
     "src/studio/sceneService.ts",
+    "src/studio/sceneLedgerStore.ts",
+    "src/studio/sceneInputs.ts",
+    "src/studio/sceneLedgerState.ts",
+    "src/studio/sceneGates.ts",
+    "src/studio/sceneDecisions.ts",
     "src/studio/prepareAll.ts",
   ];
   const channelLiteral = /["'`](balislam|dafatir-alzaman|zubdat-alkutub)["'`]/;

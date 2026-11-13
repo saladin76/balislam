@@ -32,8 +32,10 @@ const scriptOf = (n: [string, string, string], heading = "تجربة") => `---\n
   "\n## الاستشهادات\n\n- مصدر | كتاب الصبر، المؤلف، ص ١٢ | فكرة الصبر\n\n## الخطوة العملية\n\nاصبر اليوم على أمر واحد صغير، ثم اكتب ما تعلمته.\n";
 const scene = (id: string, narration: string, line: number) =>
   ({ id, template: "noor-text", line, narration, sfx: [], tone: "calm", props: { text: "اختبار" } });
+// The plan says every narrated line of the script (QA balislam 2, 12 Nov: a script line no scene says refuses the approval).
 const planOf = (n: [string, string, string]) =>
-  ({ episode: "001", title: "اختبار", chapters: [{ number: 1, title: "تجربة", scenes: n.map((x, i) => scene(`c1-s${i + 1}`, x, 8 + i * 4)) }] }) as unknown as Plan;
+  ({ episode: "001", title: "اختبار", chapters: [{ number: 1, title: "تجربة", scenes: n.map((x, i) => scene(`c1-s${i + 1}`, x, 8 + i * 4)) },
+    { number: 2, title: "الواقع", scenes: [scene("c2-s1", "جملة قصيرة في هذا الفصل.", 21)] }] }) as unknown as Plan;
 
 type Event = { action: string; by: string; change?: { source: string[]; script?: { from: string | null; to: string };
   storyboard?: { from: string | null; to: string }; scenes: { id: string; what: string[]; from: string | null; to: string }[] } };

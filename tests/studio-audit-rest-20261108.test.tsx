@@ -1,5 +1,5 @@
 /**
- * Funnel audit (8 Nov): the remaining items 5, 9–14, 16–18 (D38). See docs/studio/funnel-audit-20261108.md.
+ * Funnel audit (8 Nov): the remaining items 5, 9–14, 16–18 (D38). See docs/studio/archive/funnel-audit-20261108.md.
  */
 import React from "react";
 import os from "node:os";
@@ -21,10 +21,11 @@ import { citationNotice } from "../app/src/shell/citationNotice";
 import { BoardAuditLog } from "../app/src/tabs/BoardAuditLog";
 import { SettingsTab } from "../app/src/tabs/SettingsTab";
 import { parseStudioHash, studioHash } from "../app/src/shell/route";
+import { panelSource } from "./helpers/panelSource";
 
 const noop = () => {};
 const h = (c: string) => c.repeat(64);
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 
 describe("5 · «جهّز كل المشاهد» بلا صوت لا يبدأ رندرًا لا يُراجع", () => {
   const q = (ids: string[]) => ids.map((id) => ({ id, sourceSha256: h(id.slice(-1)) }));
@@ -32,7 +33,8 @@ describe("5 · «جهّز كل المشاهد» بلا صوت لا يبدأ رن
     // open scenes in order: s1 ready, s2 waits for voice, s3 ready (e.g. the closing scene, no narration)
     const queue = { list: q(["s1", "s3"]), beforeVoiceGap: q(["s1"]) };
     expect(pickRenderQueue(queue, { voiceMissing: true })).toEqual({
-      todo: q(["s1"]), skipped: [{ id: "s3", reason: "voice" }] });
+      // 12 Nov (QA balislam 9): s3 is ready itself; it waits only because it comes after the gap («after-gap», not «voice»)
+      todo: q(["s1"]), skipped: [{ id: "s3", reason: "after-gap" }] });
     // with the voice made, everything ready is drafted as before
     expect(pickRenderQueue(queue, { voiceMissing: false })).toEqual({ todo: q(["s1", "s3"]), skipped: [] });
     // the current scene itself waits for voice: nothing is rendered at all
@@ -49,7 +51,7 @@ describe("5 · «جهّز كل المشاهد» بلا صوت لا يبدأ رن
   });
   it("the button never says it is making voice when there is no key", () => {
     const ui = src("app/src/workspace/PrepareAll.tsx");
-    expect(ui).toContain(`job!.phase === "voice" && job!.voice.status === "pending" ? "يولّد الصوت…"`);
+    expect(ui).toContain(`job!.phase === "voice" && job!.voice.status === "pending" && job!.voice.needed > 0 ? "يولّد الصوت…"`);
     expect(ui).toContain("يُجهَّز ما قبل أول مشهد ينقصه صوته فقط");
   });
 });
@@ -136,10 +138,11 @@ describe("12 · عدد الاستشهادات غير الموثّقة في سط�
 describe("13 · «سجل مراجعة اللوحات»: ملاحظته تُكتب مع «اعتمد التجهيز» (funnel v3)", () => {
   const st = { total: 31, approved: 0, changed: [], fresh: [], ok: false, scenes: {} };
   it("the log lives under «أدوات وتفاصيل»; the board note is asked next to the one filled button of step ١", () => {
-    const html = renderToStaticMarkup(<BoardAuditLog st={st} channelId="balislam" episodeId="002" note="" onNote={noop}
-      reviewed={false} onReviewed={noop} busy={false} onAct={noop} error="اكتب ملاحظة" />);
+    // 12 Nov (QA balislam 1, D76): the log is read-only history; no withdrawal and no second board approval.
+    const html = renderToStaticMarkup(<BoardAuditLog st={st} channelId="balislam" episodeId="002" />);
     expect(html).toContain("سجل مراجعة اللوحات");
-    expect(html).toContain("اكتب ملاحظة");
+    expect(html).not.toContain("اسحب الاعتماد");
+    expect(html).not.toContain("<button");
     const spine = src("app/src/shell/EpisodeSpine.tsx");
     expect(spine).toContain("ملاحظة (اختيارية، سطر واحد)");
     expect(spine).toContain("needNote && boardNote.trim() ? { note: boardNote.trim() } : {}");

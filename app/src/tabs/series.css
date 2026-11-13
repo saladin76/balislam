@@ -164,3 +164,9 @@
   .shell-v3 .sr-eps .ledger-row { grid-template-columns: 48px minmax(0, 1fr) 0 auto; }
   .mv-toast { bottom: 120px; }
 }
+/* QA 12 Nov (390px): the filter row wraps instead of pushing «الأحدث» off screen and squeezing the search box */
+.shell-v3 .ledger-tools { flex-wrap: wrap; }
+@media (max-width: 600px) {
+  .shell-v3 .ledger-tools input[type="search"] { flex: 1 1 100%; order: -1; }
+  .shell-v3 .ledger-tools select { flex: 1 1 calc(50% - 5px); min-width: 0; }
+}

@@ -5,11 +5,13 @@
  * مكانه: «٤ النشر ← الشورتس والريلز»، داخل الصف المطوي نفسه، بلا زر مملوء (الفعل الواحد للشاشة في لوحة القرار).
  */
 import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { notifyPlanServerFields } from "../planServerFields";
 import { api, type ShortsRead } from "../api";
 import type { PlanShort } from "../../../src/plan/types";
 import { shortRange, type ShortsScene } from "../../../src/plan/shorts";
 import { arNum, clockAr } from "../workspace/sceneNames";
 import "./shorts.css";
+import { OwnerText } from "../ui/OwnerText";
 
 type Row = PlanShort & { key: number };
 
@@ -95,6 +97,7 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
     try {
       const r = await api.saveShorts(episodeId, rows.map(({ from, to, title }) => ({ from, to, ...(title?.trim() ? { title: title.trim() } : {}) })));
       adopt(r, r.warnings ?? []);
+      notifyPlanServerFields([episodeId]);
     } catch (e) {
       setErr((e as Error).message);
     } finally { setSaving(false); }
@@ -104,10 +107,10 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
       ? "حذف الاختيار المحفوظ؟ تعود الشورتس شورتًا لكل قسم كما كانت."
       : "حذف الاختيار المحفوظ؟ الحلقة نص متصل، فلا تُصنع شورتس حتى تختار مقاطعها من جديد.")) return;
     setErr(""); setSaving(true);
-    try { adopt(await api.resetShorts(episodeId)); } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
+    try { adopt(await api.resetShorts(episodeId)); notifyPlanServerFields([episodeId]); } catch (e) { setErr((e as Error).message); } finally { setSaving(false); }
   };
 
-  if (!data) return err ? <p className="s45-alert" role="alert">{err}</p> : <p className="s45-note">جارٍ تحميل المشاهد…</p>;
+  if (!data) return err ? <p className="s45-alert" role="alert"><OwnerText text={err} /></p> : <p className="s45-note">جارٍ تحميل المشاهد…</p>;
 
   return (
     <section className="shp" aria-label="مقاطع الشورتس">
@@ -174,7 +177,7 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
         </ol>
       ) : null}
 
-      {err ? <p className="s45-alert" role="alert">{err}</p> : null}
+      {err ? <p className="s45-alert" role="alert"><OwnerText text={err} /></p> : null}
       {notes.length ? <ul className="shp-notes">{notes.map((n) => <li key={n}>{n}</li>)}</ul> : null}
 
       <div className="s45-actions">

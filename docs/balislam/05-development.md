@@ -9,7 +9,6 @@
 ```bash
 npx bal -c balislam list               # الحلقات
 npx bal -c balislam check 001          # فحص السكريبت
-npx bal -c balislam scenes-review 001  # حالة مراجعة المشاهد
 npm run app                            # الاستوديو، ثم «إدارة الاستوديو ← مرجع الاستوديو»
 ```
 
@@ -37,7 +36,7 @@ npm run app                            # الاستوديو، ثم «إدارة 
 | --- | --- |
 | `src/plan/types.ts` | حقل اختياري في `PlanScene` (إن كان على المشهد لا في `props`) |
 | `src/plan/generate.ts` | يُحفظ عند إعادة التوليد إن كان من تعديل صاحب القناة |
-| `src/plan/sceneReview.ts` | يدخل `sceneHash` **فقط حين يوجد**، فلا تتغير بصمات المراجعات القائمة |
+| `src/plan/sceneHash.ts` | يدخل `sceneHash` **فقط حين يوجد**، فلا تتغير بصمات المراجعات القائمة |
 | `src/plan/validate.ts` | فحص القيم |
 | `src/plan/templates.ts` أو `app/src/tabs/EpisodeTab.tsx` | الحقل في المحرر |
 | القالب | قراءة الحقل وتطبيقه |
@@ -106,4 +105,4 @@ git worktree remove --force /tmp/oldwt
 3. المرجع وسجل القرارات محدّثان.
 4. commit برسالة تذكر الأمر والتغيير، ثم `git fetch && git rebase origin/main` ثم `git push origin HEAD:main`: البوابة تفحص الـcommit المدفوع نفسه. إن رفضت، أصلح السبب ولا تتجاوزها.
 5. إن كان الفشل من تغيير غيرك على main (حدث في الأمر 011)، أصلحه في commit مستقل يوضح مصدره.
-6. **عزل بيئة Git (الأمر 018):** حين يشغّل git خطّافًا من worktree يضع `GIT_DIR` للمستودع الحقيقي. لا تورّث أي عملية فرعية متغيرات تحديد المستودع: استعمل `childEnv()` أو `cleanGitEnv()` من `scripts/git-env.mjs` (البوابة و`scripts/docs-sync.mjs` و`scripts/install-hooks.mjs` و`app/server/update.ts` و`app/server/extra.ts`)، وبيئة الاختبارات تُنظَّف قبل كل ملف (`tests/setup/git-env.ts` في `vitest.config.ts`). أي اختبار ينشئ مستودع git مؤقتًا يمرّر `env: cleanGitEnv()` صراحة. اختبار الارتداد: `tests/git-env-isolation.test.ts`.
+6. **عزل بيئة Git (الأمر 018):** حين يشغّل git خطّافًا من worktree يضع `GIT_DIR` للمستودع الحقيقي. لا تورّث أي عملية فرعية متغيرات تحديد المستودع: استعمل `childEnv()` أو `cleanGitEnv()` من `scripts/git-env.mjs` (البوابة و`scripts/docs-sync.mjs` و`scripts/install-hooks.mjs` و`app/server/update.ts` ومسارات `app/server/routes/`)، وبيئة الاختبارات تُنظَّف قبل كل ملف (`tests/setup/git-env.ts` في `vitest.config.ts`). أي اختبار ينشئ مستودع git مؤقتًا يمرّر `env: cleanGitEnv()` صراحة. اختبار الارتداد: `tests/git-env-isolation.test.ts`.

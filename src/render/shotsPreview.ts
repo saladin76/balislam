@@ -14,12 +14,14 @@ import { resolveScriptPath } from "../script/episodes";
 import type { Plan } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
 import { renderEpisode } from "./episode";
+import { scriptVersesAreCitations } from "../quran/citationChannel";
 import { putEpisodePreview, removePreview } from "./episodePreviews";
 
 export type ShotGap = { id: string; what: string };
 
 /** نواقص المشاهد المختارة قبل أي رندر */
 export const shotGaps = (plan: Plan, media: EpisodeMedia, ids: string[], scriptPath: string, needsRecitation: boolean): ShotGap[] => {
+  const cited = scriptVersesAreCitations(scriptPath);
   const scenes = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s]));
   const gaps: ShotGap[] = [];
   for (const id of ids) {
@@ -30,7 +32,8 @@ export const shotGaps = (plan: Plan, media: EpisodeMedia, ids: string[], scriptP
     }
     if (s.template === "verse-card") {
       if (!s.props.text?.trim() || s.props.text === VERSE_PLACEHOLDER) gaps.push({ id, what: `نص الآية ${s.ayahKey ?? ""} غير مرفق في السكريبت` });
-      if (needsRecitation && (!s.ayahKey || !media.recitations[s.ayahKey])) gaps.push({ id, what: `التلاوة البشرية للآية ${s.ayahKey ?? ""} غير مرفوعة أو لم تُعتمد` });
+      // D68: in a channel whose verses are written citations the card is silent text; no recitation is ever asked.
+      if (needsRecitation && !cited && (!s.ayahKey || !media.recitations[s.ayahKey])) gaps.push({ id, what: `التلاوة البشرية للآية ${s.ayahKey ?? ""} غير مرفوعة أو لم تُعتمد` });
     }
     if (s.narration.trim()) {
       const clip = media.voice[s.id];
@@ -69,8 +72,10 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   const media = draftMode
     ? await prepareRenderMedia(episode, plan, { requireApprovedQuran: false })
     : await prepareRenderMedia(episode, plan, { requireApprovedQuran: true });
+  // D68: a written-citation channel's verse card is the finished silent card, never marked «التلاوة تُضاف لاحقًا».
+  const cited = scriptVersesAreCitations(scriptPath);
   const pendingRecitation = draftMode ? plan.chapters.flatMap((c) => c.scenes)
-    .filter((s) => ids.includes(s.id) && ((s.template === "verse-card" && (!s.ayahKey || !media.recitations[s.ayahKey])) ||
+    .filter((s) => ids.includes(s.id) && ((s.template === "verse-card" && !cited && (!s.ayahKey || !media.recitations[s.ayahKey])) ||
       // The basmala composed as a silent placeholder until the owner's recording is approved (owner, 10 Nov).
       media.voice[s.id]?.basmala?.pending === true))
     .map((s) => s.id) : [];
