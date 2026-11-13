@@ -115,6 +115,10 @@ describe("Studio API robustness (QA, 10 Nov 2026)", () => {
       const render = await call("POST", "render", { episode: "985", orientation: "landscape" });
       expect(render.status).toBe(409);
       expect(render.body.error).toBe(PREPARE_RUNNING_MESSAGE);
+      // KI-058: «اصنع النسخة النهائية» stays refused while the queue may still change a scene's inputs, and says why.
+      const make = await call("POST", "jobs", { kind: "make", episode: "985" });
+      expect(make.status).toBe(409);
+      expect(make.body.error).toBe(PREPARE_RUNNING_MESSAGE);
     } finally {
       await new Promise((r) => setTimeout(r, 5));
       finish();
