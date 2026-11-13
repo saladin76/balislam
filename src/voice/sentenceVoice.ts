@@ -33,7 +33,9 @@ import { normWord, stripTashkeel } from "./tashkeel";
 import { coreOf, NOOP_SAY, removeLexiconEntry, sayWarnings, setLexiconEntry } from "./lexicon";
 import { isNoopSay, type LexiconMatch } from "./pronunciationRules";
 import { addSentenceAfter, clampPause, contextFingerprint, deleteSentence, editSentenceText, heardKey, mergeWithNext, reconcileScene, sceneNarration, sentenceStatus, splitSentence, normText, splitBasmalaInList, words, recordedText } from "./sentences";
-import { sentencesFileFor, sentencesDirFor, writeAtomic, saveDoc, basmalaScenes, loadToneMapLite, type Ctx, loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours } from "./sentenceContext";
+import { sentencesFileFor, sentencesDirFor, writeAtomic, saveDoc, basmalaScenes, loadToneMapLite, type Ctx, loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, sayOf, autoSendOf, SAY_WORD_FIX } from "./sentenceContext";
+import { checkSentenceSay, writeSay } from "./sentencePronunciation";
+import { planVerseTexts } from "./quranGuard";
 import { type SentencesRead, readSentences } from "./sentenceRead";
 import { sliceByWords, recomposeBasmalaScenes, composeSentenceScene, initScene, adoptSceneAudio } from "./sentenceStitch";
 import { generateOne, correctionFor, withCorrection, type WordFixOutcome, fixWord } from "./sentenceGenerate";
@@ -47,7 +49,7 @@ export type { WordFixOutcome } from "./sentenceGenerate";
 // ── الأفعال ──────────────────────────────────────────────────────────────────
 
 export type SentenceCommand = {
-  action: "init" | "adopt" | "edit" | "split" | "merge" | "delete" | "add" | "tone" | "pause" | "generate" | "restore" | "heard" | "fixword";
+  action: "init" | "adopt" | "edit" | "split" | "merge" | "delete" | "add" | "tone" | "pause" | "generate" | "restore" | "heard" | "fixword" | "say";
   /** معرّف الجملة؛ أو مشهد ورقم الجملة فيه لصف لم يبدأ العمل على مشهده بعد */
   id?: string; sceneId?: string; index?: number;
   text?: string; at?: number; tone?: string | null; ms?: number; note?: string; value?: boolean;
@@ -61,6 +63,11 @@ export type SentenceCommand = {
    * 2 under «المزيد»: two on each side, for a smoother join). Only the corrected word is spliced in.
    */
   neighbours?: 1 | 2;
+  /**
+   * «النطق» (say, D131): the whole sentence as it is sent to the voice, with tashkeel; null (or the automatic text)
+   * goes back to the automatic pronunciation. Never the sentence's text, the plan or the script.
+   */
+  pronunciation?: string | null;
 };
 export type SentenceActionOptions = {
   client?: ElevenLabsClient | null;
@@ -98,12 +105,14 @@ const writeSceneNarration = async (scriptPath: string, sceneId: string, narratio
 export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts: SentenceActionOptions = {}): Promise<SentenceActionResult> => {
   const { assertSceneOwner, serialized } = await import("../studio/sceneService");
   assertSceneOwner();
-  const actions = ["init", "adopt", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard", "fixword"];
+  const actions = ["init", "adopt", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard", "fixword", "say"];
   if (!cmd || !actions.includes(cmd.action) || (cmd.text !== undefined && (typeof cmd.text !== "string" || cmd.text.length > 4000)) ||
       (cmd.note !== undefined && (typeof cmd.note !== "string" || cmd.note.length > 2000)) ||
       (cmd.say !== undefined && (typeof cmd.say !== "string" || cmd.say.length > 200)) || (cmd.word !== undefined && !Number.isInteger(cmd.word)) ||
       (cmd.action === "fixword" && (cmd.word === undefined || cmd.say === undefined)) ||
-      (cmd.neighbours !== undefined && cmd.neighbours !== 1 && cmd.neighbours !== 2))
+      (cmd.neighbours !== undefined && cmd.neighbours !== 1 && cmd.neighbours !== 2) ||
+      (cmd.pronunciation !== undefined && cmd.pronunciation !== null && (typeof cmd.pronunciation !== "string" || cmd.pronunciation.length > 4000)) ||
+      (cmd.action === "say" && cmd.pronunciation === undefined))
     throw new Error("أمر الجملة غير صالح.");
   const scriptPath = await resolveScriptPath(episode);
   await mkdir(voiceDirFor(scriptPath), { recursive: true });
@@ -206,9 +215,31 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         } else list = list.map((x) => (x.id === s.id ? { ...x, tone: (tone ?? undefined) as Tone | undefined } : x));
         break;
       }
+      case "say": {
+        // D131 «النطق»: the owner's pronunciation of the whole sentence (owner content, D101). Nothing is generated.
+        const s = one();
+        if (s.kind === "basmala") throw new Error("البسملة يسجلها صاحب القناة بصوته؛ لا نطق لها يُرسل إلى الصوت المستنسخ.");
+        if (s.kind !== "narration") throw new Error("نص قرآني: لا يُرسل إلى الصوت المستنسخ أبدًا، فلا نطق له يُعدَّل.");
+        const auto = autoSendOf(ctx, s).text;
+        const p = cmd.pronunciation === null ? null : normText(String(cmd.pronunciation));
+        if (p !== null && p !== auto) {
+          const bad = checkSentenceSay(p, planVerseTexts(ctx.plan));
+          if (bad) throw new Error(bad);
+        }
+        const had = Boolean(sayOf(ctx, s));
+        if (p === null || p === auto) {
+          if (had) ctx.says = await writeSay(scriptPath, scene.id, s.text, null);
+          message = had ? "عاد النطق الآلي لهذه الجملة؛ نصها والترجمة كما هما." : "النطق كما هو (آلي)؛ لم يتغير شيء.";
+        } else {
+          ctx.says = await writeSay(scriptPath, scene.id, s.text, p);
+          message = "حُفظ النطق لهذه الجملة وحدها؛ نصها والسكريبت والترجمة كما هي. تحتاج توليدًا جديدًا («ولّد الجملة»)، ولا يُولَّد شيء وحده.";
+        }
+        break;
+      }
       case "generate": {
         let s = one();
         // «ولّد الجملة كاملة بهذا النطق»: التصحيح يُحفظ مع الجملة (ولقاموس القناة إن طُلب) ثم تُولَّد كاملة
+        if (cmd.say !== undefined && sayOf(ctx, s)) throw new Error(SAY_WORD_FIX);
         const c = cmd.say !== undefined ? correctionFor(s, cmd.word, cmd.say) : null;
         if (c && cmd.save && isNoopSay(c.word, c.say)) throw new Error(NOOP_SAY);
         if (c) { s = withCorrection(s, c); list = list.map((x) => (x.id === s.id ? s : x)); }

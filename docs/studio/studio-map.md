@@ -93,7 +93,7 @@
 ### الخطوة ٢ «المشاهد» (`SceneProductionPanel.tsx`؛ الحالة في `sceneProduction/useSceneProduction.ts`، والأجزاء في `sceneProduction/SceneStep.tsx` و`SceneStepParts.tsx` و`SceneDecisionActions.tsx`، D126)
 | العنصر | ما يفعله | الشرط/البوابة |
 |---|---|---|
-| معاينة المشهد | المشهد جاهزًا بنصه وحركته وصوته، مع ملء الشاشة | — |
+| معاينة المشهد | المشهد جاهزًا بنصه وحركته وصوته، مع ملء الشاشة. قبل «أنتج هذا المشهد» معاينة سريعة في الصفحة: صامتة ما دام صوت المشهد لم يُركَّب، وتحتها السبب وعدد الجمل المكتملة («معاينة صامتة لأن صوت المشهد لم يُركَّب بعد — اكتمل صوت ٣ من ٥ جمل…»)؛ وحين يُركَّب تُسمع بصوته وتحتها «المعاينة التي تُعتمد يصنعها «أنتج هذا المشهد»» (D131، `sceneProduction/liveAudio.ts`) | لا رندر ولا توليد آلي |
 | «اعتمد» | اعتماد المشهد بالصوت والصورة | بالترتيب: لا يُعتمد مشهد قبل سابقه. ويُمنع إنتاج المشهد الذي يختلف نصه عن السكريبت (D99) |
 | «الحركة غير مناسبة» / «النبرة غير مناسبة» | ملاحظة تُسجَّل ثم تُرسل إلى صندوق الملاحظات (`studio-notes`) | بلا مفتاح صوت يصير الزر «أرسل الملاحظة» ولا يقول «وُلّد الصوت» (D99) |
 | «أعد توليد الصوت» | توليد مدفوع | بإذن المالك فقط، وحارس القرآن |
@@ -108,7 +108,8 @@
 | «عدّل النص» | يعدّل الجملة، ويكتبها في `script.md` أيضًا حين يكون موضعها في السكريبت واحدًا (D99)، فيُعاد فتح مشهدها وحده | نص الآيات لا يُلمس |
 | «قسّم…» | يختار المالك موضع التقسيم بين كلمتين، ويرى الجملتين، ثم «قسّم هنا». التسجيل يبقى في السجل (D102) | `SplitChooser.tsx` |
 | «ادمج مع التالية»، «أضف جملة بعدها»، «احذف الجملة» | تعديل بنية الجمل | لا يُحذف تسجيل مدفوع |
-| الضغط على كلمة | «أعد نطق الكلمة» وقاموس النطق (D55): «جرّب نطقًا آخر» | — |
+| «النطق» (D131) | تحت كل جملة راوٍ في القنوات الثلاث، ظاهر دائمًا ويُعدَّل: النص المرسل إلى الصوت بتشكيله (آلي، أو «مكتوب بيدك»). «احفظ النطق» و«تراجع»، و«ارجع إلى النطق الآلي». يُحفظ للجملة في `sentence-pronunciations.json` بجوار السكريبت (محتوى مالك، D101)، ولا يغيّر نص الجملة ولا المشهد ولا السكريبت ولا الترجمة. يجعل التسجيل «تحتاج توليدًا»، ولا يُولَّد شيء وحده | يُرفض فيه القرآن والبسملة (`assertNoQuranForTts`) والتشكيل تحت ٩٨٪؛ لا حقل لصف آية ولا بسملة (`SayEditor.tsx`، `src/voice/sentencePronunciation.ts`) |
+| الضغط على كلمة | «أعد نطق الكلمة» وقاموس النطق (D55): «جرّب نطقًا آخر». لا يعمل على جملة نطقها مكتوب باليد: يقول «عدّل الكلمة في «النطق»» | — |
 | «قديم — سُجّل على نص سابق» | الجملة التي تغيّر نصها بعد تسجيلها: يظهر النص القديم ويُسمع تسجيله، ولا يدخل صوت المشهد، و«ولّد» متاح. المعرّفات ثابتة بعد النقل (D97) | — |
 | «كلمة قد تكون نُطقت خطأ: …» (D119) | سطر تحت الجملة إن فُعّل «فحص النطق»: كلمات النص التي لم يُسمع ما يطابقها في التفريغ المحلي، وما سُمع مكانها؛ «لم يُسمع كلام واضح…» لتسجيل بلا كلام. لا يظهر والفحص مطفأ أو غير مثبّت، ولا لصف آية ولا بسملة | تنبيه فقط: **لا يمنع «اعتمد»** ولا يغيّر الجملة ولا السجل (`PronunciationNote.tsx`، `src/voice/pronunciation/`) |
 | «ولّد» | توليد جملة واحدة **مدفوع**، ويُرسل معها نص الجارتين (D94)، والسياق من الخطة الحالية (D100) | بإذن المالك، وتغطية تشكيل ٩٨٪، وحارس القرآن والبسملة |
@@ -241,6 +242,7 @@
 | D128 | ١٣ نوفمبر | **«اعتمد التجهيز» المكرَّر لا يبدأ تجهيزًا (العمل ٦، KI-058):** ضغطه بعد الاعتماد (صفحة قديمة، تبويب ثانٍ) لا يكتب شيئًا ولا يبدأ «جهّز كل المشاهد» في الخلفية؛ كان يبدأ طابورًا يلاحق المشاهد التي يعيد المالك فتحها، فيرد «اصنع النسخة النهائية» بـ 409 «"جهّز كل المشاهد" يعمل الآن». الرفض أثناء التجهيز باقٍ برسالته | مشترك | (هذا PR) |
 | D129 | ١٣ نوفمبر | **بالإسلام 001، الأمر 032 (PR #94):** لقطات مصمَّمة على 67 مشهدًا في `src/remotion/illus/shots/ep001.tsx`، والعناصر الخمسة المعتمدة في `storyProps.tsx`، وأداة المحرك «اللقطات المصمَّمة للقصة». محتوى حلقة، بلا تغيير في شاشات الاستوديو أو بواباته | بالإسلام | (PR #94) |
 | D130 | ١٣ نوفمبر | **بالإسلام 001، التوجيه 033 (PR #94):** حذف الدائرة والخط من هاتف c1-s118، وإطارات العمودي في استعادة الميزان، ومواد المراجعة. محتوى حلقة، بلا تغيير في الاستوديو | بالإسلام | (PR #94) |
+| D131 | ١٣ نوفمبر | **«النطق» مفتوح، والمعاينة السريعة بصوت المشهد (بطلب المالك رغم التجميد، وKI-061):** تحت كل جملة راوٍ في القنوات الثلاث حقل «النطق» ظاهر دائمًا ويُعدَّل: النص المرسل إلى الصوت بتشكيله، يُحفظ في `sentence-pronunciations.json` بجوار السكريبت (محتوى مالك، D101)، لا يغيّر النص ولا السكريبت ولا الترجمة، ويجعل التسجيل «تحتاج توليدًا» بلا توليد؛ حارس القرآن والبسملة والتشكيل ٩٨٪ كما هي، ولا نطق لصف آية ولا بسملة. والمعاينة السريعة صامتة حتى يُركَّب صوت المشهد وتقول لماذا («اكتمل صوت ٣ من ٥ جمل»)، ثم تُسمع بصوته | مشترك | (هذا PR) |
 
 ---
 
@@ -429,6 +431,19 @@ gets «ولّد الجملة كاملة بهذا النطق» (`generate` with `
 applied to the outgoing text of the sentence, scene, parts (single-token only) and line paths, never to captions, never
 inside ﴿ ﴾ or to a verse row, and is deliberately outside the voice fingerprint (it applies to future generations without
 invalidating paid takes or making the scene path regenerate).
+
+**«النطق» of a whole sentence (D131, the owner's request of 13 Nov, all three channels).** Every narration row reads
+`say: { auto, custom }` (`auto` = the automatic send text: tashkeel file, legacy dictionary, channel lexicon, word
+corrections; `custom` = the owner's text or null; `spoken` = what is really sent). The `say` action (`pronunciation`:
+text, or null / the automatic text to go back) writes `channels/<ch>/episodes/<ep>/sentence-pronunciations.json` next to
+the script (`src/voice/sentencePronunciation.ts`; owner content synced by D101, checked by the content gate), keyed by
+scene + the sentence text, so a changed sentence falls back to the automatic text. When set, `sendOf` sends it exactly
+(no lexicon, no corrections; captions keep the sentence's own words through the owner map) and `voiceOf` adds it to
+the sentence fingerprint (`exact`), so the take reads «تحتاج توليدًا»; nothing is generated by saving. Refused at save:
+Quran/basmala/five words of an episode verse (`assertNoQuranForTts`, the same guard the client runs again), tashkeel
+under 98% (also the generation gate, on the written text), verse and basmala rows. A sentence with a written
+pronunciation refuses `fixword` and «ولّد الجملة كاملة بهذا النطق» (`SAY_WORD_FIX`); a cut of the old scene file is
+never taken as said with it (`voiceOf(…, { automatic: true })`). The plan, `script.md` and captions are never touched.
 
 Why pre-rendering is safe:
 - A render only adds a render-to-input proof (`previewInputs[id]`). `recordSceneRenderEvidence` refuses to save if the

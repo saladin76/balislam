@@ -16,6 +16,7 @@ import { tashkeelReport } from "./tashkeelReport";
 import { applyDictionary } from "./words";
 import { hasBasmala } from "./basmala";
 import { applyLexicon, loadLexicon, type LexiconEntry } from "./lexicon";
+import { loadSays, ownerForSay, sayFor, type SentenceSay } from "./sentencePronunciation";
 import { emptyDoc, reconcileScene, sentenceFingerprint, sentencesFor, normText, words, recordedOnOtherText, type Sentence, type SentenceCorrection, type SentencesDoc } from "./sentences";
 
 /**
@@ -103,6 +104,8 @@ export type Ctx = {
   channelTone?: string;
   /** قاموس النطق للقناة (pronunciations.json): يُطبَّق عند الإرسال فقط */
   lexicon: LexiconEntry[];
+  /** «النطق» المكتوب لجمل هذه الحلقة (D131، sentence-pronunciations.json): يُرسل بدل النطق الآلي */
+  says: SentenceSay[];
 };
 export const loadCtx = async (episode: string): Promise<Ctx> => {
   const scriptPath = await resolveScriptPath(episode);
@@ -121,7 +124,7 @@ export const loadCtx = async (episode: string): Promise<Ctx> => {
   return {
     scriptPath, plan, doc: await loadSentencesDoc(scriptPath), map: await loadToneMapLite(scriptPath),
     speech: await speechContextFor(scriptPath), voiceKey: `${voiceIdFor() ?? ""}|${model}`, model, profile, layers, channelTone,
-    lexicon: (await loadLexicon()).entries,
+    lexicon: (await loadLexicon()).entries, says: await loadSays(scriptPath),
   };
 };
 
@@ -165,13 +168,27 @@ export const spokenOf = (ctx: Ctx, text: string) => {
  * النص المرسل فعلًا: النطق (القاموس القديم والتشكيل) ثم قاموس النطق للقناة وتصحيحات الجملة.
  * البصمة من النطق قبل هذه الخطوة (spokenOf)، فإضافة كلمة للقاموس لا تُبطل تسجيلًا قائمًا.
  */
-export const sendOf = (ctx: Ctx, s: Pick<Sentence, "text" | "kind" | "corrections">, extra?: SentenceCorrection) => {
+/** D131: «النطق» الذي كتبه المالك لهذه الجملة (جمل الراوي وحدها)، أو لا شيء */
+export const sayOf = (ctx: Pick<Ctx, "says">, s: Pick<Sentence, "text" | "kind" | "sceneId">): string | undefined =>
+  s.kind === "narration" && s.sceneId ? sayFor(ctx.says ?? [], s.sceneId, s.text) : undefined;
+/** النطق الآلي (بلا «النطق» المكتوب): ما يُرسل لو لم يكتب المالك شيئًا */
+export const autoSendOf = (ctx: Ctx, s: Pick<Sentence, "text" | "kind" | "corrections">, extra?: SentenceCorrection) => sendOf({ ...ctx, says: [] }, { ...s, sceneId: "" }, extra);
+export const sendOf = (ctx: Ctx, s: Pick<Sentence, "text" | "kind" | "corrections"> & { sceneId?: string }, extra?: SentenceCorrection) => {
   const d = spokenOf(ctx, s.text);
+  // D131: the owner's written pronunciation is sent exactly as written (no lexicon, no word corrections); the
+  // captions keep the sentence's own words (owner map)
+  const say = s.sceneId ? sayOf(ctx, { text: s.text, kind: s.kind, sceneId: s.sceneId }) : undefined;
+  if (say) {
+    const tokens = say.split(/\s+/).filter(Boolean);
+    const owner = ownerForSay(d.original, tokens);
+    const perWord = d.original.map((_, i) => tokens.filter((_, k) => owner[k] === i).join(" "));
+    return { text: tokens.join(" "), original: d.original, owner, applied: [] as ReturnType<typeof applyLexicon>["applied"], perWord, custom: true };
+  }
   const corrections = [...(s.corrections ?? []).filter((c) => !extra || c.index !== extra.index), ...(extra ? [extra] : [])];
   const l = applyLexicon(d.original, d.spoken.split(" ").filter(Boolean), d.owner, ctx.lexicon, { corrections, verse: s.kind === "verse" });
   /** لكل كلمة أصلية: ما يُنطق لها */
   const perWord = d.original.map((_, i) => l.spoken.filter((_, k) => l.owner[k] === i).join(" "));
-  return { text: l.spoken.join(" "), original: d.original, owner: l.owner, applied: l.applied, perWord };
+  return { text: l.spoken.join(" "), original: d.original, owner: l.owner, applied: l.applied, perWord, custom: false };
 };
 /**
  * صوت الجملة: النبرة والإعدادات والبصمة. الإصدار الحالي للنبرات افتراضيًا؛ لكن تسجيلًا قائمًا بصمته تطابق إعدادات
@@ -179,15 +196,18 @@ export const sendOf = (ctx: Ctx, s: Pick<Sentence, "text" | "kind" | "correction
  * «تحتاج توليدًا» ولا تُعاد في «جهّز كل المشاهد»، وتصحيح كلمة فيه يُولَّد بإعداداته نفسها فيتصل الصوت.
  * current: للتوليد الجديد دائمًا (الإعدادات الحالية). version: لنسخة مقصوصة من تسجيل معروف الإصدار.
  */
-export const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, o: { current?: boolean; version?: number } = {}) => {
+export const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, o: { current?: boolean; version?: number; automatic?: boolean } = {}) => {
   const t = toneOf(ctx, scene, list, s);
   const tone = t.explicit ?? t.inherited;
   const d = spokenOf(ctx, s.text);
+  // D131: the owner's written pronunciation is part of the take's fingerprint (a take made otherwise needs generating);
+  // `automatic`: a cut of the scene's old file was not said with it
+  const custom = o.automatic ? undefined : sayOf(ctx, s);
   const fp = (tune: ReturnType<typeof voiceSettingsFor>) =>
-    sentenceFingerprint({ spoken: d.spoken, voiceKey: ctx.voiceKey, tts: ttsSettings(), tune, voiceId: scene.voice || undefined });
+    sentenceFingerprint({ spoken: d.spoken, voiceKey: ctx.voiceKey, tts: ttsSettings(), tune, voiceId: scene.voice || undefined, ...(custom ? { exact: custom } : {}) });
   const tune = voiceSettingsFor(ctx.profile, tone);
   const fingerprint = fp(tune);
-  const base = { tone, toneInfo: t, spoken: d, send: sendOf(ctx, s), currentFingerprint: fingerprint };
+  const base = { tone, toneInfo: t, spoken: d, send: sendOf(ctx, o.automatic ? { ...s, sceneId: "" } : s), custom, currentFingerprint: fingerprint };
   if (!o.current) {
     // the tone as the earlier versions resolved it: a saved id that is no tone any more (grave) still names an old take
     const legacyTone = ctx.map?.scenes[scene.id] ? tone : effectiveLegacyTone(s.tone, scene.tone, ctx.plan.tone, ctx.channelTone);
@@ -247,7 +267,12 @@ export const neighbours = (flat: Flat[], id: string) => {
 };
 
 /** التشكيل ≥ ٩٨٪ بعد التصحيحات: الكلمة المصحَّحة تُعدّ بنطقها المكتوب، وكلمات القاموس مغطاة (نطقها فُحص عند حفظه) */
-export const coverageOf = (ctx: Ctx, id: string, text: string, corrections: SentenceCorrection[] = []) => {
+export const coverageOf = (ctx: Ctx, id: string, text: string, corrections: SentenceCorrection[] = [], say?: string) => {
+  // D131: a written pronunciation is what is sent, so its own tashkeel is checked (no file, no dictionary)
+  if (say) {
+    const r = tashkeelReport([{ id, narration: say }], { plain: [], voweled: [] });
+    return { ok: r.ok, coverage: r.coverage, missing: r.gaps.flatMap((g) => g.words) };
+  }
   const ws = words(text);
   const eff = ws.map((w, i) => corrections.find((c) => c.index === i && c.word === w)?.say ?? w).join(" ");
   const dict = { entries: [...(ctx.speech.dict.entries ?? []), ...ctx.lexicon.map((e) => ({ text: e.word, say: e.say }))] };
@@ -256,8 +281,10 @@ export const coverageOf = (ctx: Ctx, id: string, text: string, corrections: Sent
 };
 
 /** لماذا لا تصلح إعادة نطق كلمة في التسجيل الحالي (null: تصلح) */
-export const wordFixRefusal = (s: Sentence, fingerprint: string): string | null => {
+export const SAY_WORD_FIX = "نطق هذه الجملة مكتوب كاملًا في «النطق» تحتها؛ عدّل الكلمة هناك ثم ولّد الجملة.";
+export const wordFixRefusal = (s: Sentence, fingerprint: string, custom?: string): string | null => {
   if (s.kind !== "narration") return "نص قرآني: لا يُعاد نطقه بالصوت المستنسخ أبدًا.";
+  if (custom) return SAY_WORD_FIX;
   if (!s.audio) return "ولّد الجملة أولًا؛ إعادة نطق كلمة تعمل على تسجيل موجود.";
   if (s.audio.fingerprint !== fingerprint) return recordedOnOtherText(s)
     ? "تسجيلها قديم — سُجّل على نص سابق؛ ولّدها كاملة بنصها الحالي."

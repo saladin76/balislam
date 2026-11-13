@@ -7,6 +7,7 @@ import type { SentenceRow, SentenceScene } from "../../api";
 import { tones, toneIds } from "../../../../src/voice/tones";
 import { OLDER_TONE, PAUSES, STATUS, ar, inheritLabel, secAr } from "./format";
 import { PlayControl, SentenceFixLine, SentenceSplit, TakeNote, WordChips, type SentencesPart } from "./SentenceParts";
+import { SayEditor } from "./SayEditor";
 
 export const SentenceListRow: React.FC<SentencesPart & { s: SentenceScene; r: SentenceRow; i: number }> = ({ m, s, r, i }) => {
   const { read, drafts, setDrafts, busy, noKey, playing_, rowKeys, carets, run, ref, chipsFor, setSplitting, setAdding, adding } = m;
@@ -42,7 +43,7 @@ export const SentenceListRow: React.FC<SentencesPart & { s: SentenceScene; r: Se
         <SentenceSplit m={m} r={r} n={i + 1} />
         {!dirty && chipsFor(r) ? <div className="sv-words-wrap"><WordChips m={m} r={r} />{!r.wordFix.ok && !r.wordFix.adopt && r.wordFix.reason ? <p className="sp-hint sv-words-why">إعادة نطق كلمة: {r.wordFix.reason}</p> : null}</div> : null}
         <SentenceFixLine m={m} r={r} />
-        {r.spoken && r.spoken !== r.text && r.kind === "narration" ? <p className="sv-spoken"><span>النطق:</span> {r.spoken}</p> : null}
+        <SayEditor m={m} r={r} n={i + 1} />
         {r.applied.length && r.kind === "narration" ? (
           <p className="sv-spoken sv-applied"><span>{r.appliedState === "sent" ? "نُطقت:" : "ستُنطق:"}</span> {r.applied.map((a) => `${a.word} ← ${a.say}`).join("، ")}</p>
         ) : null}

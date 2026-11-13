@@ -37,6 +37,8 @@ export type SentencesPanelProps = {
    * «list» (default; the whole episode in «أدوات وتفاصيل»): one row per sentence.
    */
   variant?: "paragraph" | "list";
+  /** D131: each shown scene's narration sentences with a current take, so step ٢ can say why its preview is silent */
+  onVoiceProgress?: (sceneId: string, p: { done: number; total: number }) => void;
 };
 
 /**
