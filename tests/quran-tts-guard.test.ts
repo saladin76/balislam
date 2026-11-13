@@ -260,7 +260,7 @@ describe("every TTS call site goes through the guard", () => {
     expect(calls).toEqual([
       path.join("app", "server", "routes", "voice.ts"), // voice sample (also checked before the client)
       path.join("src", "voice", "generate.ts"), // scenes, dafatir parts, preview lines (synthesizeLines)
-      path.join("src", "voice", "sentenceVoice.ts"), // one sentence, word fix
+      path.join("src", "voice", "sentenceGenerate.ts"), // one sentence, word fix (sentenceVoice.ts actions call it)
       path.join("src", "voice", "sfx.ts"), // sound effects
     ].sort());
     // and each of them only receives a client created by createElevenLabs (elevenLabsFromEnv or tests' fakes)

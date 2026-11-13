@@ -1,0 +1,165 @@
+import path from "node:path";
+import { readJson } from "../plan/io";
+import { showsDivision } from "../script/divisions";
+import { voiceIdFor } from "./elevenlabs";
+import { voiceDirFor, type VoiceIndex } from "./generate";
+import { isSupersededVersion } from "./tones";
+import { coreOf, quranMask, type LexiconEntry } from "./lexicon";
+import { lexiconEffects, type LexiconEffect } from "./pronunciationRules";
+import { contextFingerprint, sentenceStatus, sceneAdoption, sceneSpans, words, recordedOnOtherText, recordedText, type SceneSpan, type Sentence, type SentenceAudio, type SentencesDoc, type SentenceStatus, type TimedWord } from "./sentences";
+import { loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal, waitingReason } from "./sentenceContext";
+
+/** نموذج القراءة لـ«الجمل»: كل مشهد بجمله وصفوف آياته وبسملته، وكلمات كل جملة وتصحيحاتها. يقرأ فقط. */
+
+// ── نموذج القراءة ────────────────────────────────────────────────────────────
+
+export type SentenceRow = {
+  id: string; sceneId: string; kind: "narration" | "verse" | "basmala"; text: string; spoken: string;
+  tone: string; inheritedTone: string; toneSource: "map" | "scene" | "episode" | "channel";
+  pauseAfterMs: number; status: SentenceStatus; virtual: boolean; last: boolean;
+  audio: { file: string; duration: number; origin: SentenceAudio["origin"] } | null;
+  takes: number; contextChanged: boolean;
+  /** «وُلّدت بنبرة سابقة»: تسجيلها الحالي صالح بإعدادات إصدار سابق (يُعاد بأمر المالك وحده) */
+  olderTone: boolean;
+  tashkeel: { ok: boolean; coverage: number; missing: string[] };
+  chars: number;
+  /**
+   * كلمات النص كما تُعرض (شرائح «أعد نطق الكلمة»): توقيتها في التسجيل الحالي إن صلح.
+   * say: الكلمة كما كتبها المالك (بلا ترقيم) — ما يُملأ به حقل النطق (D66: لا النطق القديم ولا المسموع)؛
+   * sent: ما يُرسل لها الآن فعلًا؛ source: من أين جاء sent إن اختلف (تصحيح الجملة، القاموس، ملف التشكيل)؛
+   * correction: نطق كتبه المالك لهذه الكلمة في هذه الجملة.
+   */
+  words: { word: string; say: string; sent: string; source: "written" | "sentence" | "lexicon" | "tashkeel"; correction: string | null;
+    start: number | null; end: number | null; quran: boolean }[];
+  /**
+   * هل تصلح إعادة نطق كلمة في التسجيل الحالي، ولماذا لا. adopt: لا تسجيل للجملة لكن صوت المشهد ملفًا واحدًا
+   * بتوقيت كلمات حقيقي، فالضغط على كلمة يقصه إلى جمله أولًا («من صوت المشهد»، بلا طلب مدفوع) ثم يفتح التصحيح؛
+   * وتوقيت words حينها بزمن ملف المشهد (source: "scene").
+   */
+  wordFix: { ok: boolean; reason?: string; adopt?: boolean; source?: "scene" };
+  /** «نُطقت: …» (sent: في التسجيل الحالي) أو «ستُنطق: …» (next: عند التوليد القادم) */
+  applied: { word: string; say: string }[]; appliedState: "sent" | "next";
+  fixes: number;
+  /** حدود الجملة في صوت المشهد ملفًا واحدًا (لتشغيلها وحدها حين لا تسجيل لها)؛ null بلا صوت مشهد مطابق لنصه */
+  sceneSpan: SceneSpan | null;
+  /** status "old" (D97): the text the current take was recorded on («قديم — سُجّل على نص سابق»); null otherwise */
+  recordedOn: string | null;
+  /** D97: the take is current under the tone it was recorded with, not the inherited tone now («سُجّلت بنبرة …») */
+  recordedTone: string | null;
+  /** D110: the scene's current audio clamped this sentence's timing to its file (ms), «التوقيت ضُبط قليلًا»; null otherwise */
+  timingClamped: number | null;
+};
+export type VerseRow = {
+  id: string; sceneId: string; kind: "verse-card"; ayahKey: string; reference: string;
+  status: "approved" | "pending" | "missing"; file: string | null;
+};
+export type SentenceScene = {
+  id: string; index: number; chapter: number; chapterTitle: string;
+  /** يُذكر القسم في الاستوديو؟ لا لخطة بقسم واحد بلا عنوان (سرد واحد، D87) */
+  divided: boolean; managed: boolean;
+  audio: { state: "sentences" | "scene" | "stale" | "none"; file: string | null; duration: number | null };
+  /** صوت المشهد ملفًا واحدًا (أو من أجزاء الخريطة) مولَّد بنبرة سابقة: «وُلّد بنبرة سابقة» */
+  olderTone: boolean;
+  import: SentencesDoc["scenes"][string]["import"] | null;
+  /** لماذا لا يُركَّب صوت المشهد من جمله الآن (null: مركّب أو قابل للتركيب) */
+  waiting: string | null;
+  rows: SentenceRow[];
+  verse: VerseRow | null;
+};
+export type SentencesRead = {
+  episode: string;
+  voiceKey: boolean;
+  toneMap: { version: string } | null;
+  scenes: SentenceScene[];
+  /** قاموس النطق للقناة (pronunciations.json) */
+  lexicon: LexiconEntry[];
+  /** أثر كل مدخل على كلمات هذه الحلقة الآن (ما يغيّره، وما لا يطابقه بتشكيله، وتنبيهاته) */
+  lexiconEffects: LexiconEffect[];
+};
+
+export const readSentences = async (episode: string): Promise<SentencesRead> => {
+  const ctx = await loadCtx(episode);
+  const index = (await readJson<VoiceIndex>(path.join(voiceDirFor(ctx.scriptPath), "index.json"))) ?? {};
+  const flat = flatten(ctx);
+  const { ownAudioStatus } = await import("../quran/manualAudio");
+  const recs = await ownAudioStatus(episode).catch(() => ({ pending: {}, approved: {} } as Awaited<ReturnType<typeof ownAudioStatus>>));
+  const scenes: SentenceScene[] = [];
+  allScenes(ctx.plan).forEach(({ scene, chapter }, i) => {
+    const base = { id: scene.id, index: i + 1, chapter: chapter.number, chapterTitle: chapter.title, divided: showsDivision(ctx.plan.chapters, chapter) };
+    if (scene.template === "verse-card") {
+      const key = scene.ayahKey ?? "";
+      const ok = (recs.approved as Record<string, { parts: { file: string }[] }>)[key];
+      const pend = (recs.pending as Record<string, { file: string }>)[key];
+      scenes.push({ ...base, managed: false, audio: { state: "none", file: null, duration: null }, olderTone: false, import: null, waiting: null, rows: [],
+        verse: { id: `verse:${scene.id}`, sceneId: scene.id, kind: "verse-card", ayahKey: key, reference: String(scene.props?.reference ?? key),
+          status: ok ? "approved" : pend ? "pending" : "missing", file: ok?.parts?.[0]?.file ?? pend?.file ?? null } });
+      return;
+    }
+    if (!isNarrated(scene)) return;
+    const { list, managed } = sceneSentences(ctx, scene);
+    const clip = index[scene.id];
+    const narr = scene.narration.trim();
+    const audio: SentenceScene["audio"] = !clip ? { state: "none", file: null, duration: null }
+      : { state: clip.text !== narr ? "stale" : clip.sentences ? "sentences" : "scene", file: clip.file, duration: clip.duration };
+    const spans = clip && audio.state === "scene" ? sceneSpans(clip, list.map((s) => s.text)) : null;
+    // صوت المشهد ملفًا واحدًا: هل يُقص إلى جمله بتوقيت كلماته (الضغط على كلمة جملة بلا تسجيل)
+    const adoption = clip && audio.state === "scene" ? sceneAdoption(clip, list.map((s) => s.text)) : null;
+    let w0 = 0;
+    const rows = list.map((s, k): SentenceRow => {
+      const count = words(s.text).length;
+      const sceneWords = adoption?.ok ? clip!.words.slice(w0, w0 + count) : undefined;
+      w0 += count;
+      const v = voiceOf(ctx, scene, list, s);
+      const nb = neighbours(flat, s.id);
+      return {
+        id: s.id, sceneId: scene.id, kind: s.kind, text: s.text, spoken: v.send.text,
+        tone: v.toneInfo.explicit ?? "", inheritedTone: v.toneInfo.inherited ?? "", toneSource: v.toneInfo.source,
+        pauseAfterMs: s.pauseAfterMs, status: sentenceStatus(s, v.fingerprint), virtual: !managed, last: k === list.length - 1,
+        audio: s.audio ? { file: s.audio.file, duration: s.audio.duration, origin: s.audio.origin } : null,
+        takes: s.takes?.length ?? 0,
+        olderTone: Boolean(s.audio && v.olderTone && s.audio.fingerprint === v.fingerprint),
+        contextChanged: Boolean(s.audio && s.audio.origin === "tts" && s.audio.context !== contextFingerprint(nb.previousText, nb.nextText)),
+        tashkeel: coverageOf(ctx, s.id, s.text, s.corrections), chars: v.send.text.length,
+        ...wordRows(s, v, adoption ? { adopt: adoption.ok, reason: adoption.ok ? undefined : adoption.reason, words: sceneWords } : undefined),
+        sceneSpan: spans?.[k] ?? null,
+        recordedOn: s.audio && recordedOnOtherText(s) ? recordedText(s.audio) : null,
+        timingClamped: audio.state === "sentences" ? clip?.sentences?.clamped?.[s.id] ?? null : null,
+        recordedTone: v.pinnedTone ?? null,
+      };
+    });
+    const sceneOlder = Boolean(clip && audio.state === "scene" && !clip.basmala && isSupersededVersion(clip.presetVersion));
+    scenes.push({ ...base, managed, audio, olderTone: sceneOlder, import: ctx.doc.scenes[scene.id]?.import ?? null,
+      waiting: managed ? waitingReason(ctx, scene, list, audio.state !== "none") : null,
+      rows, verse: null });
+  });
+  const allWords = scenes.flatMap((x) => x.rows.filter((r) => r.kind === "narration").flatMap((r) => r.words.filter((w) => !w.quran).map((w) => w.word)));
+  return { episode, voiceKey: Boolean(process.env.ELEVENLABS_API_KEY && voiceIdFor()), toneMap: ctx.map ? { version: ctx.map.version } : null, scenes,
+    lexicon: ctx.lexicon, lexiconEffects: lexiconEffects(ctx.lexicon, allWords) };
+};
+
+/** صوت المشهد ملفًا واحدًا لجملة بلا تسجيل: يصلح قصه (adopt) بكلماتها بزمنه، أو لماذا لا */
+export type SceneAlt = { adopt: boolean; reason?: string; words?: TimedWord[] };
+export const wordRows = (s: Sentence, v: ReturnType<typeof voiceOf>, scene?: SceneAlt): Pick<SentenceRow, "words" | "wordFix" | "applied" | "appliedState" | "fixes"> => {
+  const refusal = wordFixRefusal(s, v.fingerprint);
+  const ws = words(s.text);
+  const mask = quranMask(ws);
+  const current = Boolean(s.audio && s.audio.fingerprint === v.fingerprint);
+  const fromScene = Boolean(refusal && !s.audio && s.kind === "narration" && scene);
+  const adopt = fromScene && scene!.adopt && scene!.words?.length === ws.length;
+  const at = (i: number, k: "start" | "end") => (!refusal ? s.audio!.words[i]![k] : adopt ? scene!.words![i]![k] : null);
+  return {
+    words: ws.map((w, i) => {
+      const sent = coreOf(v.send.perWord[i] || w) || w;
+      const correction = s.corrections?.find((c) => c.index === i && c.word === w)?.say ?? null;
+      const fromLex = v.send.applied.find((a) => a.index === i);
+      const source = fromLex ? fromLex.source : sent === coreOf(w) ? "written" as const : "tashkeel" as const;
+      return { word: w, say: coreOf(w) || w, sent, source, correction, start: at(i, "start"), end: at(i, "end"), quran: mask[i]! || s.kind === "verse" };
+    }),
+    wordFix: !refusal ? { ok: true }
+      : adopt ? { ok: false, adopt: true, source: "scene", reason: "تُقص الجملة من صوت المشهد عند الضغط على كلمة، بلا توليد." }
+      : fromScene && scene!.reason ? { ok: false, reason: scene!.reason } : { ok: false, reason: refusal },
+    applied: current ? (s.audio!.spokenFixes ?? []) : v.send.applied.map((a) => ({ word: a.word, say: a.say })),
+    appliedState: current ? "sent" : "next",
+    fixes: s.audio?.fixes?.length ?? 0,
+  };
+};
