@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -35,14 +35,14 @@ describe("Studio V2 release-path safety regressions", () => {
     expect(packager).toContain('requireApprovedQuran: quality === "master" || stage === "shorts"');
     // Unified engine: the six-stage ledger is no longer consulted; publishing asks the scene ledger.
     expect(packager).not.toContain('assertWorkflowForEpisode(ep, "publish")');
-    expect(text("app/server/extra.ts")).toContain("await requirePublishAllowed(parts[1])");
+    expect(text("app/server/routes/publish.ts")).toContain("await requirePublishAllowed(parts[1])");
     const production = text("src/render/episode.ts");
     expect(production).toContain("requireScenesReadyForMaster");
     expect(production).toContain("assertRenderedRecitationsMatchApprovals");
   });
 
   it("rejects third-party Quran API calls from live episode and configuration paths", () => {
-    for (const file of ["app/server/api.ts", "app/server/extra.ts", "app/src/App.tsx"]) {
+    for (const file of ["app/server/api.ts", ...readdirSync(path.join(root, "app/server/routes")).map((f) => `app/server/routes/${f}`), "app/server/jobQueue.ts", "app/server/routeContext.ts", "app/src/App.tsx"]) {
       expect(text(file)).not.toMatch(/quranClientFromEnv|syncQuran|QF_CLIENT_ID|QF_CLIENT_SECRET/);
     }
     expect(text("app/server/api.ts")).toContain("أُلغِي الجلب الخارجي");

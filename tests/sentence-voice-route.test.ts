@@ -105,7 +105,7 @@ describe("Studio API robustness (QA, 10 Nov 2026)", () => {
 
   it("while «جهّز كل المشاهد» runs, deleting the episode and rendering it are refused with an Arabic message (M5, H4)", async () => {
     const { startPrepareJob, PREPARE_RUNNING_MESSAGE } = await import("../app/server/prepare");
-    const { busy } = await import("../app/server/extra");
+    const { busy } = await import("../app/server/jobQueue");
     let finish!: () => void;
     startPrepareJob(`${CH}/985`, () => new Promise<void>((r) => { finish = r; }), busy);
     try {

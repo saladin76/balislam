@@ -376,7 +376,7 @@
   - ما يُصنع خارج جهاز المالك يُرفع إلى المسار نفسه على Drive ثم يُسجَّل بـ `npx bal link-drive-preview` (المعرّف والبصمة والحجم).
   - الاستوديو يشغّل النسخة المحلية، أو نسخة Drive المتزامنة إن طابقت البصمة، وإلا يعرض «افتحه على Google Drive».
 - **النطاق:** القنوات الثلاث. الملفات المتتبَّعة قبل القرار تبقى؛ تنظيف السجل بموافقة صاحب المشروع فقط.
-- **المكان:** `src/render/episodePreviews.ts`، و`app/server/extra.ts`، و`app/src/tabs/StoryboardPanel.tsx`، و`src/cli/index.ts`، و`.gitignore`، و`.env.example`.
+- **المكان:** `src/render/episodePreviews.ts`، وapp/server/extra.ts (قُسِّم في D122)، و`app/src/tabs/StoryboardPanel.tsx`، و`src/cli/index.ts`، و`.gitignore`، و`.env.example`.
 - **المساحة:** لا يُنسخ شيء من جهاز المالك إلى Drive (اختياره، ٨ نوفمبر): يُترك `BAL_DRIVE_PREVIEWS_DIR` فارغًا، ويُحفظ في `previews/history` نسخة سابقة واحدة فقط لكل خانة.
 - **التحقق:** `tests/episode-previews-drive.test.ts`.
 
@@ -385,7 +385,7 @@
 - **التاريخ:** ٨ نوفمبر ٢٠٢٦ على `integration/studio-unified-20261108` (فرع `agent/cleanup`). **الحالة:** فرع مسودة؛ لا يُدمج في main إلا بموافقة صاحب المشروع.
 - **الاحتياج:** خطة الجاهزية (المهمة 5، الثبات والتنظيف): بعد D24 بقيت وحدات Studio V2 والمراحل الست وواجهاتها في الشجرة دون أن يصلها أي مسار حي، فتربك القارئ وتطيل الاختبارات.
 - **الحل:**
-  - رسم بياني للاستيراد من نقاط الدخول الحية (`app/server/api.ts`، `app/server/extra.ts`، صفحات `app/*.html`، `src/cli/index.ts`، `src/remotion/index.ts`، `bin/`، `scripts/*.mjs`) مع سلاسل `load("/src/…")`؛ حُذف ما لا يصله شيء فقط.
+  - رسم بياني للاستيراد من نقاط الدخول الحية (`app/server/api.ts`، app/server/extra.ts (قُسِّم في D122)، صفحات `app/*.html`، `src/cli/index.ts`، `src/remotion/index.ts`، `bin/`، `scripts/*.mjs`) مع سلاسل `load("/src/…")`؛ حُذف ما لا يصله شيء فقط.
   - المحذوف: خادم V2 (studioV2Api وstudioV2Review وstudioV2Session وstudioV2SourceVerifier في app/server ومذكرتاه)؛ وحدات V2 في src/workflow مع index وservice وports وview؛ sceneV2 وsceneV2Handoff وsceneV2Probe وmasterGateContract في src/render؛ motionTiming في src/plan؛ واجهات المراحل الست (`EpisodeJourneyBar`، `EpisodeWorkspaceBar`، `WorkflowApprovalDetails`، `WorkflowOwnerControls`، `StudioStartGuide`) وreciterSearch؛ وسكربتات studio-v2 في scripts/qa؛ واختباراتها وحدها.
   - باقٍ لأنه حي: src/workflow/gates.ts وstore.ts وtrust.ts وartifacts.ts وstudioSnapshot.ts وserver.ts، وsrc/plan/sceneReview.ts (حُذفت كلها في D120)، و`StudioSidebar` و`studio-shell.css`، وواجهة app/src/review (صفحة يقدمها Vite).
   - مهلة ٣٠ ثانية لكل اختبار بطيء بعينه (القوالب، إضاءة القوالب، عزل Git، التحديث الآمن، سرعة الصوت) دون تغيير الإعداد العام ولا التوقعات.
@@ -401,7 +401,7 @@
   - دُمجت المراجعة البصرية للاستوديو الجديد (الهاتف والحاسوب، القنوات الثلاث).
   - حُذفت صفحة المراجعة القديمة المنفصلة (صفحتا HTML وواجهتها واختباراتها)، لأن ما تستدعيه في الخادم صار يرد 410 بعد توحيد الاعتمادات.
   - فتح تبويب «النشر» لم يعد ينشئ ملف حزمة الانتشار؛ تُعرض نسخة آلية، ولا تُحفظ إلا عند التعديل أو إعادة التوليد.
-- **المكان:** `app/server/extra.ts`، و`app/src/shell/shell.css`.
+- **المكان:** app/server/extra.ts (قُسِّم في D122)، و`app/src/shell/shell.css`.
 
 ### D29 — بروفة دورة إنتاج كاملة عبر خادم الاستوديو الحقيقي (المهمة 3)
 
@@ -409,7 +409,7 @@
 - **الاحتياج:** إثبات أن دورة واحدة كاملة تعمل من أولها إلى آخرها قبل أن يجربها المالك على جهازه.
 - **الحل:** اختبار `tests/studio-e2e-cycle.test.ts` يشغّل خادم Vite الحقيقي بإضافة `balApi()` على مجلد قنوات مؤقت و`.env` مؤقت، ويمر عبر HTTP بالمسارات نفسها التي تستدعيها الواجهة: كلمة مرور المالك ← السكريبت ← الستوري بورد ← كل مشهد بالترتيب (إنتاج، إرسال، طلب تعديل، اعتماد) ← الدمج وتسجيله ← اعتماد التجميع بكل الوصلات ← Master ← اعتماد الملف نفسه ← إذن النشر. البديل الوحيد هو رندر Remotion داخل مسار المشهد (مقطع ffmpeg صغير بصوت، في الاختبار فقط). ويتحقق من كل حالة رفض، ومن أن تعديل مشهد يعيد فتحه وحده ويلغي التجميع وMaster والإذن، وأن المسارات القديمة ترد 410، وأن قراءات الواجهة (GET) لا تكتب في مجلد الحلقة.
 - **ما أُصلح:** رفض إجراء المالك كان يرد برموز مضللة: بلا كلمة مرور مضبوطة 409 بدل 403، ورفض البوابة في إنتاج المشهد والدمج 500، ورفض النشر قبل الإذن في «حالة النشر» 500. صار خطأ الهوية يحمل رمزًا (`OWNER_AUTH`) فيرد 403، ورفض البوابة يرد 409. لا تغيير في قواعد الاعتماد ولا تجاوز.
-- **المكان:** `src/studio/sceneService.ts`، و`app/server/api.ts`، و`app/server/extra.ts`.
+- **المكان:** `src/studio/sceneService.ts`، و`app/server/api.ts`، وapp/server/extra.ts (قُسِّم في D122).
 - **التحقق:** `npx vitest run tests/studio-e2e-cycle.test.ts`، و`npx tsc --noEmit -p .`، و`npx vitest run`.
 
 ### D30 — تجهيز الحلقة 001 للإطلاق: فحص شامل وإصلاحات آمنة

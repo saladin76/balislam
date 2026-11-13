@@ -256,6 +256,6 @@ describe("الاستوديو: الإشارة الهادئة والأمر الص�
     expect(brand).toContain("[undefined, ...toneIds].map");
     expect(brand).toContain("voiceSettingsFor(undefined, t)");
     expect(brand).not.toMatch(/REGISTERS|طبقة صوت القناة|type="range" min=\{min\}/);
-    expect(src("app/server/extra.ts")).toContain("voiceSettingsFor(undefined, isTone(b.tone) ? b.tone : undefined)");
+    expect(src("app/server/routes/voice.ts")).toContain("voiceSettingsFor(undefined, isTone(b.tone) ? b.tone : undefined)");
   });
 });

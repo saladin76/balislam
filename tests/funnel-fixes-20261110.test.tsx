@@ -113,7 +113,7 @@ describe("M7 / owner decision 10 Nov: citations never block; the Master job read
     expect(classifyFailure({ code: 1, signal: null, browserLost: true, peakMB: 900, log: ["Error: boom"] }).kind).toBe("browser-crash");
   });
   it("frame progress moves the 4K make past 60%; machine lines and English memory warnings stay out of the log", async () => {
-    const { progressFrom, ownerLogLine, MEMORY_NOTE } = await import("../app/server/extra");
+    const { progressFrom, ownerLogLine, MEMORY_NOTE } = await import("../app/server/jobQueue");
     const job = { kind: "make", pct: 60 } as Parameters<typeof progressFrom>[0];
     progressFrom(job, "   FRAMES الحلقة 50");
     expect(job.pct).toBe(79);

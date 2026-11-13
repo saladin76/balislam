@@ -33,7 +33,7 @@ describe("balislam 1 · «اعتمد التجهيز» is never withdrawn (D76)",
     expect(html).not.toMatch(/<button|<input/);
   });
   it("the server refuses a withdrawal and nothing in the studio can empty the board record", () => {
-    const extra = src("app/server/extra.ts");
+    const extra = src("app/server/routes/preparation.ts");
     expect(extra).toContain("S.STORYBOARD_REVOKE_REFUSED");
     expect(extra).not.toContain("revokeStoryboard");
     expect(STORYBOARD_REVOKE_REFUSED).toContain("D76");

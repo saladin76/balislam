@@ -13,6 +13,7 @@ import {
   DRIVE_PUBLISH_FOLDER, MANIFEST_NAME, NO_DRIVE_MESSAGE, PUBLISH_TEXT_NAME, deliverToDrive, drivePublishRoot, pngTraces,
 } from "../src/package/driveHandoff";
 import { driveView, driveOwnsPrimary } from "../app/src/tabs/DriveHandoff";
+import { heavyTimeout } from "./helpers/heavyTimeout";
 import type { PublishHandoffFacts } from "../src/studio/sceneService";
 
 const ffmpeg = (args: string[]) => execFileSync("ffmpeg", ["-nostdin", "-hide_banner", "-loglevel", "error", "-y", ...args]);
@@ -62,10 +63,11 @@ beforeEach(async () => {
   await writeFile(path.join(pkg, "321-episode.ar.srt"), "1\n00:00:00,000 --> 00:00:02,000\nالصبر مفتاح الفرج\n");
   await writeFile(path.join(pkg, "321-short-1.ar.srt"), "1\n00:00:00,000 --> 00:00:02,000\nالصبر\n");
   await writeFile(path.join(pkg, "youtube.md"), "not delivered");
-});
+  // KI-059: real ffmpeg clips; under load (two gates on two cores) the 10 s hook default was exceeded. Same clips, same checks.
+}, heavyTimeout(10_000));
 afterEach(async () => { await rm(tmp, { recursive: true, force: true }); });
 
-describe("deliverToDrive: exact approved bytes into <My Drive>/balislam-publish/<channel>/<episode>/", () => {
+describe("deliverToDrive: exact approved bytes into <My Drive>/balislam-publish/<channel>/<episode>/", { timeout: heavyTimeout(5_000) }, () => {
   it("copies master, shorts, thumbnails, subtitles, the publish text and a manifest, byte for byte", async () => {
     const f = await facts();
     const r = await deliverToDrive({ facts: f, root: drive, publishText: TEXT });

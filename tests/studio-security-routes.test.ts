@@ -3,14 +3,14 @@ import { browserPlanRevision } from "../src/plan/revision";
  * Security QA (10 Nov) over the real Studio server:
  *  H1 — every response (HTML and API) refuses framing (X-Frame-Options DENY, CSP frame-ancestors 'none');
  *  H2 — EVERY mutating route goes through one middleware: loopback socket + loopback Host + a same-origin
- *       Origin or Sec-Fetch-Site; enumerated from the route names in app/server/api.ts and extra.ts;
+ *       Origin or Sec-Fetch-Site; enumerated from the route names in app/server/api.ts and app/server/routes/;
  *  H6 — the direct approve-script / approve-storyboard routes carry the «اعتمد التجهيز» checks;
  *  M4 — PUT /plan keeps the designed-plan guard (D46) and writes a backup before overwriting;
  *  C1 — /api/voice-sample is owner-only and refuses Quran before any request to the voice service.
  * All keys below are test fixtures in a temporary folder; nothing reaches a paid service.
  */
 import { copyFile, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import http from "node:http";
 import type { AddressInfo } from "node:net";
 import path from "node:path";
@@ -101,7 +101,8 @@ const same = () => ({ origin: `http://127.0.0.1:${port}`, "sec-fetch-site": "sam
 
 /** Every route name the two route files dispatch on, as /api/<name> and /api/episodes/<ep>/<name>. */
 const enumerateRoutes = (): string[] => {
-  const src = ["api.ts", "extra.ts"].map((f) => readFileSync(path.join(repo, "app", "server", f), "utf8")).join("\n");
+  const src = ["api.ts", ...readdirSync(path.join(repo, "app", "server", "routes")).map((f) => path.join("routes", f))]
+    .map((f) => readFileSync(path.join(repo, "app", "server", f), "utf8")).join("\n");
   const top = [...new Set([...src.matchAll(/parts\[0\] === "([a-z0-9-]+)"/g)].map((m) => m[1]!))];
   const ep = [...new Set([...src.matchAll(/parts\[2\] === "([a-z0-9-]+)"/g)].map((m) => m[1]!))];
   return [...top.map((t) => t), `episodes`, `episodes/${EP}`, ...ep.map((e) => `episodes/${EP}/${e}`), `channel`, "settings/test", "voice-sample", "labs/x/storyboards/y/1/decision"];
@@ -141,7 +142,7 @@ describe("H2: one middleware for every mutating route", () => {
     const src = readFileSync(path.join(repo, "app", "server", "api.ts"), "utf8");
     const guard = src.indexOf("studioRequestRefusal(req)");
     expect(guard).toBeGreaterThan(0);
-    expect(guard).toBeLessThan(src.indexOf("handleExtra({"));
+    expect(guard).toBeLessThan(src.indexOf("handleStudioRoutes({"));
     expect(guard).toBeLessThan(src.indexOf('parts[0] === "episodes"'));
   });
 

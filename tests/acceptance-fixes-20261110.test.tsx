@@ -1,5 +1,5 @@
 import { copyFile, mkdtemp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
-import { readFileSync } from "node:fs";
+import { readdirSync, readFileSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
@@ -145,7 +145,7 @@ describe("P-05 · a board changed after «اعتمد التجهيز» (11 Nov: c
 describe("P-06 · no pointer to a screen that no longer exists", () => {
   it("messages name the four current steps", () => {
     for (const f of ["src/plan/storyboard.ts", "src/cli/index.ts", "src/studio/sceneService.ts", "src/script/review.ts",
-      "app/server/api.ts", "app/server/extra.ts", "app/src/serverMessages.ts"]) {
+      "app/server/api.ts", ...readdirSync(path.join(root, "app/server/routes")).map((f) => `app/server/routes/${f}`), "app/server/jobQueue.ts", "app/server/routeContext.ts", "app/src/serverMessages.ts"]) {
       const text = src(f);
       expect(text, f).not.toMatch(/«المشاهد ← ستوري بورد»|«المشاهد ← مراجعة المشهد»|من «إنتاج المشاهد»|في «إنتاج المشاهد»\.|الخطوتان ١ و٢|«السكريبت ← سجل التوثيق»|الستوري بورد ← «أدوات وتفاصيل»/);
     }

@@ -16,6 +16,7 @@ import { createServer, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { createSentencePlayer, type SentencePlayer } from "../app/src/workspace/sentencePlayer";
 import { SOLO_AUDIO_EVENT } from "../app/src/ui/soloAudio";
+import { heavyTimeout } from "./helpers/heavyTimeout";
 
 class FakeAudio {
   static all: FakeAudio[] = [];
@@ -154,7 +155,8 @@ afterAll(async () => {
   if (root) await rm(root, { recursive: true, force: true });
 });
 
-describe("GET /api/episodes/<ep>/media/sentences/<file> بمقاطع (Safari)", () => {
+// KI-059: the first request / action loads the Studio modules cold; under load the 5 s default was exceeded. Same checks.
+describe("GET /api/episodes/<ep>/media/sentences/<file> بمقاطع (Safari)", { timeout: heavyTimeout(5_000) }, () => {
   const url = () => `${base}/api/episodes/984/media/sentences/t1-abc-mwdo1.mp3?channel=${CH}`;
   const get = (range?: string) => fetch(url(), { headers: { "sec-fetch-dest": "audio", "sec-fetch-site": "same-origin", ...(range ? { range } : {}) } });
 
