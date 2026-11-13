@@ -323,6 +323,6 @@ export const createContentSync = (root: string, opts: {
 };
 
 let shared: ReturnType<typeof createContentSync> | null = null;
-/** حلقة الاستوديو الواحدة (يضعها api.ts عند التشغيل، ويقرؤها مسار /api/sync في extra.ts). */
+/** حلقة الاستوديو الواحدة (يضعها api.ts عند التشغيل، ويقرؤها مسار /api/sync في routes/maintenance.ts). */
 export const setSharedContentSync = (s: ReturnType<typeof createContentSync> | null) => { shared = s; };
 export const getSharedContentSync = () => shared;

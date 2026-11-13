@@ -258,13 +258,13 @@ describe("every TTS call site goes through the guard", () => {
   it("the call sites are known (a new one must be added here after review)", () => {
     const calls = all.filter(({ f, src }) => f !== path.join("src", "voice", "elevenlabs.ts") && /\.(tts|sample|soundEffect)\(/.test(src)).map(({ f }) => f).sort();
     expect(calls).toEqual([
-      path.join("app", "server", "extra.ts"), // voice sample (also checked before the client)
+      path.join("app", "server", "routes", "voice.ts"), // voice sample (also checked before the client)
       path.join("src", "voice", "generate.ts"), // scenes, dafatir parts, preview lines (synthesizeLines)
       path.join("src", "voice", "sentenceVoice.ts"), // one sentence, word fix
       path.join("src", "voice", "sfx.ts"), // sound effects
     ].sort());
     // and each of them only receives a client created by createElevenLabs (elevenLabsFromEnv or tests' fakes)
     const created = all.filter(({ src }) => /createElevenLabs\(/.test(src)).map(({ f }) => f).sort();
-    expect(created).toEqual([path.join("app", "server", "extra.ts"), path.join("src", "voice", "elevenlabs.ts")].sort());
+    expect(created).toEqual([path.join("app", "server", "routes", "voice.ts"), path.join("src", "voice", "elevenlabs.ts")].sort());
   });
 });

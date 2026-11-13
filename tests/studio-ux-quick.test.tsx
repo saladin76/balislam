@@ -151,7 +151,7 @@ describe("one episode length", () => {
     expect(after.source).toBe("voice");
     expect(after.seconds).toBeGreaterThanOrEqual(9);
     // The home list and the storyboard both read it; the words estimate stays in the script panel.
-    expect(src("app/server/extra.ts")).toContain("length: plan ? episodeLength(plan,");
+    expect(src("app/server/routes/overview.ts")).toContain("length: plan ? episodeLength(plan,");
     expect(src("app/src/tabs/HomeTab.tsx")).not.toContain("check.seconds");
     expect(src("app/src/tabs/StoryboardPanel.tsx")).toContain("episodeLength(plan, media, fps)");
   });

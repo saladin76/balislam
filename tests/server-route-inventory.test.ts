@@ -21,7 +21,7 @@ vi.mock("../app/server/update.ts", () => ({
   updateStatus: async () => ({ ok: true }),
 }));
 
-const { handleExtra: handleStudioRoutes } = await import("../app/server/extra.ts");
+const { handleStudioRoutes } = await import("../app/server/routes/index.ts");
 
 const repo = path.resolve(import.meta.dirname, "..");
 const REACHED = Symbol("reached");

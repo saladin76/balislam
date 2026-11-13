@@ -72,7 +72,7 @@
 | السلاسل والتصنيفات (D71) | إنشاء وتعديل، حتى ثلاثة مستويات. «عام» يضم كل حلقة بلا ملف انتماء | حذف سلسلة فيها حلقات مرفوض |
 | نقل الحلقات (D77) | إجراء لكل صف، وتحديد جماعي، وسحب وإفلات، و«تراجع» | لا يلمس `script.md` ولا الاعتمادات |
 | «حلقة جديدة» | تحقق عربي بجوار الحقل، واسم المجلد يُشتق من العنوان إن تُرك فارغًا، والرقم المكرر يُرفض بالعربية (D102). القالب من القناة نفسها ويبدأ بلا خطأ (D100) | داخل سلسلة يُختم قالبها في `episodes/<المجلد>/series.json` |
-| حذف الحلقة (D99) | **نقل محلي** للمجلد كله، ومعه التسجيلات، إلى `~/balislam-backup/trash/<القناة>/`، بنافذة تأكيد تذكر الملفات والحجم، وزرها معطّل حتى يُكتب رقم الحلقة (D116)، ثم «تراجع» | لا commit ولا push ولا مسّ لـ `~/balislam-archive` (`app/server/extra.ts`) |
+| حذف الحلقة (D99) | **نقل محلي** للمجلد كله، ومعه التسجيلات، إلى `~/balislam-backup/trash/<القناة>/`، بنافذة تأكيد تذكر الملفات والحجم، وزرها معطّل حتى يُكتب رقم الحلقة (D116)، ثم «تراجع» | لا commit ولا push ولا مسّ لـ `~/balislam-archive` (`app/server/routes/episodeTrash.ts`) |
 
 ### شريط الحلقة (`app/src/shell/EpisodeSpine.tsx`)
 أربع خطوات ظاهرة (D40): **١ التجهيز ← ٢ المشاهد ← ٣ النسخة النهائية ← ٤ النشر**. الخطوة المقفلة تقول ما ينقص وتأخذ إليه («إلى التجهيز»، «إلى التلاوات»، «إلى الوصلات»…)، والعدّادات بأرقام عربية (D102).
@@ -232,6 +232,7 @@
 | D118 | ١٣ نوفمبر | **اختبار الرحلة الكاملة (العمل ٤):** `npm run e2e` يمشي رحلة المالك عبر خادم الاستوديو الحقيقي من إنشاء الحلقة حتى نسخ Drive، بحلقة ثابتة لكل قناة ومزوّد صوت وهمي للاختبارات وحدها ورندر صغير حقيقي، ومهمة CI `e2e` بعد `check` (بالإسلام في كل دفعة، والثلاث ليلًا)، واختبار واجهة بـ Playwright (`npm run e2e:ui`). وإصلاحان وجدتهما: تعديل نص مشهد لا يعيد فتح مشهد آخر غُيّرت نبرته (KI-051)، وتعديل السكريبت في زبدة الكتب يصل إلى مشهده (KI-053)، و«الوصلات» قبل التجميع زرها «دمج المشاهد للمراجعة» حين تكتمل المشاهد (KI-056). لا تغيير آخر في الشاشات | مشترك | PR #112 (`701914ce`) |
 | D119 | ١٣ نوفمبر | **فحص النطق المحلي (العمل ٩، بإذن المالك):** في «الاتصالات والمفاتيح» قسم «فحص النطق» («فحص النطق غير مثبّت» حتى «ثبّت فحص النطق» بضغطة بعد رؤية الحجم، ثم «قِس الإنذار الكاذب»، ثم «فعّل فحص النطق»)؛ وبعد التفعيل سطر «كلمة قد تكون نُطقت خطأ: …» تحت الجملة. تفريغ محلي بـ faster-whisper والصوت لا يغادر الجهاز، ولا يُفحص صف آية ولا بسملة، والتنبيه لا يمنع الاعتماد. مطفأ حتى يُقاس ويُقبل | مشترك | (هذا PR) |
 | D120 | ١٣ نوفمبر | **حذف المسارات القديمة (العمل ٧):** حُذف كود سجل المراحل الست واعتماد الصوت المنفصل وتوقيع السكريبت القديم ومراجعة المشاهد القديمة وأمرا `voice-review` و`scenes-review`؛ مساراتها في الخادم 410 لكل طلب ولا تقرأ شيئًا. وما بقي منها على جهاز المالك ينقله `npx bal migrate legacy` آليًا مع كل تشغيل للاستوديو إلى `.studio/legacy-archive/` بعد نسخة في `~/balislam-backup/legacy-migration-<الوقت>/`، ولا يصير قرار قديم اعتمادًا. لا تغيير في الشاشات | مشترك | (هذا PR) |
+| D122 | ١٣ نوفمبر | **تقسيم خادم الاستوديو (العمل ٨، الخادم):** `app/server/extra.ts` وُزّع بحسب المسؤولية على `app/server/routes/` (الصيانة، النظرة العامة، سلة الحلقات، التجهيز، النشر، المختبرات، المعاينات، السلاسل، القناة، الصوت، المهام) و`jobQueue.ts` (طابور المهام و«مشغول») و`routeContext.ts` (`RouteCtx` و`ownerRefusal`)؛ كل مسار وطريقته وحالته وردّه وفحوصه كما هي، ويحرسها جرد المسارات `tests/server-route-inventory.test.ts`. لا تغيير في الشاشات | مشترك | (هذا PR) |
 
 ---
 
@@ -249,6 +250,7 @@
 - **الرحلة الكاملة (D118):** `npm run e2e` (بالإسلام؛ `BAL_E2E_CHANNELS=all` للقنوات الثلاث) و`npm run e2e:ui` (الصفحة نفسها بـ Playwright، دفاتر الزمن). خادم حقيقي على مجلد قنوات مؤقت هو نسخة git لها أصل bare مؤقت (الحفظ الآلي D101 والتعارض)، ومزوّد الصوت الوهمي `BAL_VOICE_PROVIDER=fake` (`src/voice/fakeVoice.ts`: نغمة بمدة الجملة وتوقيت كلمات حتمي؛ يُرفض خارج الاختبارات `VITEST`/`BAL_E2E=1` وبجوار مفتاح حقيقي، وحارس القرآن يعمل قبله)، والرندر الصغير `BAL_E2E_RENDER=tiny` (320×180، للاختبار وحده)، وDrive مؤقت `BAL_DRIVE_PUBLISH_DIR`. محليًا بلا متصفح Remotion: `REMOTION_BROWSER_EXECUTABLE=<chrome>`، و`BAL_E2E_KEEP=1` يبقي المجلدات للتشخيص. نحو ٥–٨ دقائق للقناة.
 - شغّل `app/scripts/ui-audit.mjs` و`app/scripts/scroll-qa.mjs`، على ١٤٤٠ و٣٩٠، فاتحًا وداكنًا.
 - لأي تغيير في تشغيل «الجمل» أو المعاينة: `node app/scripts/sentence-replay-qa.mjs` (استوديو خاص على نسخة من حلقة، وصوت مزيّف داخل العملية، بلا طلب خارجي؛ D105).
+- **خادم الاستوديو:** `app/server/api.ts` (فحص الطلب الواحد ثم مسارات الحلقة) يسلّم أولًا إلى `app/server/routes/index.ts`، وكل ملف هناك يتولى مسؤولية واحدة ويعيد true إن تولى الطلب. أي مسار جديد أو محذوف يظهر في جرد المسارات `tests/server-route-inventory.test.ts` (الجدول ولقطة شروط التوجيه)، فيُحدَّث الجرد عمدًا مع القرار (D122).
 - ادفع إلى `main` عبر بوابة الرفع الإلزامية بلا تجاوز. إن انتهت المهلات بسبب حمل الجهاز، أعد المحاولة؛ `BAL_STUDIO_AUDIT_VITEST_WORKERS=1` يغيّر الجدولة فقط.
 - الاختبارات لا تثبّت قيمًا يحرّرها المالك في الاستوديو (نص مشهد، نبرة، سلسلة) إلا في نسخة محفوظة (`versions/` أو fixtures).
 
@@ -563,7 +565,7 @@ still holds our token.
 - `previews/.preview-index.lock/` — still a directory (older builds respect it), now with `owner.json`. Recovered when its
   writer is gone or its PID was reused, or when it has no owner file and is older than 10 minutes; a live one is waited
   for (15 s), then `PREVIEW_LOCK_BUSY`.
-- The episode `busy` key (`app/server/extra.ts`) is also taken by «جهّز كل المشاهد» for its whole run (`startPrepareJob`
+- The episode `busy` key (`app/server/jobQueue.ts`) is also taken by «جهّز كل المشاهد» for its whole run (`startPrepareJob`
   in `app/server/prepare.ts`). The queue refuses to start while a render/make/package holds it; the episode render,
   make, package and DELETE refuse while it runs, naming it (`PREPARE_RUNNING_MESSAGE`).
 - Host render slots (`hostSlots`, `src/render/pool.ts`): written atomically; `foreign()` removes only a dead process's
@@ -603,7 +605,7 @@ Tests: `tests/voice-lock-robust.test.ts`, `tests/stale-locks-parts.test.ts`, `te
   neutral art, prompts and PDF fonts. `createChannel` / `bal channel new` have no default `--from`; without it a channel
   starts from the neutral identity and `SAFE_NEW_CHANNEL_RULES` (no faces, no music, both checks on).
 - **Owner for policy changes.** `PUT /api/channel`, `PUT /api/identity` and `POST /api/channels` call `assertSceneOwner`
-  (`ownerRefusal` in `app/server/extra.ts`, the same loopback same-origin rule) and answer 403 otherwise.
+  (`ownerRefusal` in `app/server/routeContext.ts`, the same loopback same-origin rule) and answer 403 otherwise.
 - **Errors.** An unknown channel answers 404, a missing episode or file 404; every error text sent to the browser goes
   through `redactPaths` (`app/server/util.ts`), so no absolute path of the owner's machine leaves the server.
   Test: `tests/studio-policy-endpoints.test.ts`.
@@ -623,7 +625,7 @@ never grows.
 #### Server and publishing hardening after the security QA (D58, 10 Nov)
 
 - **One write rule for every route** (`app/server/security.ts` `studioRequestRefusal`, run in `app/server/api.ts`
-  before any route handler, including everything in `extra.ts`): every `/api` request needs a loopback Host
+  before any route handler, including everything in `app/server/routes/`): every `/api` request needs a loopback Host
   (`localhost` / `127.0.0.1` / `[::1]`, any port) and no `Sec-Fetch-Site: cross-site|same-site`; every write
   (any method but GET/HEAD/OPTIONS) also needs the socket's real loopback address and an `Origin` equal to
   `http://<Host>` or, without Origin, `Sec-Fetch-Site: same-origin`. A write with neither is refused (the `bal`

@@ -172,7 +172,7 @@ describe("أول إرسال والسبب الحقيقي (KI-001)", () => {
     expect(badge).toContain("ملاحظات لم تُرسل:");
     const panel = readFileSync(path.join(repo, "app/src/workspace/SceneProductionPanel.tsx"), "utf8");
     expect(panel).toContain("window.addEventListener(NOTES_STATUS_EVENT");
-    const server = readFileSync(path.join(repo, "app/server/extra.ts"), "utf8");
+    const server = readFileSync(path.join(repo, "app/server/routes/maintenance.ts"), "utf8");
     expect(server).toContain(`parts[0] === "notes" && parts[1] === "status"`);
   });
 });

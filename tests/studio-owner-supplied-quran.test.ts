@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
@@ -35,7 +35,7 @@ describe("Studio owner-supplied Quran media, no external provider UI or dispatch
   });
 
   it("does not access provider APIs from live server handlers", () => {
-    for (const file of ["app/server/api.ts", "app/server/extra.ts"]) {
+    for (const file of ["app/server/api.ts", ...readdirSync(path.join(root, "app/server/routes")).map((f) => `app/server/routes/${f}`), "app/server/jobQueue.ts", "app/server/routeContext.ts"]) {
       expect(source(file)).not.toMatch(/quranClientFromEnv|syncQuran|QF_CLIENT/);
     }
     expect(source("app/server/api.ts")).toMatch(/الجلب الخارجي/);

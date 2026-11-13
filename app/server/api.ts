@@ -3,7 +3,9 @@ import { createReadStream, existsSync, statSync } from "node:fs";
 import { mkdir, readdir, readFile, rm, writeFile } from "node:fs/promises";
 import type { IncomingMessage, ServerResponse } from "node:http";
 import type { Plugin, ViteDevServer } from "vite";
-import { busy, busyRefusal, handleExtra, longJobs, ownerRefusal, recoverStudioQueue, renderJobs, startRenderJob } from "./extra.ts";
+import { busy, busyRefusal, longJobs, recoverStudioQueue, renderJobs, startRenderJob } from "./jobQueue.ts";
+import { ownerRefusal } from "./routeContext.ts";
+import { handleStudioRoutes } from "./routes/index.ts";
 import { contentSyncEnabled, createContentSync, setSharedContentSync } from "./contentSync.ts";
 import { restoreUntrackedPreviews } from "./untrackedPreviews.ts";
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
@@ -206,7 +208,7 @@ export const balApi = (): Plugin => ({
         testFault(url.pathname);
         // العمل ٩: فحص النطق المحلي الاختياري (app/server/pronunciationCheck.ts)
         if (await handlePronunciationRoutes({ req, res, parts, ch, load, send, readBody })) return;
-        if (await handleExtra({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
+        if (await handleStudioRoutes({ req, res, parts, ch, root, episodesDir, load, send, readBody, serveFile })) return;
 
         if (parts[0] === "channels") {
           const list = channelMod.listChannels().map((id: string) => {

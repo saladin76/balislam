@@ -11,7 +11,7 @@
 
 ## طابور الرندر وإدارة الذاكرة (الأمران 009–010)
 
-**أين:** `src/render/pool.ts` (`RenderPool`)، وطابور الاستوديو `studioPool` في `app/server/extra.ts`، والأمر `npx bal -c balislam render-batch <تكوين…> --out <مجلد>` في `src/cli/index.ts`.
+**أين:** `src/render/pool.ts` (`RenderPool`)، وطابور الاستوديو `studioPool` في `app/server/jobQueue.ts`، والأمر `npx bal -c balislam render-batch <تكوين…> --out <مجلد>` في `src/cli/index.ts`.
 
 | القدرة | التنفيذ |
 | --- | --- |
@@ -22,7 +22,7 @@
 | إيقاف نظيف | كل مهمة في مجموعة عمليات (`processTree`، `treeRssMB`)، فلا يبقى متصفح يتيم |
 | الاستعادة | السجل على القرص؛ بعد إعادة تشغيل الاستوديو تُستعاد المنتظرة والمنقطعة وتوقف اليتيمة، ولا تُعاد المنتهية ولا يتلف ناتجها |
 | إعادة الفاشل وحده | `render-batch --retry` |
-| الإلغاء | زر في الاستوديو (مسار الإلغاء في `app/server/extra.ts`)، وCtrl-C في `render-batch` |
+| الإلغاء | زر في الاستوديو (مسار الإلغاء في `app/server/routes/jobs.ts`)، وCtrl-C في `render-batch` |
 
 **مهم:** رندر الاستوديو يشغّل `bin/bal.mjs render` داخل `studioPool` (`startRenderJob`). تشغيل `npx bal render` من الطرفية مباشرة لا يمر بالطابور؛ للرندر المتعدد استعمل `render-batch`.
 **الاختبارات:** `tests/render-pool.test.ts` (بعمليات حقيقية؛ اختبار الاستعادة معزول عن رندرات الجهاز الأخرى بـ`foreign: () => []`).
