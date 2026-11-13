@@ -11,6 +11,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
   DRIVE_PUBLISH_FOLDER, MANIFEST_NAME, NO_DRIVE_MESSAGE, PUBLISH_TEXT_NAME, deliverToDrive, drivePublishRoot, pngTraces,
+  __resetDriveHandoffJobs, driveHandoffStatus, startDriveHandoff, type HandoffJob, type HandoffRecord,
 } from "../src/package/driveHandoff";
 import { driveView, driveOwnsPrimary } from "../app/src/tabs/DriveHandoff";
 import { heavyTimeout } from "./helpers/heavyTimeout";
@@ -123,6 +124,69 @@ describe("deliverToDrive: exact approved bytes into <My Drive>/balislam-publish/
     rawClip(path.join(pkg, "321-short-1.mp4")); // metadata not cleaned: encoder tags and x264 signature
     await expect(deliverToDrive({ facts: await facts(), root: drive, publishText: TEXT })).rejects.toThrow(/321-short-1\.mp4/);
     expect(await readdir(folder()).catch(() => [])).toEqual([]);
+  });
+});
+
+describe("startDriveHandoff: a refusal record can never land after the next success (KI-060)", { timeout: heavyTimeout(10_000) }, () => {
+  const saved = process.env.BAL_DRIVE_PUBLISH_DIR;
+  afterEach(() => { __resetDriveHandoffJobs(); if (saved === undefined) delete process.env.BAL_DRIVE_PUBLISH_DIR; else process.env.BAL_DRIVE_PUBLISH_DIR = saved; });
+  const recordOnDisk = async () => JSON.parse(await readFile(path.join(epDir, "out", "drive-handoff.json"), "utf8")) as HandoffRecord;
+  /** Starts a job and resolves when it settles; at settle time the record on disk must already be this job's. */
+  const settled = (job: HandoffJob, done: Promise<HandoffJob>) => done.then(async (j) => {
+    expect(j).toBe(job);
+    expect((await recordOnDisk()).status).toBe(j.status);
+    return j;
+  });
+
+  it("a refusal held before its record is written; permission granted at once; the record ends as the success", async () => {
+    process.env.BAL_DRIVE_PUBLISH_DIR = drive;
+    // Job 1: refused (no publish permission yet). Its record write is held open by the test.
+    let reached!: () => void; const atRecord = new Promise<void>((r) => { reached = r; });
+    let release!: () => void; const held = new Promise<void>((r) => { release = r; });
+    let settle1!: (j: HandoffJob) => void; const done1 = new Promise<HandoffJob>((r) => { settle1 = r; });
+    const job1 = (await startDriveHandoff(epDir, "publish-permission", {
+      facts: async () => { throw new Error("لا إذن نشر"); },
+      beforeRecord: async (rec) => { expect(rec.status).toBe("error"); reached(); await held; },
+      onSettled: settle1,
+    }))!;
+    await atRecord;
+    // Until its record is written, the refused job is still the running one: the card cannot show a verdict yet,
+    // and a new request joins it instead of racing it.
+    expect(job1.status).toBe("running");
+    expect((await driveHandoffStatus(epDir)).job?.status).toBe("running");
+    const ok = { facts: () => facts(), text: async () => TEXT };
+    expect(await startDriveHandoff(epDir, "retry", ok)).toBe(job1);
+    release();
+    expect((await settled(job1, done1)).status).toBe("error");
+    // Permission granted: the next job succeeds and its record is the last word.
+    let settle2!: (j: HandoffJob) => void; const done2 = new Promise<HandoffJob>((r) => { settle2 = r; });
+    const job2 = (await startDriveHandoff(epDir, "retry", { ...ok, onSettled: settle2 }))!;
+    expect(job2).not.toBe(job1);
+    expect((await settled(job2, done2)).status).toBe("done");
+    const s = await driveHandoffStatus(epDir);
+    expect(s.job?.status).toBe("done");
+    expect(s.last?.status).toBe("done");
+    expect(await sha(path.join(folder(), "321-episode.mp4"))).toBe(await sha(path.join(pkg, "321-episode.mp4")));
+  });
+
+  it("a job abandoned by a reset (stale generation) never writes over the newer job's record", async () => {
+    process.env.BAL_DRIVE_PUBLISH_DIR = drive;
+    let reached!: () => void; const atRecord = new Promise<void>((r) => { reached = r; });
+    let release!: () => void; const held = new Promise<void>((r) => { release = r; });
+    let settle1!: (j: HandoffJob) => void; const done1 = new Promise<HandoffJob>((r) => { settle1 = r; });
+    await startDriveHandoff(epDir, "publish-permission", {
+      facts: async () => { throw new Error("لا إذن نشر"); },
+      beforeRecord: async () => { reached(); await held; }, onSettled: settle1,
+    });
+    await atRecord;
+    __resetDriveHandoffJobs(); // the job table forgets job 1 while its write is still pending
+    let settle2!: (j: HandoffJob) => void; const done2 = new Promise<HandoffJob>((r) => { settle2 = r; });
+    const job2 = (await startDriveHandoff(epDir, "retry", { facts: () => facts(), text: async () => TEXT, onSettled: settle2 }))!;
+    expect((await settled(job2, done2)).status).toBe("done");
+    release();
+    await done1;
+    expect((await recordOnDisk()).status).toBe("done");
+    expect((await driveHandoffStatus(epDir)).job).toBe(job2);
   });
 });
 
