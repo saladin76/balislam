@@ -13,7 +13,7 @@ import { checkSay, coreOf, quranMask } from "./lexicon";
 import { isNoopSay } from "./pronunciationRules";
 import { remapWords, spliceWord, type SpliceCheck } from "./wordSplice";
 import { contextFingerprint, words, type Sentence, type SentenceAudio, type SentenceCorrection, type TimedWord } from "./sentences";
-import { sentencesDirFor, writeAtomic, type Ctx, sendOf, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal } from "./sentenceContext";
+import { sentencesDirFor, writeAtomic, type Ctx, sendOf, sayOf, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal } from "./sentenceContext";
 import { SENTENCE_SAMPLE_RATE, decode } from "./sentenceStitch";
 import type { SentenceActionOptions } from "./sentenceVoice";
 
@@ -25,7 +25,7 @@ import type { SentenceActionOptions } from "./sentenceVoice";
 export const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions, corrections: SentenceCorrection[] = s.corrections ?? [], mode: { current?: boolean } = {}) => {
   if (s.kind === "basmala") throw new Error("البسملة يسجلها صاحب القناة بصوته ولا ينطقها الصوت المستنسخ: «ارفع التسجيل» في صفها.");
   if (s.kind !== "narration") throw new Error("هذه الجملة نص قرآني؛ الصوت المستنسخ لا يتلو القرآن أبدًا. انقلها إلى مشهد آية وارفع تلاوتها.");
-  const cov = coverageOf(ctx, s.id, s.text, corrections);
+  const cov = coverageOf(ctx, s.id, s.text, corrections, sayOf(ctx, s));
   if (!cov.ok) {
     if (!ctx.speech.tk && cov.coverage < 1) throw new Error("لا توجد نسخة مشكولة (tashkeel.md) لهذه الحلقة؛ أضفها أو اكتب التشكيل في نص الجملة قبل توليد صوتها.");
     throw new Error(`تشكيل هذه الجملة ${Math.round(cov.coverage * 1000) / 10}% وأقل من الحد ٩٨٪؛ كلمات بلا تشكيل: ${cov.missing.slice(0, 8).join("، ")}. اكتب التشكيل في نص الجملة نفسها أو حدّث tashkeel.md، ثم ولّدها.`);
@@ -104,7 +104,7 @@ export type WordFixOutcome = { ok: boolean; index: number; word: string; say: st
 export const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, c: SentenceCorrection, opts: SentenceActionOptions & { neighbours?: 1 | 2 }):
   Promise<{ list: Sentence[]; outcome: WordFixOutcome }> => {
   const base0 = voiceOf(ctx, scene, list, s);
-  const refusal = wordFixRefusal(s, base0.fingerprint);
+  const refusal = wordFixRefusal(s, base0.fingerprint, base0.custom);
   if (refusal) throw new Error(refusal);
   const { v, client } = await voiceGates(ctx, episode, scene, list, s, opts, [...(s.corrections ?? []).filter((x) => x.index !== c.index), c]);
   const fixed = sendOf(ctx, s, c);

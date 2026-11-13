@@ -12,6 +12,7 @@ import { PAUSES, STATUS, ar, inheritLabel, secAr } from "./format";
 import {
   BasmalaBlock, OlderNote, PlayControl, SceneControl, SentenceFixLine, SentenceSplit, TakeNote, WordChips, type SentencesPart,
 } from "./SentenceParts";
+import { SayEditor } from "./SayEditor";
 
 export const SentenceParagraph: React.FC<SentencesPart & { s: SentenceScene }> = ({ m, p, s }) => {
   const { read, cur, setCur, busy, drafts, setDrafts, noKey, editing, setEditing, chipsFor, ps, sceneQueue, fixing, setFixing, setWhy, fixed, setFixed,
@@ -83,7 +84,7 @@ export const SentenceParagraph: React.FC<SentencesPart & { s: SentenceScene }> =
       {!fixed && r.applied.length && r.kind === "narration" ? (
         <p className="sv-spoken sv-applied"><span>{r.appliedState === "sent" ? "نُطقت:" : "ستُنطق:"}</span> {r.applied.map((a) => `${a.word} ← ${a.say}`).join("، ")}</p>
       ) : null}
-      {r.spoken && r.spoken !== r.text && r.kind === "narration" && !r.applied.length ? <p className="sv-spoken"><span>النطق:</span> {r.spoken}</p> : null}
+      <SayEditor m={m} r={r} n={i + 1} />
       {why ? <p className="sv-why">{why}</p> : null}
       <TakeNote m={m} r={r} />
       {r.contextChanged ? <p className="sp-hint">تغيّر ما حولها منذ توليدها؛ أعد توليدها إن بدا الوصل غير طبيعي.</p> : null}

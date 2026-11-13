@@ -12,7 +12,7 @@ import { recitationUrl } from "../RecitationItem";
 import type { SentencesPanelProps } from "../SentencesPanel";
 import { ar, reopenTarget, toneUpgradeConfirm, wordClick, type WordFixDraft } from "./format";
 
-export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPlanReplaced, onMediaChange, onChanged, hasVoiceKeys }: SentencesPanelProps) => {
+export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPlanReplaced, onMediaChange, onChanged, hasVoiceKeys, onVoiceProgress }: SentencesPanelProps) => {
   /** D68: a channel whose verses are written citations shows the verse as a silent card, never «ارفع التلاوة». */
   const cited = versesAreCitations(useChannel());
   const [read, setRead] = useState<SentencesRead | null>(null);
@@ -23,6 +23,8 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
   const [msg, setMsg] = useState("");
   const [busy, setBusy] = useState("");
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  /** D131 «النطق»: what the owner is typing as the sentence's pronunciation (nothing is sent before «احفظ النطق») */
+  const [sayDrafts, setSayDrafts] = useState<Record<string, string>>({});
   const [adding, setAdding] = useState<{ after: string; text: string } | null>(null);
   /** The page-wide player (one audio at a time): what plays now, paused or not, and how far. */
   const [ps, setPs] = useState<PlayerState | null>(() => pagePlayer().state());
@@ -62,7 +64,7 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
     if (r.scenes.some((s) => (s.verse && !cited) || s.rows.some((x) => x.kind === "basmala"))) setRecs(await api.ownRecitations(episodeId, channelId).catch(() => null));
   };
   useEffect(() => {
-    setRead(null); setError(""); setMsg(""); setDrafts({}); setAdding(null); setFixing(null); setWhy(null); setFixed(null); setCur(null); setEditing(null);
+    setRead(null); setError(""); setMsg(""); setDrafts({}); setSayDrafts({}); setAdding(null); setFixing(null); setWhy(null); setFixed(null); setCur(null); setEditing(null);
     void load().catch((e) => setError((e as Error).message));
     return () => pagePlayer().stopOwner(owner);
   }, [episodeId, channelId, sceneId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -111,6 +113,16 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
   }, [anchor]);
 
   const scenes = useMemo(() => (read?.scenes ?? []).filter((s) => !sceneId || s.id === sceneId), [read, sceneId]);
+  // D131: tell step ٢ how many narration sentences of the shown scene have a current take (its silent preview says it)
+  const progressRef = useRef(onVoiceProgress);
+  progressRef.current = onVoiceProgress;
+  useEffect(() => {
+    for (const s of scenes) {
+      const narr = s.rows.filter((r) => r.kind === "narration");
+      if (!narr.length) continue;
+      progressRef.current?.(s.id, { total: narr.length, done: narr.filter((r) => r.status === "generated" || r.status === "heard").length });
+    }
+  }, [scenes]);
 
   const send = async (label: string, cmd: SentenceCommand, opts: { edits?: boolean } = {}) => {
     setBusy(label);
@@ -276,7 +288,7 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
   };
 
   return {
-    cited, read, setRead, pron, recs, error, setError, msg, busy, drafts, setDrafts, adding, setAdding, ps, owner, fixing, setFixing, why, setWhy,
+    cited, read, setRead, pron, recs, error, setError, msg, busy, drafts, setDrafts, sayDrafts, setSayDrafts, adding, setAdding, ps, owner, fixing, setFixing, why, setWhy,
     fixed, setFixed, cur, setCur, editing, setEditing, chipRefs, wrap, popRef, popPos, lexDrafts, setLexDrafts, carets, splitting, setSplitting,
     load, anchor, scenes, send, run, ref, lexicon, urlOf, stopPlay, playClips, sceneQueue, clipOf, rowKey, playing_, rowActive, pressRow, pressScene,
     rowPlayTitle, rowKeys, playWord, olderCount, olderPlan, noKey, total, voiced, chipsFor, reopen, pressWord, chipTitle, fixedWord, upgradeAll,

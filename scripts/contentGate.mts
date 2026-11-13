@@ -9,6 +9,7 @@
  *   - plan.json: لا خطأ جديد في فحص الخطة (planIssues) لم يكن في النسخة السابقة.
  *   - script.md: لا خطأ جديد في فحص السكريبت (checkForChannel).
  *   - publish.json: لا أثر جديد لأدوات الإنتاج في أي نص (findTraces، القاعدة الأولى).
+ *   - sentence-pronunciations.json (D131): لا قرآن ولا بسملة في أي نطق، وتشكيله ≥ ٩٨٪.
  * «جديد» تعني: غير موجود في نسخة --base. الأخطاء القديمة لا تمنع حفظ تعديل لا يمسّها، ولا تُخفى:
  * يعرضها الاستوديو في مكانها. الخروج 0 فقط إذا لم يظهر شيء جديد.
  */
@@ -59,6 +60,15 @@ for (const file of files) {
           .filter((i) => i.level === "error").map((i) => `${i.sceneId}: ${i.message}`);
         const added = fresh(issues(data), old ? issues(old) : []);
         for (const a of added) failures.push(`${file}: خطأ جديد في الخطة — ${a}`);
+      }
+      if (file.endsWith("/sentence-pronunciations.json")) {
+        // D131: a written pronunciation is sent to the voice: never Quran or the basmala, tashkeel ≥ 98%
+        const { checkSentenceSay } = await import("../src/voice/sentencePronunciation.ts");
+        const entries = Array.isArray((data as { entries?: unknown })?.entries) ? (data as { entries: { scene?: string; say?: unknown }[] }).entries : [];
+        for (const e of entries) {
+          const bad = typeof e?.say === "string" ? checkSentenceSay(e.say) : "النطق ليس نصًا.";
+          if (bad) failures.push(`${file}: نطق مرفوض في ${e?.scene ?? "؟"} — ${bad}`);
+        }
       }
       if (file.endsWith("/publish.json")) {
         const hits = (v: unknown) => strings(v).flatMap((s) => findTraces(s));

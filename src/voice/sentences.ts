@@ -213,8 +213,8 @@ export const addSentenceAfter = (list: Sentence[], id: string, text: string, new
 const sha1 = (x: unknown) => createHash("sha1").update(JSON.stringify(x)).digest("hex").slice(0, 16);
 
 /** بصمة صوت الجملة: كل ما يغيّر صوتها نفسها (كما في بصمة المشهد في generate.ts) */
-export const sentenceFingerprint = (o: { spoken: string; voiceKey: string; tts: unknown; tune?: unknown; voiceId?: string }) =>
-  sha1({ sentence: 1, spoken: o.spoken, voiceKey: o.voiceKey, v: o.tts, ...(o.tune ? { tune: o.tune } : {}), ...(o.voiceId ? { voice: o.voiceId } : {}) });
+export const sentenceFingerprint = (o: { spoken: string; voiceKey: string; tts: unknown; tune?: unknown; voiceId?: string; exact?: string }) =>
+  sha1({ sentence: 1, spoken: o.spoken, voiceKey: o.voiceKey, v: o.tts, ...(o.tune ? { tune: o.tune } : {}), ...(o.voiceId ? { voice: o.voiceId } : {}), ...(o.exact ? { exact: o.exact } : {}) });
 export const contextFingerprint = (previousText?: string, nextText?: string) => sha1({ p: previousText ?? "", n: nextText ?? "" });
 
 /** old: تسجيلها الحالي على نص سابق (يُسمع، ولا يُركّب حتى تُولَّد)؛ stale: على نصها لكن بإعداد غير الحالي */

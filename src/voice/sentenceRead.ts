@@ -7,7 +7,7 @@ import { isSupersededVersion } from "./tones";
 import { coreOf, quranMask, type LexiconEntry } from "./lexicon";
 import { lexiconEffects, type LexiconEffect } from "./pronunciationRules";
 import { contextFingerprint, sentenceStatus, sceneAdoption, sceneSpans, words, recordedOnOtherText, recordedText, type SceneSpan, type Sentence, type SentenceAudio, type SentencesDoc, type SentenceStatus, type TimedWord } from "./sentences";
-import { loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal, waitingReason } from "./sentenceContext";
+import { loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal, waitingReason, autoSendOf } from "./sentenceContext";
 
 /** نموذج القراءة لـ«الجمل»: كل مشهد بجمله وصفوف آياته وبسملته، وكلمات كل جملة وتصحيحاتها. يقرأ فقط. */
 
@@ -15,6 +15,11 @@ import { loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neigh
 
 export type SentenceRow = {
   id: string; sceneId: string; kind: "narration" | "verse" | "basmala"; text: string; spoken: string;
+  /**
+   * D131 «النطق» (جمل الراوي في القنوات الثلاث؛ null لصف آية أو بسملة): auto ما يُرسل آليًا (التشكيل والقاموس
+   * والتصحيحات)، custom ما كتبه المالك للجملة كلها (يُرسل بدل الآلي) أو null. spoken = ما يُرسل فعلًا.
+   */
+  say: { auto: string; custom: string | null } | null;
   tone: string; inheritedTone: string; toneSource: "map" | "scene" | "episode" | "channel";
   pauseAfterMs: number; status: SentenceStatus; virtual: boolean; last: boolean;
   audio: { file: string; duration: number; origin: SentenceAudio["origin"] } | null;
@@ -113,13 +118,14 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
       const nb = neighbours(flat, s.id);
       return {
         id: s.id, sceneId: scene.id, kind: s.kind, text: s.text, spoken: v.send.text,
+        say: s.kind === "narration" ? { auto: autoSendOf(ctx, s).text, custom: v.custom ?? null } : null,
         tone: v.toneInfo.explicit ?? "", inheritedTone: v.toneInfo.inherited ?? "", toneSource: v.toneInfo.source,
         pauseAfterMs: s.pauseAfterMs, status: sentenceStatus(s, v.fingerprint), virtual: !managed, last: k === list.length - 1,
         audio: s.audio ? { file: s.audio.file, duration: s.audio.duration, origin: s.audio.origin } : null,
         takes: s.takes?.length ?? 0,
         olderTone: Boolean(s.audio && v.olderTone && s.audio.fingerprint === v.fingerprint),
         contextChanged: Boolean(s.audio && s.audio.origin === "tts" && s.audio.context !== contextFingerprint(nb.previousText, nb.nextText)),
-        tashkeel: coverageOf(ctx, s.id, s.text, s.corrections), chars: v.send.text.length,
+        tashkeel: coverageOf(ctx, s.id, s.text, s.corrections, v.custom), chars: v.send.text.length,
         ...wordRows(s, v, adoption ? { adopt: adoption.ok, reason: adoption.ok ? undefined : adoption.reason, words: sceneWords } : undefined),
         sceneSpan: spans?.[k] ?? null,
         recordedOn: s.audio && recordedOnOtherText(s) ? recordedText(s.audio) : null,
@@ -140,11 +146,11 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
 /** صوت المشهد ملفًا واحدًا لجملة بلا تسجيل: يصلح قصه (adopt) بكلماتها بزمنه، أو لماذا لا */
 export type SceneAlt = { adopt: boolean; reason?: string; words?: TimedWord[] };
 export const wordRows = (s: Sentence, v: ReturnType<typeof voiceOf>, scene?: SceneAlt): Pick<SentenceRow, "words" | "wordFix" | "applied" | "appliedState" | "fixes"> => {
-  const refusal = wordFixRefusal(s, v.fingerprint);
+  const refusal = wordFixRefusal(s, v.fingerprint, v.custom);
   const ws = words(s.text);
   const mask = quranMask(ws);
   const current = Boolean(s.audio && s.audio.fingerprint === v.fingerprint);
-  const fromScene = Boolean(refusal && !s.audio && s.kind === "narration" && scene);
+  const fromScene = Boolean(refusal && !v.custom && !s.audio && s.kind === "narration" && scene);
   const adopt = fromScene && scene!.adopt && scene!.words?.length === ws.length;
   const at = (i: number, k: "start" | "end") => (!refusal ? s.audio!.words[i]![k] : adopt ? scene!.words![i]![k] : null);
   return {

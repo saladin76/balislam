@@ -17,6 +17,7 @@ import { sceneName } from "../sceneNames";
 import { Icon } from "../../ui/icons";
 import { Num, duration as clock, ownerText } from "../../ui/format";
 import { NoteText, ar, noteInboxLine } from "./notes";
+import { liveAudio } from "./liveAudio";
 import type { StepPart } from "./sceneStepView";
 
 /** «قبل أن تعتمد»: this channel's review criteria (from its production rules), on a sticky note in the gutter */
@@ -88,9 +89,11 @@ export const SceneFixList: React.FC<StepPart> = ({ m, v }) => {
 };
 
 export const SceneMedia: React.FC<StepPart> = ({ m, p, v }) => {
-  const { currentId, candidate, previewUrl, videoRef, advanced, setVideoSeconds, order } = m;
-  const { livePreview } = p;
-  const { shownId, isCurrent, shownVideo, secs } = v;
+  const { currentId, candidate, previewUrl, videoRef, advanced, setVideoSeconds, order, voiceProgress } = m;
+  const { livePreview, media } = p;
+  const { shownId, isCurrent, shownVideo, secs, hit } = v;
+  // D131: why the quick preview is silent (the scene's sound is composed once every sentence has its take), or that it has sound
+  const la = liveAudio(hit?.scene, media, voiceProgress[shownId], isCurrent);
   return (
     <div className="s3-media">
       {isCurrent && previewUrl ? (
@@ -101,7 +104,7 @@ export const SceneMedia: React.FC<StepPart> = ({ m, p, v }) => {
         // The tag sits under the frame, never over it: burned-in captions run along the top of the picture.
         <figure className="s3-livebox">
           <div className="s3-live"><StudioErrorBoundary scope="screen" compact label="معاينة المشهد" resetKey={shownId}>{livePreview(shownId)}</StudioErrorBoundary></div>
-          <figcaption className="s3-tag">معاينة صامتة{isCurrent ? " — المعاينة بالصوت تظهر هنا حين تُجهَّز" : ""}</figcaption>
+          <figcaption className="s3-tag">{la.line}</figcaption>
         </figure>
       ) : (
         <div className="sp-empty">لم يُنتج هذا المشهد بعد.</div>
@@ -144,7 +147,7 @@ export const SceneSentences: React.FC<StepPart> = ({ m, p, v }) => {
   const { shownId, hit } = v;
   return hit?.scene.narration.trim() || hit?.scene.template === "verse-card" ? (
     <StudioErrorBoundary scope="screen" compact label="الجمل" resetKey={shownId}>
-    <SentencesPanel key={`sv:${sentencesKey}`} variant="paragraph" episodeId={episodeId} channelId={channelId} sceneId={shownId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
+    <SentencesPanel key={`sv:${sentencesKey}`} variant="paragraph" onVoiceProgress={m.onVoiceProgress} episodeId={episodeId} channelId={channelId} sceneId={shownId} hasVoiceKeys={hasVoiceKeys} onOpenSettings={onOpenSettings}
       onBeforeEdit={onPlanFlush} onPlanReplaced={onPlanReplaced} onMediaChange={onMediaChange}
       onChanged={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
     </StudioErrorBoundary>

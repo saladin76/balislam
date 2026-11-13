@@ -277,3 +277,13 @@
 .sv-pron { margin: 6px 0; padding: 6px 10px; border-radius: 8px; border-inline-start: 3px solid var(--warn, #94621a); background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-size: 0.92em; line-height: 1.7; }
 .sv-pron b { font-weight: 700; }
 .sv-pron-why { display: block; color: var(--muted, inherit); font-size: 0.95em; }
+
+/* D131 «النطق»: open for every narration sentence (the text sent to the voice, with tashkeel) */
+.sv-say { display: grid; gap: 4px; padding-inline: 8px; }
+.sv-say-lb { font-size: 13px; color: var(--muted, #6e726c); line-height: 1.7; }
+.sv-say-lb b { color: var(--ink, #1e2320); font-weight: 600; }
+.sv-say.is-custom .sv-say-lb b { color: var(--accent, #2c5e55); }
+.sv-say-text { width: 100%; box-sizing: border-box; font-family: var(--f-read, inherit); font-size: 15px; line-height: 1.9; padding: 6px 10px;
+  border: 1px solid var(--line, #e6e3dc); border-radius: var(--r, 6px); background: var(--panel-2, #faf9f6); color: var(--ink, #1e2320); resize: vertical; field-sizing: content; }
+.sv-say-text:focus { outline: none; border-color: var(--accent, #2c5e55); }
+.sv-say.is-custom .sv-say-text { border-color: var(--accent, #2c5e55); }

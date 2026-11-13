@@ -250,7 +250,7 @@ export const adoptSceneAudio = async (ctx: Ctx, scene: PlanScene, list: Sentence
       const nb = neighbours(flat, s.id);
       // النسخة المقصوصة بإصدار نبرات مقطع المشهد نفسه (غيابه = ١): لا تصير «حالية» وهي بالإعدادات القديمة
       const cv = clip.presetVersion ?? 1;
-      s.audio = { file: f.file, fingerprint: voiceOf(ctx, scene, list, s, isSupersededVersion(cv) ? { version: cv } : {}).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
+      s.audio = { file: f.file, fingerprint: voiceOf(ctx, scene, list, s, isSupersededVersion(cv) ? { version: cv, automatic: true } : { automatic: true }).fingerprint, context: contextFingerprint(nb.previousText, nb.nextText),
         duration: f.duration, words: f.words, at: new Date().toISOString(), origin: "scene", timing: "aligned" };
       if (next && k < list.length - 1) s.pauseAfterMs = clampPause((next.start - clip.words[w + count - 1]!.end) * 1000);
     } else {

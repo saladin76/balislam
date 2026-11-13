@@ -15,6 +15,7 @@ import { NO_VOICE_KEY_AFTER_NOTE, voiceResultMessage } from "../voiceResult";
 import type { SceneProductionProps } from "../SceneProductionPanel";
 import { noop, problemNote, type ProblemKind } from "./notes";
 import type { VoiceState } from "./SceneDecisionActions";
+import type { VoiceProgress } from "./liveAudio";
 
 export const useSceneProduction = (props: SceneProductionProps) => {
   const {
@@ -49,6 +50,10 @@ export const useSceneProduction = (props: SceneProductionProps) => {
   const [shortsOpen, setShortsOpen] = useState(false);
   /** dafatir M9: after a tone note or a scene regeneration the sentence rows are read again (their tone and status). */
   const [sentencesKey, setSentencesKey] = useState(0);
+  /** D131: how many narration sentences of each scene have a current take (from «الجمل»), said under a silent preview */
+  const [voiceProgress, setVoiceProgress] = useState<Record<string, VoiceProgress>>({});
+  const onVoiceProgress = (sceneId: string, p: VoiceProgress) =>
+    setVoiceProgress((m) => (m[sceneId]?.done === p.done && m[sceneId]?.total === p.total ? m : { ...m, [sceneId]: p }));
   // «جمل الحلقة كلها» في «أدوات وتفاصيل»: تُفتح بطلب المالك فقط (القائمة طويلة)
   const [allSentences, setAllSentences] = useState(false);
   // التجهيز في الخلفية (يبدأ وحده بعد «اعتمد التجهيز»): يقول تحت المشهد غير الجاهز «يُجهَّز الآن» أو «في الدور»
@@ -345,7 +350,7 @@ export const useSceneProduction = (props: SceneProductionProps) => {
     data, setData, error, setError, pending, note, setNote, reviewed, setReviewed, seams, viewId, setViewId, editing, setEditing,
     stripRef, videoRef, videoSeconds, setVideoSeconds, problem, setProblem, problemText, setProblemText, toneChoice, setToneChoice,
     confirming, setConfirming, sentNotes, voiceBusy, voiceMsg, advanced, shortsOpen, setShortsOpen, sentencesKey,
-    allSentences, setAllSentences, prepJob, setPrepJob, moreRef, assemblyRef,
+    allSentences, setAllSentences, prepJob, setPrepJob, moreRef, assemblyRef, voiceProgress, onVoiceProgress,
     markSeam, refresh, renderCurrentScene, assembleScenes, humanReviewFocus, currentId, scene, candidate, previewUrl, allApproved,
     act, draftReady, reviewCurrent, seamsAll, seamsDone, planScenes, issues, sceneMode, order, shownId,
     voiceOf, generateVoice, submitTone, keys, reelOpen, setReelOpen, headRef, reasonsHost, setReasonsHost, openScene, seamAt, setSeamAt,

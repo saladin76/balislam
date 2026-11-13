@@ -173,7 +173,8 @@ describe("17 · المعاينات الصامتة تبدأ مكتومة", () => 
     const preview = src("app/src/ui/Preview.tsx");
     expect(preview).toContain("initiallyMuted={muted}");
     expect(preview.match(/initiallyMuted/g)?.length).toBeGreaterThanOrEqual(2);
-    expect(src("app/src/tabs/EpisodeTab.tsx")).toMatch(/episodeOverlays=\{plan\.overlays\} muted \/>/);
+    // D131: the step ٢ live preview is muted only while the scene has no sound (liveAudio); with its sound it plays it
+    expect(src("app/src/tabs/EpisodeTab.tsx")).toContain("muted={!la.audible}");
   });
 });
 

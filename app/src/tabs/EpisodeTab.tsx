@@ -1,4 +1,5 @@
 import { OverlayToggles } from "../ui/Overlays";
+import { liveAudio, mayAutoplayWithSound } from "../workspace/sceneProduction/liveAudio";
 import { CLIPS, SCENES, WORDS, arabicCountAr, countAr, everyWeekday } from "../../../src/i18n/count";
 const arNumE = (n: number) => n.toLocaleString("ar-EG");
 import { resolveOverlays } from "../../../brand/identity/index";
@@ -550,7 +551,10 @@ export const EpisodeTab: React.FC<{
 export const SceneLivePreview: React.FC<{ sceneId: string; plan: Plan; identity: Identity; channel: ChannelInfo; media: EpisodeMedia }> = ({ sceneId, plan, identity, channel, media }) => {
   const hit = plan.chapters.flatMap((c) => c.scenes.map((s) => ({ s, c }))).find((x) => x.s.id === sceneId);
   if (!hit) return null;
-  return <ScenePreview scene={hit.s} themeId={plan.themeId} orientation="landscape" eyebrow={chapterEyebrow(channel, langPack(plan.lang).strings.chapter, hit.c)} identity={identity} channel={channel} lang={plan.lang} media={media} episodeOverlays={plan.overlays} muted />;
+  // D131: silent until the scene's sound exists (then it plays WITH it, never left muted); a new clip remounts the player
+  const la = liveAudio(hit.s, media);
+  return <ScenePreview key={la.key} scene={hit.s} themeId={plan.themeId} orientation="landscape" eyebrow={chapterEyebrow(channel, langPack(plan.lang).strings.chapter, hit.c)} identity={identity} channel={channel} lang={plan.lang} media={media} episodeOverlays={plan.overlays}
+    muted={!la.audible} autoPlay={la.audible ? mayAutoplayWithSound() : true} />;
 };
 
 /** رندر الحلقة أو الفصل وتتبع التقدم. */
