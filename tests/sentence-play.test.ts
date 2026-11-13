@@ -10,6 +10,7 @@ import path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createSentencePlayer, estimateSpan, sentenceClip, type SentencePlayer } from "../app/src/workspace/sentencePlayer";
 import { sceneSpans } from "../src/voice/sentences";
+import { panelSource } from "./helpers/panelSource";
 
 class FakeAudio {
   static all: FakeAudio[] = [];
@@ -201,7 +202,7 @@ describe("the sentence's span", () => {
 });
 
 describe("the panel wiring", () => {
-  const tsx = readFileSync(path.join(__dirname, "..", "app/src/workspace/SentencesPanel.tsx"), "utf8");
+  const tsx = panelSource("app/src/workspace/SentencesPanel.tsx");
   it("never plays the whole scene for one sentence, and cleans up on scene change and unmount", () => {
     expect(tsx).not.toMatch(/playQueue\(`scene:\$\{s\.id\}`, sceneQueue\(s\)\)\}>/);
     expect(tsx).toMatch(/return \(\) => pagePlayer\(\)\.stopOwner\(owner\);/);

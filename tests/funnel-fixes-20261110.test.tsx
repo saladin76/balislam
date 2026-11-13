@@ -9,8 +9,9 @@ import { currentPrepareView } from "../src/studio/prepareAll";
 import { scenesWithoutTone } from "../src/studio/preparation";
 import { nameSceneIds, planOrder, sceneNames } from "../src/i18n/sceneNames";
 import type { Plan } from "../src/plan/types";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(import.meta.dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const order = ["c1-s1", "c1-s2", "c1-s3", "c2-s1"];
 
 describe("scene names on the server (shared formatter)", () => {

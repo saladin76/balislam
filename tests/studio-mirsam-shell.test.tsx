@@ -14,8 +14,9 @@ import { STEPS } from "../app/src/shell/EpisodeSpine";
 import { SCHEME_KEY, readScheme, resolveScheme, writeScheme } from "../app/src/ui/colorScheme";
 import { Num, TECHNICAL_TEXT, zeroParts } from "../app/src/ui/format";
 import { WordFixLine, WordFixPopover, fixNeighbours, neighbourHint } from "../app/src/workspace/SentencesPanel";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const noop = () => {};
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 const CHANNELS = [

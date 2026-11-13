@@ -17,6 +17,7 @@ import {
   allToneIds, effectiveLegacyTone, isSupersededVersion, isTone, layeredVoiceSettingsV1, legacyTunes, layersOf, strongVoiceSettingsV2,
   TONE_PRESET_VERSION, TONE_PRESETS_FIRST, toneIds, tones, voiceSettingsFor, type Tone,
 } from "../src/voice/tones";
+import { panelSource } from "./helpers/panelSource";
 
 const CHANNELS = ["balislam", "dafatir-alzaman", "zubdat-alkutub"] as const;
 const channelJson = (ch: string) => JSON.parse(readFileSync(path.join("channels", ch, "channel.json"), "utf8"));
@@ -238,7 +239,7 @@ describe("استعادة أول نسخة لا تعيد توليد شيء آلي�
 });
 
 describe("الاستوديو: الإشارة الهادئة والأمر الصريح وجدول النبرات", { timeout: 60_000 }, () => {
-  const src = (f: string) => readFileSync(f, "utf8");
+  const src = (f: string) => panelSource(f);
   it("«وُلّدت بنبرة سابقة» في الجمل، و«أعد توليد ما وُلّد بنبرة سابقة» بالعدد والرصيد ثم تأكيد", async () => {
     const panel = src("app/src/workspace/SentencesPanel.tsx");
     expect(panel).toContain("r.olderTone ?");

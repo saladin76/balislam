@@ -2,9 +2,10 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const src = (file: string) => readFileSync(path.join(root, file), "utf8");
+const src = (file: string) => panelSource(file);
 
 describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
   it("exposes one current scene at a time with no browser-side approval authority", () => {

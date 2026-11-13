@@ -23,6 +23,7 @@ import { AUTH_FAILURE, NETWORK_FAILURE, isLocalRemote, notesSendPolicy, studioNo
 import { listStudioNotes, resolveStudioNote } from "../src/studio/notesCli";
 import { noteInboxLine } from "../app/src/workspace/SceneProductionPanel";
 import { notesReasonText } from "../app/src/ui/NotesBadge";
+import { panelSource } from "./helpers/panelSource";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const git = (cwd: string, ...args: string[]) =>
@@ -170,7 +171,7 @@ describe("أول إرسال والسبب الحقيقي (KI-001)", () => {
     const badge = readFileSync(path.join(repo, "app/src/ui/NotesBadge.tsx"), "utf8");
     expect(badge).toContain("st.pending <= 0) return null");
     expect(badge).toContain("ملاحظات لم تُرسل:");
-    const panel = readFileSync(path.join(repo, "app/src/workspace/SceneProductionPanel.tsx"), "utf8");
+    const panel = panelSource("app/src/workspace/SceneProductionPanel.tsx");
     expect(panel).toContain("window.addEventListener(NOTES_STATUS_EVENT");
     const server = readFileSync(path.join(repo, "app/server/routes/maintenance.ts"), "utf8");
     expect(server).toContain(`parts[0] === "notes" && parts[1] === "status"`);

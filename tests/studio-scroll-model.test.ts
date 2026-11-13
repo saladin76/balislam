@@ -10,9 +10,10 @@ import { readFileSync, readdirSync, statSync } from "node:fs";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { MODAL_OPEN_CLASS, lockScroll, scrollLocks } from "../app/src/ui/scrollLock";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.join(__dirname, "..");
-const src = (f: string) => readFileSync(path.join(root, f), "utf8");
+const src = (f: string) => panelSource(f);
 const walk = (dir: string): string[] => readdirSync(dir).flatMap((n) => {
   const p = path.join(dir, n);
   return statSync(p).isDirectory() ? walk(p) : [p];

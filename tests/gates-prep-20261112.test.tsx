@@ -18,9 +18,10 @@ import { voiceResultMessage, NO_VOICE_KEY } from "../app/src/workspace/voiceResu
 import { trashWhat } from "../app/src/tabs/HomeTab";
 import { acquireLock } from "../src/io/processLock";
 import type { Plan } from "../src/plan/types";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.join(import.meta.dirname, "..");
-const src = (f: string) => readFileSync(path.join(root, f), "utf8");
+const src = (f: string) => panelSource(f);
 
 describe("balislam 1 · «اعتمد التجهيز» is never withdrawn (D76)", () => {
   it("the board log is read-only history: no «اسحب الاعتماد», no second board approval", () => {

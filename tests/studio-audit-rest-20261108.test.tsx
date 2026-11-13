@@ -21,10 +21,11 @@ import { citationNotice } from "../app/src/shell/citationNotice";
 import { BoardAuditLog } from "../app/src/tabs/BoardAuditLog";
 import { SettingsTab } from "../app/src/tabs/SettingsTab";
 import { parseStudioHash, studioHash } from "../app/src/shell/route";
+import { panelSource } from "./helpers/panelSource";
 
 const noop = () => {};
 const h = (c: string) => c.repeat(64);
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 
 describe("5 · «جهّز كل المشاهد» بلا صوت لا يبدأ رندرًا لا يُراجع", () => {
   const q = (ids: string[]) => ids.map((id) => ({ id, sourceSha256: h(id.slice(-1)) }));

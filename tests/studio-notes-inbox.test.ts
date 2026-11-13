@@ -25,6 +25,7 @@ import {
 import { notesSyncEnabled, syncStudioNotes } from "../src/studio/notesSync";
 import { listStudioNotes, resolveStudioNote } from "../src/studio/notesCli";
 import { noteInboxLine } from "../app/src/workspace/SceneProductionPanel";
+import { panelSource } from "./helpers/panelSource";
 
 /** Owner decision (9 Nov): no passphrase. A Studio request from another address or another site is refused. */
 const asRemote = <T,>(fn: () => T) => runOwnerRequest({ remoteAddress: "192.168.1.20", sameOrigin: true, host: "127.0.0.1:4321" }, fn);
@@ -56,7 +57,7 @@ describe("قراءة ملاحظة التصحيح", () => {
     expect(noteInboxLine({ sync: "pending", status: "open", answer: null, reason: "error" })).not.toMatch(/بلا اتصال/);
     expect(noteInboxLine({ sync: "sent", status: "fixed", answer: null })).toBe("أُصلحت — أنتج المشهد من جديد");
     expect(noteInboxLine({ sync: "pending", status: "fixed", answer: "أبطأتُ السهم" })).toBe("أُصلحت — أنتج المشهد من جديد (أبطأتُ السهم)");
-    const ui = readFileSync(path.join(repo, "app/src/workspace/SceneProductionPanel.tsx"), "utf8");
+    const ui = panelSource("app/src/workspace/SceneProductionPanel.tsx");
     expect(ui).toContain("noteInboxLine(scene.correction.inbox)");
   });
   it("الإرسال مطفأ داخل الاختبارات ما لم يُطلب صراحة", () => {
