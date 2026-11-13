@@ -234,6 +234,7 @@
 | D120 | ١٣ نوفمبر | **حذف المسارات القديمة (العمل ٧):** حُذف كود سجل المراحل الست واعتماد الصوت المنفصل وتوقيع السكريبت القديم ومراجعة المشاهد القديمة وأمرا `voice-review` و`scenes-review`؛ مساراتها في الخادم 410 لكل طلب ولا تقرأ شيئًا. وما بقي منها على جهاز المالك ينقله `npx bal migrate legacy` آليًا مع كل تشغيل للاستوديو إلى `.studio/legacy-archive/` بعد نسخة في `~/balislam-backup/legacy-migration-<الوقت>/`، ولا يصير قرار قديم اعتمادًا. لا تغيير في الشاشات | مشترك | (هذا PR) |
 | D122 | ١٣ نوفمبر | **تقسيم خادم الاستوديو (العمل ٨، الخادم):** `app/server/extra.ts` وُزّع بحسب المسؤولية على `app/server/routes/` (الصيانة، النظرة العامة، سلة الحلقات، التجهيز، النشر، المختبرات، المعاينات، السلاسل، القناة، الصوت، المهام) و`jobQueue.ts` (طابور المهام و«مشغول») و`routeContext.ts` (`RouteCtx` و`ownerRefusal`)؛ كل مسار وطريقته وحالته وردّه وفحوصه كما هي، ويحرسها جرد المسارات `tests/server-route-inventory.test.ts`. لا تغيير في الشاشات | مشترك | (هذا PR) |
 | D123 | ١٣ نوفمبر | **تقسيم سجل «إنتاج المشاهد» (العمل ٨):** `src/studio/sceneService.ts` يبقى الوحدة العامة التي يستوردها الجميع، وانفصلت البوابات عن عمليات الملفات: `sceneLedgerStore.ts` (ملف السجل الموقَّع وقفله ومسارات المشهد والتجميع وMaster وبصماتها)، `sceneInputs.ts` (مدخلات الحلقة الحالية من القرص)، `sceneLedgerState.ts` (المطابقة و«تحديث بعد التجهيز» ونموذج القراءة تحت القفل)، `sceneGates.ts` (فحص المالك وكل بوابة)، `sceneDecisions.ts` (قرارات المالك وفحوصها بالترتيب). الكود منقول حرفًا. لا تغيير في الشاشات ولا في البوابات | مشترك | (هذا PR) |
+| D124 | ١٣ نوفمبر | **تقسيم «الجمل» (العمل ٨):** `src/voice/sentenceVoice.ts` يبقى الوحدة العامة وأفعال المالك، وانفصل التقسيم والتركيب (`sentenceStitch.ts`، بلا أي طلب صوت) عن طلب الصوت المدفوع (`sentenceGenerate.ts`، عبر العميل الذي يمر على حارس القرآن ثم على مزوّد الصوت)، ومعهما `sentenceContext.ts` و`sentenceRead.ts`. الكود منقول حرفًا. لا تغيير في الشاشات | مشترك | (هذا PR) |
 
 ---
 
@@ -375,7 +376,9 @@ again by the queue (`reason: "failed-before"`; the scene's own «إنتاج ال
 failures, which are retried (`pickRenderQueue`, D38).
 
 **Sentence-by-sentence voice (D50).** A narrated scene can be voiced sentence by sentence from «الجمل»
-(`src/voice/sentences.ts` pure model, `src/voice/sentenceVoice.ts` disk/generation/composition, `GET/POST
+(`src/voice/sentences.ts` pure model, `src/voice/sentenceVoice.ts` the owner's actions over `sentenceContext.ts` (disk and voice context),
+`sentenceRead.ts` (read model), `sentenceStitch.ts` (splitting and stitching, no voice request) and `sentenceGenerate.ts`
+(the one paid request per sentence, through the guarded client; D124), `GET/POST
 /api/episodes/<ep>/sentences`). Reading needs nothing; every action (`init`, `edit`, `split`, `merge`, `delete`, `add`,
 `tone`, `pause`, `generate`, `restore`, `heard`, `fixword`) needs the owner (`assertSceneOwner`: a loopback, same-origin Studio request)
 and runs under a per-episode lock on `voice/sentences.json`. `generate` sends ONE ElevenLabs request for that sentence,
