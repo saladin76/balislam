@@ -981,3 +981,7 @@
 ## 2026-11-13 — تقسيم لوحة «المشاهد» (العمل ٨) (D126، التعريف: docs/balislam/06-decisions.md)
 
 - مرجع: `docs/balislam/06-decisions.md` (D126). مشترك: `SceneProductionPanel.tsx` صار ملف دخول صغيرًا، والحالة في `app/src/workspace/sceneProduction/useSceneProduction.ts`، ومكوّن لكل جزء مرئي في المجلد نفسه. لا تغيير في شاشات القناة ولا في سلوكها.
+
+## 2026-11-13 — تقسيم لوحة «الجمل» (العمل ٨) (D127، التعريف: docs/balislam/06-decisions.md)
+
+- مرجع: `docs/balislam/06-decisions.md` (D127). مشترك: `SentencesPanel.tsx` صار ملف دخول صغيرًا، والحالة في `app/src/workspace/sentences/useSentences.ts`، ومكوّن لكل جزء مرئي في المجلد نفسه. لا تغيير في شاشات القناة ولا في سلوكها.

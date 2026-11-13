@@ -100,7 +100,7 @@
 | «أنتج هذا المشهد» | رندر المشهد بعد حفظ الخطة، بلا تحديث للصفحة (D102) | — |
 | «أدوات وتفاصيل» | محرر المشهد وحقول المحرك (`SceneSettings.tsx`، `src/plan/engine.ts`)، و«مقاطع الشورتس» (`ShortsPicker.tsx`، في أي وقت، D83/D102)، و«الجمل» للحلقة كلها | الشورتس تُصنع بعد Master وحده |
 
-**«الجمل» تحت المعاينة** (`SentencesPanel.tsx`، `src/voice/sentences.ts`، `src/voice/sentenceVoice.ts`):
+**«الجمل» تحت المعاينة** (`SentencesPanel.tsx`؛ الحالة في `sentences/useSentences.ts`، والأجزاء في `sentences/SentenceParagraph.tsx` و`SentenceListRow.tsx` و`SentenceParts.tsx` و`WordPopovers.tsx`، D127؛ `src/voice/sentences.ts`، `src/voice/sentenceVoice.ts`):
 
 | العنصر | ما يفعله | الشرط |
 |---|---|---|
@@ -237,6 +237,7 @@
 | D124 | ١٣ نوفمبر | **تقسيم «الجمل» (العمل ٨):** `src/voice/sentenceVoice.ts` يبقى الوحدة العامة وأفعال المالك، وانفصل التقسيم والتركيب (`sentenceStitch.ts`، بلا أي طلب صوت) عن طلب الصوت المدفوع (`sentenceGenerate.ts`، عبر العميل الذي يمر على حارس القرآن ثم على مزوّد الصوت)، ومعهما `sentenceContext.ts` و`sentenceRead.ts`. الكود منقول حرفًا. لا تغيير في الشاشات | مشترك | (هذا PR) |
 | D125 | ١٣ نوفمبر | **«أرسل إلى Drive» لا يُظهر رفضًا قديمًا (العمل ٦، KI-060):** سجل آخر تسليم يُكتب قبل أن تنتهي المهمة، في الرفض كما في النجاح، ولا يكتبه إلا المهمة الحالية (`startDriveHandoff` في `src/package/driveHandoff.ts`)؛ فبطاقة Drive في الخطوة ٤ تقول «آخر تسليم» الصحيح بعد رفض يليه إذن فوري. البوابات كما هي | بالإسلام | (هذا PR) |
 | D126 | ١٣ نوفمبر | **تقسيم لوحة «المشاهد» (العمل ٨، الواجهة):** `SceneProductionPanel.tsx` (١٣٩٠ سطرًا) صار ملف دخول من ١٣٨ سطرًا، والحالة وطلبات الخادم في `app/src/workspace/sceneProduction/useSceneProduction.ts` بترتيب الـhooks نفسه، ومكوّن لكل جزء مرئي في المجلد نفسه. لا تغيير في الشاشات ولا في السلوك | مشترك | (هذا PR) |
+| D127 | ١٣ نوفمبر | **تقسيم لوحة «الجمل» (العمل ٨، الواجهة):** `SentencesPanel.tsx` (١٠٤٩ سطرًا) صار ملف دخول من ٧٥ سطرًا، والحالة وطلبات الخادم والتشغيل بصوت واحد في `app/src/workspace/sentences/useSentences.ts` بترتيب الـhooks نفسه، ومكوّن لكل جزء مرئي في المجلد نفسه. لا تغيير في الشاشات ولا في السلوك | مشترك | (هذا PR) |
 
 ---
 

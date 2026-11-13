@@ -5,6 +5,7 @@ import { readGuideIndex, readGuidePage } from "../src/channel/guide";
 import { ENGINE_FEATURES } from "../src/plan/engine";
 import { templateDefs } from "../src/plan/templates";
 import { parseMarkdown } from "../app/src/ui/Markdown";
+import { panelSource } from "./helpers/panelSource";
 // @ts-expect-error سكريبت mjs بلا أنواع
 import { DOC_RULES, docsSyncProblems } from "../scripts/docs-sync.mjs";
 
@@ -18,7 +19,8 @@ const read = (f: string) => readFileSync(path.join(DIR, f), "utf8");
 /** نص ملف أو كل ملفات مجلد (لمسار مثل src/remotion/illus/shots) */
 const sourceOf = (p: string): string => {
   if (!existsSync(p)) return "";
-  if (!statSync(p).isDirectory()) return readFileSync(p, "utf8");
+  // work ٨: a split panel is read with its parts (tests/helpers/panelSource.ts)
+  if (!statSync(p).isDirectory()) return panelSource(p);
   return readdirSync(p).map((f) => sourceOf(path.join(p, f))).join("\n");
 };
 
