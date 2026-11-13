@@ -128,6 +128,10 @@ export const preparationBlockers = async (episode: string): Promise<PreparationB
 };
 
 
+/** «اعتمد التجهيز» is already in the ledger (once per episode, D76): the script, the boards and the storyboard. */
+export const isPreparationApproved = (s: { script: { approved: boolean }; storyboard: { approved: boolean }; boards: { current: boolean } }) =>
+  Boolean(s.script.approved && s.storyboard.approved && s.boards.current);
+
 export const approvePreparation = async (episode: string, command: PreparationCommand) => {
   assertSceneOwner();
   if (!command || !hex64(command.scriptSha256) || !hex64(command.storyboardSha256) ||
@@ -138,7 +142,7 @@ export const approvePreparation = async (episode: string, command: PreparationCo
   // Everything that can refuse is checked BEFORE the first write, so a refusal leaves the ledger untouched.
   const before = await inspectSceneProduction(episode);
   // Once per episode: after it, the read above has already carried any later change forward (nothing to approve again).
-  if (before.script.approved && before.storyboard.approved && before.boards.current) return before;
+  if (isPreparationApproved(before)) return before;
   if (before.script.sha256 !== command.scriptSha256) throw Error("Script changed before review.");
   if (before.storyboard.sha256 !== command.storyboardSha256) throw Error("Storyboard changed before review.");
   const blockers = await preparationBlockers(episode);

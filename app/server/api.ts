@@ -444,15 +444,22 @@ export const balApi = (): Plugin => ({
           // needed, then the storyboard approval, each with its own check (src/studio/preparation.ts). Right after
           // it the scenes start preparing on their own (drafts only; nothing is submitted or approved).
           if (parts[2] === "approve-preparation" && parts.length === 3) {
-            const { approvePreparation, preparationBlockers } = await load("/src/studio/preparation.ts");
+            const { approvePreparation, preparationBlockers, isPreparationApproved } = await load("/src/studio/preparation.ts");
             if (req.method === "GET") {
               try { return send(res, 200, await preparationBlockers(ep)); } catch (error) { return refuse(error); }
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const body = await readBody(req);
+            const { requireSceneProductionReady, inspectSceneProduction } = await load("/src/studio/sceneService.ts");
+            // KI-058: a repeated press (stale page, second tab, double click) writes nothing (D76) and STARTS nothing.
+            // Before, it started a second «جهّز كل المشاهد» that chased every scene the owner re-opened afterwards
+            // and then held the episode when «اصنع النسخة النهائية» came. The queue starts only with the approval itself;
+            // later the owner's own «جهّز كل المشاهد» / «استأنف التجهيز» starts it.
+            let already = false;
+            try { already = isPreparationApproved(await inspectSceneProduction(ep)); } catch { /* approvePreparation says why */ }
             let read;
             try { read = await approvePreparation(ep, body); } catch (error) { return refuse(error); }
-            const { requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
+            if (already) return send(res, 200, { ...read, prepare: { job: prepareJob(`${ch}/${ep}`) } });
             let job = null;
             let prepareError: string | undefined;
             try { await requireSceneProductionReady(ep); job = await startPrepare(); }

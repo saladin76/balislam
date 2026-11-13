@@ -256,9 +256,16 @@ describe("«اعتمد التجهيز»: one button, both ledger records in orde
 
   it("is idempotent once approved, and the four-step summary reads it", async () => {
     const s = await state();
+    const before = (await call("GET", `episodes/${EP}/scene-prepare`)).body.job;
+    expect(before.status).toBe("done");
     const r = await approvePrep({ scriptSha256: s.script.sha256, storyboardSha256: s.storyboard.sha256, reviewed: true });
     expect(r.status, JSON.stringify(r.body)).toBe(200);
     expect((await ledger()).history).toHaveLength(2);
+    // KI-058: a repeated «اعتمد التجهيز» writes nothing AND starts nothing: no second «جهّز كل المشاهد» in the
+    // background (it chased the scenes the owner re-opened and then held the episode when «اصنع النسخة النهائية» came).
+    expect(r.body.prepare.job?.status, "no new preparation job").not.toBe("running");
+    const after = (await call("GET", `episodes/${EP}/scene-prepare`)).body.job;
+    expect([after.status, after.startedAt], "the same finished job").toEqual(["done", before.startedAt]);
     const { summarizeSceneProduction } = await import("../src/studio/sceneService");
     const { runWithChannel } = await import("../src/channel");
     const sum = await runWithChannel(CH, () => summarizeSceneProduction(EP));

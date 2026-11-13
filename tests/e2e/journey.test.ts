@@ -206,8 +206,13 @@ for (const channel of selectedChannels()) {
       expect(s.prepared, "every draft ready").toEqual({ ready: order().length, total: order().length });
       // A second «اعتمد التجهيز» changes nothing (D76: once per episode).
       const rev = JSON.parse(await readFile(path.join(epDir, "scene-production.v1.json"), "utf8")).revision;
-      ok("approve preparation again", await st.call("POST", `episodes/${EP}/approve-preparation`, { ...prep, scriptSha256: s.script.sha256, storyboardSha256: s.storyboard.sha256 }));
+      const again = await st.call("POST", `episodes/${EP}/approve-preparation`, { ...prep, scriptSha256: s.script.sha256, storyboardSha256: s.storyboard.sha256 });
+      ok("approve preparation again", again);
       expect(JSON.parse(await readFile(path.join(epDir, "scene-production.v1.json"), "utf8")).revision, "no second approval").toBe(rev);
+      // KI-058: …and no second «جهّز كل المشاهد» in the background (it used to chase the scenes re-opened below and
+      // still hold the episode when «اصنع النسخة النهائية» came: 409). The queue that ran is the one that finished.
+      const firstJob = job.body.job.startedAt;
+      expect(again.body.prepare.job, "the finished queue, not a new one").toMatchObject({ status: "done", startedAt: firstJob });
 
       // ── 3+4. Each scene in order; on one, «النبرة غير مناسبة» → note → regenerate → approve ─────────────
       for (const id of order()) {
@@ -324,6 +329,10 @@ for (const channel of selectedChannels()) {
       await gates("assembly approved", { assemblyApproved: true, masterApproved: false, publishAllowed: false });
 
       // ── 8. A tiny REAL Master through the Studio's own job («اصنع النسخة النهائية»), then its approval ─────
+      // KI-058: the real queue state, read from the API: nothing has run «جهّز كل المشاهد» since its one finished run
+      // (the Master is refused while it runs, by design; the journey never starts it again).
+      const queue = (await st.call("GET", `episodes/${EP}/scene-prepare`)).body.job;
+      expect([queue.status, queue.startedAt], "no preparation running before the Master").toEqual(["done", firstJob]);
       const make = await st.call("POST", "jobs", { kind: "make", episode: EP });
       ok("make Master", make);
       const made = await waitFor("Master job", () => st.call("GET", "jobs"), (x) => x.body.find((j: any) => j.id === make.body.id)?.status !== "running", 1_200_000, 2000);

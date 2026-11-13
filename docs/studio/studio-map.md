@@ -238,6 +238,7 @@
 | D125 | ١٣ نوفمبر | **«أرسل إلى Drive» لا يُظهر رفضًا قديمًا (العمل ٦، KI-060):** سجل آخر تسليم يُكتب قبل أن تنتهي المهمة، في الرفض كما في النجاح، ولا يكتبه إلا المهمة الحالية (`startDriveHandoff` في `src/package/driveHandoff.ts`)؛ فبطاقة Drive في الخطوة ٤ تقول «آخر تسليم» الصحيح بعد رفض يليه إذن فوري. البوابات كما هي | بالإسلام | (هذا PR) |
 | D126 | ١٣ نوفمبر | **تقسيم لوحة «المشاهد» (العمل ٨، الواجهة):** `SceneProductionPanel.tsx` (١٣٩٠ سطرًا) صار ملف دخول من ١٣٨ سطرًا، والحالة وطلبات الخادم في `app/src/workspace/sceneProduction/useSceneProduction.ts` بترتيب الـhooks نفسه، ومكوّن لكل جزء مرئي في المجلد نفسه. لا تغيير في الشاشات ولا في السلوك | مشترك | (هذا PR) |
 | D127 | ١٣ نوفمبر | **تقسيم لوحة «الجمل» (العمل ٨، الواجهة):** `SentencesPanel.tsx` (١٠٤٩ سطرًا) صار ملف دخول من ٧٥ سطرًا، والحالة وطلبات الخادم والتشغيل بصوت واحد في `app/src/workspace/sentences/useSentences.ts` بترتيب الـhooks نفسه، ومكوّن لكل جزء مرئي في المجلد نفسه. لا تغيير في الشاشات ولا في السلوك | مشترك | (هذا PR) |
+| D128 | ١٣ نوفمبر | **«اعتمد التجهيز» المكرَّر لا يبدأ تجهيزًا (العمل ٦، KI-058):** ضغطه بعد الاعتماد (صفحة قديمة، تبويب ثانٍ) لا يكتب شيئًا ولا يبدأ «جهّز كل المشاهد» في الخلفية؛ كان يبدأ طابورًا يلاحق المشاهد التي يعيد المالك فتحها، فيرد «اصنع النسخة النهائية» بـ 409 «"جهّز كل المشاهد" يعمل الآن». الرفض أثناء التجهيز باقٍ برسالته | مشترك | (هذا PR) |
 
 ---
 
@@ -360,7 +361,10 @@ that scene through the existing ledger. `regeneratePlan` throws `DesignedPlanErr
 
 **Prepared drafts (D31, D40).** Preparing the scenes starts on its own right after «اعتمد التجهيز» (`POST
 /api/episodes/<ep>/approve-preparation` starts the same queue once `requireSceneProductionReady` passes; the response
-carries `prepare.job`). It approves and submits nothing. Its status line (step ٢ header, and the spine while step ٢ is
+carries `prepare.job`). It approves and submits nothing. **Only the approval itself starts it (D128, KI-058):** a
+repeated call once the preparation is approved (stale page, second tab) writes nothing and starts nothing; it answers
+the current queue as it is (`prepare.job`, possibly finished). Later runs are the owner's own «جهّز كل المشاهد» /
+«استأنف التجهيز». Its status line (step ٢ header, and the spine while step ٢ is
 current) offers «أوقف» while running and «استأنف التجهيز» once stopped. The queue and its CLI twin
 `npx bal produce <episode> [--channel …]` run one pipeline (`src/studio/prepareAll.ts`): (1) narration voice for every
 narrated scene without a current clip, through `generateVoice` (tashkeel ≥ 98%, reviewed boards, tones, script+storyboard
@@ -574,7 +578,9 @@ still holds our token.
   for (15 s), then `PREVIEW_LOCK_BUSY`.
 - The episode `busy` key (`app/server/jobQueue.ts`) is also taken by «جهّز كل المشاهد» for its whole run (`startPrepareJob`
   in `app/server/prepare.ts`). The queue refuses to start while a render/make/package holds it; the episode render,
-  make, package and DELETE refuse while it runs, naming it (`PREPARE_RUNNING_MESSAGE`).
+  make, package and DELETE refuse while it runs, naming it (`PREPARE_RUNNING_MESSAGE`). «اصنع النسخة النهائية» is
+  refused the same way while the queue runs (it may still change a scene's inputs); D128 keeps that gate and only stops
+  a repeated «اعتمد التجهيز» from starting a queue the owner never asked for.
 - Host render slots (`hostSlots`, `src/render/pool.ts`): written atomically; `foreign()` removes only a dead process's
   slot (EPERM counts as alive) and an unreadable slot only after 60 s.
 
