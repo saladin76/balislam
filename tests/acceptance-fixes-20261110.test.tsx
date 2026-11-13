@@ -144,7 +144,7 @@ describe("P-05 · a board changed after «اعتمد التجهيز» (11 Nov: c
 
 describe("P-06 · no pointer to a screen that no longer exists", () => {
   it("messages name the four current steps", () => {
-    for (const f of ["src/plan/storyboard.ts", "src/cli/index.ts", "src/studio/sceneService.ts", "src/script/review.ts",
+    for (const f of ["src/plan/storyboard.ts", "src/cli/index.ts", "src/studio/sceneService.ts", "src/studio/sceneLedgerStore.ts", "src/studio/sceneInputs.ts", "src/studio/sceneLedgerState.ts", "src/studio/sceneGates.ts", "src/studio/sceneDecisions.ts", "src/script/review.ts",
       "app/server/api.ts", ...readdirSync(path.join(root, "app/server/routes")).map((f) => `app/server/routes/${f}`), "app/server/jobQueue.ts", "app/server/routeContext.ts", "app/src/serverMessages.ts"]) {
       const text = src(f);
       expect(text, f).not.toMatch(/«المشاهد ← ستوري بورد»|«المشاهد ← مراجعة المشهد»|من «إنتاج المشاهد»|في «إنتاج المشاهد»\.|الخطوتان ١ و٢|«السكريبت ← سجل التوثيق»|الستوري بورد ← «أدوات وتفاصيل»/);
@@ -154,7 +154,7 @@ describe("P-06 · no pointer to a screen that no longer exists", () => {
 
 describe("P-07 · owner refusals in Arabic", () => {
   it("every English refusal literal of the owner flows has an Arabic translation", () => {
-    const files = ["src/studio/sceneProduction.ts", "src/studio/sceneService.ts", "src/studio/preparation.ts", "src/studio/assembleScenes.ts",
+    const files = ["src/studio/sceneProduction.ts", "src/studio/sceneService.ts", "src/studio/sceneLedgerStore.ts", "src/studio/sceneInputs.ts", "src/studio/sceneLedgerState.ts", "src/studio/sceneGates.ts", "src/studio/sceneDecisions.ts", "src/studio/preparation.ts", "src/studio/assembleScenes.ts",
       "src/render/episode.ts", "src/render/episodePreviews.ts"];
     const missing: string[] = [];
     for (const f of files)
@@ -181,7 +181,7 @@ describe("P-07 · owner refusals in Arabic", () => {
   it("no Master vs an unapproved Master are told apart", () => {
     expect(NO_MASTER_MESSAGE).toContain("لا توجد نسخة نهائية بعد");
     expect(MASTER_NOT_APPROVED_MESSAGE).toContain("النسخة النهائية لم تُعتمد بعد");
-    const svc = src("src/studio/sceneService.ts");
+    const svc = src("src/studio/sceneGates.ts");
     expect(svc).toContain("if (!doc.masterEpoch || !doc.state.master)\n      throw Error(MASTER_NOT_APPROVED_MESSAGE);");
   });
 });
