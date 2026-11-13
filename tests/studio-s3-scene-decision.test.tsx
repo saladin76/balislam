@@ -4,6 +4,7 @@ import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { SceneDecisionActions, fmtTime, problemNote } from "../app/src/workspace/SceneProductionPanel";
+import { panelSource } from "./helpers/panelSource";
 
 const noop = () => {};
 const base = {
@@ -58,7 +59,7 @@ describe("الخطوة ٢: قرار المشهد الحالي (funnel v3: «اع
     expect(now).toContain("يُجهَّز هذا المشهد الآن");
     expect(renderToStaticMarkup(<SceneDecisionActions {...base} stage="render" preparing="queued" />)).toContain("في دور التجهيز");
     // «الحركة/النبرة غير مناسبة» لا تُسجَّل إلا على معاينة مُرسلة (correct-scene يشترط previewSha256)؛ لا مسار جديد
-    const ui = readFileSync(path.join(__dirname, "../app/src/workspace/SceneProductionPanel.tsx"), "utf8");
+    const ui = panelSource("app/src/workspace/SceneProductionPanel.tsx");
     expect(ui).toContain("locked={lock ??");
   });
 
@@ -90,7 +91,7 @@ describe("الخطوة ٢: قرار المشهد الحالي (funnel v3: «اع
   it("«اعتمد» تطلب تأكيد المشاهدة، والقرارات تمر بالمسار القائم نفسه", () => {
     const html = renderToStaticMarkup(<SceneDecisionActions {...base} confirming />);
     expect(html).toContain("شاهدته بالصوت كاملًا");
-    const ui = readFileSync(path.join(__dirname, "../app/src/workspace/SceneProductionPanel.tsx"), "utf8");
+    const ui = panelSource("app/src/workspace/SceneProductionPanel.tsx");
     // A ready draft of the current scene is submitted (exact bytes, checked) before the same act() path decides.
     expect(ui).toContain('reviewCurrent("correct-scene", problemNote("motion"');
     expect(ui).toContain('reviewCurrent("approve-scene")');

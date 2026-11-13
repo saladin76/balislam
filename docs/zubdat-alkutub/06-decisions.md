@@ -977,3 +977,7 @@
 ## 2026-11-13 — تقسيم سجل «إنتاج المشاهد» بلا تغيير في السلوك (D123، التعريف: docs/balislam/06-decisions.md)
 
 - مرجع: `docs/balislam/06-decisions.md` (D123). مشترك: `src/studio/sceneService.ts` يبقى الوحدة العامة، وتحته عمليات الملفات (`src/studio/sceneLedgerStore.ts`، `src/studio/sceneInputs.ts`) منفصلة عن البوابات (`src/studio/sceneGates.ts`، `src/studio/sceneDecisions.ts`) والحالة (`src/studio/sceneLedgerState.ts`). لا تغيير في شاشات القناة ولا في بواباتها.
+
+## 2026-11-13 — تقسيم لوحة «المشاهد» (العمل ٨) (D126، التعريف: docs/balislam/06-decisions.md)
+
+- مرجع: `docs/balislam/06-decisions.md` (D126). مشترك: `SceneProductionPanel.tsx` صار ملف دخول صغيرًا، والحالة في `app/src/workspace/sceneProduction/useSceneProduction.ts`، ومكوّن لكل جزء مرئي في المجلد نفسه. لا تغيير في شاشات القناة ولا في سلوكها.

@@ -34,9 +34,10 @@ import { runWithChannel } from "../src/channel";
 import { inkVerseReference } from "../src/remotion/scenes/VerseCard";
 import { verseRef } from "../app/src/ui/format";
 import { deriveSeriesIdentity } from "../src/channel/series";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.join(__dirname, "..");
-const src = (f: string) => readFileSync(path.join(root, f), "utf8");
+const src = (f: string) => panelSource(f);
 const json = (f: string) => JSON.parse(src(f));
 const info = (id: string) => channelInfo(loadChannel(id));
 const within = (id: string, node: React.ReactNode) => renderToStaticMarkup(<ChannelProvider channel={info(id)}>{node}</ChannelProvider>);

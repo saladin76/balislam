@@ -14,8 +14,9 @@ import type { Plan } from "../src/plan/types";
 import { basmalaSpans, hasBasmala, isBasmalaOnly, splitBasmala, withoutBasmala } from "../src/voice/basmala";
 import { assertNoQuranForTts, isQuranFreeForTts, ttsContext } from "../src/voice/quranGuard";
 import { sentencesFor, splitBasmalaInList, splitNarration } from "../src/voice/sentences";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(import.meta.dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 
 describe("detection and the TTS guard", () => {
   const forms = [

@@ -9,8 +9,9 @@ import path from "node:path";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import { StudioErrorBoundary, crashReport, homeHref } from "../app/src/shell/ErrorBoundary";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const text = (html: string) => html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ");
 const crashed = (props: Partial<React.ComponentProps<typeof StudioErrorBoundary>> = {}) => {
   const b = new StudioErrorBoundary({ scope: "screen", children: null, ...props });

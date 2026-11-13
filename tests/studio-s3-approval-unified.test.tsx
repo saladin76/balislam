@@ -13,9 +13,10 @@ import { SceneProductionPanel } from "../app/src/workspace/SceneProductionPanel"
 import type { SceneProductionRead } from "../app/src/api";
 import type { Plan } from "../src/plan/types";
 import { channelInfo, type ChannelConfig } from "../src/channel/types";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.join(__dirname, "..");
-const src = (rel: string) => readFileSync(path.join(root, rel), "utf8");
+const src = (rel: string) => panelSource(rel);
 const EPISODES = {
   balislam: "001-know-the-truth",
   "zubdat-alkutub": "001-awwal-marra-osalli",

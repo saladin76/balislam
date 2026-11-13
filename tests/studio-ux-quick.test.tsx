@@ -14,8 +14,9 @@ import { ChannelsWorkspace } from "../app/src/tabs/ChannelsWorkspace";
 import { IntegratedReviewWorkspace } from "../app/src/workspace/IntegratedReviewWorkspace";
 import { episodeLength } from "../src/plan/episodeLength";
 import type { PlanScene } from "../src/plan/types";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const noop = () => {};
 /** Visible text only: tags (and their attributes such as title="c1-s3") removed. */
 const text = (html: string) => html.replace(/<[^>]*>/g, " ");

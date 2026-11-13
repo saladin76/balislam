@@ -12,8 +12,9 @@ import { fourSteps, nextLine } from "../app/src/tabs/HomeTab";
 import { parseStudioHash, studioHash } from "../app/src/shell/route";
 import { SceneDecisionActions } from "../app/src/workspace/SceneProductionPanel";
 import type { Overview } from "../app/src/api";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(__dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 const noop = () => {};
 
 const overview = (production: Partial<NonNullable<Overview["production"]>>, published = false) => ({

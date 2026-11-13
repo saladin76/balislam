@@ -7,8 +7,9 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
+import { panelSource } from "./helpers/panelSource";
 
-const ui = readFileSync(path.join(import.meta.dirname, "..", "app", "src", "workspace", "SceneProductionPanel.tsx"), "utf8");
+const ui = panelSource("app/src/workspace/SceneProductionPanel.tsx");
 
 describe("KI-056: step ٣ «الوصلات» before the assembly offers «دمج المشاهد للمراجعة» when every scene is approved", () => {
   it("the explanation's one button assembles the approved scenes", () => {

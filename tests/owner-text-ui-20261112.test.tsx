@@ -28,9 +28,10 @@ import { NETWORK_FAILURE } from "../src/studio/notesSync";
 import { RECITATION_SILENT, polishRecitation } from "../src/quran/recitationPolish";
 import type { Plan } from "../src/plan/types";
 import { channelInfo, type ChannelConfig } from "../src/channel/types";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.join(__dirname, "..");
-const src = (rel: string) => readFileSync(path.join(root, rel), "utf8");
+const src = (rel: string) => panelSource(rel);
 const EPISODES = { balislam: "001-know-the-truth", "zubdat-alkutub": "001-awwal-marra-osalli", "dafatir-alzaman": "001-adam-beginning" } as const;
 type Ch = keyof typeof EPISODES;
 const CHANNELS = Object.keys(EPISODES) as Ch[];

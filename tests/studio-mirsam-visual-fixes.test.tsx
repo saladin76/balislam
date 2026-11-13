@@ -14,9 +14,10 @@ import { episodeTitle, latinDigits } from "../app/src/ui/format";
 import { confirmsEpisode } from "../app/src/tabs/HomeTab";
 import { NoteText, noteParts, problemNote } from "../app/src/workspace/SceneProductionPanel";
 import { TopBar } from "../app/src/shell/TopBar";
+import { panelSource } from "./helpers/panelSource";
 
 const root = path.join(__dirname, "..");
-const src = (f: string) => readFileSync(path.join(root, f), "utf8");
+const src = (f: string) => panelSource(f);
 const text = (html: string) => html.replace(/<[^>]+>/g, "").replace(/\s+/g, " ");
 const files = (dir: string): string[] => readdirSync(path.join(root, dir)).flatMap((f) => {
   const p = path.join(dir, f);
@@ -110,7 +111,8 @@ describe("«تحتاج إصلاحًا»: the note's moment as a chip, not «[ا�
 
   it("the fix view has its own header and no dock; choosing a scene there opens it with its header, dock and focus", () => {
     const panel = src("app/src/workspace/SceneProductionPanel.tsx");
-    expect(panel).toContain('{view === "fix" ? null : isCurrent && currentId && scene ? (');
+    // work ٨: the dock is its own component (sceneProduction/SceneStep.tsx), with no dock in the fix view
+    expect(panel).toMatch(/export const SceneDock[^\n]*\n(?:[^\n]*\n){0,8}  if \(p\.view === "fix"\) return null;\n  if \(isCurrent && currentId && scene\) \{/);
     expect(panel).toContain('<button type="button" onClick={() => openScene(x.id)}>');
     expect(panel).toMatch(/const openScene = \(id: string\) => \{ setViewId\(id\);[^\n]*focusHead\.current = true; onView\?\.\("one"\);/);
     expect(panel).toContain('<h2 ref={headRef} tabIndex={-1}>');

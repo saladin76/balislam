@@ -7,6 +7,7 @@ import zubdat from "../channels/zubdat-alkutub/channel.json";
 import { channelProductionIssues, channelProductionProfile, documentProvenanceCheck, sacredFigureCheck } from "../src/channel/productionRules";
 import { planIssues } from "../src/plan/validate";
 import type { Plan, PlanScene } from "../src/plan/types";
+import { panelSource } from "./helpers/panelSource";
 
 const configs = [balislam, dafatir, zubdat];
 const scene = (props: Partial<PlanScene> = {}): PlanScene => ({
@@ -21,7 +22,7 @@ const plan = (content: PlanScene, id = "balislam"): Plan => ({
 
 describe("Studio: distinct rules for its three existing channels", () => {
   it("keeps per-channel human review available but collapsible in the existing scene UI", () => {
-    const panel = readFileSync(path.join(__dirname, "../app/src/workspace/SceneProductionPanel.tsx"), "utf8");
+    const panel = panelSource("app/src/workspace/SceneProductionPanel.tsx");
     expect(panel).toContain("channelProductionProfile({ id: channelId })");
     expect(panel).toContain("معايير مراجعة هذه القناة");
     expect(panel).toContain("<details");

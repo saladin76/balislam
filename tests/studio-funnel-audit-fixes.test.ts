@@ -5,8 +5,9 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ownerMessage } from "../app/src/serverMessages";
 import { lockOwnerIsDead } from "../src/studio/sceneService";
+import { panelSource } from "./helpers/panelSource";
 
-const src = (f: string) => readFileSync(path.join(import.meta.dirname, "..", f), "utf8");
+const src = (f: string) => panelSource(f);
 
 describe("رسائل الخادم للمالك بالعربية", () => {
   it("الرسائل الإنجليزية المعروفة تُعرض بالعربية مع ما يفعله المالك", () => {
