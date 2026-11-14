@@ -1,4 +1,5 @@
 import { channelEngineFeatures, ENGINE_STATUS_AR, engineStatus } from "../../../src/plan/engine";
+import { ENGINE_ISOLATED_WHY } from "../../../src/studio/channelParity";
 import React, { useState } from "react";
 import { arDigits, num } from "../ui/format";
 import { Player } from "@remotion/player";
@@ -156,7 +157,8 @@ export const ChannelBrand: React.FC<{ c: ChannelConfig; set: (p: Partial<Channel
 const EnginePanel: React.FC<{ c: ChannelConfig; set: (p: Partial<ChannelConfig>) => void }> = ({ c, set }) => {
   const allowed = (t: string) => !templateExclusion(c, t);
   const rows = channelEngineFeatures(c.id).map((f) => ({ f, st: engineStatus(f, c, allowed) })).filter((r) => r.st !== "unavailable");
-  if (!rows.length) return null;
+  // D150: never hidden silently: a channel whose templates have no engine tools reads why, in the same place
+  if (!rows.length) return <div className="field" id="engine-panel-absent"><span>أدوات المحرك</span><p className="help" role="note">{ENGINE_ISOLATED_WHY}</p></div>;
   const defaults = c.production?.defaults ?? [];
   const toggle = (id: string, on: boolean) => {
     const next = on ? [...defaults.filter((x) => x !== id), id] : defaults.filter((x) => x !== id);

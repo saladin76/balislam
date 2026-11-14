@@ -36,6 +36,15 @@ export const AfterPreparationList: React.FC<{
   </section>
 ) : null;
 
+/**
+ * D150: the storyboard PDF sent to the owner for review, per episode (content, not a channel rule): one table, the
+ * same link in any channel that has one, no branch on a channel's id.
+ */
+const REVIEW_DOCS: Record<string, { href: string; label: string }> = {
+  "zubdat-alkutub/001": { href: "https://drive.google.com/file/d/1MTtTbSufZN2N0OFueEAjsOlLiaBSglMd/view", label: "فتح PDF المرئي V021 — 31 مشهدًا (PENDING_REVIEW، ليس اعتمادًا)" },
+  "dafatir-alzaman/001": { href: "https://github.com/saladin76/balislam/blob/main/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.pdf", label: "فتح Storyboard V1.1 — 80 مشهدًا (نسخة GitHub، نقل Drive لم يُتحقق منه)" },
+};
+
 export const BoardAuditLog: React.FC<{
   st: StoryboardStatus | undefined | null;
   channelId: string;
@@ -46,11 +55,8 @@ export const BoardAuditLog: React.FC<{
     {st ? <p className="s12-soft">سُجّلت مراجعة {ar(st.approved)} من {ar(st.total)} لوحة{st.audit?.at ? ` (${new Date(st.audit.at).toLocaleDateString("ar-EG")})` : ""}.</p> : null}
     {st?.audit?.note ? <p className="s12-soft">ملاحظتك مع «اعتمد التجهيز»: {st.audit.note}</p> : null}
     <p className="s12-soft">للقراءة فقط: التجهيز يُعتمد مرة واحدة للحلقة، وما يتغيّر بعده يسجّله النظام وتُراجَع مشاهده في «٢ المشاهد».</p>
-    {channelId === "zubdat-alkutub" && episodeId === "001" ? (
-      <p><a href="https://drive.google.com/file/d/1MTtTbSufZN2N0OFueEAjsOlLiaBSglMd/view" target="_blank" rel="noreferrer">فتح PDF المرئي V021 — 31 مشهدًا (PENDING_REVIEW، ليس اعتمادًا)</a></p>
-    ) : null}
-    {channelId === "dafatir-alzaman" && episodeId === "001" ? (
-      <p><a href="https://github.com/saladin76/balislam/blob/main/channels/dafatir-alzaman/episodes/001-adam-beginning/tech-reviews/020/docs/storyboard-001-v1.1.pdf" target="_blank" rel="noreferrer">فتح Storyboard V1.1 — 80 مشهدًا (نسخة GitHub، نقل Drive لم يُتحقق منه)</a></p>
+    {REVIEW_DOCS[`${channelId}/${episodeId}`] ? (
+      <p><a href={REVIEW_DOCS[`${channelId}/${episodeId}`]!.href} target="_blank" rel="noreferrer">{REVIEW_DOCS[`${channelId}/${episodeId}`]!.label}</a></p>
     ) : null}
   </section>
 );

@@ -2,6 +2,7 @@
  * One scene's sentences in the list view, or its verse: «ارفع التلاوة» (a human recitation the owner uploads; the
  * Quran is never generated with the cloned voice), or a silent written citation on a channel that cites (D68).
  */
+import { VERSE_CITATION_WHY } from "../../../../src/studio/channelParity";
 import React from "react";
 import type { SentenceScene } from "../../api";
 import { RecitationItem } from "../RecitationItem";
@@ -19,7 +20,7 @@ export const SentenceSceneBlock: React.FC<SentencesPart & { s: SentenceScene }> 
       <section className="sv-scene is-verse" aria-label={`المشهد ${ar(s.index)}: آية`}>
         {!sceneId ? <h4 className="sv-scene-h">المشهد {ar(s.index)} <span>آية — {v.reference}</span></h4> : null}
         {cited ? (
-          <p className="sp-hint sv-citation" role="note">استشهاد مكتوب: تظهر الآية بنصها ومرجعها صامتة، بلا تلاوة ولا تسجيل (قرار القناة). لا يولَّد القرآن بالصوت المستنسخ أبدًا.</p>
+          <p className="sp-hint sv-citation" role="note">{VERSE_CITATION_WHY}</p>
         ) : (<>
         <ul className="pf-rec-list sv-verse">
           <RecitationItem compact episodeId={episodeId} channelId={channelId} ayahKey={v.ayahKey} scenes={[s.id]} recs={recs}

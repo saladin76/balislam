@@ -12,6 +12,8 @@ import { OwnerText } from "../../ui/OwnerText";
 import type { SceneProductionProps } from "../SceneProductionPanel";
 import type { SceneProductionModel } from "./useSceneProduction";
 import { SceneDecisionActions } from "./SceneDecisionActions";
+import { useChannel } from "../../../../src/channel/context";
+import { dockVoiceAbsent } from "../../../../src/studio/channelParity";
 import { ar, noop, problemNote } from "./notes";
 import { sceneStepView, type StepPart } from "./sceneStepView";
 import { SCENE_STATE_LABEL } from "./sceneStates";
@@ -75,6 +77,8 @@ export const SceneDock: React.FC<StepPart & { allDoneHere: boolean }> = ({ m, p,
     reviewCurrent, submitTone, renderCurrentScene } = m;
   const { onOpenSettings, hasVoiceKeys, plan, onOpenFinal } = p;
   const { shownId, isCurrent, preparing, lock, nav } = v;
+  // D150: the voice slot says why a scene has no voice (a verse by the channel's rule, or no narration), never empty
+  const channel = useChannel();
   if (p.view === "fix") return null;
   if (isCurrent && currentId && scene) {
     return (
@@ -86,6 +90,7 @@ export const SceneDock: React.FC<StepPart & { allDoneHere: boolean }> = ({ m, p,
         awaitingChange={scene.awaitingChange ? (sentNotes[currentId!] || scene.correction?.note || "") : null}
         stage={(scene.status === "in_review" && scene.previewSha256) || draftReady ? "review" : "render"}
         voice={voiceOf(currentId)}
+        voiceAbsent={dockVoiceAbsent(channel, planScenes.find((x) => x.scene.id === currentId)?.scene)}
         voiceBusy={voiceBusy}
         voiceMsg={voiceMsg}
         canVoice={Boolean(hasVoiceKeys)}

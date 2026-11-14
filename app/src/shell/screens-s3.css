@@ -236,3 +236,8 @@
 .shell-v3 .ms-dock-in .s3-why .ms-dock-text { flex: 1 1 auto; min-width: 0; }
 .shell-v3 .ms-dock-in .s3-why .s3-why-go { flex: none; }
 .shell-v3 .ms-dock-in > .ms-ct { flex: none; }
+
+/* D150 (channel parity): a scene with no voice to make (a verse by the channel's rule, or no narration) says why in the
+   voice slot, in the dock's quiet ink: never an empty slot, never a disabled button. */
+.shell-v3 .s3-actbar .s3-absent { color: var(--dock-mute); font-size: var(--t-13, 13px); line-height: 1.35; padding: 4px 10px; max-width: 26ch; text-align: center; }
+@media (max-width: 720px) { .shell-v3 .s3-actbar .s3-absent { flex: 1 1 100%; max-width: none; order: 9; padding: 2px 6px; } }
