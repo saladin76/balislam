@@ -87,6 +87,7 @@ export const SceneDock: React.FC<StepPart & { allDoneHere: boolean }> = ({ m, p,
         voiceMsg={voiceMsg}
         canVoice={Boolean(hasVoiceKeys)}
         readyForAv={scene.readyForAv}
+        newerTake={scene.newerTake?.state}
         pending={pending}
         problem={problem}
         problemText={problemText}

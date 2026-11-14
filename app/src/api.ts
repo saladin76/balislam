@@ -176,6 +176,11 @@ export type SceneProductionRead = {
     afterPreparation?: { at: string; what: AfterPreparationWhat[]; script: boolean };
     /** What blocks producing this scene (a verse without its text, a script error on its narration). */
     blocked?: string[];
+    /**
+     * KI-066: a sentence take that the scene video does not hold yet (1-based sentence numbers). `produce`: «أنتج هذا
+     * المشهد» carries it; `blocked`: the sentences in `missing` have no current take, so the scene's sound cannot hold it yet.
+     */
+    newerTake?: { state: "produce" | "blocked"; sentences: number[]; missing: number[] };
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
       /** صندوق الملاحظات (docs/studio/notes-inbox.md): أُرسلت إلى Claude أو بانتظار الإرسال، ورده بعد git pull. */
@@ -446,6 +451,9 @@ export const api = {
   cancelJob: (id: string) => call<{ ok: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   storyboard: (id: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`),
   previewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(name)}`),
+  /** KI-066: a scene cut's URL carries its fingerprint, so a new cut under the same name is never the old one from a cache. */
+  scenePreviewUrl: (id: string, sceneId: string, sha256: string | null | undefined) =>
+    withChannel(`/api/episodes/${id}/previews/${encodeURIComponent(`scene-${sceneId}-av.mp4`)}${sha256 ? `?v=${sha256.slice(0, 16)}` : ""}`),
   reviewUrl: (id: string, name: string) => withChannel(`/api/episodes/${id}/reviews/${encodeURIComponent(name)}`),
   reviews: (id: string) => call<{ files: { name: string; title: string; note: string; mtime: number }[] }>(`/api/episodes/${id}/reviews`),
   previews: (id: string) => call<{ files: EpisodePreview[]; autoDownload?: boolean }>(`/api/episodes/${id}/previews`),

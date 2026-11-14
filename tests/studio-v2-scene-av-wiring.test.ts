@@ -22,7 +22,11 @@ describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
     expect(server).toContain('parts[2] === "scene-av-render"');
     expect(server).toContain("await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256)");
     expect(server).toContain("verifyBeforePublish: () => assertCurrentSceneRenderAllowed(");
-    expect(server).toContain("await recordSceneRenderEvidence(ep, sceneId, expectedSha256)");
+    // KI-066 (D135): the fingerprint rendered against changes only when the scene's sound was composed again first,
+    // and the render gate is passed again on it before anything renders; the evidence is recorded on that fingerprint.
+    expect(server).toContain("let renderSha256 = expectedSha256;");
+    expect(server).toContain("await assertCurrentSceneRenderAllowed(ep, sceneId, renderSha256)");
+    expect(server).toContain("await recordSceneRenderEvidence(ep, sceneId, renderSha256)");
     const ledger = src("src/studio/sceneLedgerStore.ts") + src("src/studio/sceneDecisions.ts");
     expect(ledger).toContain("previewInputs?: Record<string");
     expect(ledger).toContain("proof.sourceSha256 !== scene.sourceSha256");
