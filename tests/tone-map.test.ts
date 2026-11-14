@@ -511,7 +511,8 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
     // التشكيل الذي بُنيت عليه v1.9 محفوظ باسمه (versions/v9.2)؛ tashkeel.md الحي يحرّره المالك (D132) فتُعلَّم الخريطة قديمة في الاستوديو
     expect(v18.source.tashkeel!.sha256).toBe(sha("versions/v9.2/tashkeel.md"));
     expect(v18.source.script!.sha256).toBe(sha("script.md"));
-    expect(v18.source.plan!.sha256).toBe(sha("plan.json"));
+    // والخطة التي بُنيت عليها محفوظة كذلك (versions/v9.2/plan.json)؛ الحية يغيّرها المالك أو قرار لاحق (D134: صفحة الغلاف)
+    expect(v18.source.plan!.sha256).toBe(sha("versions/v9.2/plan.json"));
     expect(v18.legend.tones).toEqual(v17.legend.tones);
     expect(v18.previous[v18.previous.length - 1 - after19.length]).toEqual({ version: "v1.8", path: "tone-map.v1.8.json" });
     expect(v18.changelog.slice(0, at19)).toEqual(v17.changelog);

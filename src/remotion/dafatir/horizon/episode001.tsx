@@ -21,8 +21,8 @@ const { Amiri, Tajawal } = fonts;
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 
 /** البسملة كما ينطقها الراوي، على الصفحة الأولى، تحتها خط ذهبي */
-const Basmala: React.FC = () => (
-  <g>
+const Basmala: React.FC<{ o?: number }> = ({ o = 1 }) => (
+  <g opacity={o}>
     <SText x={1365} y={505} size={92} color={C.inkText}>
       بسم الله الرحمن الرحيم
     </SText>
@@ -31,15 +31,19 @@ const Basmala: React.FC = () => (
   </g>
 );
 
-// ─────────── c1-s0: الدفتر المغلق يُفتح، وعلى صفحته الأولى البسملة ───────────
-const Cover: React.FC<HzProps> = ({ t, dur, exit }) => {
+// ─────────── c1-s0: الدفتر المغلق يُفتح ───────────
+// ملاحظة المالك (١٤ نوفمبر، D134): البسملة كانت مكتوبة هنا ثم مرة ثانية في مشهدها c1-s1. قراره: صفحة الغلاف
+// فارغة، والبسملة تُكتب مرة واحدة في مشهدها مع تسجيله. `page: "basmala"` يبقي الشكل القديم للنسخ المؤرشفة وحدها.
+const Cover: React.FC<HzProps> = ({ t, dur, exit, p }) => {
   const cover = prog(t, 0.3, 1.5);
   const cam = camPath(t, { cx: 1370, cy: 520, s: 1.06 }, [{ a: 0.45, b: 2.1, ...NEUTRAL }]);
-  return <Book id="cv" t={t} dur={dur} exit={exit} cam={cam} R={<Basmala />} top={<CoverLeaf p={cover} />} noLeft={cover < 1} light={prog(t, 0.45, 1.65)} />;
+  return <Book id="cv" t={t} dur={dur} exit={exit} cam={cam} R={p.page === "basmala" ? <Basmala /> : null} top={<CoverLeaf p={cover} />} noLeft={cover < 1} light={prog(t, 0.45, 1.65)} />;
 };
 
 // ─────────── c1-s1: البسملة ساكنة ───────────
-const BasmalaScene: React.FC<HzProps> = ({ t, dur, exit }) => <Book id="bs" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={<Basmala />} />;
+// `reveal: "fade"` (D134): الصفحة فارغة من الغلاف، فتظهر البسملة بهدوء في أول 0.3 ثانية، قبل أن يبدأ التسجيل، ثم تسكن.
+const BasmalaScene: React.FC<HzProps> = ({ t, dur, exit, p }) =>
+  <Book id="bs" t={t} dur={dur} exit={exit} cam={NEUTRAL} R={<Basmala o={p.reveal === "fade" ? clamp01(t / 0.3) : 1} />} />;
 
 // ─────────── c1-s2: أمم كثيرة وأجيال تتعاقب على الأفق ───────────
 // الماضي على اليمين (اتجاه الخط العربي): كل أمة تظهر على يسار الأفق ثم تمضي نحو اليمين وتبهت، وتأتي بعدها أخرى.
