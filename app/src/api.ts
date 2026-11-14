@@ -176,6 +176,8 @@ export type SceneProductionRead = {
     afterPreparation?: { at: string; what: AfterPreparationWhat[]; script: boolean };
     /** What blocks producing this scene (a verse without its text, a script error on its narration). */
     blocked?: string[];
+    /** D136: a conversation's change reached this machine after the scene's video was made (src/studio/remoteChanges.ts). */
+    remoteChange?: RemoteSceneChangeView;
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
       /** صندوق الملاحظات (docs/studio/notes-inbox.md): أُرسلت إلى Claude أو بانتظار الإرسال، ورده بعد git pull. */
@@ -479,10 +481,17 @@ export type NotesStatus = {
   where: { channel: string; episode: string; count: number }[];
 };
 
+/** D136: src/studio/remoteChanges.ts (what a conversation changed, as this machine received it). */
+export type RemoteWhat = "plan" | "script" | "voice" | "tone" | "engine" | "research" | "publish" | "other";
+export type RemoteSceneChangeView = { at: string; what: RemoteWhat[]; subjects: string[]; answer?: string };
+export type ReceivedSummary = { at: string; from: string; to: string; commits: string[];
+  items: { channel: string; episode?: string; scenes: string[]; what: RemoteWhat[]; label: string }[] };
+
 /** D101: app/server/contentSync.ts SyncState */
 export type SyncStatus = {
   enabled: boolean;
-  state: "off" | "synced" | "saving" | "pending" | "updating" | "conflict" | "error";
+  state: "off" | "synced" | "saving" | "pending" | "updating" | "conflict" | "error" | "behind";
   message: string; pending: string[]; skipped: string[]; conflicts: number;
   lastSavedAt?: string; lastCommit?: string; lastUpdateAt?: string; updateNote?: string; restartNeeded?: boolean; supervised: boolean;
+  restartPending?: boolean; lastCheckAt?: string; receiveError?: string; lastReceived?: ReceivedSummary;
 };

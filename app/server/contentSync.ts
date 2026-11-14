@@ -7,6 +7,7 @@ import { childEnv } from "../../scripts/git-env.mjs";
 import { CONTENT_MAX_BYTES, isOwnerContentPath } from "../../scripts/contentPaths.mjs";
 import { backupRoot, localChanges, readConflicts } from "./safeUpdate.ts";
 import { applyUpdate } from "./update.ts";
+import { recordRemoteChanges, type ReceivedSummary } from "../../src/studio/remoteChanges.ts";
 
 /**
  * «كل الأماكن نسخة واحدة» (D101، طلب صاحب المشروع ١٢ نوفمبر): الاستوديو على جهاز المالك يحفظ عمله في main
@@ -30,7 +31,8 @@ import { applyUpdate } from "./update.ts";
 
 export type SyncState = {
   enabled: boolean;
-  state: "off" | "synced" | "saving" | "pending" | "updating" | "conflict" | "error";
+  /** behind (D136): استقبال التحديثات فشل (لا اتصال، فرع متباعد، عملية Git معلقة…)؛ السبب في receiveError */
+  state: "off" | "synced" | "saving" | "pending" | "updating" | "conflict" | "error" | "behind";
   message: string;
   /** ملفات محتوى تنتظر الحفظ في main */
   pending: string[];
@@ -43,6 +45,14 @@ export type SyncState = {
   lastUpdateAt?: string;
   updateNote?: string;
   restartNeeded?: boolean;
+  /** إعادة تشغيل مجدولة الآن (تعود الصفحة وحدها حين يعود الخادم)؛ بدونها تعيد الصفحة تحميل بياناتها في مكانها */
+  restartPending?: boolean;
+  /** آخر محاولة استقبال (نجحت أو فشلت) */
+  lastCheckAt?: string;
+  /** سبب فشل آخر استقبال بالعربية؛ يُمحى عند أول استقبال ناجح (D136) */
+  receiveError?: string;
+  /** ما وصل في آخر تحديث: الحلقات والمشاهد وما تغيّر فيها (src/studio/remoteChanges.ts، D136) */
+  lastReceived?: ReceivedSummary;
   supervised: boolean;
 };
 
@@ -227,20 +237,38 @@ export const createContentSync = (root: string, opts: {
   let lastFailedSig = "";
   let retryAt = 0;
 
+  const scheduleRestart = () => {
+    if (!state.restartNeeded || state.restartPending || !supervised || !(opts.canRestart?.() ?? true)) return;
+    state.restartPending = true;
+    log("auto-update changed server code: restarting");
+    setTimeout(() => opts.onRestart?.(), 1_500);
+  };
+  const headOf = async () => { const h = await run(root, ["rev-parse", "HEAD"]); return h.ok ? h.out : ""; };
+  /** D136: a failed receive is said, never swallowed (it used to fall back to «محفوظ في كل الأماكن»). */
+  const receiveFailed = (why: string) => {
+    state.receiveError = why;
+    log(`auto-update: ${why}`);
+    return false;
+  };
   const receive = async (): Promise<boolean> => {
     const status = opts.status ?? (async (r: string) => (await import("./update.ts")).updateStatus(r, true));
     const st = await status(root);
     lastReceive = Date.now();
-    if (st.error || !st.available) return !st.error;
+    state.lastCheckAt = new Date().toISOString();
+    if (st.error) return receiveFailed(st.error);
+    if (!st.available) { state.receiveError = undefined; return true; }
     state.state = "updating"; state.message = "تحديث جديد يصل…";
+    const from = await headOf();
     const r = await (opts.receive ?? applyUpdate)(root);
-    if (!r.ok) { log(`auto-update: ${r.message}`); return false; }
+    if (!r.ok) return receiveFailed(`لم يُطبَّق التحديث: ${r.message}`);
+    state.receiveError = undefined;
+    const to = await headOf();
+    // What reached this machine, per episode and scene (local, never pushed). Never fails the update.
+    try { state.lastReceived = await recordRemoteChanges(root, from, to); }
+    catch (e) { log(`remote changes: ${(e as Error).message}`); }
     state.lastUpdateAt = new Date().toISOString();
     state.updateNote = r.message;
-    if (r.restart) {
-      state.restartNeeded = true;
-      if (supervised && (opts.canRestart?.() ?? true)) { log("auto-update changed server code: restarting"); setTimeout(() => opts.onRestart?.(), 1_500); }
-    }
+    if (r.restart) { state.restartNeeded = true; scheduleRestart(); }
     return true;
   };
 
@@ -253,7 +281,13 @@ export const createContentSync = (root: string, opts: {
 
   const settle = () => {
     if (state.conflicts) { state.state = "conflict"; state.message = state.conflicts === 1 ? "يحتاج قرارك (ملف واحد)" : `يحتاج قرارك (${state.conflicts} ملفات)`; return; }
-    if (state.pending.length) return; // تبقى رسالة الحالة pending كما هي
+    if (state.pending.length && state.state === "pending") return; // تبقى رسالة الحالة pending كما هي
+    if (state.receiveError) {
+      state.state = "behind";
+      state.message = `لم تصل التحديثات إلى هذا الجهاز: ${state.receiveError}\nما تراه هو آخر ما وصل${state.lastUpdateAt ? "" : " عند تشغيل الاستوديو"}؛ تعديلات المحادثات لا تظهر حتى يُحل هذا. يُعاد الاستقبال وحده كل بضع دقائق، أو اضغط «احفظ وحدّث الآن».`;
+      return;
+    }
+    if (state.pending.length) return;
     state.state = "synced"; state.message = "محفوظ في كل الأماكن";
   };
 
@@ -262,6 +296,8 @@ export const createContentSync = (root: string, opts: {
     busy = true;
     try {
       if (!await activeMain(root)) { state.state = "off"; state.message = "الحفظ الآلي يعمل على فرع main فقط."; return; }
+      // A server-code update that arrived during a render restarts once the studio is idle (it used to wait forever).
+      scheduleRestart();
       await normalizeLockDrift(root);
       const p = await refreshCounts();
       if (!p) { state.state = "error"; state.message = "تعذّر فحص الملفات بـ Git."; return; }
@@ -295,9 +331,11 @@ export const createContentSync = (root: string, opts: {
         lastFailedSig = p.signature;
         retryAt = Date.now() + (result.reason === "gate" ? 10 * 60_000 : 60_000);
         state.state = "pending";
-        state.message = result.reason === "gate"
+        state.message = (result.reason === "gate"
           ? `لم يُحفظ في المستودع: رفضت البوابة التعديل.\n${result.message}`
-          : "لم يُحفظ في المستودع بعد — سيُعاد تلقائيًا";
+          : "لم يُحفظ في المستودع بعد — سيُعاد تلقائيًا") +
+          // D136: a failed receive is said here too (offline fails both ways)
+          (state.receiveError ? `\nولم تصل التحديثات إلى هذا الجهاز: ${state.receiveError}` : "");
         log(`content save failed (${result.reason}): ${result.message}`);
       }
     } catch (e) {

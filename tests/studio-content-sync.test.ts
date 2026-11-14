@@ -44,7 +44,7 @@ const setup = (files: Record<string, string>) => {
   const dev = path.join(base, "dev");
   execFileSync("git", ["clone", "-q", remote, dev], { env: gitEnv });
   g(dev, "checkout", "-q", "-b", "main");
-  write(dev, ".gitignore", "channels/*/episodes/*/scene-production.v1.json\nchannels/*/episodes/*/voice/\n");
+  write(dev, ".gitignore", "channels/*/episodes/*/scene-production.v1.json\nchannels/*/episodes/*/voice/\n.studio/\n");
   for (const [f, t] of Object.entries(files)) write(dev, f, t);
   g(dev, "add", "-A");
   g(dev, "commit", "-qm", "init");
@@ -164,7 +164,9 @@ describe("D101: الحفظ الآلي في main", { timeout: 120_000 }, () => {
     const s = sync(r.mac);
     await s.tick(true);
     expect(s.state.state).toBe("pending");
-    expect(s.state.message).toBe("لم يُحفظ في المستودع بعد — سيُعاد تلقائيًا");
+    expect(s.state.message).toMatch(/^لم يُحفظ في المستودع بعد — سيُعاد تلقائيًا/);
+    // D136: offline fails the receive too, and that is said (never swallowed)
+    expect(s.state.message).toContain("ولم تصل التحديثات إلى هذا الجهاز");
     expect(s.state.pending).toEqual([PLAN]);
     expect(read(r.mac, PLAN)).toBe(lines(5, " (owner)"));
     g(r.mac, "remote", "set-url", "origin", r.remote);
