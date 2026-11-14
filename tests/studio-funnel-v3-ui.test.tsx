@@ -25,10 +25,10 @@ const overview = (production: Partial<NonNullable<Overview["production"]>>, publ
 }) as unknown as Overview;
 
 describe("أربع خطوات", () => {
-  it("the spine has four stations; step ١ owns storyboard, script and research; step ٢ the scenes", () => {
+  it("the spine has four stations; step ١ owns storyboard, script, the voweled text and research; step ٢ the scenes", () => {
     expect(STEPS.map((s) => s.title)).toEqual(["التجهيز", "المشاهد", "النسخة النهائية", "النشر"]);
     expect(STEPS.map((s) => s.n)).toEqual(["١", "٢", "٣", "٤"]);
-    expect(STEPS[0]!.tabs).toEqual(["storyboard", "script", "research"]);
+    expect(STEPS[0]!.tabs).toEqual(["storyboard", "script", "tashkeel", "research"]);
     expect(stepOf("storyboard")).toBe(0);
     expect(stepOf("script")).toBe(0);
     expect(stepOf("episode")).toBe(1);
@@ -54,7 +54,7 @@ describe("أربع خطوات", () => {
   });
 
   it("links keep working: each old tab link lands in its new step", () => {
-    for (const tab of ["script", "research", "storyboard", "episode", "voice", "review", "publish"] as const) {
+    for (const tab of ["script", "tashkeel", "research", "storyboard", "episode", "voice", "review", "publish"] as const) {
       const r = parseStudioHash(`#/balislam/001/${tab}`);
       expect(r).toEqual({ channel: "balislam", episode: "001", tab });
       expect(stepOf(tab)).toBeGreaterThanOrEqual(0);

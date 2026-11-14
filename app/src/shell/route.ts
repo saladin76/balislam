@@ -10,7 +10,7 @@ export type StudioRoute = { channel?: string; episode?: string; tab?: StudioSect
   /** «#/<channel>/<episode>/episode/<scene id>»: the scene on screen in step ٢ (QA 12 Nov: a reload kept only the step). */
   scene?: string };
 
-const EPISODE_STEPS: StudioSection[] = ["research", "script", "storyboard", "voice", "episode", "review", "publish"];
+const EPISODE_STEPS: StudioSection[] = ["research", "script", "tashkeel", "storyboard", "voice", "episode", "review", "publish"];
 const CHANNEL = /^[a-z0-9][a-z0-9-]{0,40}$/;
 const EPISODE = /^\d{3,4}$/;
 const SERIES = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;

@@ -35,7 +35,7 @@ export type TashkeelReport = {
 export const TASHKEEL = { required: true, minCoverage: 0.98, ...((config as { tashkeel?: { required?: boolean; minCoverage?: number } }).tashkeel ?? {}) };
 
 /** حروف لا يلتبس نطقها، فلا تُحسب إن جاءت بلا تشكيل. */
-const PLAIN_OK = new Set(["في", "الي", "عن", "يا", "او", "ثم", "قد", "هل", "لا", "و", "ف", "ب", "ل"]);
+export const PLAIN_OK = new Set(["في", "الي", "عن", "يا", "او", "ثم", "قد", "هل", "لا", "و", "ف", "ب", "ل"]);
 const MARK = /[ً-ٰٟ]/;
 const ARABIC = /[ء-ي]/;
 const core = (w: string) => w.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, "");

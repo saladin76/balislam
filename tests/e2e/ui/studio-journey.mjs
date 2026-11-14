@@ -6,7 +6,8 @@
  * process on a temporary channels folder under renders/ (deleted at the end), the test-only fake voice provider
  * (BAL_VOICE_PROVIDER=fake with BAL_E2E=1; refused beside a real key), tiny real renders (BAL_E2E_RENDER=tiny) and
  * a temporary Drive folder (BAL_DRIVE_PUBLISH_DIR). Every non-local request in this process is refused.
- * The fixture's script, research and vowelled copy are put in place through the same routes the page uses.
+ * The fixture's script and research are put in place through the same routes the page uses; its vowelled copy is created and
+ * saved in the page's «النص المشكول» tab (D132).
  *
  *   npm run e2e:ui            (tsx tests/e2e/ui/studio-journey.mjs [--channel dafatir-alzaman] [--port 4451] [--shots <dir>])
  *
@@ -14,7 +15,7 @@
  */
 import { createRequire } from "node:module";
 import { existsSync } from "node:fs";
-import { cp, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from "node:fs/promises";
+import { cp, mkdir, mkdtemp, readdir, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -89,7 +90,6 @@ try {
   await api("POST", "episodes", { episode: EP, slug: SLUG, domain, title });
   await api("PUT", `episodes/${EP}/script`, { text: await fx("script.md") });
   await api("PUT", `episodes/${EP}/research`, { text: await fx("research.md") });
-  await writeFile(path.join(chDir, "episodes", `${EP}-${SLUG}`, "tashkeel.md"), await fx("tashkeel.md"));
 
   browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
   const page = await browser.newPage({ viewport: { width: 1440, height: 1000 } });
@@ -100,6 +100,20 @@ try {
   const go = async (step) => { await page.goto(`${origin}/?link#/${CH}/${EP}/${step}`); await page.waitForLoadState("networkidle").catch(() => {}); };
   const click = async (name, opts = {}) => { const b = page.getByRole("button", { name, exact: opts.exact ?? false }).first(); await b.waitFor({ state: "visible", timeout: opts.timeout ?? 60_000 }); await b.click(); };
   const tick = async (label) => { const c = page.getByLabel(label).first(); await c.waitFor({ state: "visible", timeout: 60_000 }); await c.check(); };
+
+  // ── ١ «النص المشكول» (D132): no file yet → «أنشئ النسخة المشكولة من السكريبت», then the fixture's vowelled copy typed and saved ──
+  const tkFile = path.join(chDir, "episodes", `${EP}-${SLUG}`, "tashkeel.md");
+  await go("tashkeel");
+  await click("أنشئ النسخة المشكولة من السكريبت");
+  const editor = page.locator("#tashkeel-editor");
+  await editor.waitFor({ state: "visible", timeout: 60_000 });
+  ok((await readFile(tkFile, "utf8")) === await fx("script.md"), "١ «أنشئ النسخة المشكولة من السكريبت» copies the script as a starting point");
+  await editor.fill(await fx("tashkeel.md"));
+  await click("حفظ", { exact: true });
+  await until("tashkeel saved", async () => (await readFile(tkFile, "utf8")) === await fx("tashkeel.md"), 30_000, 300);
+  await page.getByRole("status").filter({ hasText: "حُفظت النسخة المشكولة" }).first().waitFor({ timeout: 30_000 });
+  ok(await page.getByText(/التشكيل [٠-٩]+٪/).first().isVisible(), "١ the «النص المشكول» tab shows its coverage badge after saving from the page");
+  await snap("1-tashkeel");
 
   // ── ١ التجهيز: the episode tone (no default, D104), «راجعته بنفسي», «اعتمد التجهيز» ──
   const plan = (await api("GET", `episodes/${EP}`)).plan;

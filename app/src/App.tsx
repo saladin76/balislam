@@ -30,6 +30,7 @@ import { SceneProductionPanel } from "./workspace/SceneProductionPanel";
 import { PreFinalPanel } from "./workspace/PreFinal";
 import "./workspace/workspace.css";
 import { ScriptTab, type ScriptTabHandle } from "./tabs/ScriptTab";
+import { TashkeelTab, tashkeelBadge } from "./tabs/TashkeelTab";
 import { IdentityTab } from "./tabs/IdentityTab";
 import { HomeTab } from "./tabs/HomeTab";
 import { SeriesPage } from "./tabs/Series";
@@ -61,7 +62,7 @@ import { splitOwnerDetails } from "./serverMessages";
 
 type Tab = StudioSection;
 type FinalView = "recitations" | "seams" | "master";
-const EPISODE_TABS: Tab[] = ["research", "script", "storyboard", "voice", "episode", "review", "publish"];
+const EPISODE_TABS: Tab[] = ["research", "script", "tashkeel", "storyboard", "voice", "episode", "review", "publish"];
 const store = {
   get: (k: string) => {
     try {
@@ -162,6 +163,9 @@ export const App: React.FC = () => {
   const [script, setScript] = useState("");
   const [savedScript, setSavedScript] = useState("");
   const [researchDirty, setResearchDirty] = useState(false);
+  /** «النص المشكول» (D132): unsaved edits in its editor, and its tab badge («التشكيل ٩٩٪») for the open episode */
+  const [tashkeelDirty, setTashkeelDirty] = useState(false);
+  const [tashkeelSub, setTashkeelSub] = useState<{ key: string; sub: string } | null>(null);
   const [check, setCheck] = useState<CheckResult | null>(null);
   const [media, setMedia] = useState<EpisodeMedia>(emptyMedia);
   const [extra, setExtra] = useState<Pick<EpisodeData, "issues" | "keys">>({ issues: [], keys: { voice: false, quran: false } });
@@ -318,6 +322,15 @@ export const App: React.FC = () => {
     loadEpisode(epId);
   }, [epId, channelId, episodes, loadEpisode]);
   useEffect(() => store.set("bal-tab", tab), [tab]);
+  // D132: the «النص المشكول» badge in step ١ (coverage against the saved script), re-read after each save
+  const stepOneOpen = tab === "storyboard" || tab === "script" || tab === "tashkeel" || tab === "research";
+  useEffect(() => {
+    if (!epId || !channelId || !stepOneOpen) return;
+    let live = true;
+    const key = `${channelId}/${epId}`;
+    api.tashkeel(epId).then((s) => { if (live) setTashkeelSub({ key, sub: tashkeelBadge(s) }); }).catch(() => {});
+    return () => { live = false; };
+  }, [epId, channelId, homeKey, stepOneOpen]);
   useEffect(() => {
     let live = true;
     setSeriesData(null);
@@ -390,7 +403,7 @@ export const App: React.FC = () => {
   // تنبيه قبل إغلاق الصفحة إن بقي شيء غير محفوظ
   useEffect(() => {
     const h = (e: BeforeUnloadEvent) => {
-      if (scriptDirtyRef.current || researchDirty || planSaves.current!.hasPending) {
+      if (scriptDirtyRef.current || researchDirty || tashkeelDirty || planSaves.current!.hasPending) {
         // beforeunload لا يضمن إكمال أي طلب شبكة؛ لا نَعِد المستخدم بحفظ غير مؤكد.
         e.preventDefault();
         e.returnValue = "";
@@ -398,9 +411,10 @@ export const App: React.FC = () => {
     };
     window.addEventListener("beforeunload", h);
     return () => window.removeEventListener("beforeunload", h);
-  }, [researchDirty]);
+  }, [researchDirty, tashkeelDirty]);
   const confirmLeaveScript = () => {
     if (scriptDirty && !window.confirm("في السكريبت تعديلات غير محفوظة. هل تريد مغادرة المحرر؟")) return false;
+    if (tashkeelDirty && !window.confirm("في النص المشكول تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟")) return false;
     if (scriptRef.current?.hasUnsavedResearch() && !window.confirm("في ملف البحث تعديلات غير محفوظة ستضيع. هل تريد المتابعة؟")) return false;
     return true;
   };
@@ -476,6 +490,7 @@ export const App: React.FC = () => {
   ] : !inEpisode ? [] : here === 0 ? [
     { id: "storyboard", label: "اللوحات والنص", sub: plan ? arNum(plan.chapters.reduce((n, c) => n + c.scenes.length, 0)) : undefined, current: tab === "storyboard", onSelect: () => go("storyboard") },
     { id: "script", label: "السكريبت", sub: check ? countAr(check.stats.totalWords, WORDS) : undefined, current: tab === "script", onSelect: () => go("script") },
+    { id: "tashkeel", label: "النص المشكول", sub: tashkeelSub?.key === `${channelId}/${epId}` ? tashkeelSub.sub : undefined, current: tab === "tashkeel", onSelect: () => go("tashkeel") },
     { id: "research", label: "البحث والمصادر", current: tab === "research", onSelect: () => go("research") },
   ] : here === 1 && done[0] ? [
     { id: "one", label: "مشهدًا مشهدًا", current: tab === "episode" && sceneView === "one", onSelect: () => { setSceneView("one"); go("episode"); } },
@@ -531,7 +546,7 @@ export const App: React.FC = () => {
           seriesNames={seriesNames}
           title="الاستوديو"
           views={views}
-          save={inEpisode ? { state: planState, unsaved: scriptDirty || researchDirty } : null}
+          save={inEpisode ? { state: planState, unsaved: scriptDirty || researchDirty || tashkeelDirty } : null}
           scheme={scheme}
           onToggleScheme={toggleScheme}
         />
@@ -571,7 +586,7 @@ export const App: React.FC = () => {
             />
           ) : null;
         })()}
-        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || identDirty || planState !== "saved"} />
+        <UpdateBanner beforeUpdate={flushPlan} hasUnsaved={scriptDirty || researchDirty || tashkeelDirty || identDirty || planState !== "saved"} />
         <ErrorNotice />
         {!EPISODE_TABS.includes(tab) && tab !== "home" && tab !== "series" ? (
           <div className="page-head"><h1>{tab === "guide" ? guideLabel : SECTION_TITLES[tab] ?? "الاستوديو"}</h1></div>
@@ -883,6 +898,9 @@ export const App: React.FC = () => {
               />
             )}
           />
+        ) : tab === "tashkeel" ? (
+          <TashkeelTab key={`${channelId}:${epId}`} episodeId={epId} order={planScenesAll.map((x) => x.id)} onDirtyChange={setTashkeelDirty}
+            onSaved={(s) => { setTashkeelSub({ key: `${channelId}/${epId}`, sub: tashkeelBadge(s) }); setHomeKey((k) => k + 1); }} />
         ) : (
           <ScriptTab key={`${epId}:${tab}`} ref={scriptRef} episodeId={epId} initialDoc={tab === "research" ? "research" : "script"} workspaceMode onOpenScriptLine={(line) => { if (!confirmLeaveScript()) return; setTab("script"); setTimeout(() => scriptRef.current?.goToLine(line), 50); }} onResearchDirtyChange={setResearchDirty} text={script} savedText={savedScript} check={check} onChange={setScript} onSave={saveScript} />
         )}

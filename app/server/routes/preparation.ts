@@ -26,6 +26,29 @@ export const handlePreparationRoutes = async (ctx: RouteCtx): Promise<boolean> =
     return true;
   }
 
+  // «النص المشكول» (D132): tashkeel.md بجوار السكريبت، للصوت وحده. القراءة بتغطيتها ومطابقتها، وفحص مسودة بلا حفظ،
+  // والحفظ بنسخة الملف التي فُتحت (409 إن تغيّر بعدها). لا توليد ولا حذف ولا لمس للسكريبت أو الخطة أو السجل.
+  if (parts[0] === "episodes" && parts[1] && parts[2] === "tashkeel") {
+    if (!EP.test(parts[1])) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+    const T = await load<typeof import("../../../src/voice/tashkeelEdit.ts")>("/src/voice/tashkeelEdit.ts");
+    if (parts.length === 4 && parts[3] === "check" && req.method === "POST") {
+      const { text } = await readBody(req);
+      if (typeof text !== "string") return send(res, 400, { error: "نص غير صالح." }), true;
+      return send(res, 200, await T.checkTashkeelDraft(parts[1], text)), true;
+    }
+    if (parts.length !== 3) return send(res, 404, { error: "غير موجود" }), true;
+    if (req.method === "GET") return send(res, 200, await T.readTashkeel(parts[1])), true;
+    if (req.method === "PUT") {
+      try { return send(res, 200, await T.saveTashkeel(parts[1], await readBody(req))), true; }
+      catch (error) {
+        if (error instanceof T.TashkeelStaleError) return send(res, 409, { error: error.message, code: error.code, current: error.current }), true;
+        if (error instanceof T.TashkeelInputError) return send(res, 400, { error: error.message }), true;
+        throw error;
+      }
+    }
+    return send(res, 405, { error: "طلب غير مدعوم." }), true;
+  }
+
   // Text-only Quran repair. Never regenerates the plan, downloads voice,
   // changes reviewer approvals or fills missing verses with placeholders.
   if (parts[0] === "episodes" && parts[1] && parts[2] === "quran-text-only" && parts.length === 3) {
