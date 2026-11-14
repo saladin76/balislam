@@ -1,7 +1,7 @@
 {
- "version": "v1.14",
+ "version": "v1.16",
  "episode": "001-adam-beginning",
- "status": "v1.14 — v1.13 مع نبرة جملة في c1-s6 بقرار صاحب المشروع (2026-11-14)",
+ "status": "v1.16 — v1.15 مع نبرة جملة في c1-s7 بقرار صاحب المشروع (2026-11-14)",
  "approved": false,
  "date": "2026-11-14",
  "order": "V9.2",
@@ -2861,6 +2861,14 @@
   {
    "version": "v1.13",
    "path": "tone-map.v1.13.json"
+  },
+  {
+   "version": "v1.14",
+   "path": "tone-map.v1.14.json"
+  },
+  {
+   "version": "v1.15",
+   "path": "tone-map.v1.15.json"
   }
  ],
  "direction": {
@@ -5273,6 +5281,36 @@
    "after": "warm",
    "note": "",
    "summary": "نبرة جملة في c1-s6: نبرة الجزء ← warm بقرار صاحب المشروع (الصوت جملةً جملة)؛ الأجزاء والمقاطع كما هي"
+  },
+  {
+   "from": "v1.14",
+   "to": "v1.15",
+   "date": "2026-11-14",
+   "at": "2026-11-14T18:46:44.427Z",
+   "by": "owner",
+   "source": "sentence-tone",
+   "scene": "c1-s7",
+   "sentence": "td6f34a4d47",
+   "text": "ومن هنا تبدأ حكايتنا.",
+   "before": "part",
+   "after": "documentary",
+   "note": "",
+   "summary": "نبرة جملة في c1-s7: نبرة الجزء ← documentary بقرار صاحب المشروع (الصوت جملةً جملة)؛ الأجزاء والمقاطع كما هي"
+  },
+  {
+   "from": "v1.15",
+   "to": "v1.16",
+   "date": "2026-11-14",
+   "at": "2026-11-14T18:46:46.224Z",
+   "by": "owner",
+   "source": "sentence-tone",
+   "scene": "c1-s7",
+   "sentence": "td6f34a4d47",
+   "text": "ومن هنا تبدأ حكايتنا.",
+   "before": "documentary",
+   "after": "warm",
+   "note": "",
+   "summary": "نبرة جملة في c1-s7: documentary ← warm بقرار صاحب المشروع (الصوت جملةً جملة)؛ الأجزاء والمقاطع كما هي"
   }
  ],
  "citations": [
@@ -5449,6 +5487,15 @@
    "text": "لكنّ الله أخبرنا بما هو أعظم أثرًا في فهم بداية قصة الإنسان.",
    "version": "v1.14",
    "at": "2026-11-14T18:45:54.460Z",
+   "note": "",
+   "by": "owner"
+  },
+  "td6f34a4d47": {
+   "tone": "warm",
+   "scene": "c1-s7",
+   "text": "ومن هنا تبدأ حكايتنا.",
+   "version": "v1.16",
+   "at": "2026-11-14T18:46:46.224Z",
    "note": "",
    "by": "owner"
   }
