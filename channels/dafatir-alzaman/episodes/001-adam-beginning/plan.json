@@ -17,7 +17,8 @@
           "narration": "",
           "line": 16,
           "props": {
-            "shot": "cover"
+            "shot": "cover",
+            "page": "blank"
           },
           "sfx": [],
           "edited": true
@@ -28,7 +29,8 @@
           "narration": "بسم الله الرحمن الرحيم.",
           "line": 14,
           "props": {
-            "shot": "basmala"
+            "shot": "basmala",
+            "reveal": "fade"
           },
           "sfx": [],
           "edited": true
