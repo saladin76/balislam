@@ -508,7 +508,8 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
 
   it("مبنية على السكريبت والتشكيل والخطة الحالية، وv1.8 محفوظة، وأسماء النبرات كما هي", () => {
     expect(v18.approved).toBe(false);
-    expect(v18.source.tashkeel!.sha256).toBe(sha("tashkeel.md"));
+    // التشكيل الذي بُنيت عليه v1.9 محفوظ باسمه (versions/v9.2)؛ tashkeel.md الحي يحرّره المالك (D132) فتُعلَّم الخريطة قديمة في الاستوديو
+    expect(v18.source.tashkeel!.sha256).toBe(sha("versions/v9.2/tashkeel.md"));
     expect(v18.source.script!.sha256).toBe(sha("script.md"));
     expect(v18.source.plan!.sha256).toBe(sha("plan.json"));
     expect(v18.legend.tones).toEqual(v17.legend.tones);
@@ -520,7 +521,7 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
   });
 
   it("كل مقطع مطابق لسطره وكل مشهد = مقاطعه؛ والجديد أربعة: c1-s6 وc1-s37 وجملتا c1-s48", () => {
-    const lines = read("tashkeel.md").split("\n");
+    const lines = read("versions/v9.2/tashkeel.md").split("\n");
     for (const s of v18.segments) {
       expect(lines[s.tashkeelLine - 1]!.trim(), `مقطع ${s.n}`).toBe(s.text);
       expect(s.marked.replace(/ ?[|‖]/g, "").replace(/\*\*/g, ""), `علامات ${s.n}`).toBe(s.text);
