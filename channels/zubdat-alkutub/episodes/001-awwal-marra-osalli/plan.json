@@ -6,7 +6,7 @@
   "themeId": "warm",
   "channel": "zubdat-alkutub",
   "lang": "ar",
-  "updatedAt": "2026-11-11T19:01:03.725Z",
+  "updatedAt": "2026-11-14T17:59:57.870Z",
   "chapters": [
     {
       "number": 1,
@@ -20,7 +20,8 @@
             "shot": "habit-heart"
           },
           "id": "c1-s1",
-          "sfx": []
+          "sfx": [],
+          "edited": true
         },
         {
           "template": "ink-shot",
@@ -337,5 +338,6 @@
         }
       ]
     }
-  ]
+  ],
+  "tone": "dramatic"
 }
