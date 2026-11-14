@@ -104,8 +104,32 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
     nameAr: "الصلاة اليومية: تكرار الفعل وحضور القلب",
     render: ({ frame, z, at, end }) => {
       // السكريبت المعتمد (١١ نوفمبر): «تخيّل أنك أنهيت صلاتك… نعرف هذه الأفعال جيدًا؛ ولكنْ… يبقى سؤالٌ أعمق: هل يحضر قلبنا…»
-      const t0 = at("صلاتك", 0.08);
+      // ملاحظة المالك n1e9b22b18d (١٤ نوفمبر): الجملة الأولى برسماتها لا بشريط اليوم —
+      // «أنك» ساجد على سجادته، «أنهيت صلاتك» يجلس ويسلّم يمينًا ثم يسارًا، «سألت نفسك» تأمّل يصعد منه،
+      // «ماذا بقي» يتوقف التأمّل، «قلبي» قلب حبر متقطع يُرسم، «منها» ينبض فارغًا؛ ثم يخرج كل ذلك قبل «نحن»
+      const tImg = at("تخيل", 0.0);
+      const tPray = at("أنك", 0.03);
+      const tDone = at("أنهيت", 0.05);
+      const tSalam = at("صلاتك", 0.08);
+      const tAsk = at("سألت", 0.12);
+      const tSelf = at("نفسك", 0.14);
+      const tMadha = at("ماذا", 0.17);
+      const tQalbi = at("قلبي", 0.22);
+      const tMinha = at("منها", 0.24);
+      const tNahnu = at("نحن", 0.33);
+      const t0 = tNahnu;
       const tW = [at("نقف", 0.36), at("نقرأ", 0.39), at("نركع", 0.42), at("نسجد", 0.45)];
+      const openOut = 1 - prog(frame, Math.min(end("منها", 0.3) + 4, tNahnu - 10), tNahnu);
+      const mat = prog(frame, tImg - 2, tImg + 14);
+      const sujud = prog(frame, tPray - 2, tPray + 14);
+      const julus = prog(frame, tDone - 2, tDone + 16);
+      const salamR = prog(frame, tSalam - 2, tSalam + 10);
+      const salamL = prog(frame, tSalam + 12, tSalam + 24);
+      const ask = (k: number) => prog(frame, tAsk + k * 7, tAsk + k * 7 + 10);
+      const askRise = prog(frame, tAsk, Math.max(tSelf + 12, tMadha), (t) => t);
+      const heart = prog(frame, tQalbi - 2, tQalbi + 14);
+      const beat = frame >= tMinha ? Math.sin(Math.PI * Math.min(1, (frame - tMinha) / 14)) * (1 - prog(frame, tMinha + 14, tMinha + 15)) + 0.5 * Math.sin(Math.PI * prog(frame, tMinha + 16, tMinha + 30)) : 0;
+      const madha = prog(frame, tMadha - 2, tMadha + 10);
       const tYears = at("نعرف", 0.47); // معرفة الأفعال بالتكرار: الأيام تتكرر شبكةً
       const tFam = at("جيدا", 0.56); // الإلف: الأيام تبهت
       const tLakin = at("لكن", 0.58);
@@ -116,7 +140,7 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       const tBody2 = at("يحضر", 0.94, 2);
       const tBody = at("جسدنا", 0.97);
       const line = prog(frame, t0 - 4, t0 + 20);
-      const sun = prog(frame, t0 + 4, tW[0]! + 6, (t) => t);
+      const sun = prog(frame, t0, tW[3]! + 10, (t) => t);
       const post = tW.map((t) => prog(frame, t - 3, t + 16));
       const gridIn = (k: number) => prog(frame, tYears + k * 4, tYears + k * 4 + 12);
       const gray = prog(frame, tFam - 4, tFam + 16);
@@ -130,8 +154,8 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
       for (const r of [-1, 0, 1, 2]) for (const c of [-1, 0, 1]) if (!(r === 0 && c === 0)) cells.push([c, r]);
       return {
         camLen: 28,
-        focus: [[at("تخيل", 0.0), 960, 330], ...tW.map((t, i): [number, number, number] => [t, 960 + [420, 140, -140, -420][i]!, 620]), [at("الأفعال", 0.53), 960, 600], [tQ, 960, 600], [tHal, 965, 470], [tHeart, 760, 600], [tBody2, 1180, 700], [tBody, 1400, 700]],
-        cam: [C(0, 960, 420, 1.12), C(tW[0]! - 8, 960, 560, 1.0), C(tYears - 2, 960, 640, 0.45), C(gridStart, 960, 540, 1.0), C(tHeart - 8, 960, 600, 1.12)],
+        focus: [[tImg, 900, 470], [tAsk, 980, 350], [tQalbi, 1160, 330], [tNahnu, 960, 330], ...tW.map((t, i): [number, number, number] => [t, 960 + [420, 140, -140, -420][i]!, 620]), [at("الأفعال", 0.53), 960, 600], [tQ, 960, 600], [tHal, 965, 470], [tHeart, 760, 600], [tBody2, 1180, 700], [tBody, 1400, 700]],
+        cam: [C(0, 980, 480, 1.12), C(tNahnu - 6, 960, 420, 1.06), C(tW[0]! - 8, 960, 560, 1.0), C(tYears - 2, 960, 640, 0.45), C(gridStart, 960, 540, 1.0), C(tHeart - 8, 960, 600, 1.12)],
         world: (
           <g>
             <g opacity={gridOut}>
@@ -144,6 +168,48 @@ export const INK_SHOTS: Record<string, InkShotDef> = {
                 <DayStrip z={z} line={line} sun={sun} postures={post} gray={gray} />
               </g>
             </g>
+            {/* الجملة الأولى: صلاة انتهت، ثم سؤال النفس عمّا بقي في القلب (بالحبر وحده؛ الفسفوري للقلب في السؤال الأعمق) */}
+            {openOut > 0 ? (
+              <g opacity={openOut} transform="translate(0 -170)">
+                {mat > 0 ? (
+                  <g data-k="open-mat">
+                    <Stroke d="M640 862 L1000 862" p={mat} c={z.ink} w={10} />
+                    <Stroke d="M640 862 Q640 836 662 836" p={prog(mat, 0.6, 1)} c={z.ink} w={7} />
+                  </g>
+                ) : null}
+                {sujud > 0 && julus < 1 ? (
+                  <g data-k="open-sujud" opacity={1 - julus}>
+                    <InkPerson x={880} y={850} s={1.1} pose="sujud" p={sujud} z={z} />
+                  </g>
+                ) : null}
+                {julus > 0 ? (
+                  <g data-k="open-julus" opacity={julus}>
+                    <InkPerson x={860} y={850} s={1.1} pose="julus" p={julus} z={z} />
+                  </g>
+                ) : null}
+                {/* التسليم: التفاتة يمينًا ثم يسارًا (قوسان قصيران عند الرأس) */}
+                {salamR > 0 ? (
+                  <g data-k="open-salam" opacity={1 - prog(frame, tSalam + 30, tAsk + 4)}>
+                    <Stroke d="M906 640 Q930 634 940 610" p={salamR} c={z.ink} w={7} />
+                    <Stroke d="M814 640 Q790 634 780 610" p={salamL} c={z.ink} w={7} />
+                  </g>
+                ) : null}
+                {/* «سألت نفسك»: تأمّل يصعد من الرأس نحو موضع القلب، ويقف عند «ماذا بقي» */}
+                {ask(0) > 0 ? (
+                  <g data-k="open-ask" transform={`translate(0 ${-20 * askRise})`}>
+                    {[[930, 560, 12], [990, 510, 17], [1070, 470, 23]].map(([x, y, r], k) => (
+                      <circle key={k} cx={x} cy={y} r={r! * ask(k)} fill="none" stroke={z.ink} strokeWidth={6} opacity={1 - 0.5 * madha * (k < 2 ? 1 : 0)} />
+                    ))}
+                  </g>
+                ) : null}
+                {/* «قلبي»: قلب حبر متقطع يُرسم، و«منها» ينبض فارغًا */}
+                {heart > 0 ? (
+                  <g data-k="open-heart" transform={`translate(1200 440) scale(${1 + 0.08 * beat}) translate(-1200 -440)`}>
+                    <Stroke d={heartPath(1200, 440, 86)} p={heart} c={z.ink} w={9} opacity={0.85} />
+                  </g>
+                ) : null}
+              </g>
+            ) : null}
             {/* السؤال: علامة استفهام كبيرة تنتقل لتقف بين القلب والجسد */}
             <Write id="q" x={lerp(960, 965, qMove)} y={lerp(700, 470, qMove)} text="؟" size={lerp(420, 230, qMove)} p={qBig} c={z.ink} font="head" z={z} />
             <g opacity={prog(frame, tHeart - 4, tHeart + 8)}>

@@ -122,3 +122,50 @@ describe("c1-s1 (habit-heart): توجيه المالك ٩ نوفمبر", () => {
     FRAME = 0;
   });
 });
+
+/**
+ * ملاحظة المالك n1e9b22b18d (١٤ نوفمبر، «المشاهد غير مناسبة مع النص في الجملة الأولى»):
+ * كانت الجملة الأولى «تخيّل أنك أنهيت صلاتك، ثم سألت نفسك: ماذا بقي في قلبي منها؟» تُعرض بشريط يوم وشمس
+ * لا يطابقان كلماتها. الآن كل كلمة برسمتها لحظة نطقها، وشريط اليوم يبدأ مع «نحن نقف…» التي يرسمها.
+ */
+describe("c1-s1: الجملة الأولى برسماتها (ملاحظة n1e9b22b18d)", () => {
+  const HEAVY = heavyTimeout(30_000);
+  const has = (m: string, k: string) => m.includes(`data-k="${k}"`);
+  const STRIP = "M620 0 L-620 0";
+  const strips = (m: string) => m.split(STRIP).length - 1;
+  for (const c of cases) {
+    const w = (f: number) => world(f, c.dur, c.timings);
+    const s = (bare: string) => start(c.timings, bare);
+    it(`${c.name}: سجود عند «أنك»، ثم جلوس وتسليم عند «أنهيت صلاتك»`, () => {
+      expect(has(w(s("أنك") - 3), "open-sujud")).toBe(false);
+      expect(has(w(s("أنك") + 8), "open-sujud")).toBe(true);
+      expect(has(w(s("أنهيت") - 3), "open-julus")).toBe(false);
+      expect(has(w(s("أنهيت") + 14), "open-julus")).toBe(true);
+      expect(has(w(s("صلاتك") - 2), "open-salam")).toBe(false);
+      expect(has(w(s("صلاتك") + 8), "open-salam")).toBe(true);
+    }, HEAVY);
+
+    it(`${c.name}: «سألت نفسك» تأمّل يصعد، و«قلبي» قلب يُرسم لحظتها، بلا فسفوري ولا «؟» مكتوب`, () => {
+      expect(has(w(s("سألت") - 3), "open-ask")).toBe(false);
+      expect(has(w(s("نفسك") + 4), "open-ask")).toBe(true);
+      expect(has(w(s("قلبي") - 3), "open-heart")).toBe(false);
+      expect(has(w(s("منها")), "open-heart")).toBe(true);
+      for (let f = 0; f < s("نحن"); f += 4) {
+        const m = w(f);
+        expect(hasQuestion(m), `frame ${f}`).toBe(false);
+        expect(m.toUpperCase().split(HL).length - 1, `frame ${f}`).toBe(1); // هالة القلب المخفية وحدها
+      }
+    }, HEAVY);
+
+    it(`${c.name}: شريط اليوم لا يُرسم قبل «نحن نقف»، والجملة الأولى تخرج قبله`, () => {
+      expect(strips(w(s("نحن") - 4))).toBe(11); // تكرارات الشبكة المخفية وحدها
+      expect(strips(w(s("نقف") + 6))).toBe(12);
+      const after = w(s("نقف") + 6);
+      for (const k of ["open-sujud", "open-julus", "open-salam", "open-ask", "open-heart"]) expect(has(after, k), k).toBe(false);
+    }, HEAVY);
+
+    it(`${c.name}: لا سكون فوق ثانيتين في الجملة الأولى`, () => {
+      for (let f = s("تخيل"); f + 60 <= s("نحن"); f += 10) expect(w(f) === w(f + 60), `frame ${f}`).toBe(false);
+    }, HEAVY);
+  }
+});

@@ -193,7 +193,7 @@ export const Card: React.FC<{ x: number; y: number; w: number; h: number; z: Z; 
 );
 
 // ── إنسان بلا ملامح (رسم خطي بالحبر) ─────────────────────────────────────
-export type InkPose = "stand" | "fold" | "raise" | "ruku" | "sujud" | "dua" | "walk";
+export type InkPose = "stand" | "fold" | "raise" | "ruku" | "sujud" | "dua" | "walk" | "julus";
 const POSES: Record<InkPose, { head: [number, number]; lines: string[] }> = {
   stand: { head: [0, -272], lines: ["M0 -236 L0 -118", "M0 -118 L-20 0", "M0 -118 L20 0", "M0 -220 L-24 -128", "M0 -220 L24 -128"] },
   fold: { head: [0, -272], lines: ["M0 -236 L0 -118", "M0 -118 L-20 0", "M0 -118 L20 0", "M0 -222 L-28 -176 L10 -182", "M0 -222 L26 -170 L-8 -176"] },
@@ -202,6 +202,8 @@ const POSES: Record<InkPose, { head: [number, number]; lines: string[] }> = {
   dua: { head: [0, -272], lines: ["M0 -236 L0 -118", "M0 -118 L-20 0", "M0 -118 L20 0", "M0 -222 L-34 -170 L-72 -180", "M0 -222 L-22 -160 L-60 -164"] },
   walk: { head: [-6, -272], lines: ["M-4 -236 L0 -118", "M0 -118 L-38 0", "M0 -118 L32 0", "M-2 -220 L-34 -142", "M-2 -220 L26 -150"] },
   sujud: { head: [-150, -22], lines: ["M78 0 L-6 0", "M-6 0 L14 -84", "M14 -84 L-112 -44", "M-96 -48 L-128 0", "M-84 -52 L-112 0"] },
+  // الجلوس آخر الصلاة (للتشهد والتسليم): ركبتان إلى الأمام، والكفان على الفخذين
+  julus: { head: [0, -196], lines: ["M0 -160 L10 -52", "M10 -52 L-74 -16", "M-74 -8 L24 0", "M2 -142 L-44 -52", "M2 -142 L-28 -48"] },
 };
 export const InkPerson: React.FC<{ x: number; y: number; s?: number; pose: InkPose; p?: number; z: Z; dir?: 1 | -1; color?: string; dashed?: boolean; opacity?: number }> = ({
   x, y, s = 1, pose, p = 1, z, dir = 1, color, dashed, opacity = 1,
