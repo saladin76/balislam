@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "notes": [
+    {
+      "id": "n1e9b22b18d",
+      "channel": "zubdat-alkutub",
+      "episode": "001-awwal-marra-osalli",
+      "sceneId": "c1-s1",
+      "kind": "motion",
+      "note": "المشاهد غير مناسبة مع النص في الجملة الأولي",
+      "raw": "[الحركة @0:19] المشاهد غير مناسبة مع النص في الجملة الأولي",
+      "tone": null,
+      "timecode": "0:19",
+      "createdAt": "2026-11-14T17:51:21.414Z",
+      "sceneInputSha256": "6905fd3734c47d7a27f701a5492f4b11702cd9bd08a045ab6f9548a4d8482c2b",
+      "previewSha256": "d3b1aaa1310a8bdc7707b67b4952b6d99ee3c3118794c76b67e673d58e18b735",
+      "ledgerSeq": 19,
+      "status": "open",
+      "fixedBy": null,
+      "answer": null
+    }
+  ]
+}
