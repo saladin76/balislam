@@ -203,12 +203,18 @@ export const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentenc
   // D131: the owner's written pronunciation is part of the take's fingerprint (a take made otherwise needs generating);
   // `automatic`: a cut of the scene's old file was not said with it
   const custom = o.automatic ? undefined : sayOf(ctx, s);
-  const fp = (tune: ReturnType<typeof voiceSettingsFor>) =>
-    sentenceFingerprint({ spoken: d.spoken, voiceKey: ctx.voiceKey, tts: ttsSettings(), tune, voiceId: scene.voice || undefined, ...(custom ? { exact: custom } : {}) });
+  // D132: a written pronunciation is what is sent, so its fingerprint is that text alone; tashkeel.md (or the old
+  // dictionary) changes nothing for that sentence. `d131`: the form D131 stored (with the automatic spoken text too).
+  const fpOf = (spoken: string, tune: ReturnType<typeof voiceSettingsFor>) =>
+    sentenceFingerprint({ spoken, voiceKey: ctx.voiceKey, tts: ttsSettings(), tune, voiceId: scene.voice || undefined, ...(custom ? { exact: custom } : {}) });
+  const fp = (tune: ReturnType<typeof voiceSettingsFor>) => fpOf(custom ?? d.spoken, tune);
   const tune = voiceSettingsFor(ctx.profile, tone);
   const fingerprint = fp(tune);
   const base = { tone, toneInfo: t, spoken: d, send: sendOf(ctx, o.automatic ? { ...s, sceneId: "" } : s), custom, currentFingerprint: fingerprint };
   if (!o.current) {
+    // A take recorded with the same written pronunciation under D131 (13 Nov) stays current.
+    if (custom && s.audio && s.audio.fingerprint !== fingerprint && s.audio.fingerprint === fpOf(d.spoken, tune))
+      return { ...base, tune, fingerprint: s.audio.fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: undefined as Tone | undefined };
     // the tone as the earlier versions resolved it: a saved id that is no tone any more (grave) still names an old take
     const legacyTone = ctx.map?.scenes[scene.id] ? tone : effectiveLegacyTone(s.tone, scene.tone, ctx.plan.tone, ctx.channelTone);
     // D97 for old takes too: a take recorded with a known tone keeps it while only the inherited tone changed

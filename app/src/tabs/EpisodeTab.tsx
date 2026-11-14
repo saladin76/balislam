@@ -21,7 +21,7 @@ import { CharacterField, ElementField } from "../ui/Pickers";
 import { ImageField } from "../ui/ImageField";
 import { StoryboardPanel } from "./StoryboardPanel";
 import { EpisodePreview, ScenePreview, type Orientation } from "../ui/Preview";
-import { api, type RenderJob, type TashkeelReport, type VoiceReport } from "../api";
+import { api, type RenderJob, type VoiceReport } from "../api";
 import { NO_VOICE_KEY } from "../workspace/voiceResult";
 import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
@@ -36,6 +36,7 @@ import { KEYS_PAGE, KeysLink } from "../ui/KeysLink";
 import { episodeLength } from "../../../src/plan/episodeLength";
 import { duration, lengthSource, num, sceneName, seconds, verseRef } from "../ui/format";
 import { OwnerText } from "../ui/OwnerText";
+import { TashkeelBox } from "../workspace/TashkeelBox";
 
 type Scope = "scene" | "chapter" | "episode";
 
@@ -707,41 +708,6 @@ export const VoiceBox: React.FC<{ episodeId: string; hasKeys: boolean; onMedia: 
 
 /** Scenes voiced sentence by sentence, which the whole-scene voice tool does not count (generate.ts `skipped`). */
 const managedOf = (est: VoiceReport | null): number => (est?.tashkeel as unknown as { skipped?: { managedScenes?: number } } | undefined)?.skipped?.managedScenes ?? 0;
-/** مدقق التشكيل: نسبة التغطية، والكلمات التي ستُنطق بلا تشكيل، والكلمات التي لها أكثر من نطق. */
-const TashkeelBox: React.FC<{ t: TashkeelReport; order: string[] }> = ({ t, order }) => {
-  const pct = Math.round(t.coverage * 1000) / 10;
-  const color = t.ok ? "var(--ok)" : "var(--err)";
-  return (
-    <div className="help" style={{ display: "flex", flexDirection: "column", gap: 4, marginTop: 6 }}>
-      <span style={{ color, fontWeight: 600 }}>
-        {!t.file
-          ? "التشكيل: لا توجد نسخة مشكولة (tashkeel.md) لهذه الحلقة؛ التوليد متوقف حتى تُضاف."
-          : `التشكيل: ${arNumE(pct)}٪ (${arNumE(t.covered)} من ${countAr(t.words, WORDS)}) — الحد ${arNumE(Math.round(t.min * 100))}٪ ${t.ok ? "✓" : "— التوليد متوقف حتى يكتمل"}`}
-      </span>
-      {t.gaps.length ? (
-        <details open={!t.ok}>
-          <summary>كلمات ستُنطق بلا تشكيل ({arNumE(t.words - t.covered)})</summary>
-          {t.gaps.map((g, i) => (
-            <div key={`${g.sceneId}-${i}`}>
-              <b title={g.sceneId}>{sceneName(order, g.sceneId)}</b>: {g.words.join("، ")}
-            </div>
-          ))}
-        </details>
-      ) : null}
-      {t.ambiguous.length ? (
-        <details>
-          <summary>كلمات لها أكثر من نطق في الملف ({arNumE(t.ambiguous.length)}) — راجع أن كل موضع بنطقه الصحيح</summary>
-          {t.ambiguous.map((a) => (
-            <div key={a.word}>
-              {a.forms.join(" / ")} ← <span title={a.scenes.join(", ")}>{a.scenes.map((id) => sceneName(order, id)).join("، ")}</span>
-            </div>
-          ))}
-        </details>
-      ) : null}
-    </div>
-  );
-};
-
 /** ملاحظات تتطلب معالجة داخل السكريبت أو مراجعة المصدر، دون جلب آيات تلقائيًا. */
 const IssuesBox: React.FC<{ issues: PlanIssue[]; onSelect: (id: string) => void }> = ({ issues, onSelect }) => {
   if (!issues.length) return null;

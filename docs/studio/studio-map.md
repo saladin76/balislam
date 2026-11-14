@@ -82,6 +82,7 @@
 |---|---|---|---|
 | السكريبت | تحرير `script.md`، مع رسالة حفظ بأسماء المشاهد | الحفظ يمر بالحفظ الآلي (D101) | `ScriptTab.tsx` |
 | الستوري بورد | لوحة لكل مشهد بنصه وعناصره ومعايناته | — | `StoryboardPanel.tsx`، `BoardViewer.tsx` |
+| النص المشكول (D132) | التبويب الثالث بجوار «السكريبت» في القنوات الثلاث، وشارته «التشكيل ٩٩٪» (أو «غير موجود»). `tashkeel.md` كاملًا في محرر كالسكريبت (حفظ وCtrl+S وتراجع المحرر وتنبيه قبل المغادرة)، وسطر «للصوت وحده»، وسطر الأسبقية: «النطق» المكتوب تحت جملة يعلو عليه لتلك الجملة وحدها. بجواره «فحص التشكيل»: التغطية ومشكلات المطابقة لكل جملة راوٍ باسم مشهدها («لا جملة مقابلة لها في النسخة المشكولة»، «تختلف عن السكريبت بعد حذف التشكيل: …») وتقرير التغطية نفسه (`TashkeelBox`)، ويتبع ما يُكتب قبل الحفظ. بلا ملف: «أنشئ النسخة المشكولة من السكريبت» (نسخة من `script.md` كما هو، والتغطية منخفضة حتى يُشكَّل). الحفظ يغيّر ما يُرسل إلى الصوت وحده: نص الجمل والسكريبت والخطة والترجمة كما هي، والجمل التي تغيّر نطقها «تحتاج توليدًا» بلا توليد ولا حذف، والرسالة تذكر عددها. تعارض (تغيّر الملف بعد فتحه): التعديل باقٍ، و«احفظ تعديلي فوقها» أو «افتح النسخة المحفوظة» | التوليد متوقف تحت ٩٨٪ كما هو؛ الآيات فيه لا تُرسل أبدًا (الحراس كما هي)؛ ليس من بصمة التجهيز فلا «تحديث بعد التجهيز» ولا اعتماد جديد؛ بوابة المحتوى تفحصه (D101) | `TashkeelTab.tsx`، `src/voice/tashkeelEdit.ts` |
 | البحث والمصادر | `research.md` في محرر السكريبت نفسه | — | `ScriptTab.tsx` |
 | سجل التوثيق | كل استشهاد (آية، حديث، مصدر) يُوثَّق أو يُرفض بقرار المالك (`review.json`) | لا يوقف توليد الصوت | `ReviewPanel.tsx` |
 | «قبل أن تعتمد» | ما يمنع الاعتماد: أخطاء السكريبت، والاستشهادات، و**اختلاف نص السكريبت عن اللوحات** (D99)، و«الرسوم» حين لا تطابق اللقطة نص مشهدها (D100، تنبيه لا منع)، و«تمنع النسخة النهائية»: أخطاء الخطة المعروفة الآن، لوحة وثائقية بلا صورة أو قالب/عنصر ليس من مكتبة القناة، سطرًا لكل مشهد بسببه (D121، KI-054؛ تنبيه لا يمنع «اعتمد التجهيز»، وبوابة Master كما هي) | — | `EpisodeSpine.tsx`، `ScriptFixList.tsx` |
@@ -242,6 +243,7 @@
 | D128 | ١٣ نوفمبر | **«اعتمد التجهيز» المكرَّر لا يبدأ تجهيزًا (العمل ٦، KI-058):** ضغطه بعد الاعتماد (صفحة قديمة، تبويب ثانٍ) لا يكتب شيئًا ولا يبدأ «جهّز كل المشاهد» في الخلفية؛ كان يبدأ طابورًا يلاحق المشاهد التي يعيد المالك فتحها، فيرد «اصنع النسخة النهائية» بـ 409 «"جهّز كل المشاهد" يعمل الآن». الرفض أثناء التجهيز باقٍ برسالته | مشترك | (هذا PR) |
 | D129 | ١٣ نوفمبر | **بالإسلام 001، الأمر 032 (PR #94):** لقطات مصمَّمة على 67 مشهدًا في `src/remotion/illus/shots/ep001.tsx`، والعناصر الخمسة المعتمدة في `storyProps.tsx`، وأداة المحرك «اللقطات المصمَّمة للقصة». محتوى حلقة، بلا تغيير في شاشات الاستوديو أو بواباته | بالإسلام | (PR #94) |
 | D130 | ١٣ نوفمبر | **بالإسلام 001، التوجيه 033 (PR #94):** حذف الدائرة والخط من هاتف c1-s118، وإطارات العمودي في استعادة الميزان، ومواد المراجعة. محتوى حلقة، بلا تغيير في الاستوديو | بالإسلام | (PR #94) |
+| D132 | ١٤ نوفمبر | **«النص المشكول» في شريط الخطوة ١ (بطلب المالك رغم التجميد):** تبويب بجوار «السكريبت» في القنوات الثلاث يعرض `tashkeel.md` ويُحرَّر كالسكريبت، بشارة «التشكيل ٩٩٪»، و«أنشئ النسخة المشكولة من السكريبت» حين لا يوجد، ومشكلات المطابقة مع جمل السكريبت في مكانها. الحفظ بنسخة الملف (409 إن تغيّر بعد فتحه)، ويغيّر ما يُرسل إلى الصوت وحده، والجمل المتأثرة «تحتاج توليدًا» ببصمتها بلا توليد؛ و«النطق» المكتوب يعلو عليه لجملته (بصمة الجملة ذات «النطق» صارت من نصها وحده). ليس من بصمة التجهيز: لا «تحديث بعد التجهيز» ولا بوابة جديدة | مشترك | (هذا PR) |
 | D131 | ١٣ نوفمبر | **«النطق» مفتوح، والمعاينة السريعة بصوت المشهد (بطلب المالك رغم التجميد، وKI-061):** تحت كل جملة راوٍ في القنوات الثلاث حقل «النطق» ظاهر دائمًا ويُعدَّل: النص المرسل إلى الصوت بتشكيله، يُحفظ في `sentence-pronunciations.json` بجوار السكريبت (محتوى مالك، D101)، لا يغيّر النص ولا السكريبت ولا الترجمة، ويجعل التسجيل «تحتاج توليدًا» بلا توليد؛ حارس القرآن والبسملة والتشكيل ٩٨٪ كما هي، ولا نطق لصف آية ولا بسملة. والمعاينة السريعة صامتة حتى يُركَّب صوت المشهد وتقول لماذا («اكتمل صوت ٣ من ٥ جمل»)، ثم تُسمع بصوته | مشترك | (هذا PR) |
 
 ---
@@ -444,6 +446,29 @@ Quran/basmala/five words of an episode verse (`assertNoQuranForTts`, the same gu
 under 98% (also the generation gate, on the written text), verse and basmala rows. A sentence with a written
 pronunciation refuses `fixword` and «ولّد الجملة كاملة بهذا النطق» (`SAY_WORD_FIX`); a cut of the old scene file is
 never taken as said with it (`voiceOf(…, { automatic: true })`). The plan, `script.md` and captions are never touched.
+D132: the fingerprint of a sentence with a written pronunciation is that text alone (`spoken: custom`, plus `exact`), so
+`tashkeel.md` or the legacy dictionary never makes it «تحتاج توليدًا»; a take stored in the D131 form (automatic spoken
+text + `exact`) stays current while that automatic text is unchanged.
+
+**«النص المشكول» (D132, the owner's request of 14 Nov, all three channels).** `GET /api/episodes/<ep>/tashkeel` →
+`{ exists, text, revision, report, alignment, saySentences, toneMapStale }` (`src/voice/tashkeelEdit.ts`; `revision` =
+sha256 of the file or `none`); `POST …/tashkeel/check { text }` → the same report for unsaved text (writes nothing);
+`PUT …/tashkeel { text | fromScript: true, expectedRevision }` writes it atomically and returns `changedSentences`
+(narration sentences whose send text changed) and `staleTakes` (current takes now «تحتاج توليدًا»). A revision that is
+not the file's answers 409 `TASHKEEL_REVISION_STALE` with the current file; `fromScript` copies `script.md` only when no
+file exists; an empty file, control characters, U+FFFD or > 2 MB are 400 (`checkTashkeelText`, `src/voice/tashkeelFile.ts`,
+also the content gate's check for `tashkeel.md`). The report covers narration sentences only (no verse scene, verse or
+basmala sentence, nor a sentence with a written pronunciation), with the channel lexicon counted as covered, exactly as
+the sentence generation gate (`coverageOf`). Alignment uses `vowelize` itself, over the words that need the file (no
+marks of their own in the script, not an unambiguous particle `PLAIN_OK`; the file only fills marks the owner did not
+write): `missing` = none of them has a counterpart, `mismatch` = some have none (other letters after stripping
+tashkeel). A sentence voweled in the script itself has no alignment problem (zubdat-alkutub 001). Saving never
+generates, deletes, or touches `script.md`, `plan.json`, the ledger or captions; `spokenOf` reads the file in every new
+context, so the changed sentences' fingerprints change and whole-scene clips (`jobsFor`) do too. `tashkeel.md` is not in
+the preparation fingerprint (`sourceNow`): an edit after «اعتمد التجهيز» records no «تحديث بعد التجهيز»; a scene re-opens
+when its new voice is stitched, as for any generation. In dafatir-alzaman, a tone map built on another tashkeel
+(`source.tashkeel.sha256`) keeps refusing the whole-scene parts path as before; the tab says so (`toneMapStale`), and
+sentences are generated as usual. Tests: `tests/tashkeel-tab.test.ts`, `tests/tashkeel-tab-ui.test.tsx`.
 
 Why pre-rendering is safe:
 - A render only adds a render-to-input proof (`previewInputs[id]`). `recordSceneRenderEvidence` refuses to save if the

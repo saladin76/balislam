@@ -10,6 +10,7 @@
  *   - script.md: لا خطأ جديد في فحص السكريبت (checkForChannel).
  *   - publish.json: لا أثر جديد لأدوات الإنتاج في أي نص (findTraces، القاعدة الأولى).
  *   - sentence-pronunciations.json (D131): لا قرآن ولا بسملة في أي نطق، وتشكيله ≥ ٩٨٪.
+ *   - tashkeel.md (D132): نص صالح غير فارغ (لا رموز تحكم ولا حروف تالفة، وفي حد الحجم)، بجوار سكريبت الحلقة.
  * «جديد» تعني: غير موجود في نسخة --base. الأخطاء القديمة لا تمنع حفظ تعديل لا يمسّها، ولا تُخفى:
  * يعرضها الاستوديو في مكانها. الخروج 0 فقط إذا لم يظهر شيء جديد.
  */
@@ -75,6 +76,13 @@ for (const file of files) {
         const added = fresh([...new Set(hits(data))], old ? [...new Set(hits(old))] : []);
         for (const a of added) failures.push(`${file}: أثر لأدوات الإنتاج في نص النشر — «${a}» (القاعدة الأولى).`);
       }
+    } else if (file.endsWith("/tashkeel.md")) {
+      // D132: the voweled copy is sent to the voice only; a broken or empty file never reaches main
+      const { checkTashkeelText } = await import("../src/voice/tashkeelFile.ts");
+      const errs = (src: string) => checkTashkeelText(src);
+      const added = fresh(errs(text), before === null ? [] : errs(before));
+      for (const a of added) failures.push(`${file}: ${a}`);
+      if (!existsSync(path.join(path.dirname(abs), "script.md"))) failures.push(`${file}: لا سكريبت بجوار النسخة المشكولة؛ مكانها مجلد الحلقة نفسها.`);
     } else if (file.endsWith("/script.md") && channel) {
       const errs = (src: string) => runWithChannel(channel, () => {
         const r = checkForChannel(parseScript(src, file));

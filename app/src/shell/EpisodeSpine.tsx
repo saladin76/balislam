@@ -11,21 +11,21 @@ import { Icon } from "../ui/icons";
 import { CORRECTIONS, countAr } from "../../../src/i18n/count";
 import { OwnerText } from "../ui/OwnerText";
 
-export type StepTab = "script" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
+export type StepTab = "script" | "tashkeel" | "research" | "storyboard" | "episode" | "voice" | "review" | "publish";
 
 /**
  * الخطوات الأربع (funnel v3، قرار صاحب القناة ٨ نوفمبر)، وكل خطوة تملك تبويباتها الفرعية:
- * ١ التجهيز يُعدّه النظام (الستوري بورد والسكريبت والبحث) ويعتمده المالك بزر واحد،
+ * ١ التجهيز يُعدّه النظام (الستوري بورد والسكريبت والنص المشكول للصوت والبحث) ويعتمده المالك بزر واحد،
  * ثم ٢ المشاهد خطوة المالك (يعتمد كل مشهد بنصه وحركته وصوته معًا)، ثم ٣ النسخة النهائية، ثم ٤ النشر.
  */
 export const STEPS: { n: string; title: string; tabs: StepTab[] }[] = [
-  { n: "١", title: "التجهيز", tabs: ["storyboard", "script", "research"] },
+  { n: "١", title: "التجهيز", tabs: ["storyboard", "script", "tashkeel", "research"] },
   { n: "٢", title: "المشاهد", tabs: ["episode", "voice"] },
   { n: "٣", title: "النسخة النهائية", tabs: ["review"] },
   { n: "٤", title: "النشر", tabs: ["publish"] },
 ];
 export const SUBTABS: Partial<Record<StepTab, string>> = {
-  storyboard: "الستوري بورد", script: "السكريبت", research: "البحث والمصادر", episode: "مراجعة المشاهد", voice: "الصوت",
+  storyboard: "الستوري بورد", script: "السكريبت", tashkeel: "النص المشكول", research: "البحث والمصادر", episode: "مراجعة المشاهد", voice: "الصوت",
 };
 export const stepOf = (tab: StepTab) => STEPS.findIndex((s) => s.tabs.includes(tab));
 

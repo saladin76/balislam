@@ -52,7 +52,7 @@ const { chromium } = load();
 /* ── Fake ledger states (GET answers rewritten in the browser; nothing is written) ── */
 const approveAll = (j) => { j.scenes.forEach((s) => { s.approved = true; s.status = "approved"; }); j.progress.currentScene = null; j.progress.approvedScenes = j.scenes.length; };
 const ledger = (state) => (j) => {
-  if (!j || !j.script || state === "prep") return j;
+  if (!j || !j.script || state.startsWith("prep")) return j;
   // D112 err-card: a ledger answer the scenes panel cannot render, so its screen boundary shows the crash card
   if (state === "crash") { j.script.approved = true; j.storyboard.approved = true; j.progress = null; j.scenes = null; return j; }
   const ids = j.scenes.map((s) => s.id);
@@ -105,6 +105,18 @@ const sentences = (state) => (j) => {
   });
   return j;
 };
+/** «النص المشكول» (D132): no file yet, or two alignment problems, a stale tone map and sentences with «النطق». */
+const tashkeel = (state) => (j) => {
+  if (!j || !j.report) return j;
+  if (state === "prep-tk-missing") return { ...j, exists: false, text: "", revision: "none", alignment: [], report: { ...j.report, file: false, coverage: 0, covered: 0, ok: false, gaps: [] } };
+  if (state !== "prep-tk-problems") return j;
+  return { ...j, toneMapStale: true, saySentences: 3,
+    report: { ...j.report, coverage: 0.912, ok: false, gaps: [{ sceneId: "c1-s2", words: ["الإنسان", "سعى"], narration: "" }] },
+    alignment: [
+      { sceneId: "c1-s1", sentence: "في سوق صغير، وقف شخصان أمام ميزان بائع الفاكهة.", problem: "missing", words: ["سوق", "صغير", "وقف", "شخصان", "أمام", "ميزان", "بائع", "الفاكهة"] },
+      { sceneId: "c1-s3", sentence: "وبقيت القوافل تمر به قرونا حتى صار السوق مدينة كبيرة.", problem: "mismatch", words: ["القوافل", "قرونا"] },
+    ] };
+};
 /** Citations: 16 with 5 unverified (3 verses), as on the owner's screen. */
 const review = (j) => {
   const items = Array.from({ length: 16 }, (_, i) => ({ key: `k${i}`, kind: i < 5 ? "ayah" : "other", label: `استشهاد ${i + 1}`, ref: "", detail: "", line: i + 1, hash: String(i),
@@ -128,6 +140,9 @@ const CASES = [
   ["s1-boards", (c) => `#/${c}/${EP}/storyboard`, "prep"],
   ["s1-script", (c) => `#/${c}/${EP}/script`, "prep"],
   ["s1-research", (c) => `#/${c}/${EP}/research`, "prep"],
+  ["s1-tashkeel", (c) => `#/${c}/${EP}/tashkeel`, "prep"],
+  ["s1-tashkeel-problems", (c) => `#/${c}/${EP}/tashkeel`, "prep-tk-problems"],
+  ["s1-tashkeel-missing", (c) => `#/${c}/${EP}/tashkeel`, "prep-tk-missing"],
   ["s1-changed", (c) => `#/${c}/${EP}/storyboard`, "changed"],
   ["s1-changed-details", (c) => `#/${c}/${EP}/storyboard`, "changed", click(".ms-dock .ms-more", 500)],
   ["s1-changed-chip", (c) => `#/${c}/${EP}/storyboard`, "changed", click(".ms-dock .ms-chip", 500)],
@@ -277,6 +292,7 @@ const FAIL_KEYS = ["broken", "narrowWrap", "cover", "dockHeight", "overlap", "cl
     await rewrite(/\/api\/episodes\/[^/]+\/approve-preparation(\?.*)?$/, (j) => preparation(cur.state)(j ? { ...j, __ids: lastIds } : j));
     await rewrite(/\/api\/episodes\/[^/]+\/sentences(\?.*)?$/, (j) => sentences(cur.state)(j));
     await rewrite(/\/api\/episodes\/[^/]+\/review(\?.*)?$/, review);
+    await rewrite(/\/api\/episodes\/[^/]+\/tashkeel(\?.*)?$/, (j) => tashkeel(cur.state)(j));
     await ctx.route(/\/api\/.*/, (route) => (route.request().method() === "GET" ? route.fallback() : route.abort()).catch(() => {}));
     // D112: reporting an error answers a fake record number; nothing reaches the server (registered last = matched first).
     await ctx.route(/\/api\/errors(\/send)?(\?.*)?$/, (route) => route.fulfill({ json: route.request().url().includes("/send")

@@ -36,6 +36,10 @@ export type EpisodeData = { channel: ChannelInfo; script: string; plan: Plan; ch
 export type TashkeelReport = { file: boolean; words: number; covered: number; coverage: number; min: number; ok: boolean; gaps: { sceneId: string; words: string[]; narration: string }[]; ambiguous: { word: string; forms: string[]; scenes: string[] }[] };
 export type ReviewItem = { key: string; kind: "ayah" | "hadith" | "other"; label: string; ref: string; detail: string; text?: string; line: number; hash: string; status: "pending" | "changed" | "verified" | "rejected"; note?: string; at?: string };
 export type ReviewSummary = { total: number; verified: number; pending: number; changed: number; rejected: number; ok: boolean };
+/** مشكلة مطابقة بين جملة في السكريبت والنسخة المشكولة (D132) */
+export type TashkeelAlignment = { sceneId: string; sentence: string; problem: "missing" | "mismatch"; words: string[] };
+export type TashkeelCheck = { report: TashkeelReport; alignment: TashkeelAlignment[]; saySentences: number; toneMapStale: boolean };
+export type TashkeelState = TashkeelCheck & { exists: boolean; text: string; revision: string };
 export type VoiceReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; tashkeel?: TashkeelReport; review?: ReviewSummary };
 export type Overview = {
   id: string;
@@ -359,6 +363,11 @@ export const api = {
   undoMoveEpisodes: (token: string) => call<{ ok: boolean; results: EpisodeMoveResult[] }>("/api/series/move-episodes/undo", { method: "POST", json: { token } }),
   research: (id: string) => call<{ text: string; exists: boolean; label: string }>(`/api/episodes/${id}/research`),
   saveResearch: (id: string, text: string) => call<{ ok: boolean }>(`/api/episodes/${id}/research`, { method: "PUT", json: { text } }),
+  /** «النص المشكول» (D132): tashkeel.md للصوت وحده؛ الحفظ بنسخة الملف التي فُتحت (409 TASHKEEL_REVISION_STALE إن تغيّر بعدها). */
+  tashkeel: (id: string) => call<TashkeelState>(`/api/episodes/${id}/tashkeel`),
+  checkTashkeel: (id: string, text: string) => call<TashkeelCheck>(`/api/episodes/${id}/tashkeel/check`, { method: "POST", json: { text } }),
+  saveTashkeel: (id: string, b: { text?: string; fromScript?: true; expectedRevision: string }) =>
+    call<TashkeelState & { changedSentences: number; staleTakes: number }>(`/api/episodes/${id}/tashkeel`, { method: "PUT", json: b }),
   review: (id: string) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`),
   setReview: (id: string, b: { key: string; status: "verified" | "rejected" | "pending"; note?: string }) => call<{ items: ReviewItem[]; summary: ReviewSummary }>(`/api/episodes/${id}/review`, { method: "PUT", json: b }),
   /** QA balislam 7: «حذف الحلقة» moves the folder into the local trash (nothing deleted, nothing pushed); «تراجع» restores. */

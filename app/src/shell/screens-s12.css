@@ -64,8 +64,21 @@
 .shell-v3 .s12-rail .review-panel .col-head h2 { font-size: 14px; }
 .shell-v3 .s12-rail .review-panel > div[style] { border-radius: 0 !important; border-width: 0 0 1px !important; padding: 8px 0 10px !important; }
 .shell-v3 .s12-rail .review-panel input[type="text"] { width: 100%; min-width: 0; }
+/* «النص المشكول» (D132): المحرر نفسه، وسطر الأسبقية ورسائل الحفظ بهوامشه */
+.shell-v3 .s12-editor > .s12-precedence, .shell-v3 .s12-editor > p.s12-soft { margin: 0; padding: 6px 28px; border-bottom: 1px solid var(--line); font-size: 13px; }
+.shell-v3 .s12-editor > .s12-alert p { margin: 0 0 6px; }
+.shell-v3 .s12-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.shell-v3 .s12-empty-doc { display: grid; gap: 10px; justify-items: start; padding: 28px max(28px, calc((100% - 860px) / 2)); }
+.shell-v3 .s12-empty-doc p { margin: 0; max-width: 62ch; }
+.shell-v3 .s12-tashkeel .s12-issue { cursor: default; }
+.shell-v3 .s12-tashkeel .s12-issue:hover { background: none; }
+.shell-v3 .s12-rail > .s12-alert { padding: 8px 0; }
+/* the coverage report (TashkeelBox) on the editor's paper: its green and red keep AA contrast in light and dark */
+.shell-v3 .s12-tashkeel .s12-rail > .help { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; }
 
 @media (max-width: 900px) {
+  .shell-v3 .s12-editor > .s12-precedence, .shell-v3 .s12-editor > p.s12-soft { padding: 6px 16px; }
+  .shell-v3 .s12-empty-doc { padding: 20px 16px; }
   .shell-v3 .work.script-grid.s12-script { grid-template-columns: minmax(0, 1fr); }
   .shell-v3 .s12-bar { padding: 6px 16px; }
   .shell-v3 .s12-editor > .s12-alert { padding: 8px 16px; }
