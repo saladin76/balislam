@@ -1,30 +1,11 @@
 {
   "episode.mp4": {
-    "title": "V9.2 — معاينة صامتة كاملة 720p (جاهز للمراجعة، غير معتمد)",
-    "note": "السكريبت V9.2 (الأمر 031): قسم واحد 49 مشهدًا، والمشهد الجديد c1-s48، وسبعة استشهادات بصرية صامتة. توقيت تقديري بلا صوت؛ الحركة 86%.",
-    "version": 11,
-    "updatedAt": "2026-11-12T10:15:29.523Z",
-    "sha256": "b9f5cc3f7942baad0a56ceeaae5eba089861c67730d4af722120ec7589651f79",
-    "size": 73099886,
-    "source": {
-      "type": "git-branch",
-      "ref": "refs/heads/previews/dafatir-alzaman/001-adam-beginning/episode",
-      "commit": "7541eabed9369e429aac7c46e6bd2e0195fbbddf",
-      "sha256": "b9f5cc3f7942baad0a56ceeaae5eba089861c67730d4af722120ec7589651f79",
-      "size": 73099886,
-      "parts": [
-        {
-          "name": "part-000",
-          "size": 47185920,
-          "sha256": "d5822cb18a7545156523a3fb4dbf7c89f2797b7698bc1508ba87fa1c8c1f2632"
-        },
-        {
-          "name": "part-001",
-          "size": 25913966,
-          "sha256": "213c834148caf5c757ebfaed4f1c970c25f89300634999137c58d08d8867fc82"
-        }
-      ]
-    }
+    "title": "الحلقة المجمّعة — مراجعة صوت وصورة",
+    "note": "تجميع المشاهد المعتمدة للمشاهدة الكاملة بسرعة 1×؛ ليست Master معتمدة للنشر.",
+    "version": 12,
+    "updatedAt": "2026-11-15T16:14:33.469Z",
+    "sha256": "5da572e8649ee1d80c0e1e1bb7e7278c82bbf1f4091efb05f44e59ac4096d1d3",
+    "size": 86260324
   },
   "scene-c1-s0-av.mp4": {
     "title": "المشهد c1-s0 — صوت وصورة للمراجعة",
