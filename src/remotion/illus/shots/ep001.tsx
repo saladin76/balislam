@@ -46,7 +46,7 @@ const lerp2 = (a: [number, number], b: [number, number], t: number): [number, nu
 
 /* ═════════════ الميزان: c1-s2…c1-s5، والتذكّر c1-s148…c1-s150 ═════════════ */
 
-const SX = 980;
+export const SX = 980;
 const SB = GROUND - 150;
 const SS = 1.25;
 /** حالة الميزان الواحدة في الواقعة والتذكّر (الكفتان مستويتان) */
@@ -56,11 +56,15 @@ const CUST_X = 750;
 const W1_X = 510;
 const W2_X = 1460;
 const PILL_Y = GROUND - 470;
-const FRUIT_PAN: [number, number] = [SX + 120 * SS, SB + (-238 + 92 - 34) * SS];
+export const FRUIT_PAN: [number, number] = [SX + 120 * SS, SB + (-238 + 92 - 34) * SS];
 const IN_HAND: [number, number] = [SX + 250, GROUND - 268];
 const IN_CART: [number, number] = [SX + 170, GROUND - 236];
-/** الحاجب في لقطة الأول: كيس الزبون في المقدمة (بإحداثيات المشهد) */
-export const OCCLUDER = { cx: SX - 70, cy: GROUND - 210, rx: 260, ry: 230 };
+/**
+ * الحاجب في لقطة الأول: صُرّة الزبون في المقدمة (بإحداثيات المشهد). ملاحظة المالك nce96d54edd (١٥ نوفمبر):
+ * كان الحاجب دائرة كبيرة تغطي الميزان كله فلا يُرى ما «نظر إليه»؛ الآن صُرّة بقدر الكفة اليسرى والثقل وحدهما،
+ * فيبقى ذراع الميزان وكفة الفاكهة ويد البائع ظاهرة.
+ */
+export const OCCLUDER = { cx: SX - 150, cy: GROUND - 335, rx: 118, ry: 108 };
 /** الكفة اليسرى والثقل المختوم: ما يحجبه الكيس عن الأول */
 export const WEIGHT_PAN_BOX = (() => {
   const b = scalePansBox(SX, SB, SS);
@@ -94,20 +98,29 @@ const souqWorld = (frame: number, st: SouqState) => (
 const souqSpans = (st: { cust?: number }): ShotSpan[] => [fig("witness-1", W1_X, 1.2, { must: false }), fig("witness-2", W2_X, 1.18, { must: false }), fig("vendor", VENDOR_X, 1.15, { must: false }), ...((st.cust ?? 1) > 0.01 ? [fig("customer", CUST_X, 1.22, { must: false, w: 110 })] : [])];
 
 /** لقطة الأول: من خلف كتفه، والكيس يحجب الكفة اليسرى والثقل، فلا يرى إلا اليد والحبة */
-const W1View: React.FC<{ frame: number; show: number; orange: [number, number]; pill: number; pillX?: number }> = ({ show, orange, pill, pillX = SX - 380 }) =>
-  show <= 0.001 ? null : (
+const W1View: React.FC<{ frame: number; show: number; orange: [number, number]; pill: number; pillX?: number; speak?: number; pillY?: number; pillSize?: number }> = ({ show, orange, pill, pillX = SX - 380, speak = 0, pillY = 360, pillSize = 44 }) => {
+  if (show <= 0.001) return null;
+  const { cx, cy, rx, ry } = OCCLUDER;
+  return (
     <g opacity={Math.min(1, show * 1.6)}>
+      {/* صُرّة مربوطة: جسم مستدير وعنق معقود فوقه */}
       <g data-prop="occluder">
-        <ellipse cx={OCCLUDER.cx} cy={OCCLUDER.cy} rx={OCCLUDER.rx} ry={OCCLUDER.ry} fill={darken(ID.copper, 0.45)} stroke={INK} strokeWidth={4} />
-        <path d={`M${SX - 220} ${GROUND - 330} q60 -40 150 -20`} fill="none" stroke={darken(ID.copper, 0.6)} strokeWidth={6} />
+        <path d={`M${cx - rx * 0.32} ${cy - ry * 0.86} C${cx - rx * 1.08} ${cy - ry * 0.7} ${cx - rx * 1.08} ${cy + ry} ${cx} ${cy + ry} C${cx + rx * 1.08} ${cy + ry} ${cx + rx * 1.08} ${cy - ry * 0.7} ${cx + rx * 0.32} ${cy - ry * 0.86} Z`} fill={darken(ID.copper, 0.45)} stroke={INK} strokeWidth={4} />
+        <ellipse cx={cx} cy={cy} rx={rx} ry={ry * 0.9} fill={darken(ID.copper, 0.45)} />
+        <path d={`M${cx - rx * 0.34} ${cy - ry * 0.86} q${rx * 0.34} ${-ry * 0.34} ${rx * 0.68} 0`} fill="none" stroke={INK} strokeWidth={4} />
+        <path d={`M${cx - rx * 0.14} ${cy - ry * 1.04} l${rx * 0.14} ${ry * 0.2} l${rx * 0.14} ${-ry * 0.2}`} fill={darken(ID.copper, 0.6)} stroke={INK} strokeWidth={3} />
+        <path d={`M${cx - rx * 0.6} ${cy - ry * 0.1} q${rx * 0.5} ${-ry * 0.3} ${rx * 1.1} ${-ry * 0.1}`} fill="none" stroke={darken(ID.copper, 0.6)} strokeWidth={5} />
       </g>
+      {/* الأول من خلف كتفه: يتأمل الميزان، وعند «وقال» يشير إليه */}
       <g transform={`translate(${SX - 520} ${GROUND + 300}) scale(2.2)`}>
-        <Figure x={0} y={0} scale={1} pose={POSES.think} look={hero} silhouette={darken(ID.night, 0.4)} shadow={false} />
+        <g data-pose="think" opacity={1 - speak}><Figure x={0} y={0} scale={1} pose={POSES.think} look={hero} silhouette={darken(ID.night, 0.4)} shadow={false} /></g>
+        {speak > 0.001 ? <g data-pose="point" opacity={speak}><Figure x={0} y={0} scale={1} pose={POSES.point} look={hero} silhouette={darken(ID.night, 0.4)} shadow={false} /></g> : null}
       </g>
       <Glow cx={orange[0]} cy={orange[1]} r={70} color={RED} opacity={0.45} />
-      <WordPill x={pillX} y={360} text="ظلم" color={RED} size={44} t={pill} />
+      <WordPill x={pillX} y={pillY} text="ظلم" color={RED} size={pillSize} t={pill} />
     </g>
   );
+};
 /** لقطة الثانية: لا حاجب، والاستواء والثقل ظاهران */
 const W2View: React.FC<{ show: number; pill: number; pillX?: number }> = ({ show, pill, pillX = SX + 330 }) =>
   show <= 0.001 ? null : (
@@ -152,17 +165,21 @@ const SCALE_SHOTS: Record<string, Def> = {
     place: "سوق الميزان",
     seq: "ep001-scale",
     render: ({ frame, at, portrait }) => {
+      // ملاحظة المالك nce96d54edd: «نظر … إلى الميزان» والميزان ظاهر، والحبة تُرفع منه لحظة «الميزان»،
+      // و«وقال» يشير الأول إليه، و«ظلم» بطاقة أكبر بجواره
+      const tN = at("نظر", 0.02);
       const tL = at("الميزان", 0.35);
+      const tQ = at("وقال", 0.55);
       const tZ = at("ظلم", 0.75);
       const drop = P(frame, tL, 26);
       const kc = KC(portrait);
       const o = orangeAt(1, drop);
       return {
-        cam: portrait ? [kc(0, 1080, 2.0, -140), kc(tL, 1150, 2.06, -140), kc(tZ, 1000, 2.0, -140)] : [kc(0, 900, 2.0, -140), kc(tL, 930, 2.04, -140), kc(tZ, 880, 2.06, -140)],
+        cam: portrait ? [kc(0, 1080, 2.0, -140), kc(tL, 1150, 2.06, -140), kc(tZ, 1000, 2.0, -140)] : [kc(0, 860, 1.9, -140), kc(tN + 6, 900, 1.96, -140), kc(tL, 950, 2.04, -140), kc(tQ, 880, 2.0, -140), kc(tZ, 860, 2.06, -140)],
         world: (
           <g>
             {souqWorld(frame, { lift: 1, drop, vendor: "point", w1: "think", w2: "nod", pillR: 0, pillG: 0 })}
-            <W1View frame={frame} show={1} orange={o} pill={P(frame, tZ, 14)} pillX={portrait ? 1000 : SX - 380} />
+            <W1View frame={frame} show={1} orange={o} pill={P(frame, tZ, 14)} pillX={portrait ? 1000 : SX - 340} pillY={portrait ? 360 : 380} pillSize={portrait ? 44 : 60} speak={P(frame, tQ - 2, 8)} />
           </g>
         ),
         spans: [thing("pill", (portrait ? 1000 : SX - 380) - 90, (portrait ? 1000 : SX - 380) + 90, frame >= tZ + 20)],
