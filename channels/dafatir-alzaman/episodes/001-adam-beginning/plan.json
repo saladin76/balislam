@@ -150,8 +150,10 @@
           "edited": true,
           "overlays": {
             "captions": false,
-            "motif": true
-          }
+            "motif": true,
+            "watermark": true
+          },
+          "tone": "warm"
         },
         {
           "id": "c1-s11",
@@ -636,5 +638,5 @@
       ]
     }
   ],
-  "updatedAt": "2026-11-15T05:09:43.376Z"
+  "updatedAt": "2026-11-15T05:09:53.539Z"
 }
