@@ -21,7 +21,12 @@
             "page": "blank"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "overlays": {
+            "captions": false,
+            "motif": true,
+            "watermark": true
+          }
         },
         {
           "id": "c1-s1",
@@ -638,5 +643,5 @@
       ]
     }
   ],
-  "updatedAt": "2026-11-15T05:09:53.539Z"
+  "updatedAt": "2026-11-15T05:11:14.577Z"
 }
