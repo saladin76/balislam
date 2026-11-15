@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "notes": [
+    {
+      "id": "nce96d54edd",
+      "channel": "balislam",
+      "episode": "001-know-the-truth",
+      "sceneId": "c1-s3",
+      "kind": "motion",
+      "note": "المشهد غير مظبوط مع الكلام والجمل والمعني",
+      "raw": "[الحركة @0:05] المشهد غير مظبوط مع الكلام والجمل والمعني",
+      "tone": null,
+      "timecode": "0:05",
+      "createdAt": "2026-11-15T07:41:51.462Z",
+      "sceneInputSha256": "87715aa1fdf7232fb7a90a618d05c86097f98a3ca26fd89ca5c9658b264f2c68",
+      "previewSha256": "d7844369212f5fc34ace772976629b816d073829c9253b44d1451cbd245c3a14",
+      "ledgerSeq": 9,
+      "status": "open",
+      "fixedBy": null,
+      "answer": null
+    }
+  ]
+}
