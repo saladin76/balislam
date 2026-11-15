@@ -261,7 +261,7 @@ describe("على القرص: المالك على جهازه، القص، الت�
     // D136: nothing that would be sent changed: no request until the owner confirms, then one (with another seed)
     const ask = await sv.sentenceAction("987", { action: "generate", id: b!.id }, { client, testOnlySkipApprovalGates: true });
     expect(ask.confirm?.message).toMatch(/لم يتغير شيء يُرسل — سيخرج تسجيل مشابه/);
-    expect(sent).toHaveLength(1);
+    expect(sent).toHaveLength(1); // owner-pin-ok: requests counted on the test's own fake client, not owner content
     const again = await sv.sentenceAction("987", { action: "generate", id: b!.id, confirmSame: true }, { client, testOnlySkipApprovalGates: true });
     expect(sent).toHaveLength(2);
     expect(sentencesDoc().scenes["c1-s1"].sentences[0].audio).toEqual(da.audio);

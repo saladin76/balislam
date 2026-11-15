@@ -141,32 +141,40 @@ try {
     // The scene by its own address (D102: #/<channel>/<episode>/episode/<scene>), as after a reload on it.
     await go(`episode/${id}`);
     if (i === 0) {
-      // ── ٢ D136: a new tone for the sentence → «النبرة تغيّرت» (nothing sent) → «ولّد الجملة» sends its direction →
-      // «قارن: القديم / الجديد»; «ولّد» again with nothing changed asks first; «استعمل هذا التسجيل» puts the old take back ──
+      // ── ٢ D136: the sentence's tone on eleven_v4: «ولّد الجملة» sends the tone's direction; a new tone → «النبرة تغيّرت»
+      // (nothing sent) → «ولّد الجملة» → «قارن: القديم / الجديد»; «ولّد» again with nothing changed asks first;
+      // «استعمل هذا التسجيل» puts the old take back with no request; then «أنتج هذا المشهد» with the chosen take ──
       const n0 = voiceCalls.length;
-      const toneSel = page.locator("select.sv-tone").first();
-      await toneSel.waitFor({ state: "visible", timeout: 180_000 });
-      await toneSel.selectOption("dramatic");
-      await page.getByText("النبرة تغيّرت — اضغط ولّد لتسمع الجديد").first().waitFor({ timeout: 60_000 });
-      ok(voiceCalls.length === n0, "٢ D136 a new sentence tone shows «النبرة تغيّرت — اضغط ولّد لتسمع الجديد» and sends nothing");
+      const toneSel = () => page.locator("select.sv-tone").first();
+      await toneSel().waitFor({ state: "visible", timeout: 180_000 });
+      await toneSel().selectOption("dramatic");
+      await page.waitForTimeout(800);
       await click("ولّد الجملة");
-      await until("tone take", async () => voiceCalls.length > n0 || null, 60_000, 300);
+      await until("first tone take", async () => voiceCalls.length > n0 || null, 60_000, 300);
       ok(/^\[dramatic, intense narration\] /.test(voiceCalls.at(-1).text), "٢ D136 «ولّد الجملة» sends the tone's performance direction on eleven_v4");
+      await page.getByText(/التسجيل الحالي بنبرة «درامي»/).first().waitFor({ timeout: 60_000 });
+      await toneSel().selectOption("calm");
+      await page.getByText("النبرة تغيّرت — اضغط ولّد لتسمع الجديد").first().waitFor({ timeout: 60_000 });
+      ok(voiceCalls.length === n0 + 1, "٢ D136 a new sentence tone shows «النبرة تغيّرت — اضغط ولّد لتسمع الجديد» and sends nothing");
+      await click("ولّد الجملة");
+      await until("second tone take", async () => voiceCalls.length > n0 + 1 || null, 60_000, 300);
+      ok(/^\[calm, reflective narration\] /.test(voiceCalls.at(-1).text), "٢ D136 the new tone's direction is sent");
       const cmp = page.getByRole("group", { name: "قارن: القديم / الجديد" }).first();
       await cmp.waitFor({ state: "visible", timeout: 60_000 });
-      ok(await cmp.getByText(/▶ القديم/).isVisible() && await cmp.getByText(/▶ الجديد \(«درامي»\)/).isVisible(), "٢ D136 «قارن: القديم / الجديد» after the new take");
+      ok(await cmp.getByText(/▶ القديم \(«درامي»\)/).isVisible() && await cmp.getByText(/▶ الجديد \(«هادئ تأملي»\)/).isVisible(), "٢ D136 «قارن: القديم / الجديد» after the new take");
       await snap("2-tone-compare");
       let asked = "";
       page.once("dialog", (d) => { asked = d.message(); void d.dismiss(); });
       await click("ولّد الجملة");
       await until("same-send asked", async () => asked || null, 30_000, 200);
       await page.waitForTimeout(800);
-      ok(asked.includes("لم يتغير شيء يُرسل — سيخرج تسجيل مشابه") && voiceCalls.length === n0 + 1, "٢ D136 «ولّد» with nothing changed asks «لم يتغير شيء يُرسل» first, and sends nothing when refused");
+      ok(asked.includes("لم يتغير شيء يُرسل — سيخرج تسجيل مشابه") && voiceCalls.length === n0 + 2, "٢ D136 «ولّد» with nothing changed asks «لم يتغير شيء يُرسل» first, and sends nothing when refused");
       await cmp.getByRole("button", { name: "استعمل هذا التسجيل" }).first().click();
       await page.getByText("المستعمل الآن").first().waitFor({ timeout: 60_000 });
-      ok(voiceCalls.length === n0 + 1, "٢ D136 «استعمل هذا التسجيل» puts the old take back as the one used, with no request");
-      await until("draft back", async () => { const s = await state(); return s.scenes.find((x) => x.id === id)?.draft === "ready" || null; }, 600_000, 2000);
+      ok(voiceCalls.length === n0 + 2, "٢ D136 «استعمل هذا التسجيل» puts the old take back as the one used, with no request");
       await go(`episode/${id}`);
+      const produce = page.getByRole("button", { name: "أنتج هذا المشهد" }).first();
+      if (await produce.isVisible().catch(() => false)) await produce.click();
     }
     await click("اعتمد المشهد", { timeout: 180_000 });
     const watched = page.getByLabel(/شاهدته (بالصوت )?كاملًا/).first();

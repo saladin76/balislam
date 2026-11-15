@@ -2,6 +2,7 @@ import path from "node:path";
 import { readJson } from "../plan/io";
 import { showsDivision } from "../script/divisions";
 import { voiceIdFor } from "./elevenlabs";
+import { fakeVoiceActive } from "./provider";
 import { voiceDirFor, type VoiceIndex } from "./generate";
 import { isSupersededVersion, isTone } from "./tones";
 import type { PlanScene } from "../plan/types";
@@ -152,7 +153,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
       rows, verse: null });
   });
   const allWords = scenes.flatMap((x) => x.rows.filter((r) => r.kind === "narration").flatMap((r) => r.words.filter((w) => !w.quran).map((w) => w.word)));
-  return { episode, voiceKey: Boolean(process.env.ELEVENLABS_API_KEY && voiceIdFor()), toneMap: ctx.map ? { version: ctx.map.version } : null, scenes,
+  return { episode, voiceKey: Boolean(process.env.ELEVENLABS_API_KEY && voiceIdFor()) || fakeVoiceActive(), toneMap: ctx.map ? { version: ctx.map.version } : null, scenes,
     lexicon: ctx.lexicon, lexiconEffects: lexiconEffects(ctx.lexicon, allWords) };
 };
 
