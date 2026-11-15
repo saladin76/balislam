@@ -3,6 +3,7 @@ import type { EpisodeMedia } from "../plan/media";
 import { sceneSeconds } from "../plan/duration";
 import { normalizeArabic } from "../script/quranMeta";
 import { estimateTimings, splitWords } from "../remotion/scenes/timing";
+import { basmalaSpans } from "../voice/basmala";
 import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
 import { buildTimeline, timelineFromWords } from "../remotion/dafatir/horizon/timeline";
 
@@ -52,6 +53,9 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
         const clip = media?.voice[s.id];
         const words = clip && clip.text === s.narration.trim() ? clip.words.map((w) => ({ word: w.word, start: w.start * 30, end: w.end * 30 })) : estimateTimings(s.narration, 6, Math.round(d * 30) - 12);
         for (const w of words) if (SACRED_WORD.test(normalizeArabic(w.word))) spans.push({ from: t + w.start / 30 - 0.25, to: t + w.end / 30 + 0.25, why: "ذكر الله" });
+        // البسملة تُعامل كالآية (١٠ نوفمبر) وتظهر وحدها على الشاشة لحظة نطقها (BasmalaOnScreen، ١٥ نوفمبر): كلها سكون مقصود
+        if (splitWords(s.narration).length === words.length)
+          for (const [a, b] of basmalaSpans(s.narration)) spans.push({ from: t + words[a]!.start / 30 - 0.5, to: t + words[b - 1]!.end / 30 + 0.7, why: "بسملة" });
         // علامات الاقتباس من نص المشهد (توقيت الصوت قد يحذفها) إن تطابق عدد الكلمات
         const tokens = splitWords(s.narration);
         for (const [a, b] of duaRanges(tokens.length === words.length ? tokens : words.map((w) => w.word))) spans.push({ from: t + words[a]!.start / 30 - 0.25, to: t + words[b]!.end / 30 + 0.25, why: "دعاء" });

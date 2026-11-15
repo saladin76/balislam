@@ -2,6 +2,9 @@ import React from "react";
 import { BigQuestion } from "./BigQuestion";
 import { CharacterTalk } from "./CharacterTalk";
 import { VerseCard } from "./VerseCard";
+import { BasmalaOnScreen } from "./BasmalaOnScreen";
+import { showsBasmalaOverlay } from "../../quran/onScreen";
+export { showsBasmalaOverlay };
 import { Placeholder } from "./Placeholder";
 import { HadithCard } from "./HadithCard";
 import { Comparison } from "./Comparison";
@@ -42,8 +45,23 @@ import { resolveOverlays, useChannelOverlays, type Overlays } from "../../../bra
 
 type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; timings?: WordTiming[]; media?: EpisodeMedia; episodeOverlays?: Partial<Overlays>; prev?: PlanScene; next?: PlanScene };
 
-/** يحوّل مشهدًا من الخطة إلى مكوّن القالب المناسب. */
-export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media, episodeOverlays, prev, next }) => {
+/**
+ * يحوّل مشهدًا من الخطة إلى مكوّن القالب المناسب، ومعه البسملة على الشاشة حين تُنطق داخل مشهد راوٍ
+ * (طلب المالك ١٥ نوفمبر). بطاقة الآية ولقطة البسملة المصممة (دفاتر الزمن) تعرضانها بنفسيهما.
+ */
+export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = (props) => {
+  const { scene } = props;
+  const template = <SceneTemplate {...props} />;
+  if (!showsBasmalaOverlay(scene)) return template;
+  return (
+    <>
+      {template}
+      <BasmalaOnScreen narration={scene.narration} timings={props.timings} themeId={props.themeId} orientation={props.orientation} />
+    </>
+  );
+};
+
+const SceneTemplate: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId, orientation, eyebrow, timings, media, episodeOverlays, prev, next }) => {
   const p = scene.props;
   const ov = resolveOverlays(useChannelOverlays(), episodeOverlays, { captions: scene.captions }, scene.overlays);
   const base = {
