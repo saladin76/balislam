@@ -663,11 +663,12 @@
       ]
     }
   ],
+  "tone": "warm",
   "overlays": {
     "captions": false,
     "motif": true,
-    "watermark": true
+    "watermark": true,
+    "chapterLabel": false
   },
-  "tone": "warm",
-  "updatedAt": "2026-11-15T05:17:11.183Z"
+  "updatedAt": "2026-11-15T05:17:21.172Z"
 }
