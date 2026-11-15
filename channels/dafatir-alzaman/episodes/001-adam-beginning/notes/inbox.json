@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "notes": [
+    {
+      "id": "n5e4cc7da30",
+      "channel": "dafatir-alzaman",
+      "episode": "001-adam-beginning",
+      "sceneId": "c1-s37",
+      "kind": "motion",
+      "note": "حركة الهبوط غير مناسبة ابدا وكذلك المشهد فيه فراغ في النهاية",
+      "raw": "[الحركة @0:05] حركة الهبوط غير مناسبة ابدا وكذلك المشهد فيه فراغ في النهاية",
+      "tone": null,
+      "timecode": "0:05",
+      "createdAt": "2026-11-15T09:08:27.764Z",
+      "sceneInputSha256": "a2be1ad37324ac65ff173b44d8ad97e4522d17dd29f495fa7cab82baa2170d07",
+      "previewSha256": "c387febca0ee5d95780a442f735cd2172a9e72f075646d3baed74755b9608102",
+      "ledgerSeq": 164,
+      "status": "open",
+      "fixedBy": null,
+      "answer": null
+    }
+  ]
+}
