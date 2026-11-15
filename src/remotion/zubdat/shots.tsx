@@ -29,7 +29,8 @@ export type InkCtx = {
  * still: نوافذ سكون تام (الذكر)، لا تُضاف فيها حركة كاميرا.
  */
 export type InkShotOut = { cam: CamKey[]; world: React.ReactNode; camLen?: number; focus?: [number, number, number][]; still?: [number, number][] };
-export type InkShotDef = { nameAr: string; render: (c: InkCtx) => InkShotOut };
+/** holdExit: لا يتلاشى المشهد في آخره لأن ما بعده يكمله على الشاشة نفسها (تمهيد الآية ← بطاقتها) */
+export type InkShotDef = { nameAr: string; render: (c: InkCtx) => InkShotOut; holdExit?: boolean };
 
 const C = (t: number, x: number, y: number, z: number): CamKey => ({ t, x, y, z });
 /** كتابة نص بين لحظتين (بداية الكلمة الأولى ونهاية الأخيرة) */

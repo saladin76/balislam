@@ -1,6 +1,6 @@
 import React from "react";
 import type { CamKey } from "../illus/shots/kit";
-import { Arrow, Card, Cross, Foot, Icon, InkPerson, Kaaba, Mark, Mosque, Stroke, Write, heartPath, lerp, fam, measure, outCubic, prog, type Font, type IconId, type Z } from "./inkKit";
+import { Arrow, Card, Cross, Foot, Icon, InkPerson, Kaaba, Mark, Mosque, INK_VERSE, Stroke, Write, heartPath, lerp, fam, measure, outCubic, prog, type Font, type IconId, type Z } from "./inkKit";
 import type { InkCtx, InkShotDef } from "./shots";
 
 /**
@@ -106,16 +106,20 @@ const Lines: React.FC<{ x: number; y: number; w: number; n: number; p: number; z
 /** تمهيد الآية: اسم السورة وحده، بهدوء؛ لا شيء عند ذكر الله، والسكون قبل التلاوة */
 const verseIntro = (surah: string): InkShotDef => ({
   nameAr: `تمهيد الآية: سورة ${surah}`,
+  // طلب المالك (١٥ نوفمبر): التمهيد وبطاقة الآية مشهد واحد على الشاشة — «سورة …» تُكتب في موضع رأس البطاقة
+  // وبخطه وحجمه، والخط تحتها في موضعه، ولا يتلاشى التمهيد؛ فتبدأ البطاقة من آخر لقطة فيه كما هي (VerseInk).
+  holdExit: true,
   render: (c) => {
     const { frame, z, at, P } = kit(c);
+    const V = INK_VERSE;
     const tS = at("سورة", 0.5);
     const ln = P(tS - 6, tS + 18, (t) => t);
     return {
-      cam: [C(0, 960, 500, 1.0)],
+      cam: [C(0, 960, 540, 1.0)],
       world: (
         <g>
-          <Stroke d="M1260 600 L660 600" p={ln} c={z.ink} w={5} />
-          <Write id="vs" x={960} y={540} text={`سورة ${surah}`} size={110} p={wp(frame, tS, c.end(surah, 0.9))} c={z.ink} font="head" z={z} />
+          <Stroke d={`M${960 + V.ruleHalf} ${V.ruleY} L${960 - V.ruleHalf} ${V.ruleY}`} p={ln} c={z.ink} w={V.ruleW} cap="butt" />
+          <Write id="vs" x={960} y={V.headY} text={`سورة ${surah}`} size={V.headSize} p={wp(frame, tS, c.end(surah, 0.9))} c={z.ink} font="head" z={z} />
         </g>
       ),
     };
@@ -1412,7 +1416,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
     render: (c) => {
       const { frame, z, at, end, T, P } = kit(c);
       // السكريبت المعتمد (١١ نوفمبر): «وإذا كانت الصلاة تبدأ بالتكبير، فماذا عن الكلام الذي نقرؤه بعده؟ هناك ينفتح باب الحلقة القادمة:
-      // كيف نقرأ القرآن في الصلاة بفهم وانتباه؟ كانت هذه قراءتنا الأولى من كتاب «أول مرة أصلي» للدكتور خالد أبي شادي، من «زبدة الكتب».»
+      // كيف نقرأ القرآن في الصلاة بفهم وانتباه؟ كانت هذه قراءتنا الأولى من كتاب «أول مرة أصلي» للدكتور خالد أبو شادي، من «زبدة الكتب».»
       const tWhat = at("فماذا", 0.14);
       const tNear = at("الكلام", 0.18);
       const tMeanings = at("نقرؤه", 0.24);
@@ -1486,7 +1490,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
               <path d={`M100 -240 L140 -240 L140 ${-240 + 120 * P(tFirstW - 2, tFirstW + 14)} L120 ${-258 + 120 * P(tFirstW - 2, tFirstW + 14)} L100 ${-240 + 120 * P(tFirstW - 2, tFirstW + 14)} Z`} fill={z.hl} stroke={z.paper} strokeWidth={4} opacity={P(tFirstW - 2, tFirstW + 4)} />
             </g>
             {T("qa", 700, 420, "قراءتنا الأولى", 70, ["قراءتنا", 0.58], ["الأولى", 0.62], { font: "head" })}
-            {T("au", 700, 520, "للدكتور خالد أبي شادي", 66, ["للدكتور", 0.74], ["شادي", 0.84], { font: "body", weight: 600 })}
+            {T("au", 700, 520, "للدكتور خالد أبو شادي", 66, ["للدكتور", 0.74], ["شادي", 0.84], { font: "body", weight: 600 })}
             {T("zk", 700, 680, "زبدة الكتب", 96, ["زبدة", 0.92], ["الكتب", 0.98], { font: "head" })}
             <Mark x={700 - 300} y={530} w={600} h={16} p={P(tAuthor - 4, tAuthor + 12)} z={z} />
             <Mark x={700 - 230} y={690} w={460} h={22} p={P(tChannel + 10, tChannel + 26)} z={z} />

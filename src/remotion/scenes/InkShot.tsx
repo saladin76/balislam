@@ -165,7 +165,7 @@ export const InkShot: React.FC<InkShotProps> = (props) => {
   const c = fitFrame(c0, contentBox(regs, frame));
   const vb = portrait ? `${W / 2 - 304} 0 608 1080` : `0 0 ${W} ${H}`;
   return (
-    <SceneShell {...props} eyebrow={undefined} motif={false} background={z.paper} durationInFrames={dur}>
+    <SceneShell {...props} eyebrow={undefined} motif={false} background={z.paper} durationInFrames={dur} exitFrames={def?.holdExit ? 0 : undefined}>
       <AbsoluteFill>
         <svg viewBox={vb} preserveAspectRatio="xMidYMid slice" width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
           <g transform={camTransform(c)}>
