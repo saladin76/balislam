@@ -17,7 +17,7 @@ export const LIB_META: Record<string, HzMeta> = {
   "lib-timeline": { nameAr: "مكتبة · خط زمني بعلامات وفجوات", tail: 1.4, exit: "fade" },
   "lib-evidence": { nameAr: "مكتبة · شواهد أثرية وحدودها", tail: 1.4, exit: "fade" },
   "lib-names": { nameAr: "مكتبة · بطاقات الأسماء (تُعلَّم، تُعرض، يُنبأ بها)", tail: 1.2, exit: "fade" },
-  "lib-descent": { nameAr: "مكتبة · الهبوط إلى الأرض ثم الطريق", tail: 1.3, exit: "fade" },
+  "lib-descent": { nameAr: "مكتبة · الأرض ثم الطريق إلى الضوء", tail: 1.3, exit: "fade" },
 };
 
 /** إمساك القراءة بعد اكتمال كتابة المصطلح قبل بدء الخروج (الأمر 019، L1) */
@@ -59,5 +59,5 @@ export const LIB_UI: Record<string, { fields: string[]; library: true }> = {
   "lib-timeline": { fields: ["items", "title"], library: true },
   "lib-evidence": { fields: ["items", "limit", "limitWord"], library: true },
   "lib-names": { fields: ["mode", "wordWord", "allWord", "emptyWord", "toWord", "ref"], library: true },
-  "lib-descent": { fields: ["fallWord", "landWord", "pathWord", "term", "termWord", "ref"], library: true },
+  "lib-descent": { fields: ["fallWord", "landWord", "pathWord", "term", "termWord", "safeWord", "ref"], library: true },
 };
