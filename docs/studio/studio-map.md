@@ -22,7 +22,7 @@
 | **الحفظ الآلي إلى main** | كل ٥ ثوانٍ يُفحص ما تغيّر. بعد ٦ ثوانٍ من توقف الكتابة تُجمع ملفات المحتوى وحدها في commit برسالة عربية تذكر القناة والحلقة، ويُدفع إلى `main` عبر البوابة. لا commit محلي قبل نجاح الدفع، ولا stash، ولا لمس لملفات العمل. | `app/server/contentSync.ts` |
 | **ما يُحفظ (محتوى المالك)** | ملفات الحلقة: `script.md` و`plan.json` و`research.md` و`publish.json` و`series.json` و`tashkeel.md` و`tone-map.json` ونسخها السابقة `tone-map.v<الإصدار>.json` (D115) و`review.json` و`previews/index.json` و`storyboards/index.json`. وملفات القناة: `pronunciations.json` و`ideas.json` و`calendar.json` و`channel.json` و`identity.json`. و`series/<id>/series.json` و`config.json`. | `scripts/contentPaths.mjs` |
 | **ما لا يُرفع أبدًا** | سجل الاعتمادات الموقَّع وأقفاله، و`script-approved`، و`storyboard.json`، و`voice/` وكل صوت وفيديو وصورة، و`notes/inbox.json` (يذهب وحده إلى `studio-notes`)، و`.env`، و`out/` و`renders/`. الحذف المحلي لا يُرسل ويُذكر فقط. | `scripts/contentPaths.mjs` (`NEVER_RES`) |
-| **بوابة المحتوى** | إن كان كل ملف في **كل commit** من مدى الدفع محتوى مالك، تعمل «بوابة المحتوى»: JSON صالح، ولا خطأ **جديد** في فحص الخطة أو السكريبت، ولا أثر لأدوات الإنتاج. أي ملف كود في الدفع يعيده إلى البوابة الكاملة. القرار بالفرق لا بالرسالة، وهذه قاعدة في البوابة لا تجاوز لها. | `scripts/gate.mjs`، `scripts/contentGate.mts` |
+| **بوابة المحتوى** | إن كان كل ملف في **كل commit** من مدى الدفع محتوى مالك، تعمل «بوابة المحتوى»: JSON صالح، ولا خطأ **جديد** في فحص الخطة أو السكريبت، ولا أثر لأدوات الإنتاج. أي ملف كود في الدفع يعيده إلى البوابة الكاملة. القرار بالفرق لا بالرسالة، وهذه قاعدة في البوابة لا تجاوز لها. ولا تشغّل الاختبارات؛ فالاختبار لا يثبّت محتوى يحرّره المالك (عقود، حارس `tests/owner-content-pins.test.ts`)، وإن حمّر main تفتح CI قضية «main أحمر (CI)» وتظهر حالته أول `npx bal notes --open` (D137). | `scripts/gate.mjs`، `scripts/contentGate.mts`، `.github/workflows/ci.yml` (`main-status`) |
 | **الاستقبال الآلي** | عند التشغيل، وكل ٣ دقائق، وقبل كل حفظ: «حدّث الآن» نفسه (D95). الصفحة تعيد تحميل نفسها في مكانها بعد توقف الكتابة. | `app/server/update.ts` (`applyUpdate`)، `app/server/safeUpdate.ts` |
 | **إعادة التشغيل الآلية** | إن غيّر التحديث كود الخادم يعيد الاستوديو تشغيل نفسه (رمز الخروج 75 تحت `scripts/studio.mjs`)، إلا أثناء رندر أو إنتاج جارٍ، فيظهر «أعد التشغيل». | `scripts/studio.mjs` |
 | **التعارض** | لا يكتب أحد فوق أحد. يبقى الجديد في مكانه، ونسخة المالك في `~/balislam-backup/`، وتظهر بطاقة لكل ملف: «أبقِ نسختي» / «خذ الجديد». | `app/src/ui/UpdateBanner.tsx`، `POST /api/update/resolve` |
@@ -254,7 +254,7 @@
 **قبل أي عمل:**
 1. اسحب آخر `main`، واستعمل `git ls-remote origin refs/heads/main`، فالمراجع المحلية قد تتأخر. محتوى المالك يصل إلى main باستمرار (D101).
 2. اقرأ `CLAUDE.md`، ثم رسالة تكليف قناتك `docs/<القناة>/briefing.md`، ثم هذه الخريطة.
-3. شغّل `npx bal notes --open` وعالج ملاحظات المالك المفتوحة. بعد الإصلاح شغّل `npx bal notes resolve <id> --answer "…"`، واحفظ `notes/resolved.json` مع الإصلاح نفسه.
+3. شغّل `npx bal notes --open` (أول سطر فيه حالة main في CI؛ إن كان أحمر فأصلحه أولًا، D137) وعالج ملاحظات المالك المفتوحة. بعد الإصلاح شغّل `npx bal notes resolve <id> --answer "…"`، واحفظ `notes/resolved.json` مع الإصلاح نفسه.
 
 **كيف تختبر:**
 - استعمل worktree خاصًا من `origin/main` (`/tmp/<اسم>`) ومنفذًا خاصًا (4401 وما بعده)، ولا `git stash` أبدًا. تحقق من مساحة القرص بـ `df` أولًا.
