@@ -39,8 +39,9 @@ export const handleVoiceRoutes = async (ctx: RouteCtx): Promise<boolean> => {
       try { assertNoQuranForTts(text, null, { source: "عيّنة الصوت" }); }
       catch (e) { return send(res, 400, { error: (e as Error).message, code: "QURAN_TTS" }), true; }
       const { voiceSettingsFor, isTone } = await load("/src/voice/tones.ts");
-      const tune = voiceSettingsFor(undefined, isTone(b.tone) ? b.tone : undefined);
       const model = String(b.model || el.modelId);
+      // D136: the tone's delivery on the model the sample is made with (a v4 tone carries its performance direction)
+      const tune = voiceSettingsFor(undefined, isTone(b.tone) ? b.tone : undefined, model);
       const { createHash } = await import("node:crypto");
       const name = `${createHash("sha1").update(JSON.stringify({ text, tune, model, v: process.env.ELEVENLABS_VOICE_ID })).digest("hex").slice(0, 16)}.mp3`;
       const file = path.join(dir, name);

@@ -128,7 +128,8 @@ describe("فحص حلقة", () => {
     expect((await checkEpisode(EP, { transcribe: fakeTranscriber })).checked).toBe(0);
     const sv = await import("../src/voice/sentenceVoice");
     const s3 = [...textById].find(([, t]) => t === S3)![0];
-    await sv.sentenceAction(EP, { action: "generate", id: s3 }, { client: fakeClient, testOnlySkipApprovalGates: true });
+    // D136: a regeneration with nothing changed is confirmed by the owner
+    await sv.sentenceAction(EP, { action: "generate", id: s3, confirmSame: true }, { client: fakeClient, testOnlySkipApprovalGates: true });
     const r = await checkEpisode(EP, { transcribe: fakeTranscriber });
     expect(r.checked).toBe(1);
     expect(transcribed).toEqual([s3]);

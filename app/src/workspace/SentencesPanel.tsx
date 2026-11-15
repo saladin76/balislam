@@ -61,7 +61,7 @@ export const SentencesPanel: React.FC<SentencesPanelProps> = (props) => {
         <p className="sv-why">«ولّد» يحتاج مفتاح الصوت{onOpenSettings ? <> من <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : " من الإعدادات"}.</p>
       ) : null}
       {!sceneId && olderCount ? (
-        <p className="sv-why sv-older-all" role="status">{ar(olderCount)} تسجيل وُلّد بنبرة سابقة؛ كلها صالحة ولا يُعاد شيء منها آليًا. عادت أول نسخة من النبرات.{olderPlan ? ` إعادتها تصرف نحو ${ar(olderPlan.credits)} من رصيد الصوت (${ar(olderPlan.chars)} حرفًا).` : ""}{" "}
+        <p className="sv-why sv-older-all" role="status">{ar(olderCount)} تسجيل وُلّد بنبرة سابقة؛ كلها صالحة ولا يُعاد شيء منها آليًا. صارت كل نبرة تُسمع بأدائها على الصوت الحالي (D136)، فإعادتها تُسمعك الفرق.{olderPlan ? ` إعادتها تصرف نحو ${ar(olderPlan.credits)} من رصيد الصوت (${ar(olderPlan.chars)} حرفًا).` : ""}{" "}
           <button type="button" className="btn ghost" disabled={Boolean(busy) || noKey} title={noKey ? "يتطلب مفتاح الصوت" : "يعرض العدد والحروف أولًا ثم يطلب تأكيدك"}
             onClick={() => void upgradeAll()}>{busy === "upgrade-tone" ? "جارٍ التوليد…" : `${UPGRADE_ALL} (${ar(olderCount)})`}</button>
         </p>

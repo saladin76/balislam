@@ -8,6 +8,9 @@
  *
  *   node scripts/decisions.mjs check   يرفض رقمًا معرَّفًا مرتين خارج قائمة الأرقام القديمة المسموحة
  *   node scripts/decisions.mjs next    يطبع الرقم التالي (ويستعمله «npx bal decision new»)
+ *   node scripts/decisions.mjs next --remote
+ *        يضيف ما حجزته الفروع المتوازية (KI-068، D137): كل فرع origin/* المحلي (بلا جلب) وكل PR مفتوح عبر
+ *        `gh api` (REST)، ويطبع معه رقم KI التالي. للقراءة فقط، وبلا شبكة أو gh يكتفي بما عنده.
  */
 import { spawnSync } from "node:child_process";
 import { existsSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -77,6 +80,49 @@ export const readLogs = (root = repoRoot) =>
 export const nextDecisionId = (root = repoRoot, history = historyText(root)) =>
   `D${maxDecision(...Object.values(readLogs(root)), history) + 1}`;
 
+const KI = /\bKI-(\d{3})\b/g;
+/** أكبر رقم KI في نصوص */
+export const maxKnownIssue = (...texts) => {
+  let max = 0;
+  for (const t of texts) for (const m of String(t).matchAll(KI)) max = Math.max(max, Number(m[1]));
+  return max;
+};
+
+/**
+ * نصوص ما أضافته الفروع المتوازية ولم يصل main: فرق كل origin/* (محليًا، بلا جلب) وملفات كل PR مفتوح
+ * (gh api، REST). أفضل جهد: أي فشل (لا gh، لا شبكة) يُتجاوز ويُذكر في notes.
+ */
+export const parallelClaimsText = (root = repoRoot, run = (cmd, a) => spawnSync(cmd, a, { cwd: root, encoding: "utf8", env: cleanGitEnv(), timeout: 20_000, maxBuffer: 64 * 1024 * 1024 })) => {
+  const texts = [];
+  const notes = [];
+  const cutoff = Date.now() / 1000 - 14 * 86_400;
+  const refs = run("git", ["for-each-ref", "--format=%(committerdate:unix) %(refname:short)", "refs/remotes/origin"]);
+  const recent = refs.status === 0 ? refs.stdout.split("\n").map((l) => l.split(" ")).filter(([t, r]) => r && Number(t) >= cutoff)
+    .map(([, r]) => r).filter((r) => !/\/(HEAD|main)$|^origin\/previews\//.test(r) && r !== "origin") : [];
+  for (const ref of recent) {
+    const d = run("git", ["diff", "origin/main..." + ref, "--", "docs"]);
+    if (d.status === 0) texts.push(d.stdout.split("\n").filter((l) => l.startsWith("+")).join("\n"));
+    const l = run("git", ["log", "--format=%s%n%b", "origin/main.." + ref]);
+    if (l.status === 0) texts.push(l.stdout);
+  }
+  const url = run("git", ["remote", "get-url", "origin"]);
+  const repo = /github\.com[/:]([^/]+\/[^/.]+)/.exec((url.stdout ?? "").trim())?.[1]?.replace(/\.git$/, "");
+  // PRs حُدّثت في آخر ١٤ يومًا فقط (الأقدم لا يحجز رقمًا جديدًا عمليًا)، وملفاتها بطلب واحد لكل PR
+  const since = new Date(Date.now() - 14 * 86_400_000).toISOString();
+  const prs = repo ? run("gh", ["api", `repos/${repo}/pulls?state=open&per_page=100`, "--jq",
+    `.[] | select(.updated_at >= "${since}") | .number`]) : { status: 1 };
+  const meta = repo && prs.status === 0 ? run("gh", ["api", `repos/${repo}/pulls?state=open&per_page=100`, "--jq", '.[] | .title + "\\n" + (.body // "")']) : { status: 1 };
+  if (prs.status !== 0) notes.push("لم تُقرأ الـPRs المفتوحة (gh أو الشبكة غير متاحين).");
+  else {
+    if (meta.status === 0) texts.push(meta.stdout);
+    for (const n of prs.stdout.split("\n").filter(Boolean)) {
+      const f = run("gh", ["api", `repos/${repo}/pulls/${n}/files?per_page=100`, "--jq", '.[] | .patch // ""']);
+      if (f.status === 0) texts.push(f.stdout.split("\n").filter((x) => x.startsWith("+")).join("\n"));
+    }
+  }
+  return { text: texts.join("\n"), notes };
+};
+
 const today = () => new Date().toISOString().slice(0, 10);
 /**
  * يضيف عنوان القرار إلى سجل القناة الأول (تعريف) وإحالة في كل سجل بعده، بأسلوب كل سجل:
@@ -105,6 +151,14 @@ if (isMain) {
   // check: سجلات المجلد الحالي (البوابة تشغّله داخل نسختها المؤقتة؛ نسخة بلا docs/ لا سجل فيها يُفحص).
   // next: المجلد الحالي إن كان فيه docs/، وإلا المستودع الذي فيه السكربت
   const here = existsSync(path.join(process.cwd(), "docs")) ? process.cwd() : repoRoot;
+  if (cmd === "next" && process.argv.includes("--remote")) {
+    const { text, notes } = parallelClaimsText(here);
+    const ki = existsSync(path.join(here, "docs", "studio", "known-issues.md")) ? readFileSync(path.join(here, "docs", "studio", "known-issues.md"), "utf8") : "";
+    console.log(nextDecisionId(here, historyText(here) + "\n" + text));
+    console.log(`KI-${String(maxKnownIssue(ki, text) + 1).padStart(3, "0")}`);
+    for (const n of notes) console.error(n);
+    process.exit(0);
+  }
   if (cmd === "next") { console.log(nextDecisionId(here)); process.exit(0); }
   if (cmd === "check") {
     const dups = duplicateDefinitions(readLogs(process.cwd()));

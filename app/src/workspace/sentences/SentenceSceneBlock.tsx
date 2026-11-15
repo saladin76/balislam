@@ -8,6 +8,7 @@ import { RecitationItem } from "../RecitationItem";
 import { ar, countAr } from "./format";
 import { BasmalaBlock, OlderNote, SceneControl, type SentencesPart } from "./SentenceParts";
 import { SentenceListRow } from "./SentenceListRow";
+import { SceneToneBar } from "./ToneParts";
 
 export const SentenceSceneBlock: React.FC<SentencesPart & { s: SentenceScene }> = ({ m, p, s }) => {
   const { cited, recs, load, sceneQueue } = m;
@@ -43,6 +44,7 @@ export const SentenceSceneBlock: React.FC<SentencesPart & { s: SentenceScene }> 
       ) : s.import?.state === "unreliable" && s.audio.state !== "sentences" ? <p className="sp-hint">{s.import.note}</p> : null}
       {s.managed && s.waiting ? <p className="sv-wait" role="status">{s.waiting}</p> : null}
       <OlderNote s={s} />
+      <SceneToneBar m={m} p={p} s={s} />
       <ol className="sv-list">{s.rows.map((r, i) => <SentenceListRow key={r.id} m={m} p={p} s={s} r={r} i={i} />)}</ol>
       <BasmalaBlock m={m} p={p} s={s} />
     </section>

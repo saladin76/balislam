@@ -102,6 +102,9 @@ const sentences = (state) => (j) => {
     r.audio = { file: "x.wav", duration: 3.4 + i, origin: "tts" }; r.status = i === 0 ? "heard" : "generated";
     let t = 0.2; r.words = r.text.split(/\s+/).filter(Boolean).map((w) => { const o = { word: w, say: w, start: t, end: t + 0.4, quran: false }; t += 0.5; return o; });
     r.wordFix = { ok: true };
+    // D136: the tone line, «قارن: القديم / الجديد» and «النبرة تغيّرت» under the sentence on stage
+    r.takeTone = "calm"; r.nextTone = i === 1 ? "dramatic" : "calm"; r.toneChanged = i === 1; r.chosen = false;
+    r.previous = i <= 1 ? { file: "y.wav", duration: 3.1 + i, tone: i === 1 ? "warm" : "calm", at: "2026-11-15T10:00:00Z" } : null;
   });
   return j;
 };

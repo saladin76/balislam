@@ -32,6 +32,8 @@ export type TtsGuardContext = {
   previousText?: string; nextText?: string;
   scene?: TtsScene | null; previousScene?: TtsScene | null; nextScene?: TtsScene | null;
   verses?: readonly string[]; source?: string;
+  /** D136: the seed of this take (a regeneration varies it; stored with the take). Default: config.voice.seed. */
+  seed?: number;
 };
 
 export type ElevenLabsOptions = { apiKey: string; voiceId: string; modelId?: string; settings?: VoiceSettings; fetchImpl?: typeof fetch };
@@ -71,7 +73,7 @@ export const createVoiceClient = (provider: VoiceProvider, opts: Omit<ElevenLabs
         use_speaker_boost: s.speakerBoost,
         ...(caps.speed === "native" ? { speed: tune.speed } : {}),
       },
-      seed: s.seed,
+      seed: ctx.seed ?? s.seed,
       ...(caps.context ? { previous_text: previousText || undefined, next_text: nextText || undefined } : {}),
     };
   };

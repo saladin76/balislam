@@ -72,3 +72,43 @@ jobs:
           path: ${{ runner.temp }}/e2e-ui-shots
           if-no-files-found: ignore
 
+
+  # main لا يحمرّ بصمت (KI-068، D137): حفظ الاستوديو يمر على بوابة المحتوى وحدها بلا اختبارات (D101)، فإن حمّر
+  # main تُفتح قضية واحدة «main أحمر» بالفحص الفاشل والـcommit (أو يُضاف إليها تعليق)، وتُغلق آليًا عند أول main أخضر.
+  # يراها كل مطوّر ووكيل في GitHub وفي «npx bal notes --open» أول كل جلسة. لا تغيّر محتوى ولا تمنع حفظًا.
+  main-status:
+    needs: [check, e2e]
+    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+      contents: read
+    steps:
+      - name: Open, update or close the «main أحمر» issue
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          CHECK: ${{ needs.check.result }}
+          E2E: ${{ needs.e2e.result }}
+          SHA: ${{ github.sha }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          TITLE: ${{ github.event.head_commit.message }}
+        run: |
+          set -u
+          MARK="main أحمر (CI)"
+          open=$(gh api "repos/$REPO/issues?state=open&per_page=100" --jq ".[] | select(.pull_request == null and .title == \"$MARK\") | .number" | head -1)
+          if [ "$CHECK" = "success" ] && { [ "$E2E" = "success" ] || [ "$E2E" = "skipped" ]; }; then
+            [ -n "$open" ] && gh api -X POST "repos/$REPO/issues/$open/comments" -f body="main أخضر من جديد على \`${SHA:0:8}\` ($RUN_URL)." >/dev/null \
+              && gh api -X PATCH "repos/$REPO/issues/$open" -f state=closed >/dev/null
+            exit 0
+          fi
+          [ "$CHECK" = "cancelled" ] && exit 0
+          summary=$(gh api "repos/$REPO/actions/runs/${{ github.run_id }}/jobs" --jq '.jobs[] | select(.conclusion == "failure") | .name' | paste -sd, -)
+          first=$(printf '%s' "$TITLE" | head -1)
+          studio=""; case "$first" in "حفظ الاستوديو"*) studio=$'\n\nهذا commit حفظ من استوديو المالك (محتوى فقط، D101): لا يُغيَّر محتوى المالك؛ الاختبار الذي يثبّت المحتوى يُكتب عقدًا (KI-068، D137).';; esac
+          body="الفحص الفاشل: ${summary:-check}"$'\n'"الـcommit: \`${SHA:0:8}\` — ${first}"$'\n'"السجل: $RUN_URL${studio}"$'\n\n'"حتى يخضرّ main ترفض بوابة الدفع كل دفع كود يحمل الفشل نفسه."
+          if [ -n "$open" ]; then
+            gh api -X POST "repos/$REPO/issues/$open/comments" -f body="$body" >/dev/null
+          else
+            gh api -X POST "repos/$REPO/issues" -f title="$MARK" -f body="$body" >/dev/null
+          fi
