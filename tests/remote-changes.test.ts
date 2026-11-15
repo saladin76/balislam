@@ -1,5 +1,5 @@
 /**
- * D142 (KI-071): «تعديلات المحادثات تظهر في الاستوديو». An edit a channel conversation pushes to main reaches the owner's
+ * D142 (KI-072): «تعديلات المحادثات تظهر في الاستوديو». An edit a channel conversation pushes to main reaches the owner's
  * studio by the automatic receive (D101); videos never do. The studio must say which scene changed, flag its old video,
  * and say plainly when updates did not arrive. A bare «GitHub», the owner's Mac clone and a «cloud» clone pushing.
  */
