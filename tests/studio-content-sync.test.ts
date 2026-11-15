@@ -165,7 +165,7 @@ describe("D101: الحفظ الآلي في main", { timeout: 120_000 }, () => {
     await s.tick(true);
     expect(s.state.state).toBe("pending");
     expect(s.state.message).toMatch(/^لم يُحفظ في المستودع بعد — سيُعاد تلقائيًا/);
-    // D142: offline fails the receive too, and that is said (never swallowed)
+    // D144: offline fails the receive too, and that is said (never swallowed)
     expect(s.state.message).toContain("ولم تصل التحديثات إلى هذا الجهاز");
     expect(s.state.pending).toEqual([PLAN]);
     expect(read(r.mac, PLAN)).toBe(lines(5, " (owner)"));

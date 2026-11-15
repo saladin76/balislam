@@ -54,7 +54,7 @@ export const inspectSceneProduction = (episode: string) =>
     const v = view(doc, current);
     const candidates = Object.fromEntries(await Promise.all(doc.state.scenes.map(async scene =>
       [scene.id, await optionalSha(sceneFile(current.scriptPath, scene.id))] as const)));
-    // D142: what a conversation changed on this machine's scenes since their video was made (local, never pushed).
+    // D144: what a conversation changed on this machine's scenes since their video was made (local, never pushed).
     const remote = await readRemoteChanges(path.dirname(current.scriptPath));
     const scenes = await Promise.all(v.scenes.map(async s => {
       // The owner's latest correction of this scene (shown until the scene is approved).

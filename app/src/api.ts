@@ -176,7 +176,7 @@ export type SceneProductionRead = {
     afterPreparation?: { at: string; what: AfterPreparationWhat[]; script: boolean };
     /** What blocks producing this scene (a verse without its text, a script error on its narration). */
     blocked?: string[];
-    /** D142: a conversation's change reached this machine after the scene's video was made (src/studio/remoteChanges.ts). */
+    /** D144: a conversation's change reached this machine after the scene's video was made (src/studio/remoteChanges.ts). */
     remoteChange?: RemoteSceneChangeView;
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
@@ -487,7 +487,7 @@ export type NotesStatus = {
   where: { channel: string; episode: string; count: number }[];
 };
 
-/** D142: src/studio/remoteChanges.ts (what a conversation changed, as this machine received it). */
+/** D144: src/studio/remoteChanges.ts (what a conversation changed, as this machine received it). */
 export type RemoteWhat = "plan" | "script" | "voice" | "tone" | "engine" | "research" | "publish" | "other";
 export type RemoteSceneChangeView = { at: string; what: RemoteWhat[]; subjects: string[]; answer?: string };
 export type ReceivedSummary = { at: string; from: string; to: string; commits: string[];
