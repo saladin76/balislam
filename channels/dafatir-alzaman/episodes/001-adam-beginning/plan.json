@@ -20,7 +20,16 @@
             "shot": "cover",
             "page": "blank"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "swipe-paper",
+              "at": 0.5
+            },
+            {
+              "id": "pop",
+              "at": 0
+            }
+          ],
           "edited": true,
           "overlays": {
             "captions": false,
@@ -643,5 +652,5 @@
       ]
     }
   ],
-  "updatedAt": "2026-11-15T05:11:14.577Z"
+  "updatedAt": "2026-11-15T05:11:44.315Z"
 }
