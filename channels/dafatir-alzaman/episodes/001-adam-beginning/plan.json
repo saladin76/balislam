@@ -24,18 +24,10 @@
           "sfx": [
             {
               "id": "swipe-paper",
-              "at": 1
-            },
-            {
-              "id": "pop",
-              "at": 0.5
+              "at": 2
             },
             {
               "id": "aah-intro",
-              "at": 0.5
-            },
-            {
-              "id": "aah-outro",
               "at": 1
             },
             {
@@ -686,5 +678,5 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-15T05:35:05.864Z"
+  "updatedAt": "2026-11-15T05:35:28.745Z"
 }
