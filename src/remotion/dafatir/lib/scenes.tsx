@@ -122,7 +122,7 @@ export const libAnchors = (shot: string, p: Record<string, string | undefined>):
     case "lib-names":
       return [...f("wordWord"), ...f("allWord"), ...f("emptyWord"), ...f("toWord")];
     case "lib-descent":
-      return [...f("fallWord"), ...f("landWord"), ...f("pathWord"), ...(p.term ? [p.termWord || firstWord(p.term)] : [])];
+      return [...f("fallWord"), ...f("landWord"), ...f("pathWord"), ...(p.term ? [p.termWord || firstWord(p.term)] : []), ...f("safeWord")];
     case "lib-timeline":
     case "lib-evidence":
       return [...parseItems(p.items).map((x) => x.anchor), ...f("limitWord")];
@@ -281,46 +281,44 @@ const Names: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   );
 };
 
-// ───────────────────────── الهبوط إلى الأرض (V8، ١١ نوفمبر) ─────────────────────────
+// ───────────────────────── الهبوط إلى الأرض (V8، ١١ نوفمبر؛ أُعيد بعد ملاحظة المالك n5e4cc7da30، D138) ─────────────────────────
 /**
- * «هبطا إلى الأرض… ووعد من اتبع هداه…»: نقطتا حبر (الشخص نقطة، كما في نسل آدم) تنزلان على قوس منقّط من أعلى الصفحة
- * إلى خط الأرض لحظة fallWord، والأرض تُخط عند landWord، ثم طريق يمتد على الخط عند pathWord، وكلمة term تُكتب ذهبًا عند termWord.
- * لا وجه ولا شخص مرسوم، ولا مكان مسمى.
+ * «هبطا إلى الأرض… ومن اتبع هداية الله نال وعده بالأمن…». لا يُمثَّل آدم ولا زوجه بشيء: لا نقطة ولا قوس هبوط
+ * («حركة الهبوط غير مناسبة ابدا»). الصفحة ترسم المكان الذي هبطا إليه: خط الأرض وتلالها لحظة fallWord، وشمس الأفق
+ * (بصمة «دفتر الأفق») لحظة landWord، ثم طريق ذهبي إلى الضوء لحظة pathWord، وكلمة term ذهبًا عند termWord،
+ * ثم يتسع ضوء الأفق على الأرض لحظة safeWord («بالأمن»). الكادر ثابت على الصفحتين فلا تُقص بطاقة الآية.
  */
 const Descent: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   const q = cues(tl);
   const fA = q.safe(q.at(p.fallWord, 0.8) - 0.1, 1.2);
-  const lA = q.safe(q.at(p.landWord, fA + 0.9) - 0.1, 0.6);
-  const pA = p.pathWord ? q.safe(q.at(p.pathWord, lA + 1) - 0.05, 1.0) : Infinity;
+  const lA = q.safe(Math.max(q.at(p.landWord, fA + 0.9) - 0.1, fA + 0.5), 0.8);
+  const pA = p.pathWord ? q.safe(q.at(p.pathWord, lA + 1) - 0.05, 1.1) : Infinity;
   const tA = p.term ? q.safe(q.at(p.termWord || firstWord(p.term), pA + 0.8) - 0.05, 0.9) : Infinity;
-  const ground = prog(t, Math.min(fA, lA - 0.4), lA + 0.5, easeOut);
-  const fall = prog(t, fA, lA + 0.2, (x) => x * x * (3 - 2 * x));
-  const arc = prog(t, fA - 0.1, fA + 0.6);
+  const sA = p.safeWord ? q.safe(q.at(p.safeWord, tA + 1) - 0.05, 1.2) : Infinity;
+  const ground = prog(t, fA, fA + 1.0, easeOut);
+  const hills = prog(t, fA + 0.3, fA + 1.4, easeOut);
+  const sun = prog(t, lA, lA + 0.8, easeOut);
   const road = prog(t, pA, pA + 1.1, easeOut);
   const term = prog(t, tA, tA + 0.9);
-  // نقطتان على قوس واحد، الثانية خلف الأولى بقليل
-  const pt = (k: number) => {
-    const u = Math.max(0, Math.min(1, k));
-    const x = 760 - 330 * u;
-    const y = 250 + 370 * (u * u);
-    return { x, y };
-  };
-  const a = pt(fall);
-  const b = pt(fall - 0.08);
-  const cam = q.cam(t, { cx: 960, cy: 540, s: 1 }, [
-    { a: fA - 0.2, b: lA + 0.4, cx: 640, cy: 520, s: 1.12 },
-    ...(Number.isFinite(pA) ? [{ a: pA - 0.2, b: pA + 0.9, cx: 820, cy: 600, s: 1.06 }] : []),
-  ]);
+  const glow = prog(t, sA, sA + 1.2, easeOut);
+  const cam = q.cam(t, { cx: 960, cy: 540, s: 1 }, []);
   return (
     <Book id="lds" t={t} dur={dur} exit={exit} from={from} cam={cam}
       L={
         <g>
-          <path d="M760 250 Q 600 330 430 620" fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="6 12" opacity={0.7 * arc} />
-          <Ink d="M220 640 H860" w={5} p={ground} />
-          <circle cx={a.x} cy={a.y - 10} r={11} fill={C.ink} opacity={arc} />
-          <circle cx={b.x + 22} cy={b.y - 10} r={9} fill={C.ink} opacity={arc} />
-          <Ink d="M430 640 C520 618 640 622 760 640 S 840 660 860 640" w={7} p={road} c={C.gold} />
-          {p.term ? <WriteIn id="ldt" x={560} y={760} size={64} p={term} label={p.term} color={C.gold} /> : null}
+          <defs>
+            <radialGradient id="lds-glow" cx="0.5" cy="0.5" r="0.5">
+              <stop offset="0" stopColor={C.gold} stopOpacity={0.5} />
+              <stop offset="1" stopColor={C.gold} stopOpacity={0} />
+            </radialGradient>
+          </defs>
+          <ellipse cx={700} cy={600} rx={120 + 200 * glow} ry={70 + 110 * glow} fill="url(#lds-glow)" opacity={sun * (0.35 + 0.65 * glow)} />
+          <Ink d="M654 600 A46 46 0 0 1 746 600" w={6} p={sun} c={C.gold} />
+          <Ink d="M220 600 H880" w={5} p={ground} />
+          <Ink d="M240 600 C300 566 360 560 430 600 M480 600 C540 556 600 552 640 590 M760 594 C800 572 840 574 870 600" w={4} p={hills} c={C.inkSoft} />
+          <Ink d="M430 900 C500 790 600 690 686 606" w={6} p={road} c={C.gold} />
+          <Ink d="M640 900 C660 800 690 700 712 606" w={6} p={road} c={C.gold} />
+          {p.term ? <WriteIn id="ldt" x={560} y={420} size={64} p={term} label={p.term} color={C.gold} /> : null}
         </g>
       }
       R={<g>{p.head ? <ChapterHead label={p.head} /> : null}{p.ref ? <VerseRefPanel refText={p.ref} o={prog(t, 0, 0.3)} /> : null}</g>} />
