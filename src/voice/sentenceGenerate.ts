@@ -1,4 +1,5 @@
 import path from "node:path";
+import { randomInt } from "node:crypto";
 import { mkdir } from "node:fs/promises";
 import config from "../../config.json";
 import type { PlanScene } from "../plan/types";
@@ -13,7 +14,7 @@ import { checkSay, coreOf, quranMask } from "./lexicon";
 import { isNoopSay } from "./pronunciationRules";
 import { remapWords, spliceWord, type SpliceCheck } from "./wordSplice";
 import { contextFingerprint, words, type Sentence, type SentenceAudio, type SentenceCorrection, type TimedWord } from "./sentences";
-import { sentencesDirFor, writeAtomic, type Ctx, sendOf, sayOf, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal } from "./sentenceContext";
+import { sentencesDirFor, writeAtomic, type Ctx, sendOf, sayOf, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal, sentKey } from "./sentenceContext";
 import { SENTENCE_SAMPLE_RATE, decode } from "./sentenceStitch";
 import type { SentenceActionOptions } from "./sentenceVoice";
 
@@ -49,14 +50,19 @@ export const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, li
   }
   return { v, client: opts.client };
 };
+/** D136: a fresh seed for a regeneration (ElevenLabs: an integer 0…4294967295) */
+export const newSeed = () => randomInt(1, 4_294_967_295);
 export const speedFor = (ctx: Ctx, tune: { speed?: number } | undefined) => (capsFor(ctx.model).speed === "post" ? (tune?.speed ?? config.voice.speed) : 1);
 
 export const generateOne = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions) => {
   // توليد جديد: بإعدادات النبرات الحالية دائمًا (ولو كان تسجيلها الحالي بالإصدار السابق)
   const { v, client } = await voiceGates(ctx, episode, scene, list, s, opts, s.corrections ?? [], { current: true });
   const nb = neighbours(flatten(ctx), s.id);
+  // D136: a regeneration varies the seed (a fixed seed gave a near-copy of the take it replaces); the first take keeps
+  // config.voice.seed. The seed is stored with the take, so any take can be reproduced. Not part of the fingerprint.
+  const seed = s.audio ? newSeed() : config.voice.seed;
   const r = await client.tts(v.send.text, { previousText: nb.previousText, nextText: nb.nextText, voiceId: scene.voice || undefined, tune: v.tune,
-    scene: { id: scene.id, template: scene.template, ayahKey: scene.ayahKey }, verses: planVerseTexts(ctx.plan) });
+    scene: { id: scene.id, template: scene.template, ayahKey: scene.ayahKey }, verses: planVerseTexts(ctx.plan), seed });
   const speed = speedFor(ctx, v.tune);
   const audio = await applyTempo(r.audio, speed);
   const dir = sentencesDirFor(ctx.scriptPath);
@@ -70,8 +76,8 @@ export const generateOne = async (ctx: Ctx, episode: string, scene: PlanScene, l
   const capWords = wordsForCaptions(v.send.original, v.send.owner, spokenWords);
   const take: SentenceAudio = { file, fingerprint: v.fingerprint, context: contextFingerprint(nb.previousText, nb.nextText), duration, words: capWords,
     at: new Date().toISOString(), origin: "tts", ...(v.tone ? { tone: v.tone } : {}), presetVersion: v.presetVersion, timing: r.alignment ? "aligned" : "estimated",
-    ...(v.send.applied.length ? { spokenFixes: v.send.applied.map((a) => ({ word: a.word, say: a.say })) } : {}) };
-  return list.map((x) => (x.id === s.id ? { ...x, audio: take, takes: x.audio ? [...(x.takes ?? []), x.audio] : x.takes, heard: undefined } : x));
+    ...(v.send.applied.length ? { spokenFixes: v.send.applied.map((a) => ({ word: a.word, say: a.say })) } : {}), seed, sent: sentKey(v.send.text, v.tune?.direction) };
+  return list.map((x) => (x.id === s.id ? { ...x, audio: take, takes: x.audio ? [...(x.takes ?? []), x.audio] : x.takes, heard: undefined, chosen: undefined } : x));
 };
 
 /** تصحيح كلمة من طلب المالك: رقمها ونطقها المكتوب، بعد الفحص (لا قرآن، تشكيل كامل) */
@@ -104,6 +110,7 @@ export type WordFixOutcome = { ok: boolean; index: number; word: string; say: st
 export const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, c: SentenceCorrection, opts: SentenceActionOptions & { neighbours?: 1 | 2 }):
   Promise<{ list: Sentence[]; outcome: WordFixOutcome }> => {
   const base0 = voiceOf(ctx, scene, list, s);
+  if (base0.chosenTake) throw new Error("هذا التسجيل اخترته وهو بنبرة أو نطق غير المختار الآن؛ ولّد الجملة أولًا ثم صحّح الكلمة.");
   const refusal = wordFixRefusal(s, base0.fingerprint, base0.custom);
   if (refusal) throw new Error(refusal);
   const { v, client } = await voiceGates(ctx, episode, scene, list, s, opts, [...(s.corrections ?? []).filter((x) => x.index !== c.index), c]);
@@ -119,7 +126,7 @@ export const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list:
   const before = [nb.previousText, ws.slice(0, Math.max(0, k - n)).join(" ")].filter(Boolean).join(" ");
   const after = [ws.slice(k + n + 1).join(" "), nb.nextText].filter(Boolean).join(" ");
   const r = await client.tts(fragment, { previousText: before || undefined, nextText: after || undefined, voiceId: scene.voice || undefined, tune: v.tune,
-    scene: { id: scene.id, template: scene.template, ayahKey: scene.ayahKey }, verses: planVerseTexts(ctx.plan) });
+    scene: { id: scene.id, template: scene.template, ayahKey: scene.ayahKey }, verses: planVerseTexts(ctx.plan), seed: s.audio?.seed ?? config.voice.seed });
   const speed = speedFor(ctx, v.tune);
   const audio = await applyTempo(r.audio, speed);
   const dir = sentencesDirFor(ctx.scriptPath);
@@ -154,7 +161,7 @@ export const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list:
   const take: SentenceAudio = {
     file, fingerprint: v.fingerprint, context: prevAudio.context, duration: res.pcm.length / SENTENCE_SAMPLE_RATE,
     words: remapWords(old, k, res, fragWord), at: new Date().toISOString(), origin: "fix", timing: "aligned",
-    ...(prevAudio.tone ? { tone: prevAudio.tone } : {}), spokenFixes,
+    ...(prevAudio.tone ? { tone: prevAudio.tone } : {}), spokenFixes, ...(prevAudio.seed !== undefined ? { seed: prevAudio.seed } : {}),
     fixes: [...(prevAudio.fixes ?? []), { index: k, word: c.word, say: c.say, from: prevAudio.file, fragment: fragFile, at: new Date().toISOString() }],
   };
   outcome.ok = true;

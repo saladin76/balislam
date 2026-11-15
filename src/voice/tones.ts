@@ -1,5 +1,6 @@
 import config from "../../config.json";
 import type { VoiceProfile } from "../channel/types";
+import { capsFor } from "./models";
 
 /**
  * نبرات الصوت: الصوت المستنسخ نفسه بإعدادات مختلفة حسب روح الحلقة أو المشهد.
@@ -21,8 +22,13 @@ type LegacyTone = Tone | "grave";
 export type TonePreset = { nameAr: string; useAr: string; stability: number; style: number; speed: number };
 type LegacyPreset = TonePreset & { direction: string };
 
-/** إصدار النبرات الحالي: ٣ = أول نسخة مُستعادة. المقطع بلا presetVersion = الإصدار ١. */
-export const TONE_PRESET_VERSION = 3;
+/**
+ * إصدار النبرات الحالي: ٤ = أول نسخة (D104) مع أداء كل نبرة على Eleven v4 (D136). المقطع بلا presetVersion = الإصدار ١.
+ * الإصدار ٣ (أول نسخة بلا أداء) للبصمة وحدها: ما وُلّد به صالح «بنبرة سابقة» ولا يُعاد إلا بأمر المالك.
+ */
+export const TONE_PRESET_VERSION = 4;
+/** أول نسخة كما أُرسلت على v4 قبل D136 (الثبات وحده يصل؛ التعبير لا يُرسل والسرعة بعد التوليد) */
+export const FIRST_PLAIN_VERSION = 3;
 /** إصدار طبقة القناة (٣ نوفمبر، وD79) */
 export const LAYERED_PRESET_VERSION = 1;
 /** إصدار النبرات القوية المُلغاة (D70) */
@@ -59,6 +65,28 @@ export const inheritedToneLabel = (episodeTone?: unknown, channelTone?: unknown)
   : isTone(channelTone) ? `مثل القناة (${tones[channelTone].nameAr})`
   : "مثل الحلقة — لم تُختر نبرة الحلقة بعد";
 
+/**
+ * D136 (المالك ١٥ نوفمبر: «نبقى على eleven_v4»): على v4 لا يصل من أول نسخة إلا الثبات، فالتعبير (style) غير مدعوم
+ * والسرعة تُطبَّق بعد التوليد (توثيق ElevenLabs: «Style and Speed sliders are not available in Eleven v4»)، والبذرة ثابتة؛
+ * فتخرج النبرات الست شبه متطابقة. ما يدعمه v4 فعلًا لتوجيه الأداء: الثبات (الأقل أكثر تعبيرًا وتنوعًا) وأوامر الأداء بين
+ * قوسين أول النص (audio tags). فلكل نبرة على النماذج التي لا تقبل التعبير وتقبل الأوامر أمر أداء إنجليزي وثبات أوسع مداه.
+ * الأمر لا يُنطق ولا يظهر في الترجمة (dropTagWords) ولا في أي نص منشور، ويُضاف بعد حارس القرآن على النص نفسه.
+ * multilingual v2 (يقبل التعبير والسرعة) كما كان حرفًا: أول نسخة بلا أمر.
+ * السرعة سرعة النبرة كما هي في أول نسخة؛ بُعد الإيقاع («هادئ/متوسط/سريع») منفصل عنها.
+ */
+export const TONE_DELIVERY_V4: Record<Tone, { direction: string; stability: number }> = {
+  calm: { direction: "calm, reflective narration", stability: 0.5 },
+  warm: { direction: "warm storytelling narration", stability: 0.4 },
+  documentary: { direction: "measured documentary narration", stability: 0.55 },
+  dramatic: { direction: "dramatic, intense narration", stability: 0.25 },
+  energetic: { direction: "energetic, upbeat narration", stability: 0.3 },
+  intimate: { direction: "soft, intimate, close to the listener", stability: 0.45 },
+};
+/** النموذج الحالي (ELEVENLABS_MODEL_ID أو config.voice.modelId) */
+export const currentVoiceModel = () => (typeof process !== "undefined" ? process.env?.ELEVENLABS_MODEL_ID : undefined) || config.voice.modelId;
+/** النموذج يأخذ النبرة أمرَ أداء (لا تعبير فيه، ويقبل الأوامر): v4 وv3 وكل نموذج غير معروف */
+export const directsTones = (modelId: string) => { const c = capsFor(modelId); return !c.style && c.tags; };
+
 /** الحياد (إعدادات config.voice) */
 const NEUTRAL = { stability: config.voice.stability, style: config.voice.style, speed: config.voice.speed };
 const clamp = (x: number, lo: number, hi: number) => Math.min(hi, Math.max(lo, x));
@@ -70,7 +98,14 @@ export type ToneTune = { stability: number; style: number; speed: number; direct
  * إعدادات الصوت لمقطع (أول نسخة حرفًا): قيمة النبرة نفسها، وبلا نبرة لا شيء (فتُستعمل config.voice).
  * المعامل الأول (طبقة القناة) لم يعد يؤثر في الطلب؛ يبقى في التوقيع للتوافق ولا يُقرأ.
  */
-export const voiceSettingsFor = (_profile?: VoiceProfile, tone?: Tone): ToneTune | undefined => {
+export const voiceSettingsFor = (_profile?: VoiceProfile, tone?: Tone, modelId: string = currentVoiceModel()): ToneTune | undefined => {
+  if (!isTone(tone)) return undefined;
+  const t = TONE_PRESETS_FIRST[tone];
+  if (directsTones(modelId)) { const d = TONE_DELIVERY_V4[tone]; return { stability: d.stability, style: t.style, speed: t.speed, direction: d.direction }; }
+  return { stability: t.stability, style: t.style, speed: t.speed };
+};
+/** أول نسخة بلا أمر أداء (الإصدار ٣): للبصمة وحدها */
+export const firstPlainSettings = (tone?: Tone): ToneTune | undefined => {
   if (!isTone(tone)) return undefined;
   const t = TONE_PRESETS_FIRST[tone];
   return { stability: t.stability, style: t.style, speed: t.speed };
@@ -171,7 +206,7 @@ export const effectiveLegacyTone = (...cands: unknown[]): LegacyTone | undefined
  * tone: النبرة الفعلية الآن (أو المعرّف القديم المحفوظ)؛ وللإصدار ٢ بلا نبرة: نبرة القناة حينها.
  * مقطع بصمته تطابق إحداها تسجيل صالح «بنبرة سابقة» لا يُعاد توليده آليًا.
  */
-export const legacyTunes = (layers: VoiceLayers, tone?: LegacyTone | string, opts: { text?: string } = {}): { version: number; tune: ToneTune | undefined }[] => {
+export const legacyTunes = (layers: VoiceLayers, tone?: LegacyTone | string, opts: { text?: string; modelId?: string } = {}): { version: number; tune: ToneTune | undefined }[] => {
   const t = isLegacyTone(tone) ? tone : undefined;
   const out: { version: number; tune: ToneTune | undefined }[] = [];
   const v1 = layeredVoiceSettingsV1(layers.profileHistory?.["1"] ?? layers.profile, t);
@@ -179,5 +214,9 @@ export const legacyTunes = (layers: VoiceLayers, tone?: LegacyTone | string, opt
   const v2Tone = t ?? [layers.toneHistory?.["2"]].find(isLegacyTone);
   const v2 = strongVoiceSettingsV2(layers.profileHistory?.["2"] ?? layers.profileHistory?.["1"] ?? layers.profile, v2Tone, opts);
   if (v2) out.push({ version: STRONG_PRESET_VERSION, tune: v2 });
+  // D136: the first version as it was sent before the v4 delivery (an identical tune is filtered out by its fingerprint)
+  // (only where the current delivery differs from it: a model that takes the tone as a performance direction)
+  const v3 = t && t !== "grave" && directsTones(opts.modelId ?? currentVoiceModel()) ? firstPlainSettings(t) : undefined;
+  if (v3) out.push({ version: FIRST_PLAIN_VERSION, tune: v3 });
   return out;
 };

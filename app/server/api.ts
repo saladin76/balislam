@@ -613,7 +613,7 @@ export const balApi = (): Plugin => ({
             const plan = (await io.readPlanFile(scriptPath)) ?? (await io.regeneratePlan(ep));
             const { planIssues } = await load("/src/plan/validate.ts");
             const c = channelMod.loadChannel(ch);
-            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith, sacredFigures: c.rules.sacredFigures, documentProvenance: c.rules.documentProvenance }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)), quran: false } });
+            return send(res, 200, { script, plan, channel: { id: c.id, name: c.name, nameDisplay: c.nameDisplay, nameLatin: c.nameLatin, language: c.language, logo: c.logo, brand: c.brand, rules: { faces: c.rules.faces, music: c.rules.music, quran: c.rules.quran, hadith: c.rules.hadith, sacredFigures: c.rules.sacredFigures, documentProvenance: c.rules.documentProvenance }, library: c.library, script: c.script, verse: c.verse, pacing: c.pacing, frame: c.frame, cast: c.cast ?? [], tone: c.voice?.tone, voiceProfile: c.voice?.profile?.nameAr }, check: await checkText(script, scriptPath), media: await mediaFor(plan), issues: planIssues(plan, c), keys: { voice: Boolean(process.env.ELEVENLABS_API_KEY && (c.voice?.id || process.env.ELEVENLABS_VOICE_ID)) || (await load("/src/voice/provider.ts")).fakeVoiceActive(), quran: false } });
           }
           if (parts[2] === "media" && parts[3] && parts[4]) {
             const kind = parts[3];
@@ -649,8 +649,19 @@ export const balApi = (): Plugin => ({
           // D97: what choosing the episode tone would invalidate, read before it is applied (nothing is generated).
           if (parts[2] === "sentences" && parts[3] === "tone-impact" && parts.length === 4 && req.method === "GET") {
             const sv = await load("/src/voice/sentenceVoice.ts");
-            try { return send(res, 200, await sv.toneChangeImpact(ep, url.searchParams.get("tone") || null)); }
+            try { return send(res, 200, await sv.toneChangeImpact(ep, url.searchParams.get("tone") || null, { sceneId: url.searchParams.get("scene") || null })); }
             catch (error) { return refuse(error); }
+          }
+          // D136: the tone of a whole scene (or of the episode) set from «الجمل», after its count and cost were shown.
+          // Writes the plan's tone only; nothing is generated.
+          if (parts[2] === "sentences" && parts[3] === "tone-scope" && parts.length === 4) {
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const sv = await load("/src/voice/sentenceVoice.ts");
+            let result;
+            try { result = await sv.setToneScope(ep, await readBody(req)); }
+            catch (error) { return refuse(error); }
+            const plan = await io.readPlanFile(scriptPath);
+            return send(res, 200, { ...result, ...(result.planChanged ? { plan } : {}), media: await mediaFor(plan) });
           }
           if (parts[2] === "sentences" && parts.length === 3) {
             const sv = await load("/src/voice/sentenceVoice.ts");
@@ -706,8 +717,10 @@ export const balApi = (): Plugin => ({
                 const sv = await load("/src/voice/sentenceVoice.ts");
                 const managed: Set<string> = await sv.sentenceManagedScenes(scriptPath);
                 if (b.scenes?.length === 1 && managed.has(b.scenes[0])) {
-                  const r = await sv.regenerateSceneSentences(ep, b.scenes[0], { client });
+                  const r = await sv.regenerateSceneSentences(ep, b.scenes[0], { client, confirmSame: b.confirmSame === true });
                   const plan = await io.readPlanFile(scriptPath);
+                  // D136: nothing sent would change: nothing was generated, the owner confirms first
+                  if (r.confirm) return send(res, 200, { report: null, generated: false, confirm: r.confirm, media: await mediaFor(plan) });
                   return send(res, 200, { report: null, generated: true, sentences: { generated: r.generated, composed: r.composed ?? null }, media: await mediaFor(plan) });
                 }
               }

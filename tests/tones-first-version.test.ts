@@ -45,14 +45,14 @@ const STRONG_PROFILES: Record<string, VoiceProfile> = {
 };
 
 describe("أول نسخة من النبرات (2d8bee52) حرفًا", () => {
-  it("النبرات الست بأسمائها وقيمها، بلا أمر أداء، والإصدار الحالي ٣", () => {
-    expect(TONE_PRESET_VERSION).toBe(3);
+  it("النبرات الست بأسمائها وقيمها، بلا أمر أداء على multilingual v2، والإصدار الحالي ٤ (D136: أداؤها على v4)", () => {
+    expect(TONE_PRESET_VERSION).toBe(4);
     expect(toneIds).toEqual(FIRST_IDS);
     expect(allToneIds).toEqual(FIRST_IDS);
     for (const t of FIRST_IDS) {
       expect(tones[t]).toEqual(FIRST[t]);
       expect(TONE_PRESETS_FIRST[t]).toEqual(FIRST[t]);
-      expect(voiceSettingsFor(undefined, t)).toEqual({ stability: FIRST[t]!.stability, style: FIRST[t]!.style, speed: FIRST[t]!.speed });
+      expect(voiceSettingsFor(undefined, t, "eleven_multilingual_v2")).toEqual({ stability: FIRST[t]!.stability, style: FIRST[t]!.style, speed: FIRST[t]!.speed });
     }
     // the first source, byte for byte, for the six presets: the file as it was at 2d8bee52, pinned in tests/fixtures
     // (its Git blob id is checked in tests/ki-030-no-git-history.test.ts), so a shallow clone runs this too (KI-030)
@@ -93,7 +93,9 @@ describe("أول نسخة من النبرات (2d8bee52) حرفًا", () => {
     expect(isSupersededVersion(undefined)).toBe(true);
     expect(isSupersededVersion(1)).toBe(true);
     expect(isSupersededVersion(2)).toBe(true);
-    expect(isSupersededVersion(3)).toBe(false);
+    // D136: the first version as sent on v4 before its delivery is an earlier version too
+    expect(isSupersededVersion(3)).toBe(true);
+    expect(isSupersededVersion(4)).toBe(false);
   });
 });
 
@@ -227,10 +229,10 @@ describe("استعادة أول نسخة لا تعيد توليد شيء آلي�
     // the older takes are kept, never deleted
     const doc = JSON.parse(readFileSync(path.join(EP_DIR(), "voice", "sentences.json"), "utf8"));
     for (const s of doc.scenes["c1-s1"].sentences) {
-      expect(s.audio.presetVersion).toBe(3);
+      expect(s.audio.presetVersion).toBe(4);
       expect(s.takes.at(-1).file).toBe(before.scenes["c1-s1"].sentences.find((x: { id: string }) => x.id === s.id).audio.file);
     }
-    expect(JSON.parse(readFileSync(path.join(EP_DIR(), "voice", "index.json"), "utf8"))["c1-s2"].presetVersion).toBe(3);
+    expect(JSON.parse(readFileSync(path.join(EP_DIR(), "voice", "index.json"), "utf8"))["c1-s2"].presetVersion).toBe(4);
     expect((await tu.toneUpgradePlan("986")).scenes).toEqual([]);
     bodies.length = 0;
     await generateVoice("986", { client: c, testOnlySkipGates: true });
@@ -257,6 +259,6 @@ describe("الاستوديو: الإشارة الهادئة والأمر الص�
     expect(brand).toContain("[undefined, ...toneIds].map");
     expect(brand).toContain("voiceSettingsFor(undefined, t)");
     expect(brand).not.toMatch(/REGISTERS|طبقة صوت القناة|type="range" min=\{min\}/);
-    expect(src("app/server/routes/voice.ts")).toContain("voiceSettingsFor(undefined, isTone(b.tone) ? b.tone : undefined)");
+    expect(src("app/server/routes/voice.ts")).toContain("voiceSettingsFor(undefined, isTone(b.tone) ? b.tone : undefined, model)");
   });
 });

@@ -20,6 +20,7 @@
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { mkdir, readFile } from "node:fs/promises";
+import config from "../../config.json";
 import { resolveScriptPath } from "../script/episodes";
 import { planPathFor, readJson, readPlanFile, stripQuran } from "../plan/io";
 import { withPlanWrite } from "../plan/planWriteLock";
@@ -32,8 +33,8 @@ import { isTone, tones, type Tone } from "./tones";
 import { normWord, stripTashkeel } from "./tashkeel";
 import { coreOf, NOOP_SAY, removeLexiconEntry, sayWarnings, setLexiconEntry } from "./lexicon";
 import { isNoopSay, type LexiconMatch } from "./pronunciationRules";
-import { addSentenceAfter, clampPause, contextFingerprint, deleteSentence, editSentenceText, heardKey, mergeWithNext, reconcileScene, sceneNarration, sentenceStatus, splitSentence, normText, splitBasmalaInList, words, recordedText } from "./sentences";
-import { sentencesFileFor, sentencesDirFor, writeAtomic, saveDoc, basmalaScenes, loadToneMapLite, type Ctx, loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, sayOf, autoSendOf, SAY_WORD_FIX } from "./sentenceContext";
+import { addSentenceAfter, clampPause, contextFingerprint, deleteSentence, editSentenceText, heardKey, mergeWithNext, reconcileScene, sceneNarration, sentenceStatus, splitSentence, normText, splitBasmalaInList, words, recordedText, recordedOnOtherText } from "./sentences";
+import { sentencesFileFor, sentencesDirFor, writeAtomic, saveDoc, basmalaScenes, loadToneMapLite, type Ctx, loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, sayOf, autoSendOf, SAY_WORD_FIX, wouldRepeat, SAME_SEND } from "./sentenceContext";
 import { checkSentenceSay, writeSay } from "./sentencePronunciation";
 import { planVerseTexts } from "./quranGuard";
 import { type SentencesRead, readSentences } from "./sentenceRead";
@@ -49,7 +50,7 @@ export type { WordFixOutcome } from "./sentenceGenerate";
 // ── الأفعال ──────────────────────────────────────────────────────────────────
 
 export type SentenceCommand = {
-  action: "init" | "adopt" | "edit" | "split" | "merge" | "delete" | "add" | "tone" | "pause" | "generate" | "restore" | "heard" | "fixword" | "say";
+  action: "init" | "adopt" | "edit" | "split" | "merge" | "delete" | "add" | "tone" | "pause" | "generate" | "restore" | "heard" | "fixword" | "say" | "use-take";
   /** معرّف الجملة؛ أو مشهد ورقم الجملة فيه لصف لم يبدأ العمل على مشهده بعد */
   id?: string; sceneId?: string; index?: number;
   text?: string; at?: number; tone?: string | null; ms?: number; note?: string; value?: boolean;
@@ -68,6 +69,10 @@ export type SentenceCommand = {
    * goes back to the automatic pronunciation. Never the sentence's text, the plan or the script.
    */
   pronunciation?: string | null;
+  /** D136 generate: the owner confirmed «لم يتغير شيء يُرسل — سيخرج تسجيل مشابه» (nothing sent changed) */
+  confirmSame?: boolean;
+  /** D136 use-take: the file of the take the owner chose (the current one or one in takes) */
+  file?: string;
 };
 export type SentenceActionOptions = {
   client?: ElevenLabsClient | null;
@@ -77,7 +82,9 @@ export type SentenceActionOptions = {
    */
   testOnlySkipApprovalGates?: boolean;
 };
-export type SentenceActionResult = { read: SentencesRead; planChanged: boolean; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome };
+export type SentenceActionResult = { read: SentencesRead; planChanged: boolean; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome;
+  /** D136: nothing was generated; the owner must confirm first (nothing that would be sent changed) */
+  confirm?: { kind: "same-send"; message: string } };
 
 /** يكتب نص مشهد واحد في plan.json كما هو على القرص (بلا آيات، بلا إعادة توليد للخطة أبدًا) */
 const writeSceneNarration = async (scriptPath: string, sceneId: string, narration: string): Promise<boolean> => {
@@ -105,14 +112,16 @@ const writeSceneNarration = async (scriptPath: string, sceneId: string, narratio
 export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts: SentenceActionOptions = {}): Promise<SentenceActionResult> => {
   const { assertSceneOwner, serialized } = await import("../studio/sceneService");
   assertSceneOwner();
-  const actions = ["init", "adopt", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard", "fixword", "say"];
+  const actions = ["init", "adopt", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard", "fixword", "say", "use-take"];
   if (!cmd || !actions.includes(cmd.action) || (cmd.text !== undefined && (typeof cmd.text !== "string" || cmd.text.length > 4000)) ||
       (cmd.note !== undefined && (typeof cmd.note !== "string" || cmd.note.length > 2000)) ||
       (cmd.say !== undefined && (typeof cmd.say !== "string" || cmd.say.length > 200)) || (cmd.word !== undefined && !Number.isInteger(cmd.word)) ||
       (cmd.action === "fixword" && (cmd.word === undefined || cmd.say === undefined)) ||
       (cmd.neighbours !== undefined && cmd.neighbours !== 1 && cmd.neighbours !== 2) ||
       (cmd.pronunciation !== undefined && cmd.pronunciation !== null && (typeof cmd.pronunciation !== "string" || cmd.pronunciation.length > 4000)) ||
-      (cmd.action === "say" && cmd.pronunciation === undefined))
+      (cmd.action === "say" && cmd.pronunciation === undefined) ||
+      (cmd.confirmSame !== undefined && typeof cmd.confirmSame !== "boolean") ||
+      (cmd.action === "use-take" && (typeof cmd.file !== "string" || !cmd.file || cmd.file.length > 200)))
     throw new Error("أمر الجملة غير صالح.");
   const scriptPath = await resolveScriptPath(episode);
   await mkdir(voiceDirFor(scriptPath), { recursive: true });
@@ -120,6 +129,7 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
   let composed: SentenceActionResult["composed"];
   let message: string | undefined;
   let fix: WordFixOutcome | undefined;
+  let confirm: SentenceActionResult["confirm"];
   await serialized(sentencesFileFor(scriptPath), async () => {
     const ctx = await loadCtx(episode);
     const flatScenes = allScenes(ctx.plan).map((x) => x.scene);
@@ -199,7 +209,27 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         const s = one();
         const prev = s.takes?.[s.takes.length - 1];
         if (!prev) throw new Error("لا تسجيل سابق لهذه الجملة.");
-        list = list.map((x) => (x.id === s.id ? { ...x, audio: prev, takes: [...(x.takes ?? []).slice(0, -1), ...(x.audio ? [x.audio] : [])], heard: undefined } : x));
+        // D136: the owner chose this take himself, so it is the sentence's take (and its scene audio's) as it is
+        list = list.map((x) => (x.id === s.id ? { ...x, audio: prev, takes: [...(x.takes ?? []).slice(0, -1), ...(x.audio ? [x.audio] : [])], heard: undefined, chosen: prev.file } : x));
+        message = "رجعت الجملة إلى تسجيلها السابق كما اخترت؛ يدخل صوت المشهد هو، والتسجيل الآخر محفوظ.";
+        break;
+      }
+      case "use-take": {
+        // D136 «استعمل هذا التسجيل» (قارن: القديم / الجديد): the owner's choice of take, kept as the current one
+        const s = one();
+        if (s.kind !== "narration") throw new Error("هذه الجملة لا تسجيل مولَّد لها.");
+        if (s.audio?.file === cmd.file) {
+          list = list.map((x) => (x.id === s.id ? { ...x, chosen: cmd.file } : x));
+          message = "هذا التسجيل هو المستعمل؛ يدخل صوت المشهد كما هو.";
+          break;
+        }
+        const k = (s.takes ?? []).findIndex((t) => t.file === cmd.file);
+        if (k < 0) throw new Error("التسجيل غير موجود في تسجيلات هذه الجملة؛ حدّث الصفحة.");
+        const pick = s.takes![k]!;
+        if (recordedOnOtherText({ text: s.text, audio: pick })) throw new Error("هذا التسجيل سُجّل على نص سابق للجملة؛ لا يُستعمل لنصها الحالي.");
+        const rest = s.takes!.filter((_, i) => i !== k);
+        list = list.map((x) => (x.id === s.id ? { ...x, audio: pick, takes: [...rest, ...(x.audio ? [x.audio] : [])], heard: undefined, chosen: pick.file } : x));
+        message = "استُعمل التسجيل الذي اخترته؛ يدخل صوت المشهد هو، والتسجيل الآخر محفوظ.";
         break;
       }
       case "tone": {
@@ -213,6 +243,8 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
           if (v) message = `حُدّثت خريطة النبرة إلى ${v} لهذه الجملة وحدها.`;
           ctx.map = await loadToneMapLite(scriptPath);
         } else list = list.map((x) => (x.id === s.id ? { ...x, tone: (tone ?? undefined) as Tone | undefined } : x));
+        // D136: a new tone for this sentence is the owner's new choice: a take chosen before it no longer stands in
+        list = list.map((x) => (x.id === s.id && x.chosen ? { ...x, chosen: undefined } : x));
         break;
       }
       case "say": {
@@ -232,6 +264,7 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
           message = had ? "عاد النطق الآلي لهذه الجملة؛ نصها والترجمة كما هما." : "النطق كما هو (آلي)؛ لم يتغير شيء.";
         } else {
           ctx.says = await writeSay(scriptPath, scene.id, s.text, p);
+          list = list.map((x) => (x.id === s.id && x.chosen ? { ...x, chosen: undefined } : x));
           message = "حُفظ النطق لهذه الجملة وحدها؛ نصها والسكريبت والترجمة كما هي. تحتاج توليدًا جديدًا («ولّد الجملة»)، ولا يُولَّد شيء وحده.";
         }
         break;
@@ -243,6 +276,12 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         const c = cmd.say !== undefined ? correctionFor(s, cmd.word, cmd.say) : null;
         if (c && cmd.save && isNoopSay(c.word, c.say)) throw new Error(NOOP_SAY);
         if (c) { s = withCorrection(s, c); list = list.map((x) => (x.id === s.id ? s : x)); }
+        // D136: nothing that would be sent changed (text, pronunciation, tone direction, stability, seed policy,
+        // neighbours): no paid call before the owner confirms; a confirmed one varies the seed (generateOne).
+        if (!c && !cmd.confirmSame && wouldRepeat(ctx, scene, list, s)) {
+          confirm = { kind: "same-send", message: `${SAME_SEND}. تُولَّد من جديد ببذرة أخرى إن أكّدت (يصرف رصيدًا)، والتسجيل الحالي يبقى محفوظًا.` };
+          break;
+        }
         list = await generateOne(ctx, episode, scene, list, s, opts);
         if (c && cmd.save) {
           await setLexiconEntry(c.word, c.say);
@@ -280,17 +319,25 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
     }
     const current = allScenes(ctx.plan).map((x) => x.scene).find((s) => s.id === scene.id)!;
     // صوت المشهد يُركّب من جمله حين تكون كلها حالية (وإلا يبقى صوته السابق كما هو)؛ وصل لم يُطبَّق لا يغيّر شيئًا
-    if (cmd.action !== "init" && cmd.action !== "adopt" && cmd.action !== "heard" && !(cmd.action === "fixword" && !fix?.ok)) {
+    if (cmd.action !== "init" && cmd.action !== "adopt" && cmd.action !== "heard" && !(cmd.action === "fixword" && !fix?.ok) && !confirm) {
       const c = await composeSentenceScene(ctx, current, list);
       composed = { sceneId: scene.id, ...c };
     }
     await saveDoc(scriptPath, ctx.doc);
   });
-  return { read: await readSentences(episode), planChanged, ...(composed ? { composed } : {}), ...(message ? { message } : {}), ...(fix ? { fix } : {}) };
+  return { read: await readSentences(episode), planChanged, ...(composed ? { composed } : {}), ...(message ? { message } : {}), ...(fix ? { fix } : {}), ...(confirm ? { confirm } : {}) };
 };
 
 export type ToneImpact = {
   tone: string | null;
+  /** D136: the scope asked about (a scene id, or null for the whole episode) */
+  sceneId?: string | null;
+  /**
+   * D136: narration sentences in the scope (without a tone of their own) whose current take was recorded with
+   * another tone: they are heard with the new tone only once generated again (paid, by the owner's click).
+   * `missing`: sentences in the scope with no take yet. chars/credits: what generating `regenerate` would spend.
+   */
+  regenerate?: { ids: { id: string; sceneId: string }[]; chars: number; credits: number; missing: number };
   /** sentences that are current now and would need a new (paid) generation under this episode tone */
   sentences: { id: string; sceneId: string }[];
   /** whole-scene voices (not sentence by sentence) that would need a new generation */
@@ -302,13 +349,34 @@ export type ToneImpact = {
  * Takes recorded with a known tone keep it (voiceOf pins them), so only takes made under the channel layer whose
  * sound the chosen tone really changes are counted.
  */
-export const toneChangeImpact = async (episode: string, tone: string | null): Promise<ToneImpact> => {
+export const toneChangeImpact = async (episode: string, tone: string | null, scope: { sceneId?: string | null } = {}): Promise<ToneImpact> => {
   if (tone !== null && !isTone(tone)) throw new Error("النبرة المختارة غير معروفة.");
   const ctx = await loadCtx(episode);
-  const nextPlan: Plan = { ...ctx.plan, tone: tone ?? undefined };
+  const sceneId = scope.sceneId ?? null;
+  if (sceneId && !allScenes(ctx.plan).some((x) => x.scene.id === sceneId)) throw new Error("المشهد غير موجود في الخطة.");
+  const nextPlan: Plan = sceneId
+    ? { ...ctx.plan, chapters: ctx.plan.chapters.map((c) => ({ ...c, scenes: c.scenes.map((x) => (x.id === sceneId ? { ...x, tone: tone ?? undefined } : x)) })) }
+    : { ...ctx.plan, tone: tone ?? undefined };
   const after: Ctx = { ...ctx, plan: nextPlan };
   const sentences: ToneImpact["sentences"] = [];
+  const regen: { id: string; sceneId: string; chars: number }[] = [];
+  let missing = 0;
+  if (!ctx.map) for (const { scene } of allScenes(nextPlan)) {
+    if (sceneId && scene.id !== sceneId) continue;
+    if (!isNarrated(scene)) continue;
+    const { list } = sceneSentences(after, scene);
+    for (const s of list) {
+      if (s.kind !== "narration") continue;
+      const v = voiceOf(after, scene, list, s, { current: true });
+      if (!s.audio) { missing++; continue; }
+      if (v.toneInfo.explicit || recordedOnOtherText(s)) continue;
+      if (s.audio.tone !== v.tone) regen.push({ id: s.id, sceneId: scene.id, chars: v.send.text.length });
+    }
+  }
+  const chars = regen.reduce((n, x) => n + x.chars, 0);
+  const regenerate = { ids: regen.map(({ id, sceneId: sc }) => ({ id, sceneId: sc })), chars, credits: Math.ceil(chars * config.voice.creditsPerChar), missing };
   if (!ctx.map) for (const { scene } of allScenes(ctx.plan)) {
+    if (sceneId && scene.id !== sceneId) continue;
     if (!isNarrated(scene) || !ctx.doc.scenes[scene.id]) continue;
     const { list } = sceneSentences(ctx, scene);
     for (const s of list) {
@@ -320,7 +388,43 @@ export const toneChangeImpact = async (episode: string, tone: string | null): Pr
     }
   }
   const { sceneVoiceToneImpact } = await import("./generate");
-  return { tone, sentences, scenes: await sceneVoiceToneImpact(ctx.scriptPath, ctx.plan, nextPlan) };
+  const scenes = (await sceneVoiceToneImpact(ctx.scriptPath, ctx.plan, nextPlan)).filter((id) => !sceneId || id === sceneId);
+  return { tone, sceneId, sentences, scenes, regenerate };
+};
+
+/**
+ * D136: the tone of a whole scene or of the whole episode, from «الجمل» (after its count and cost were shown).
+ * Writes plan.json under the plan write lock (the scene's or the episode's tone only). Nothing is generated: the
+ * sentences it changes show «النبرة تغيّرت — اضغط ولّد لتسمع الجديد», and «ولّد» stays the owner's click.
+ * A tone map episode (دفاتر الزمن) takes its tones from the map: refused here, sentence by sentence there.
+ */
+export const setToneScope = async (episode: string, cmd: { sceneId?: string | null; tone?: string | null }): Promise<{ read: SentencesRead; planChanged: boolean }> => {
+  const { assertSceneOwner } = await import("../studio/sceneService");
+  assertSceneOwner();
+  const tone = cmd?.tone === null || cmd?.tone === "" || cmd?.tone === undefined ? null : cmd.tone;
+  if (tone !== null && !isTone(tone)) throw new Error("النبرة المختارة غير معروفة.");
+  if (cmd?.sceneId !== undefined && cmd.sceneId !== null && (typeof cmd.sceneId !== "string" || !/^[a-z0-9][a-z0-9-]{0,70}$/.test(cmd.sceneId)))
+    throw new Error("أمر النبرة غير صالح.");
+  const scriptPath = await resolveScriptPath(episode);
+  if (await loadToneMapLite(scriptPath)) throw new Error("نبرات هذه الحلقة من خريطة النبرة: غيّر نبرة الجملة نفسها، فتُكتب في إصدار جديد من الخريطة.");
+  const file = planPathFor(scriptPath);
+  const planChanged = await withPlanWrite(file, async () => {
+    const raw = await readJson<Plan>(file);
+    if (!raw) throw new Error("خطة الحلقة غير موجودة.");
+    if (cmd.sceneId) {
+      const scene = raw.chapters.flatMap((c) => c.scenes).find((x) => x.id === cmd.sceneId);
+      if (!scene || !isNarrated(scene)) throw new Error("المشهد غير موجود أو بلا تعليق.");
+      if ((scene.tone ?? null) === tone) return false;
+      if (tone) scene.tone = tone; else delete scene.tone;
+      scene.edited = true;
+    } else {
+      if ((raw.tone ?? null) === tone) return false;
+      if (tone) raw.tone = tone; else delete raw.tone;
+    }
+    await writeJsonAtomic(file, stripQuran({ ...raw, updatedAt: new Date().toISOString() }));
+    return true;
+  });
+  return { read: await readSentences(episode), planChanged };
 };
 
 export type SentencesRepair = {
@@ -438,19 +542,24 @@ export const prepareBasmalaScenes = async (episode: string, opts: { client: Elev
  * EVERY narration sentence of that scene through the sentence path (same gates; the basmala and verses are
  * never voiced), then the scene is composed from them. Old takes are kept (never deleted).
  */
-export const regenerateSceneSentences = async (episode: string, sceneId: string, opts: { client: ElevenLabsClient | null }) => {
+export const regenerateSceneSentences = async (episode: string, sceneId: string, opts: { client: ElevenLabsClient | null; confirmSame?: boolean } & Pick<SentenceActionOptions, "testOnlySkipApprovalGates">) => {
   await sentenceAction(episode, { action: "init", sceneId });
   let read = await readSentences(episode);
   const rows = read.scenes.find((x) => x.id === sceneId)?.rows ?? [];
+  // D136: sentences whose request would be exactly the one that made their take: the owner confirms first
+  const same = rows.filter((r) => r.kind === "narration" && r.wouldRepeat).length;
+  if (same && !opts.confirmSame)
+    return { generated: 0, composed: undefined, read, confirm: { kind: "same-send" as const, count: same,
+      message: `${SAME_SEND}: ${same === rows.filter((r) => r.kind === "narration").length ? "كل جمل هذا المشهد" : `${same.toLocaleString("ar-EG")} من جمل هذا المشهد`} بالنص والنطق والنبرة نفسها. تُولَّد من جديد ببذرة أخرى إن أكّدت (يصرف رصيدًا).` } };
   let generated = 0;
   let composed: SentenceActionResult["composed"];
   for (const row of rows) {
     if (row.kind !== "narration") continue;
-    const r = await sentenceAction(episode, { action: "generate", id: row.id }, { client: opts.client });
+    const r = await sentenceAction(episode, { action: "generate", id: row.id, confirmSame: true }, { client: opts.client, testOnlySkipApprovalGates: opts.testOnlySkipApprovalGates });
     generated++;
     read = r.read;
     composed = r.composed ?? composed;
   }
   if (!generated) throw new Error("لا جمل للراوي في هذا المشهد؛ البسملة والآيات تُرفع بتسجيلك ولا تُولَّد.");
-  return { generated, composed, read };
+  return { generated, composed, read, confirm: undefined };
 };

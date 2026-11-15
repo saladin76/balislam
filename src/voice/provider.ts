@@ -131,3 +131,12 @@ export const assertFakeVoiceAllowed = (env: NodeJS.ProcessEnv = process.env) => 
   const refusal = fakeVoiceRefusal(env);
   if (refusal) throw Object.assign(new Error(refusal), { code: "FAKE_VOICE_REFUSED" });
 };
+
+/**
+ * The test-only fake provider is the voice in this run (BAL_VOICE_PROVIDER=fake, allowed: a test run, no real key):
+ * the Studio then offers «ولّد» as with a key, so the e2e journey clicks the owner's real buttons. Never on the
+ * owner's machine (no VITEST / BAL_E2E there), and never beside a real key.
+ */
+export const fakeVoiceActive = (env: NodeJS.ProcessEnv = process.env): boolean => {
+  try { return requestedVoiceProvider(env) === "fake" && fakeVoiceRefusal(env) === null; } catch { return false; }
+};

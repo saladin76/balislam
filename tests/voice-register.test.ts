@@ -1,12 +1,14 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
-import { tones, voiceSettingsFor } from "../src/voice/tones";
+import { TONE_DELIVERY_V4, tones, voiceSettingsFor } from "../src/voice/tones";
 import config from "../config.json";
 
 describe("النبرة (أول نسخة، 2d8bee52)", () => {
-  it("إعداد النبرة هو قيمتها نفسها، وبلا نبرة لا شيء (إعدادات config.voice)", () => {
-    const v = voiceSettingsFor(undefined, "dramatic")!;
+  it("إعداد النبرة هو قيمتها نفسها على multilingual v2، وعلى v4 أداؤها (D136)، وبلا نبرة لا شيء (إعدادات config.voice)", () => {
+    const v = voiceSettingsFor(undefined, "dramatic", "eleven_multilingual_v2")!;
     expect(v).toEqual({ stability: tones.dramatic.stability, style: tones.dramatic.style, speed: tones.dramatic.speed });
+    expect(voiceSettingsFor(undefined, "dramatic", "eleven_v4")).toEqual({ stability: TONE_DELIVERY_V4.dramatic.stability, style: tones.dramatic.style,
+      speed: tones.dramatic.speed, direction: TONE_DELIVERY_V4.dramatic.direction });
     expect(voiceSettingsFor()).toBeUndefined();
   });
 
@@ -41,15 +43,17 @@ describe("عيّنة السماع", () => {
       return new Response(new Uint8Array([1, 2, 3]));
     }) as unknown as typeof fetch;
     const el = createElevenLabs({ apiKey: "k", voiceId: "v", modelId: "eleven_multilingual_v2", fetchImpl });
-    const tune = voiceSettingsFor(undefined, "warm")!;
+    const tune = voiceSettingsFor(undefined, "warm", "eleven_multilingual_v2")!;
     expect((await el.sample("نص", { tune })).length).toBe(3);
     expect(bodies[0].voice_settings).toMatchObject({ stability: tune.stability, style: tune.style, speed: tune.speed });
+    // multilingual v2 takes style and speed: the first version as it is, no performance direction
     expect(bodies[0].text).toBe("نص");
-    await el.sample("نص", { tune, modelId: "eleven_v3" });
+    await el.sample("نص", { tune: voiceSettingsFor(undefined, "warm", "eleven_v3"), modelId: "eleven_v3" });
     expect(bodies[1].model_id).toBe("eleven_v3");
     expect([0, 0.5, 1]).toContain(bodies[1].voice_settings.stability);
-    // the first version has no performance direction: no [tag] before the text, even on tag-capable models
-    expect(bodies[1].text).toBe("نص");
+    // D136: a model without style takes the tone as its performance direction, before the text
+    expect(bodies[1].text).toBe(`[${TONE_DELIVERY_V4.warm.direction}] نص`);
+    expect(bodies[1].voice_settings.style).toBeUndefined();
   });
 });
 
