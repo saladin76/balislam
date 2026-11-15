@@ -58,7 +58,8 @@ export const fakeToneMp3 = async (seconds: number, freq = 220): Promise<Buffer> 
   }
 };
 
-export type FakeVoiceCall = { kind: "speak" | "plain" | "sfx"; voiceId?: string; text: string };
+/** body: the whole request as it would go to the provider (settings, seed, neighbours), for tests to read. */
+export type FakeVoiceCall = { kind: "speak" | "plain" | "sfx"; voiceId?: string; text: string; body?: TtsBody };
 
 /** The fake provider. `calls` records every request it received (tests read it). */
 export const fakeVoiceProvider = (): VoiceProvider & { calls: FakeVoiceCall[] } => {
@@ -68,12 +69,12 @@ export const fakeVoiceProvider = (): VoiceProvider & { calls: FakeVoiceCall[] } 
     name: "fake",
     calls,
     speak: async (voiceId: string, body: TtsBody, model: string) => {
-      calls.push({ kind: "speak", voiceId, text: body.text });
+      calls.push({ kind: "speak", voiceId, text: body.text, body });
       const audio = await fakeToneMp3(fakeDurationFor(body.text));
       return { audio, alignment: fakeAlignment(body.text), model };
     },
     speakPlain: async (voiceId: string, body: TtsBody) => {
-      calls.push({ kind: "plain", voiceId, text: body.text });
+      calls.push({ kind: "plain", voiceId, text: body.text, body });
       return fakeToneMp3(fakeDurationFor(body.text));
     },
     soundEffect: async (body) => {

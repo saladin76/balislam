@@ -129,8 +129,14 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
     setError("");
     setMsg("");
     try {
-      if (opts.edits) await onBeforeEdit?.();
-      const r = await api.sentenceAction(episodeId, channelId, cmd);
+      // A generation reads the plan's tones from disk: a tone chosen a moment ago is saved first (D136)
+      if (opts.edits || cmd.action === "generate") await onBeforeEdit?.();
+      let r = await api.sentenceAction(episodeId, channelId, cmd);
+      // D136: nothing that would be sent changed («لم يتغير شيء يُرسل — سيخرج تسجيل مشابه»): the owner confirms first
+      if (r.confirm) {
+        if (!window.confirm(r.confirm.message)) { setRead(r.read); setMsg(`${r.confirm.message.split(".")[0]}؛ لم يُولَّد شيء.`); return null; }
+        r = await api.sentenceAction(episodeId, channelId, { ...cmd, confirmSame: true });
+      }
       setRead(r.read);
       if (r.plan) onPlanReplaced?.(r.plan);
       if (r.media) onMediaChange?.(r.media);
@@ -288,7 +294,7 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
   };
 
   return {
-    cited, read, setRead, pron, recs, error, setError, msg, busy, drafts, setDrafts, sayDrafts, setSayDrafts, adding, setAdding, ps, owner, fixing, setFixing, why, setWhy,
+    cited, read, setRead, pron, recs, error, setError, msg, setMsg, busy, drafts, setDrafts, sayDrafts, setSayDrafts, adding, setAdding, ps, owner, fixing, setFixing, why, setWhy,
     fixed, setFixed, cur, setCur, editing, setEditing, chipRefs, wrap, popRef, popPos, lexDrafts, setLexDrafts, carets, splitting, setSplitting,
     load, anchor, scenes, send, run, ref, lexicon, urlOf, stopPlay, playClips, sceneQueue, clipOf, rowKey, playing_, rowActive, pressRow, pressScene,
     rowPlayTitle, rowKeys, playWord, olderCount, olderPlan, noKey, total, voiced, chipsFor, reopen, pressWord, chipTitle, fixedWord, upgradeAll,

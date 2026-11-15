@@ -291,10 +291,14 @@ export const api = {
   sentences: (episode: string, channel: string) =>
     call<SentencesRead>(`/api/episodes/${episode}/sentences`, undefined, channel),
   /** D97: what choosing the episode tone would invalidate (read only; shown before it is applied). */
-  toneImpact: (episode: string, channel: string | undefined, tone: string | null) =>
-    call<ToneImpact>(`/api/episodes/${episode}/sentences/tone-impact?tone=${encodeURIComponent(tone ?? "")}`, undefined, channel),
+  toneImpact: (episode: string, channel: string | undefined, tone: string | null, sceneId?: string | null) =>
+    call<ToneImpact>(`/api/episodes/${episode}/sentences/tone-impact?tone=${encodeURIComponent(tone ?? "")}${sceneId ? `&scene=${encodeURIComponent(sceneId)}` : ""}`, undefined, channel),
+  /** D136: the tone of a whole scene, or of the episode (sceneId null), from «الجمل»; nothing is generated. */
+  toneScope: (episode: string, channel: string, body: { sceneId: string | null; tone: string | null }) =>
+    call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia }>(`/api/episodes/${episode}/sentences/tone-scope`, { method: "POST", json: body }, channel),
   sentenceAction: (episode: string, channel: string, body: SentenceCommand) =>
-    call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome }>(
+    call<{ read: SentencesRead; planChanged: boolean; plan?: Plan; media?: EpisodeMedia; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome;
+      confirm?: { kind: "same-send"; message: string } }>(
       `/api/episodes/${episode}/sentences`, { method: "POST", json: body }, channel),
   /** «أعد توليد ما وُلّد بنبرة سابقة» (بعد استعادة أول نسخة من النبرات، ١٢ نوفمبر): dryRun يعرض العدد والحروف، ثم التوليد بضغطة المالك */
   toneUpgrade: (episode: string, channel: string, dryRun: boolean) =>
@@ -396,7 +400,9 @@ export const api = {
   libraryImageUrl: (file: string) => withChannel(`/api/library-images/file/${encodeURIComponent(file)}`),
   uploadLibraryImage: (b: { slot: string; name: string; data: string }) => call<{ file: string }>("/api/library-images", { method: "POST", json: b }),
   uploadImage: (id: string, b: { name: string; data: string; scene: string }) => call<{ file: string; media: EpisodeMedia }>(`/api/episodes/${id}/images`, { method: "POST", json: b }),
-  voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean }) => call<{ report: VoiceReport | null; generated: boolean; noKey?: boolean; media: EpisodeMedia;
+  voice: (id: string, b: { scenes?: string[]; dryRun?: boolean; force?: boolean; confirmSame?: boolean }) => call<{ report: VoiceReport | null; generated: boolean; noKey?: boolean; media: EpisodeMedia;
+      /** D136: nothing that would be sent changed; nothing was generated until the owner confirms */
+      confirm?: { kind: "same-send"; count: number; message: string };
       /** M5: a scene voiced sentence by sentence was regenerated sentence by sentence. */
       sentences?: { generated: number; composed: { sceneId: string; composed: boolean; reason?: string } | null } }>(`/api/episodes/${id}/voice`, { method: "POST", json: b }),
   overview: () => call<Overview[]>("/api/overview"),

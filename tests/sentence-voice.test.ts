@@ -258,7 +258,11 @@ describe("على القرص: المالك على جهازه، القص، الت�
     const sec = sceneSeconds(p.chapters[0]!.scenes[0]!, { voice, recitations: {} } as never);
     expect(sec).toBeGreaterThanOrEqual(clip.duration);
     // إعادة توليد الجملة نفسها لا تمس الأخرى
-    const again = await sv.sentenceAction("987", { action: "generate", id: b!.id }, { client, testOnlySkipApprovalGates: true });
+    // D136: nothing that would be sent changed: no request until the owner confirms, then one (with another seed)
+    const ask = await sv.sentenceAction("987", { action: "generate", id: b!.id }, { client, testOnlySkipApprovalGates: true });
+    expect(ask.confirm?.message).toMatch(/لم يتغير شيء يُرسل — سيخرج تسجيل مشابه/);
+    expect(sent).toHaveLength(1);
+    const again = await sv.sentenceAction("987", { action: "generate", id: b!.id, confirmSame: true }, { client, testOnlySkipApprovalGates: true });
     expect(sent).toHaveLength(2);
     expect(sentencesDoc().scenes["c1-s1"].sentences[0].audio).toEqual(da.audio);
     expect(again.read.scenes[0]!.rows[1]!.takes).toBe(2);

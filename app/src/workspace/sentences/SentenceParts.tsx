@@ -17,6 +17,7 @@ import type { SentencesPanelProps } from "../SentencesPanel";
 import type { SentencesModel } from "./useSentences";
 import { OLDER_TONE, ar, fixNeighbours } from "./format";
 import { WordFixLine, WordFixPopover, WordWhyPopover } from "./WordPopovers";
+import { ToneLine } from "./ToneParts";
 
 /** What every part reads: the panel's state and actions, and its props. */
 export type SentencesPart = { m: SentencesModel; p: SentencesPanelProps };
@@ -112,15 +113,13 @@ export const WordChips: React.FC<{ m: SentencesModel; r: SentenceRow; inline?: b
 const TakeOnlyNote: React.FC<{ r: SentenceRow }> = ({ r }) => r.status === "old" ? (
   <p className="sv-old" role="status"><b>قديم — سُجّل على نص سابق.</b> {r.recordedOn ? <>سُجّل على: «{r.recordedOn}». </> : null}
     اسمعه بزر التشغيل؛ لا يدخل صوت المشهد حتى تولّد الجملة بنصها الحالي، ويبقى محفوظًا في التسجيلات السابقة.</p>
-) : r.recordedTone && isTone(r.recordedTone) && r.recordedTone !== r.inheritedTone && !r.tone ? (
-  <p className="sp-hint sv-rectone">سُجّلت بنبرة «{tones[r.recordedTone].nameAr}»؛ تسجيلها صالح كما هو، ونبرة الحلقة تسري على ما يُولَّد بعده.</p>
 ) : null;
 /** D110: the scene's audio clamped this sentence's word timing to its file (a bounded overshoot): listen to its end. */
 const ClampNote: React.FC<{ r: SentenceRow }> = ({ r }) => r.timingClamped ? (
   <p className="sp-hint sv-clamp" role="status">التوقيت ضُبط قليلًا — استمع لآخر الجملة</p>
 ) : null;
 /** Under the sentence: the take notes (D97, D110) and the local pronunciation check's note (العمل ٩). */
-export const TakeNote: React.FC<{ m: SentencesModel; r: SentenceRow }> = ({ m, r }) => <><TakeOnlyNote r={r} /><ClampNote r={r} /><PronunciationNote view={m.pron} rowId={r.id} kind={r.kind} /></>;
+export const TakeNote: React.FC<{ m: SentencesModel; r: SentenceRow }> = ({ m, r }) => <><TakeOnlyNote r={r} /><ToneLine m={m} r={r} /><ClampNote r={r} /><PronunciationNote view={m.pron} rowId={r.id} kind={r.kind} /></>;
 
 /** The word popover (direction D), wired to the existing sentence API (fixword / generate). */
 export const SentenceWordPopover: React.FC<SentencesPart> = ({ m, p }) => {

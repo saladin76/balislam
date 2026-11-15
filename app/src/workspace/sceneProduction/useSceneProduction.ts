@@ -276,7 +276,12 @@ export const useSceneProduction = (props: SceneProductionProps) => {
     setVoiceBusy(true);
     setVoiceMsg("");
     try {
-      const r = await api.voice(episodeId, { scenes: [sceneId], force });
+      let r = await api.voice(episodeId, { scenes: [sceneId], force });
+      // D136: nothing that would be sent changed: say so, and generate only after the owner confirms
+      if (r.confirm) {
+        if (!window.confirm(r.confirm.message)) { setVoiceMsg(`${r.confirm.message.split(":")[0]}؛ لم يُولَّد شيء.`); return false; }
+        r = await api.voice(episodeId, { scenes: [sceneId], force, confirmSame: true });
+      }
       onMediaChange?.(r.media);
       // Never a success line without a real result (QA balislam 3): no key = a dry run, nothing was made.
       const said = voiceResultMessage(r);

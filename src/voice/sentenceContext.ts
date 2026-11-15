@@ -17,7 +17,7 @@ import { applyDictionary } from "./words";
 import { hasBasmala } from "./basmala";
 import { applyLexicon, loadLexicon, type LexiconEntry } from "./lexicon";
 import { loadSays, ownerForSay, sayFor, type SentenceSay } from "./sentencePronunciation";
-import { emptyDoc, reconcileScene, sentenceFingerprint, sentencesFor, normText, words, recordedOnOtherText, type Sentence, type SentenceCorrection, type SentencesDoc } from "./sentences";
+import { contextFingerprint, emptyDoc, reconcileScene, sentenceFingerprint, sentencesFor, normText, words, recordedOnOtherText, type Sentence, type SentenceCorrection, type SentencesDoc } from "./sentences";
 
 /**
  * «الجمل» (D50): ملفاتها على القرص، وسياق الصوت (النبرة والإعدادات والنطق والبصمة، وما يُرسل وجارتاه)، وما يُحسب
@@ -208,34 +208,57 @@ export const voiceOf = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentenc
   const fpOf = (spoken: string, tune: ReturnType<typeof voiceSettingsFor>) =>
     sentenceFingerprint({ spoken, voiceKey: ctx.voiceKey, tts: ttsSettings(), tune, voiceId: scene.voice || undefined, ...(custom ? { exact: custom } : {}) });
   const fp = (tune: ReturnType<typeof voiceSettingsFor>) => fpOf(custom ?? d.spoken, tune);
-  const tune = voiceSettingsFor(ctx.profile, tone);
+  const tune = voiceSettingsFor(ctx.profile, tone, ctx.model);
   const fingerprint = fp(tune);
   const base = { tone, toneInfo: t, spoken: d, send: sendOf(ctx, o.automatic ? { ...s, sceneId: "" } : s), custom, currentFingerprint: fingerprint };
   if (!o.current) {
+    // D136 «استعمل هذا التسجيل»: the take the owner chose himself stays current while it is on this very text
+    if (s.chosen && s.audio && s.chosen === s.audio.file && s.audio.fingerprint !== fingerprint && !recordedOnOtherText(s))
+      return { ...base, tune, fingerprint: s.audio.fingerprint, presetVersion: s.audio.presetVersion ?? 1, olderTone: false,
+        pinnedTone: (isTone(s.audio.tone) ? s.audio.tone : undefined) as Tone | undefined, chosenTake: true };
     // A take recorded with the same written pronunciation under D131 (13 Nov) stays current.
     if (custom && s.audio && s.audio.fingerprint !== fingerprint && s.audio.fingerprint === fpOf(d.spoken, tune))
-      return { ...base, tune, fingerprint: s.audio.fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: undefined as Tone | undefined };
+      return { ...base, tune, fingerprint: s.audio.fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: undefined as Tone | undefined, chosenTake: false };
     // the tone as the earlier versions resolved it: a saved id that is no tone any more (grave) still names an old take
     const legacyTone = ctx.map?.scenes[scene.id] ? tone : effectiveLegacyTone(s.tone, scene.tone, ctx.plan.tone, ctx.channelTone);
     // D97 for old takes too: a take recorded with a known tone keeps it while only the inherited tone changed
     const legacyTones = [legacyTone, ...(!t.explicit && s.audio?.tone && s.audio.tone !== legacyTone ? [effectiveLegacyTone(s.audio.tone)] : [])];
-    const legacy = [...new Set(legacyTones)].flatMap((lt) => legacyTunes(ctx.layers, lt, { text: s.text }))
+    const legacy = [...new Set(legacyTones)].flatMap((lt) => legacyTunes(ctx.layers, lt, { text: s.text, modelId: ctx.model }))
       .map((l) => ({ ...l, fingerprint: fp(l.tune) })).filter((l) => l.fingerprint !== fingerprint);
     const pick = o.version !== undefined ? legacy.find((l) => l.version === o.version)
       : s.audio && s.audio.fingerprint !== fingerprint ? legacy.find((l) => l.fingerprint === s.audio!.fingerprint) : undefined;
-    if (pick) return { ...base, tune: pick.tune, fingerprint: pick.fingerprint, presetVersion: pick.version, olderTone: true, pinnedTone: undefined as Tone | undefined };
+    if (pick) return { ...base, tune: pick.tune, fingerprint: pick.fingerprint, presetVersion: pick.version, olderTone: true, pinnedTone: undefined as Tone | undefined, chosenTake: false };
     // D97: a take recorded with a known tone (audio.tone) stays valid when only the INHERITED tone changes
     // (the episode or scene tone chosen or changed later): the episode tone is a default for new generations.
     // A sentence whose own explicit tone differs from its take still needs generating (the owner chose it).
     const recTone = s.audio?.tone;
     if (s.audio && s.audio.fingerprint !== fingerprint && !t.explicit && isTone(recTone) && recTone !== tone) {
-      const pinned = voiceSettingsFor(ctx.profile, recTone);
+      const pinned = voiceSettingsFor(ctx.profile, recTone, ctx.model);
       if (fp(pinned) === s.audio.fingerprint)
-        return { ...base, tone: recTone, tune: pinned, fingerprint: s.audio.fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: recTone };
+        return { ...base, tone: recTone, tune: pinned, fingerprint: s.audio.fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: recTone, chosenTake: false };
     }
   }
-  return { ...base, tune, fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: undefined as Tone | undefined };
+  return { ...base, tune, fingerprint, presetVersion: TONE_PRESET_VERSION, olderTone: false, pinnedTone: undefined as Tone | undefined, chosenTake: false };
 };
+
+/**
+ * D136: «ولّد» would send exactly what made the current take (the same spoken text, tone direction, stability, voice,
+ * model, seed policy and neighbours): the take is current by its own fingerprint and its neighbours are unchanged.
+ * The owner is told «لم يتغير شيء يُرسل — سيخرج تسجيل مشابه» and confirms before anything is paid.
+ */
+export const wouldRepeat = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, flat: Flat[] = flatten(ctx)): boolean => {
+  if (s.kind !== "narration" || !s.audio || recordedOnOtherText(s)) return false;
+  const v = voiceOf(ctx, scene, list, s, { current: true });
+  if (s.audio.fingerprint !== v.fingerprint) return false;
+  // the text actually sent: the lexicon and word corrections are outside the fingerprint (D55), not outside the request
+  if (s.audio.sent !== undefined ? s.audio.sent !== sentKey(v.send.text, v.tune?.direction)
+    : JSON.stringify((s.audio.spokenFixes ?? []).map((x) => [x.word, x.say])) !== JSON.stringify(v.send.applied.map((a) => [a.word, a.say]))) return false;
+  const nb = neighbours(flat, s.id);
+  return s.audio.context === undefined || s.audio.context === contextFingerprint(nb.previousText, nb.nextText);
+};
+/** D136: a short key of the exact text a take was sent with (its performance direction included) */
+export const sentKey = (text: string, direction?: string) => createHash("sha1").update(JSON.stringify([text, direction ?? ""])).digest("hex").slice(0, 16);
+export const SAME_SEND = "لم يتغير شيء يُرسل — سيخرج تسجيل مشابه";
 
 /**
  * نص الجارتين في تسلسل الحلقة (جمل الراوي فقط؛ الآية لا تدخل النص المجاور). KI-011 (D113): الآية حدّ لا يعبره
