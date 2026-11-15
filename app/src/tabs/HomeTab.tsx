@@ -75,7 +75,10 @@ export const nextLine = (e: Overview): { text: string; tab: HomeStepTab } => {
   if (!e.check.ok) return { text: `في السكريبت ما يحتاج إصلاحًا (${num(e.check.errors)})`, tab: "script" };
   if (!p) return { text: "افتح الحلقة لقراءة حالتها", tab: "storyboard" };
   if (!p.script || !p.storyboard) return { text: "راجع التجهيز (الستوري بورد والسكريبت) واعتمده", tab: "storyboard" };
-  if (!p.canAssemble) return { text: `المشهد ${num(p.approvedScenes + 1)} من ${num(p.totalScenes)} ينتظر قرارك`, tab: "episode" };
+  // D145: scenes are approved in any order, so the line counts what is left rather than naming «the next» one.
+  if (!p.canAssemble) return p.totalScenes > p.approvedScenes
+    ? { text: `باقي ${countAr(p.totalScenes - p.approvedScenes, SCENES)} من ${num(p.totalScenes)} للاعتماد، بأي ترتيب`, tab: "episode" }
+    : { text: "كل المشاهد معتمدة؛ آيات بانتظار تلاواتها", tab: "review" };
   if (!p.assemblyApproved) return { text: "شاهد الحلقة مجمّعة واعتمدها", tab: "review" };
   if (!p.masterApproved) return { text: "اعتمد النسخة النهائية", tab: "review" };
   if (!p.publishAllowed) return { text: "امنح إذن النشر", tab: "publish" };

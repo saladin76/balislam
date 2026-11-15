@@ -31,14 +31,33 @@ describe("Studio scene-first audiovisual review", () => {
     expect(nextSceneId(planned())).toBe("c1-s1");
   });
 
-  it("blocks the next scene until the previous scene is approved with audio and picture", () => {
-    expect(() => submitSceneAvPreview(planned(), "c1-s2", h("d"), h("e"))).toThrow(/previous scene/);
+  it("D145: any scene is produced, approved or sent back first, whatever the scenes before it", () => {
+    // scene 2 before scene 1: submitted and approved with its own bytes; scene 1 untouched
+    const second = approveSceneAv(submitSceneAvPreview(planned(), "c1-s2", h("d"), h("e")),
+      "c1-s2", { by: "owner", at, previewSha256: h("e"), watchedWithAudio: true });
+    expect(second.scenes.map((s) => s.status)).toEqual(["queued", "approved"]);
+    expect(sceneFirstProgress(second)).toMatchObject({ currentScene: "c1-s1", unapprovedScenes: ["c1-s1"], approvedScenes: 1, canAssemble: false });
+    // a correction on scene 2 while scene 1 is not approved
+    const back = requestSceneCorrection(submitSceneAvPreview(planned(), "c1-s2", h("d"), h("e")), "c1-s2");
+    expect(back.scenes[1]?.status).toBe("needs_revision");
+    // the assembly still waits for every scene, and names what is left
+    expect(() => submitAssembly(second, h("1"))).toThrow(/not approved yet: c1-s1\./);
+    const both = approveSceneAv(submitSceneAvPreview(second, "c1-s1", h("c"), h("f")),
+      "c1-s1", { by: "owner", at, previewSha256: h("f"), watchedWithAudio: true });
+    expect(sceneFirstProgress(both)).toMatchObject({ currentScene: null, unapprovedScenes: [], canAssemble: true });
+    // the reviewed bytes are still required
     const preview = submitSceneAvPreview(planned(), "c1-s1", h("c"), h("e"));
-    expect(() => submitSceneAvPreview(preview, "c1-s2", h("d"), h("f"))).toThrow(/previous scene/);
     expect(() => approveSceneAv(preview, "c1-s1", {
       by: "owner", at, previewSha256: h("f"), watchedWithAudio: true,
     })).toThrow(/latest rendered/);
     expect(nextSceneId(approvedFirst())).toBe("c1-s2");
+  });
+
+  it("D145: an old ledger (approved in order) is read as is: the chain stays approved, nothing rewritten", () => {
+    const old = JSON.parse(JSON.stringify(allApproved()));
+    expect(sceneFirstProgress(old)).toMatchObject({ approvedScenes: 2, unapprovedScenes: [], canAssemble: true });
+    expect(submitAssembly(old, h("1")).assembly?.videoSha256).toBe(h("1"));
+    expect(old).toEqual(allApproved());
   });
 
   it("keeps approved independent scenes when revising one scene but invalidates assembly", () => {

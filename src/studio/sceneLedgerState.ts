@@ -25,9 +25,8 @@ import { sourceNow } from "./sceneInputs";
  * - script / storyboard approvals are kept unless their own hashes changed (changeScript / changeStoryboard);
  * - any change to the list (added, removed or reordered ids) invalidates the assembly, the Master and
  *   the publish permission, because the cut and its seams no longer match.
- * Ordering rule unchanged: a later scene that stays approved after a newly inserted queued one keeps its
- * approval, but the queue (canWorkOn / nextSceneId) requires approving the new scene first and assembly
- * stays blocked until every scene is approved. A different channel/episode still starts over.
+ * A later scene that stays approved after a newly inserted queued one keeps its approval; the new scene is
+ * produced and approved like any other, in any order (D145), and assembly stays blocked until every scene is approved. A different channel/episode still starts over.
  */
 export const reconcileSceneLedger = (stored: SceneFirstProduction, current: SceneFirstProduction): SceneFirstProduction => {
   if (stored.channel !== current.channel || stored.episode !== current.episode)

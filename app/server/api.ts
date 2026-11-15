@@ -455,7 +455,8 @@ export const balApi = (): Plugin => ({
             const { prepareAllScenes } = await load("/src/studio/prepareAll.ts");
             if (prepareJob(key)?.status === "running") return prepareJob(key)!;
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
-            const voiceClient = elevenLabsFromEnv();
+            // D145 «أنتج كل المشاهد الجاهزة»: no voice client at all, so nothing paid can be called.
+            const voiceClient = opts.renderOnly ? null : elevenLabsFromEnv();
             // Audit item 5: an automatic start does not re-render a scene whose same inputs just failed.
             // M3: the owner's own «استأنف التجهيز» retries them (the failure expires on that press).
             const previousFailures = opts.retryFailed ? [] : prepareJob(key)?.failed ?? [];
@@ -549,7 +550,7 @@ export const balApi = (): Plugin => ({
               const job = await startPrepare({ retryFailed: true, renderOnly: true });
               return send(res, 200, { job, voiceKey, pace, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
             }
-            const job = await startPrepare({ retryFailed: true });
+            const job = await startPrepare({ retryFailed: true, renderOnly: pb?.renderOnly === true });
             return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
           }
 

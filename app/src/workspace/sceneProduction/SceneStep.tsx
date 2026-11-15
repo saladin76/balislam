@@ -14,6 +14,7 @@ import type { SceneProductionModel } from "./useSceneProduction";
 import { SceneDecisionActions } from "./SceneDecisionActions";
 import { ar, noop, problemNote } from "./notes";
 import { sceneStepView, type StepPart } from "./sceneStepView";
+import { SCENE_STATE_LABEL } from "./sceneStates";
 import {
   SceneAllDone, SceneCriteriaNote, SceneFixList, SceneHeader, SceneIssuesButton, SceneMedia, SceneMore, SceneSentences, SceneSide,
 } from "./SceneStepParts";
@@ -30,7 +31,7 @@ export const SceneReel: React.FC<StepPart> = ({ m, p, v }) => {
           <b>الحلقة كاملة</b>
           <span><Num>{arabicCountAr(order.length, SCENES)}</Num>، <Num className="clk">{clock(order.reduce((n, id) => n + secs(id), 0))}</Num></span>
           <button type="button" className="s3-fold" aria-expanded={reelOpen} onClick={() => setReelOpen((v) => !v)}><Icon name={reelOpen ? "down" : "up"} />{reelOpen ? "اطوِ" : "افتح"}</button>
-          <span className="s3-legend" aria-hidden="true"><span><i className="is-now" />الحالي</span><span><i className="is-ready" />جاهز للمراجعة</span><span><i className="is-later" />يُجهَّز</span><span><i className="is-verse" />آية، سكون</span></span>
+          <span className="s3-legend" aria-hidden="true"><span><i className="is-todo" />لم يُنتج</span><span><i className="is-ready" />جاهز للمراجعة</span><span><i className="is-approved" />معتمد</span><span><i className="is-fix" />بانتظار التعديل</span><span><i className="is-conditional" />مشروط بالتلاوة</span><span><i className="is-verse" />آية، سكون</span></span>
         </div>
         <div className="s3-chaps" aria-hidden="true">
           {plan!.chapters.map((c) => (
@@ -43,11 +44,13 @@ export const SceneReel: React.FC<StepPart> = ({ m, p, v }) => {
             const srv = data?.scenes.find((x) => x.id === id);
             const verse = planScenes.find((x) => x.scene.id === id)?.scene.template === "verse-card";
             const ready = Boolean(srv && (srv.approved || srv.status === "in_review" || srv.draft === "ready"));
+            // D145: every scene opens from here and shows its own state; none «waits for its turn».
             return (
               <li key={id} style={{ flex: secs(id) }}>
-                <button type="button" className={`s3-dot is-${st}${ready ? " is-ready" : ""}${verse ? " is-verse" : ""}${id === shownId ? " is-shown" : ""}`} data-now={st === "now" ? "" : undefined}
+                <button type="button" className={`s3-dot is-${st}${st === "approved" || st === "conditional" ? " is-done" : ""}${ready ? " is-ready" : ""}${verse ? " is-verse" : ""}${id === shownId ? " is-shown" : ""}`} data-now={id === shownId ? "" : undefined}
+                  data-state={st}
                   aria-current={id === shownId ? "true" : undefined} onClick={() => openScene(id)}
-                  title={`${sceneName(order, id)} — ${st === "done" ? "معتمد" : st === "now" ? "الحالي" : "ينتظر دوره"}`}>
+                  title={`${sceneName(order, id)} — ${SCENE_STATE_LABEL[st]}`}>
                   {thumb && !verse && Math.abs(i - shownIdx) <= 8 ? thumb(id) : !verse ? <span className="s3-dot-ph" aria-hidden="true" /> : null}
                   <span className="s3-dot-n">{verse ? "آية" : ar(i + 1)}</span>
                 </button>
@@ -58,7 +61,7 @@ export const SceneReel: React.FC<StepPart> = ({ m, p, v }) => {
       </section>
       <div className="s3-reelm" aria-hidden="true">
         <span>الحلقة كاملة</span>
-        <span className="s3-reelm-bar">{order.map((id) => <i key={id} className={id === shownId ? "is-shown" : statusOf(id) === "done" ? "is-done" : ""} style={{ flex: secs(id) }} />)}</span>
+        <span className="s3-reelm-bar">{order.map((id) => <i key={id} className={id === shownId ? "is-shown" : statusOf(id) === "approved" || statusOf(id) === "conditional" ? "is-done" : ""} style={{ flex: secs(id) }} />)}</span>
         <span><Num>{approvedCount}</Num> من <Num>{order.length}</Num></span>
       </div>
     </>

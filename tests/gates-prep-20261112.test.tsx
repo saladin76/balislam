@@ -200,10 +200,10 @@ describe("balislam 7 · delete is local, shown and reversible; the studio never 
 
 describe("balislam 9 / zubdat D-7 / dafatir M1–M3 · preparation says what it did", () => {
   const q = (ids: string[]) => ids.map((id) => ({ id, sourceSha256: id.padEnd(64, "0") }));
-  it("verse and end scenes left after the gap are «after-gap», never «needs voice»", () => {
+  it("D145: verse and end scenes after a scene still waiting for its voice are drafted too (any order), never «needs voice»", () => {
     const r = pickRenderQueue({ list: q(["c1-s1", "c1-s31", "c1-end"]), beforeVoiceGap: q(["c1-s1"]), gap: "c1-s3" }, { voiceMissing: true });
-    expect(r.todo.map((x) => x.id)).toEqual(["c1-s1"]);
-    expect(r.skipped).toEqual([{ id: "c1-s31", reason: "after-gap", gap: "c1-s3" }, { id: "c1-end", reason: "after-gap", gap: "c1-s3" }]);
+    expect(r.todo.map((x) => x.id)).toEqual(["c1-s1", "c1-s31", "c1-end"]);
+    expect(r.skipped).toEqual([]);
   });
   it("a tone-map scene and the basmala are not «without tone»", () => {
     const plan = { chapters: [{ number: 1, title: "", scenes: [

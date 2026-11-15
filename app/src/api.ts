@@ -148,7 +148,11 @@ export const afterPreparationLine = (what: AfterPreparationWhat[]) =>
 export type SceneProductionRead = {
   schemaVersion: 1;
   channel: string; episode: string; revision: number;
-  progress: { currentScene: string | null; approvedScenes: number; totalScenes: number;
+  progress: {
+    /** The first scene without an approval (where step ٢ opens); any scene may be decided first (D145). */
+    currentScene: string | null; approvedScenes: number; totalScenes: number;
+    /** Every scene without an approval, in episode order: what the assembly still waits for (D145). */
+    unapprovedScenes?: string[];
     canAssemble: boolean; assemblyApproved: boolean; masterApproved: boolean; publishAllowed: boolean;
     /** Verse scenes approved «مشروط بالتلاوة»: assembly and Master wait for their recitation. */
     recitationPending?: string[] };
@@ -331,9 +335,10 @@ export const api = {
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel).then(prepareRead),
-  startScenePrepare: (episode: string, channel: string) =>
+  /** `renderOnly`: «أنتج كل المشاهد الجاهزة» — free renders of scenes whose takes exist; never any voice (D145). */
+  startScenePrepare: (episode: string, channel: string, opts: { renderOnly?: boolean } = {}) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
-      method: "POST",
+      method: "POST", ...(opts.renderOnly ? { json: { renderOnly: true } } : {}),
     }, channel).then(prepareRead),
   /** «سرعة الإلقاء» و«الفاصل بين الجمل»: الإعداد والمشاهد المتأثرة والمدة (قراءة)، والحفظ (pace.json وحده) */
   pace: (episode: string, channel: string | undefined) => call<PaceStatus>(`/api/episodes/${episode}/pace`, undefined, channel),
