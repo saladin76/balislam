@@ -18,6 +18,40 @@
       "status": "open",
       "fixedBy": null,
       "answer": null
+    },
+    {
+      "id": "nac26a6e1cd",
+      "channel": "dafatir-alzaman",
+      "episode": "001-adam-beginning",
+      "sceneId": "",
+      "kind": "error",
+      "note": "The scene is not current or its inputs changed.",
+      "raw": "[خطأ] The scene is not current or its inputs changed.",
+      "tone": null,
+      "timecode": null,
+      "createdAt": "2026-11-15T16:11:05.516Z",
+      "sceneInputSha256": "",
+      "previewSha256": "",
+      "ledgerSeq": 0,
+      "status": "open",
+      "fixedBy": null,
+      "answer": null,
+      "error": {
+        "id": "ecfa0590106",
+        "at": "2026-11-15T16:10:43.447Z",
+        "source": "server",
+        "kind": "route",
+        "route": "/api/episodes/001/scene-av-render",
+        "method": "POST",
+        "message": "The scene is not current or its inputs changed.",
+        "stack": "Error: The scene is not current or its inputs changed.\n    at checkRenderAllowed (./src/studio/sceneGates.ts:71:144)\n    at eval (./src/studio/sceneGates.ts:88:77)\n    at eval (./src/studio/sceneLedgerState.ts:363:10)\n    at async withLock (./src/io/processLock.ts:157:10)\n    at async assertSceneRenderAllowed (./src/studio/sceneGates.ts:88:2)\n    at async renderShotsPreview (./src/render/shotsPreview.ts:131:2)\n    at async file://./node_modules/.vite-temp/vite.config.ts.timestamp-1794753349784-527873330e5dd8.mjs:4510:23\n    at async file://./node_modules/.vite-temp/vite.config.ts.timestamp-1794753349784-527873330e5dd8.mjs:4238:12",
+        "label": null,
+        "episode": "001",
+        "commit": "d0f7842487b8",
+        "log": [
+          "2026-11-15T16:10:43.447Z server/route POST /api/episodes/001/scene-av-render ep 001 [ecfa0590106] The scene is not current or its inputs changed."
+        ]
+      }
     }
   ]
 }
