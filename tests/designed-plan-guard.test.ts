@@ -48,10 +48,19 @@ describe("كشف الخطة المصمَّمة على الخطط القائمة 
     expect(isDesignedPlan(null)).toBe(false);
   });
 
-  it.each(REAL)("%s/%s: نص الخطة المصمَّمة مطابق للسكريبت اليوم (لا اختلاف)", (ch, ep) => {
+  // D142 (بعد KI-070/KI-071): كان هذا الاختبار يثبّت أن السكريبت والخطة متطابقان اليوم، فحمّر main حين صحّح المالك كلمة في
+  // السكريبت (بوابة المحتوى لا تشغّل الاختبارات). الاختلاف حالة يعالجها الاستوديو (يمنع إنتاج المشهد المختلف)،
+  // فالعقد هنا أن الكشف صادق على الحلقات الحقيقية: لا يُبلَّغ عن مشهد يقوله السكريبت حرفيًا، ولا عن نص تقوله الخطة.
+  const flat = (x: string) => x.replace(/\s+/g, " ").trim();
+  it.each(REAL)("%s/%s: كشف اختلاف السكريبت والخطة صادق (لا إنذار كاذب)", (ch, ep) => {
     const dir = real(ch, ep);
-    const gen = generatePlan(parseScript(readFileSync(path.join(dir, "script.md"), "utf8")), null, {}, loadChannel(ch));
-    expect(scriptPlanDivergence(readPlan(dir), gen)).toEqual({ scenes: [], unplaced: [] });
+    const script = readFileSync(path.join(dir, "script.md"), "utf8");
+    const plan = readPlan(dir);
+    const d = scriptPlanDivergence(plan, generatePlan(parseScript(script), null, {}, loadChannel(ch)));
+    const scriptText = flat(script);
+    for (const s of d.scenes) expect(scriptText.includes(flat(s.narration)), s.id).toBe(false);
+    const planText = flat(plan.chapters.flatMap((c) => c.scenes).map((s) => s.narration).join(" "));
+    for (const u of d.unplaced) expect(planText.includes(flat(u.text)), `line ${u.line}`).toBe(false);
   });
 });
 
