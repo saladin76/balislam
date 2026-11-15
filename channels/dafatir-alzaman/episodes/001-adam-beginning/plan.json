@@ -24,7 +24,7 @@
           "sfx": [
             {
               "id": "swipe-paper",
-              "at": 0.5
+              "at": 1
             },
             {
               "id": "pop",
@@ -666,7 +666,10 @@
             "shot": "closing"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "overlays": {
+            "captions": false
+          }
         }
       ]
     }
@@ -678,5 +681,5 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-15T05:24:18.870Z"
+  "updatedAt": "2026-11-15T05:24:58.856Z"
 }
