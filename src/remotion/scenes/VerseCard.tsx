@@ -1,5 +1,6 @@
 import React from "react";
-import { interpolate, useVideoConfig } from "remotion";
+import { AbsoluteFill, interpolate, useVideoConfig } from "remotion";
+import { INK_VERSE, Paper, H as INK_H, W as INK_W, inkVerseParts } from "../zubdat/inkKit";
 import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { SceneShell } from "./SceneShell";
@@ -276,6 +277,43 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
   const pending = !text.trim() || text === VERSE_PLACEHOLDER;
   // «·» بجوار الأرقام العربية يُقرأ «٠» (D61): الفاصل فاصلة عربية، «سورة طه، الآية ١٤»
   const ref = inkVerseReference(reference);
+  if (!portrait) {
+    // طلب المالك (١٥ نوفمبر): التمهيد «كما جاء في سورة …» والبطاقة مشهد واحد على الشاشة. الورقة ورأس «سورة …» والخط تحته
+    // بموضع آخر لقطة في التمهيد وخطه (INK_VERSE)، فلا تتلاشى ولا تتحرك؛ ويُضاف تحتها رقم الآية ونصها فقط.
+    const V = INK_VERSE;
+    const parts = inkVerseParts(reference);
+    const z = { ink: c.ink, paper: c.bg, hl: c.highlight, alert: c.secondary, faint: c.inkSoft };
+    return (
+      <SceneShell {...props} exitFrames={props.recitationDuration ? 0 : undefined} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
+        <AbsoluteFill>
+          <svg viewBox={`0 0 ${INK_W} ${INK_H}`} width="100%" height="100%" style={{ position: "absolute", inset: 0 }}>
+            <Paper z={z} />
+            <line x1={960 - V.ruleHalf} x2={960 + V.ruleHalf} y1={V.ruleY} y2={V.ruleY} stroke={c.ink} strokeWidth={V.ruleW} />
+            <text x={960} y={V.headY} direction="rtl" textAnchor="middle" style={{ fontFamily: fontFamilies.heading, fontSize: V.headSize, fill: c.ink }} data-k="verse-head">سورة {parts.surah}</text>
+            {parts.ayah ? (
+              <text x={960} y={V.ayahY} direction="rtl" textAnchor="middle" opacity={inP} style={{ fontFamily: fontFamilies.heading, fontSize: V.ayahSize, fill: c.inkSoft }}>{arabicDigits(parts.ayah)}</text>
+            ) : null}
+          </svg>
+          <div style={{ position: "absolute", left: 0, right: 0, top: V.textTop, height: V.textBottom - V.textTop, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: 40, padding: "0 220px", opacity: inP }}>
+            {pending ? (
+              <div style={{ fontFamily: fontFamilies.body, fontWeight: 700, fontSize: Math.round(refSize * 1.15), lineHeight: 1.6, color: c.secondary, textAlign: "center", direction: "rtl", border: `4px dashed ${c.secondary}`, borderRadius: 12, padding: "24px 48px", maxWidth: 1100 }}>
+                تنبيه مراجعة: نص الآية لم يُجلب من مصدره المعتمد
+                <div style={{ fontWeight: 400, fontSize: Math.round(refSize * 0.9), color: c.inkSoft }}>البطاقة غير مكتملة ولا تُعتمد — اجلب نصوص الآيات ثم أعد المعاينة</div>
+              </div>
+            ) : (
+              <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: 1400 }}>{text}</div>
+            )}
+            <div style={{ width: 2 * V.ruleHalf, height: V.ruleW, background: c.ink }} />
+            {reciter ? (
+              <div style={{ fontFamily: fontFamilies.body, fontSize: refSize, color: c.inkSoft }}>
+                <T k="recitedBy" /> {reciter}
+              </div>
+            ) : null}
+          </div>
+        </AbsoluteFill>
+      </SceneShell>
+    );
+  }
   return (
     <SceneShell {...props} exitFrames={props.recitationDuration ? 0 : undefined} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", gap: portrait ? 56 : 44, padding: portrait ? "0 80px 220px" : "0 220px 40px", opacity: inP }}>

@@ -65,6 +65,17 @@ export const measure = (text: string, size: number, family: string, weight = 400
 export type Font = "hand" | "head" | "body";
 export const fam = (f: Font) => (f === "head" ? fontFamilies.heading : f === "hand" ? fontFamilies.hand : fontFamilies.body);
 
+/**
+ * رأس بطاقة الآية بالحبر (طلب المالك ١٥ نوفمبر: «كما جاء في سورة كذا» وبطاقة الآية مشهد واحد على الشاشة).
+ * تمهيد الآية يكتب «سورة …» والخط تحتها في هذا الموضع بالضبط، والبطاقة تبدأ منه كما هو، فلا قطع بينهما.
+ */
+export const INK_VERSE = { headY: 300, headSize: 96, ruleY: 352, ruleHalf: 280, ruleW: 3, ayahY: 424, ayahSize: 50, textTop: 470, textBottom: 1010 } as const;
+/** «طه · ١٤» ← { surah: «طه»، ayah: «الآية ١٤» }، و«المؤمنون · ١–٢» ← «الآيتان ١–٢» */
+export const inkVerseParts = (reference: string) => {
+  const [surah = "", ayah = ""] = reference.split(/\s*·\s*/);
+  return { surah: surah.trim(), ayah: ayah.trim() ? `${/[–-]/.test(ayah) ? "الآيتان" : "الآية"} ${ayah.trim()}` : "" };
+};
+
 // ── الورق ───────────────────────────────────────────────────────────────
 export const Paper: React.FC<{ z: Z }> = ({ z }) => (
   <g>
