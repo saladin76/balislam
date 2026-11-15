@@ -1,5 +1,5 @@
 /**
- * D136 (KI-067): the line beside the scene's player when a conversation's change reached this machine after the
+ * D141 (KI-070): the line beside the scene's player when a conversation's change reached this machine after the
  * scene's video was made. The same in the three channels. Pure: no React, no server call.
  * Videos made in a cloud conversation never reach the studio (CLAUDE.md: audio and video never go to Git), so the
  * new picture is seen only after «أنتج هذا المشهد» here; a pronunciation/tashkeel/tone change needs the owner's

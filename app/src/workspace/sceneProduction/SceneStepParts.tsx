@@ -130,7 +130,7 @@ export const SceneSide: React.FC<StepPart> = ({ m, v }) => {
       {/* QA 12 Nov: «ينقصه صوت الراوي» is said once, in the reasons line above (no second copy here) */}
       {/* 11 Nov: a quiet line, never a second approval: the scene is reviewed with «اعتمد المشهد» like any other */}
       {shownServer?.afterPreparation ? <p className="sp-hint s3-afterprep" role="note">{afterPreparationLine(shownServer.afterPreparation.what)}</p> : null}
-      {/* D136: a conversation's change arrived after this video was made; the cloud never sends videos here */}
+      {/* D141: a conversation's change arrived after this video was made; the cloud never sends videos here */}
       {shownServer?.remoteChange ? <p className="sp-hint s3-remote" role="status">{remoteChangeLine(shownServer.remoteChange)}</p> : null}
       {shownServer?.blocked?.length || (shownServer && !shownServer.approved && data?.episodeBlocked?.length) ? (
         <p className="sp-hint s3-blocked" role="alert">لا يُنتج قبل إصلاح: {ownerText([...(shownServer.blocked ?? []), ...(data?.episodeBlocked ?? [])].join(" — "), order)}</p>

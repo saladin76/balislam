@@ -1,5 +1,5 @@
 /**
- * D136 (KI-067, owner, 14 Nov, زبدة الكتب): «هو قالي انه اعاد انتاج المشهد ولكن لا يظهر الجديد». A channel conversation
+ * D141 (KI-070, owner, 14 Nov, زبدة الكتب): «هو قالي انه اعاد انتاج المشهد ولكن لا يظهر الجديد». A channel conversation
  * changes a scene in the cloud and pushes to main; the owner's studio receives it (D101) but videos never travel
  * through Git, so his old video stays on screen. Over the REAL Studio server and two clones of one bare «GitHub»:
  *   «cloud» pushes a plan change on scene 1 and a renderer-code change that names scene 2 (`Studio-Scenes:`) →
@@ -31,7 +31,7 @@ afterAll(() => { globalThis.fetch = realFetch; });
 
 for (const channel of selectedChannels()) {
   const c: ChannelCase = CASES[channel]!;
-  describe(`D136 a conversation's edit reaches the studio — ${channel}`, () => {
+  describe(`D141 a conversation's edit reaches the studio — ${channel}`, () => {
     let st: Studio;
     let epDir = "";
     let cloud = "";
