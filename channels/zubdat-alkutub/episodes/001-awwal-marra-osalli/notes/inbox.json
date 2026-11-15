@@ -18,6 +18,24 @@
       "status": "open",
       "fixedBy": null,
       "answer": null
+    },
+    {
+      "id": "n1d668306b2",
+      "channel": "zubdat-alkutub",
+      "episode": "001-awwal-marra-osalli",
+      "sceneId": "c1-s30",
+      "kind": "motion",
+      "note": "عند وَإِذَا كَانَتِ الصَّلَاةُ تَبْدَأُ بِالتَّكْبِيرِ لا يوجد حركة على الشاشة يحتاج ان يكون فعال اكثر",
+      "raw": "[الحركة @0:14] عند وَإِذَا كَانَتِ الصَّلَاةُ تَبْدَأُ بِالتَّكْبِيرِ لا يوجد حركة على الشاشة يحتاج ان يكون فعال اكثر",
+      "tone": null,
+      "timecode": "0:14",
+      "createdAt": "2026-11-15T10:27:26.918Z",
+      "sceneInputSha256": "b1b261d67688c8e36dafd7d5e08a36a657ef511dd5d70d75efc0c1fafddb5953",
+      "previewSha256": "bc5223443a657af66a6c7201fd922b3c059d36ea65d2cf2468c61f74c62a3484",
+      "ledgerSeq": 87,
+      "status": "open",
+      "fixedBy": null,
+      "answer": null
     }
   ]
 }
