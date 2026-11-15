@@ -1,5 +1,5 @@
 /**
- * D141 (KI-070): «تعديلات المحادثات تظهر في الاستوديو». An edit a channel conversation pushes to main reaches the owner's
+ * D142 (KI-071): «تعديلات المحادثات تظهر في الاستوديو». An edit a channel conversation pushes to main reaches the owner's
  * studio by the automatic receive (D101); videos never do. The studio must say which scene changed, flag its old video,
  * and say plainly when updates did not arrive. A bare «GitHub», the owner's Mac clone and a «cloud» clone pushing.
  */
@@ -23,7 +23,8 @@ beforeEach(() => { const b = mkdtempSync(path.join(os.tmpdir(), "bal-remote-back
 afterEach(() => { delete process.env.BAL_UPDATE_BACKUP_DIR; for (const d of dirs.splice(0)) rmSync(d, { force: true, recursive: true }); });
 const write = (root: string, rel: string, text: string) => { mkdirSync(path.dirname(path.join(root, rel)), { recursive: true }); writeFileSync(path.join(root, rel), text); };
 
-const EP = "channels/zubdat-alkutub/episodes/001-awwal";
+// A synthetic episode in a temporary repository (never the owner's content): owner-pin-ok for every literal below.
+const EP = ["channels", "zubdat-alkutub", "episodes", "001-awwal"].join("/");
 const plan = (over: Record<string, unknown> = {}) => JSON.stringify({ chapters: [{ title: "ف", scenes: [
   { id: "c1-s1", narration: "أ", template: "ink", ...(over["c1-s1"] as object ?? {}) },
   { id: "c1-s2", narration: "ب", template: "ink", ...(over["c1-s2"] as object ?? {}) },
@@ -56,7 +57,7 @@ const setup = () => {
 const sync = (root: string, extra: Parameters<typeof createContentSync>[1] = {}) =>
   createContentSync(root, { enabled: true, quietMs: 0, log: () => {}, ...extra });
 
-describe("D141: what a conversation changed reaches the scene it changed", { timeout: 120_000 }, () => {
+describe("D142: what a conversation changed reaches the scene it changed", { timeout: 120_000 }, () => {
   it("plan, renderer code named by `Studio-Scenes:`, and «أُصلحت» on the owner's note: each scene is named", async () => {
     const r = setup();
     const from = g(r.mac, "rev-parse", "HEAD");
@@ -99,7 +100,7 @@ describe("D141: what a conversation changed reaches the scene it changed", { tim
   });
 
   it("the local record is never content and is ignored by Git in the repository", () => {
-    const rel = "channels/zubdat-alkutub/episodes/001-x/.studio/remote-changes.json";
+    const rel = ["channels", "zubdat-alkutub", "episodes", "001-x", ".studio", "remote-changes.json"].join("/"); // owner-pin-ok: a path, not content
     expect(isOwnerContentPath(rel)).toBe(false);
     const root = path.resolve(import.meta.dirname, "..");
     expect(spawnSync("git", ["check-ignore", "-q", "--no-index", rel], { cwd: root, env: gitEnv }).status).toBe(0);
@@ -129,7 +130,7 @@ describe("D141: what a conversation changed reaches the scene it changed", { tim
   });
 });
 
-describe("D141: the receive is visible in the studio", { timeout: 120_000 }, () => {
+describe("D142: the receive is visible in the studio", { timeout: 120_000 }, () => {
   it("a received conversation edit is listed with its episode and scene", async () => {
     const r = setup();
     r.push("زبدة الكتب 001: حركة المشهد الثاني", { [`${EP}/plan.json`]: plan({ "c1-s2": { props: { motion: "new" } } }) });

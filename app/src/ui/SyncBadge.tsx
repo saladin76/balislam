@@ -14,7 +14,7 @@ const LABEL: Record<SyncStatus["state"], string> = {
   behind: "لم تصل التحديثات",
 };
 /**
- * D141: reload when an update arrived, unless the server is about to restart (then the page comes back by itself when
+ * D142: reload when an update arrived, unless the server is about to restart (then the page comes back by itself when
  * it answers again). Before, a server-code update that arrived during a render kept `restartNeeded` and the page never
  * reloaded again, so every later conversation edit stayed invisible until a manual reload.
  */

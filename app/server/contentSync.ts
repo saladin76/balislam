@@ -31,7 +31,7 @@ import { recordRemoteChanges, type ReceivedSummary } from "../../src/studio/remo
 
 export type SyncState = {
   enabled: boolean;
-  /** behind (D141): استقبال التحديثات فشل (لا اتصال، فرع متباعد، عملية Git معلقة…)؛ السبب في receiveError */
+  /** behind (D142): استقبال التحديثات فشل (لا اتصال، فرع متباعد، عملية Git معلقة…)؛ السبب في receiveError */
   state: "off" | "synced" | "saving" | "pending" | "updating" | "conflict" | "error" | "behind";
   message: string;
   /** ملفات محتوى تنتظر الحفظ في main */
@@ -49,9 +49,9 @@ export type SyncState = {
   restartPending?: boolean;
   /** آخر محاولة استقبال (نجحت أو فشلت) */
   lastCheckAt?: string;
-  /** سبب فشل آخر استقبال بالعربية؛ يُمحى عند أول استقبال ناجح (D141) */
+  /** سبب فشل آخر استقبال بالعربية؛ يُمحى عند أول استقبال ناجح (D142) */
   receiveError?: string;
-  /** ما وصل في آخر تحديث: الحلقات والمشاهد وما تغيّر فيها (src/studio/remoteChanges.ts، D141) */
+  /** ما وصل في آخر تحديث: الحلقات والمشاهد وما تغيّر فيها (src/studio/remoteChanges.ts، D142) */
   lastReceived?: ReceivedSummary;
   supervised: boolean;
 };
@@ -244,7 +244,7 @@ export const createContentSync = (root: string, opts: {
     setTimeout(() => opts.onRestart?.(), 1_500);
   };
   const headOf = async () => { const h = await run(root, ["rev-parse", "HEAD"]); return h.ok ? h.out : ""; };
-  /** D141: a failed receive is said, never swallowed (it used to fall back to «محفوظ في كل الأماكن»). */
+  /** D142: a failed receive is said, never swallowed (it used to fall back to «محفوظ في كل الأماكن»). */
   const receiveFailed = (why: string) => {
     state.receiveError = why;
     log(`auto-update: ${why}`);
@@ -334,7 +334,7 @@ export const createContentSync = (root: string, opts: {
         state.message = (result.reason === "gate"
           ? `لم يُحفظ في المستودع: رفضت البوابة التعديل.\n${result.message}`
           : "لم يُحفظ في المستودع بعد — سيُعاد تلقائيًا") +
-          // D141: a failed receive is said here too (offline fails both ways)
+          // D142: a failed receive is said here too (offline fails both ways)
           (state.receiveError ? `\nولم تصل التحديثات إلى هذا الجهاز: ${state.receiveError}` : "");
         log(`content save failed (${result.reason}): ${result.message}`);
       }
