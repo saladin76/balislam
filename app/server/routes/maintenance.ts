@@ -13,6 +13,29 @@ export const handleMaintenanceRoutes = async (ctx: RouteCtx): Promise<boolean> =
     const [sync, chMod] = await Promise.all([load("/src/studio/notesSync.ts"), load("/src/channel/index.ts")]);
     return send(res, 200, await sync.studioNotesStatus(chMod.channelsDir())), true;
   }
+  // «جلسة عمل» (D141): علم notes/work-session.json على studio-notes تقرؤه المهمة المجدولة؛ يكتبه استوديو المالك وحده
+  if (parts[0] === "notes" && parts[1] === "work-session" && parts.length === 2) {
+    if (req.method === "GET") {
+      const [ws, chMod] = await Promise.all([load("/src/studio/workSession.ts"), load("/src/channel/index.ts")]);
+      return send(res, 200, await ws.workSessionStatus({ channelsDir: chMod.channelsDir() })), true;
+    }
+    if (req.method === "POST") {
+      const refusal = await ownerRefusal(ctx);
+      if (refusal) return send(res, 403, { error: "جلسة العمل تُشغَّل من الاستوديو على جهاز المالك فقط.", code: "NOT_OWNER_REQUEST" }), true;
+      const { action, hours, channel } = await readBody(req);
+      const [ws, chMod] = await Promise.all([load("/src/studio/workSession.ts"), load("/src/channel/index.ts")]);
+      if (action === "start") {
+        if (!ws.WORK_SESSION_HOURS.includes(hours ?? ws.DEFAULT_WORK_SESSION_HOURS))
+          return send(res, 400, { error: "اختر مدة الجلسة: ساعة أو ساعتان أو ٣ ساعات." }), true;
+        if (channel != null && (typeof channel !== "string" || !chMod.listChannels().includes(channel)))
+          return send(res, 400, { error: "القناة غير موجودة." }), true;
+        await ws.startWorkSession({ channelsDir: chMod.channelsDir(), hours: hours ?? ws.DEFAULT_WORK_SESSION_HOURS, channel: channel ?? null });
+      } else if (action === "stop") {
+        await ws.stopWorkSession({ channelsDir: chMod.channelsDir() });
+      } else return send(res, 400, { error: "طلب غير صالح." }), true;
+      return send(res, 200, await ws.workSessionStatus({ channelsDir: chMod.channelsDir() })), true;
+    }
+  }
   // «كل الأماكن نسخة واحدة» (D101): حالة الحفظ الآلي، و«احفظ الآن»، وإعادة التشغيل بعد تحديث كود الخادم
   if (parts[0] === "sync") {
     const sync = getSharedContentSync();

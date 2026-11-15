@@ -55,6 +55,8 @@ const probe = async (method: string, route: string): Promise<string> => {
 const INVENTORY: Record<string, string> = {
   // صيانة الاستوديو: الملاحظات، والحفظ الآلي، والتحديث
   "GET notes/status": "reached",
+  "GET notes/work-session": "reached",
+  "POST notes/work-session": "reached",
   "GET sync": "send 200",
   "POST sync": "send 200",
   "POST sync/restart": "send 200",
