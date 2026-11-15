@@ -665,10 +665,15 @@
           "props": {
             "shot": "closing"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "aah-outro",
+              "at": 1.5
+            }
+          ],
           "edited": true,
           "overlays": {
-            "captions": false
+            "captions": true
           }
         }
       ]
@@ -681,5 +686,5 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-15T05:24:58.856Z"
+  "updatedAt": "2026-11-15T05:25:13.507Z"
 }
