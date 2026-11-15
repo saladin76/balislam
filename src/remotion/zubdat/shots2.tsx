@@ -1415,8 +1415,14 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
     nameAr: "باب القراءة: الحلقة القادمة",
     render: (c) => {
       const { frame, z, at, end, T, P } = kit(c);
-      // السكريبت المعتمد (١١ نوفمبر): «وإذا كانت الصلاة تبدأ بالتكبير، فماذا عن الكلام الذي نقرؤه بعده؟ هناك ينفتح باب الحلقة القادمة:
+      // السكريبت (تصحيح المالك ١٥ نوفمبر): «وإذا كانت الصلاة تبدأ بالتكبير، فماذا عن الكلام الذي نقرؤه بعده؟ هناك ينفتح باب الحلقة القادمة:
       // كيف نقرأ القرآن في الصلاة بفهم وانتباه؟ كانت هذه قراءتنا الأولى من كتاب «أول مرة أصلي» للدكتور خالد أبو شادي، من «زبدة الكتب».»
+      // ملاحظة المالك n1d668306b2: الجملة الأولى كانت بلا حركة؛ الآن «الصلاة» مصلٍّ قائم، و«تبدأ بالتكبير» تُكتب
+      // ويرفع يديه لحظة «بالتكبير»، ثم يخرج مع «الكلام» ليفسح للكتاب.
+      const tSalah = at("الصلاة", 0.03);
+      const tStart = at("تبدأ", 0.05);
+      const tTakbir = at("بالتكبير", 0.08);
+      const raise = P(tTakbir - 2, tTakbir + 6);
       const tWhat = at("فماذا", 0.14);
       const tNear = at("الكلام", 0.18);
       const tMeanings = at("نقرؤه", 0.24);
@@ -1433,9 +1439,10 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
       const tChannel = at("زبدة", 0.92);
       const open = P(tDoor, tDoor + 24);
       const out = P(tFirst - 10, tFirst + 8);
+      const takbirOut = P(tNear - 4, tNear + 8);
       const bookIn = P(tFirst - 4, tFirst + 14);
       return {
-        focus: [[tWhat, 620, 330], [tNear, 960, 440], [tMeanings, 960, 460], [tDoor, 960, 460], [tNext, 960, 240], [tPrayer, 760, 600], [tInter, 960, 560], [tHearts, 960, 560], [tFirst, 1300, 500], [tFirstW, 1300, 380], [tBook, 1300, 500], [tAuthor, 700, 520], [tChannel, 700, 620]],
+        focus: [[tSalah, 760, 560], [tStart, 1100, 420], [tTakbir, 900, 440], [tWhat, 620, 330], [tNear, 960, 440], [tMeanings, 960, 460], [tDoor, 960, 460], [tNext, 960, 240], [tPrayer, 760, 600], [tInter, 960, 560], [tHearts, 960, 560], [tFirst, 1300, 500], [tFirstW, 1300, 380], [tBook, 1300, 500], [tAuthor, 700, 520], [tChannel, 700, 620]],
         cam: [C(0, 900, 440, 1.2), C(tDoor - 6, 960, 520, 1.15), C(tFirst - 8, 1000, 520, 1.0), C(tChannel - 6, 820, 600, 1.15)],
         world: (
           <g>
@@ -1447,6 +1454,12 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 <rect x={-320} y={0} width={320} height={480} rx={8} fill={z.paper} stroke={z.ink} strokeWidth={7} />
                 <circle cx={-280} cy={250} r={10} fill={z.ink} />
               </g>
+              {/* «وإذا كانت الصلاة تبدأ بالتكبير»: مصلٍّ قائم، ثم يرفع يديه عند «بالتكبير»، والعبارة تُكتب بجواره */}
+              <g data-k="door-takbir" opacity={1 - takbirOut}>
+                <g data-k="door-stand" opacity={1 - raise}><InkPerson x={640} y={700} s={0.7} pose="stand" p={P(tSalah - 4, tSalah + 14)} z={z} dir={1} /></g>
+                {raise > 0 ? <g data-k="door-raise" opacity={raise}><InkPerson x={640} y={700} s={0.7} pose="raise" z={z} dir={1} /></g> : null}
+              </g>
+              <g opacity={1 - takbirOut}>{T("tb", 1360, 330, "تبدأ بالتكبير", 66, ["تبدأ", 0.05], ["بالتكبير", 0.08], { font: "head" })}</g>
               {/* «فماذا عن الكلام الذي نقرؤه بعده؟» */}
               <g opacity={1 - P(tDoor - 6, tDoor + 6)}>{T("wq", 620, 330, "؟", 150, ["فماذا", 0.14], undefined, { font: "head" })}</g>
               {T("bq", 960, 790, "بفهم وانتباه", 66, ["بفهم", 0.48], ["وانتباه", 0.5], { font: "head" })}
