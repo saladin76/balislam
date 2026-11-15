@@ -673,10 +673,10 @@
   ],
   "tone": "warm",
   "overlays": {
-    "captions": false,
+    "captions": true,
     "motif": true,
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-15T05:35:28.745Z"
+  "updatedAt": "2026-11-15T05:55:45.468Z"
 }
