@@ -18,7 +18,8 @@
           "line": 16,
           "props": {
             "shot": "cover",
-            "page": "blank"
+            "page": "blank",
+            "exit": ""
           },
           "sfx": [
             {
@@ -62,10 +63,7 @@
             "reveal": "fade"
           },
           "sfx": [],
-          "edited": true,
-          "overlays": {
-            "captions": false
-          }
+          "edited": true
         },
         {
           "id": "c1-s2",
@@ -670,5 +668,5 @@
     "motif": true,
     "watermark": true
   },
-  "updatedAt": "2026-11-15T05:14:04.401Z"
+  "updatedAt": "2026-11-15T05:16:56.135Z"
 }
