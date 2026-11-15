@@ -142,7 +142,10 @@
             "from": "555,575,1.12"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "overlays": {
+            "captions": false
+          }
         },
         {
           "id": "c1-s11",
@@ -626,5 +629,6 @@
         }
       ]
     }
-  ]
+  ],
+  "updatedAt": "2026-11-15T05:09:08.522Z"
 }
