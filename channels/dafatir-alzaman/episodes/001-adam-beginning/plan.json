@@ -40,14 +40,17 @@
             {
               "id": "hum-low",
               "at": 0.5
+            },
+            {
+              "id": "aah-rise",
+              "at": 0.5
+            },
+            {
+              "id": "aah-soft",
+              "at": 0.5
             }
           ],
-          "edited": true,
-          "overlays": {
-            "captions": false,
-            "motif": true,
-            "watermark": true
-          }
+          "edited": true
         },
         {
           "id": "c1-s1",
@@ -174,11 +177,6 @@
             }
           ],
           "edited": true,
-          "overlays": {
-            "captions": false,
-            "motif": true,
-            "watermark": true
-          },
           "tone": "warm"
         },
         {
@@ -664,5 +662,10 @@
       ]
     }
   ],
-  "updatedAt": "2026-11-15T05:13:16.691Z"
+  "overlays": {
+    "captions": false,
+    "motif": true,
+    "watermark": true
+  },
+  "updatedAt": "2026-11-15T05:13:58.382Z"
 }
