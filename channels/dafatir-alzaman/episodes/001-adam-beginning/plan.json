@@ -668,7 +668,7 @@
           "sfx": [
             {
               "id": "aah-outro",
-              "at": 1.5
+              "at": 1
             }
           ],
           "edited": true,
@@ -686,5 +686,5 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-15T05:25:13.507Z"
+  "updatedAt": "2026-11-15T05:25:28.009Z"
 }
