@@ -62,7 +62,10 @@
             "reveal": "fade"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "overlays": {
+            "captions": false
+          }
         },
         {
           "id": "c1-s2",
@@ -667,5 +670,5 @@
     "motif": true,
     "watermark": true
   },
-  "updatedAt": "2026-11-15T05:13:58.382Z"
+  "updatedAt": "2026-11-15T05:14:04.401Z"
 }
