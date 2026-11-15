@@ -544,6 +544,11 @@ const notesCmd = program
     const channel = program.opts<{ channel?: string }>().channel;
     const r = await listStudioNotes({ repoDir: projectRoot, channel, open: opts.open, fetch: opts.fetch });
     if (opts.json) { console.log(JSON.stringify(r, null, 2)); return; }
+    // حالة main في CI أولًا (KI-068، D137): حفظ الاستوديو لا يشغّل الاختبارات، فلا يحمرّ main بصمت
+    if (opts.fetch !== false) {
+      const ci = (await import("../studio/mainCiStatus")).mainCiStatus(projectRoot);
+      if (ci) console.log(ci + "\n");
+    }
     if (r.message) console.log(r.message);
     if (r.fetched === "missing") console.log("لا فرع studio-notes على GitHub بعد (لم تُرسل ملاحظة).");
     if (!r.notes.length) { console.log(opts.open ? "لا ملاحظات مفتوحة." : "لا ملاحظات."); return; }

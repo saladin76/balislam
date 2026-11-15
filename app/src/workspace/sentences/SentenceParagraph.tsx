@@ -13,6 +13,7 @@ import {
   BasmalaBlock, OlderNote, PlayControl, SceneControl, SentenceFixLine, SentenceSplit, TakeNote, WordChips, type SentencesPart,
 } from "./SentenceParts";
 import { SayEditor } from "./SayEditor";
+import { SceneToneBar } from "./ToneParts";
 
 export const SentenceParagraph: React.FC<SentencesPart & { s: SentenceScene }> = ({ m, p, s }) => {
   const { read, cur, setCur, busy, drafts, setDrafts, noKey, editing, setEditing, chipsFor, ps, sceneQueue, fixing, setFixing, setWhy, fixed, setFixed,
@@ -42,6 +43,7 @@ export const SentenceParagraph: React.FC<SentencesPart & { s: SentenceScene }> =
       ) : s.import?.state === "unreliable" && s.audio.state !== "sentences" ? <p className="sp-hint sv-note">{s.import.note}</p> : null}
       {s.managed && s.waiting ? <p className="sv-wait" role="status">{s.waiting}</p> : null}
       <OlderNote s={s} />
+      <SceneToneBar m={m} p={p} s={s} />
       <p className="sv-paragraph">
         {rows.map((x, k) => {
           const isCur = x.id === r.id;

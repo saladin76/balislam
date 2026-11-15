@@ -340,8 +340,12 @@ export const EpisodeTab: React.FC<{
               // D97: say before applying how many existing recordings the new tone would need generated again (nothing is generated).
               void api.toneImpact(episodeId, undefined, next || null).then((r) => {
                 const n = r.sentences.length, m = r.scenes.length;
-                if (!n && !m) return set();
-                if (window.confirm(`هذه النبرة تغيّر صوت تسجيلات قائمة: سيحتاج ${n ? `${n.toLocaleString("ar-EG")} جملة` : ""}${n && m ? " و" : ""}${m ? `${m.toLocaleString("ar-EG")} مشهد` : ""} توليدًا جديدًا مدفوعًا. لا يُولَّد شيء الآن، والتسجيلات القائمة تبقى محفوظة. أتختارها؟`)) set();
+                // D136: also how many existing takes are heard with the new tone only once generated again, and the cost
+                const g = r.regenerate?.ids.length ?? 0;
+                if (!n && !m && !g) return set();
+                const heard = g ? ` تُسمع ${g.toLocaleString("ar-EG")} جملة بالنبرة الجديدة بعد توليدها (نحو ${(r.regenerate!.credits).toLocaleString("ar-EG")} من رصيد الصوت)، وتظهر عليها «النبرة تغيّرت — اضغط ولّد لتسمع الجديد».` : "";
+                const need = n || m ? `هذه النبرة تغيّر صوت تسجيلات قائمة: سيحتاج ${n ? `${n.toLocaleString("ar-EG")} جملة` : ""}${n && m ? " و" : ""}${m ? `${m.toLocaleString("ar-EG")} مشهد` : ""} توليدًا جديدًا مدفوعًا.` : "";
+                if (window.confirm(`${need}${heard} لا يُولَّد شيء الآن، والتسجيلات القائمة تبقى محفوظة. أتختارها؟`.trim())) set();
               }, () => { if (window.confirm("تعذّر حساب أثر النبرة على التسجيلات القائمة. أتختارها؟")) set(); });
             }} style={{ width: 260 }}>
               <option value="">{channel.tone && channel.tone in tones ? `نبرة القناة (${tones[channel.tone as keyof typeof tones].nameAr})` : `بلا نبرة للحلقة (يلزم اختيار نبرة كل مشهد)`}</option>

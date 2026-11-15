@@ -287,3 +287,17 @@
   border: 1px solid var(--line, #e6e3dc); border-radius: var(--r, 6px); background: var(--panel-2, #faf9f6); color: var(--ink, #1e2320); resize: vertical; field-sizing: content; }
 .sv-say-text:focus { outline: none; border-color: var(--accent, #2c5e55); }
 .sv-say.is-custom .sv-say-text { border-color: var(--accent, #2c5e55); }
+
+/* D136: the take's tone beside the next one, «قارن: القديم / الجديد», and the scene/episode tone bar */
+.sv-tonebox { margin: 4px 0; }
+.sv-tones { margin: 2px 0; }
+.sv-tone-changed { margin: 4px 0; padding: 5px 10px; border-radius: 8px; background: var(--warn-soft, #f6eedc); color: var(--warn, #94621a); font-size: 0.92em; line-height: 1.7; }
+.sv-tone-changed b { font-weight: 700; }
+.sv-compare { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 4px 0; }
+.sv-cmp-take { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 4px; padding: 2px 6px; border: 1px solid var(--line, #e2ddd2); border-radius: 8px; }
+.sv-cmp-take.is-current { border-color: var(--accent, #c9a24a); }
+.sv-cmp-used { font-size: var(--t-12); color: var(--mute); padding: 0 4px; }
+.sv-tonebar { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; margin: 6px 0; }
+.sv-tonebar .sv-sel span:not(.ms-vh) { margin-inline-end: 6px; }
+.sv-tone-impact { flex-basis: 100%; margin: 2px 0; font-size: 0.92em; line-height: 1.8; }
+.sv-tone-impact .btn { margin-inline-start: 6px; }

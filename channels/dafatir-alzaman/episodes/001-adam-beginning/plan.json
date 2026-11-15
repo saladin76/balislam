@@ -18,10 +18,33 @@
           "line": 16,
           "props": {
             "shot": "cover",
-            "page": "blank"
+            "page": "blank",
+            "exit": ""
           },
-          "sfx": [],
-          "edited": true
+          "sfx": [
+            {
+              "id": "swipe-paper",
+              "at": 2
+            },
+            {
+              "id": "aah-intro",
+              "at": 1
+            },
+            {
+              "id": "hum-low",
+              "at": 0.5
+            },
+            {
+              "id": "aah-rise",
+              "at": 0.5
+            },
+            {
+              "id": "aah-soft",
+              "at": 0.5
+            }
+          ],
+          "edited": true,
+          "durationSec": 3
         },
         {
           "id": "c1-s1",
@@ -33,7 +56,8 @@
             "reveal": "fade"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 2.5
         },
         {
           "id": "c1-s2",
@@ -141,8 +165,14 @@
             "shot": "question",
             "from": "555,575,1.12"
           },
-          "sfx": [],
-          "edited": true
+          "sfx": [
+            {
+              "id": "swipe-paper",
+              "at": 0.5
+            }
+          ],
+          "edited": true,
+          "tone": "warm"
         },
         {
           "id": "c1-s11",
@@ -494,7 +524,8 @@
             "termWord": "هداية",
             "verseKey": "2:38",
             "verseText": "قُلْنَا اهْبِطُوا مِنْهَا جَمِيعًا فَإِمَّا يَأْتِيَنَّكُمْ مِنِّي هُدًى فَمَنْ تَبِعَ هُدَايَ فَلَا خَوْفٌ عَلَيْهِمْ وَلَا هُمْ يَحْزَنُونَ",
-            "verseFrom": "وأن"
+            "verseFrom": "آدم",
+            "safeWord": "بالأمن"
           },
           "sfx": [],
           "edited": true
@@ -621,10 +652,23 @@
           "props": {
             "shot": "closing"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "aah-outro",
+              "at": 1
+            }
+          ],
           "edited": true
         }
       ]
     }
-  ]
+  ],
+  "tone": "warm",
+  "overlays": {
+    "captions": true,
+    "motif": true,
+    "watermark": true,
+    "chapterLabel": false
+  },
+  "updatedAt": "2026-11-15T05:58:22.986Z"
 }

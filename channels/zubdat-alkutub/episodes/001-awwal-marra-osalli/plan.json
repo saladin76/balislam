@@ -6,7 +6,7 @@
   "themeId": "warm",
   "channel": "zubdat-alkutub",
   "lang": "ar",
-  "updatedAt": "2026-11-14T17:59:57.870Z",
+  "updatedAt": "2026-11-15T09:45:28.845Z",
   "chapters": [
     {
       "number": 1,
@@ -332,7 +332,12 @@
             "task": "نستحضر معنى التكبير"
           },
           "captions": false,
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "aah-outro",
+              "at": 8
+            }
+          ],
           "durationSec": 8,
           "edited": true
         }
