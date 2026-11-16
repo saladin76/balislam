@@ -627,9 +627,5 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-15T15:49:34.707Z",
-  "pace": {
-    "rate": 1.1,
-    "gap": 0.4
-  }
+  "updatedAt": "2026-11-15T15:49:34.707Z"
 }

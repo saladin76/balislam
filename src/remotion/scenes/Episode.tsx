@@ -71,7 +71,7 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = (
   const rec = scene.ayahKey ? media.recitations[scene.ayahKey] : undefined;
   return (
     <>
-      {clip && clip.text === scene.narration.trim() ? <Audio src={mediaSrc(media, `voice/${clip.file}`)} volume={config.audio.narrationVolume} playbackRate={clip.rate ?? 1} /> : null}
+      {clip && clip.text === scene.narration.trim() ? <Audio src={mediaSrc(media, `voice/${clip.file}`)} volume={config.audio.narrationVolume} /> : null}
       {scene.template === "verse-card" && rec
         ? recitationFrameSchedule(rec, fps).map((part, i) => (
             <Sequence key={part.file + "-" + i} from={part.from}

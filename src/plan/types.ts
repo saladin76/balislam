@@ -53,8 +53,6 @@ export type Plan = {
   overlays?: Partial<Overlays>;
   /** نبرة الصوت للحلقة كلها (تتجاوز نبرة القناة) */
   tone?: string;
-  /** إيقاع الحلقة (D143، src/plan/pace.ts): الصوت أسرع rate بلا توليد، وgap ثوانٍ بعد آخر كلمة في كل مشهد */
-  pace?: { rate: number; gap: number };
   /** افتتاحية القناة في أول الحلقة (افتراضيًا تظهر إن كانت للقناة افتتاحية) */
   intro?: boolean;
   /**

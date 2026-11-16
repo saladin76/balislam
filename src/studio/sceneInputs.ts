@@ -9,7 +9,6 @@ import { createSceneFirstProduction } from "./sceneProduction";
 import { loadChannel } from "../channel";
 import { versesAreCitations } from "../quran/citation";
 import { NO_BLOCKS } from "./afterPreparation";
-import { paceKey } from "../plan/pace";
 import { type CurrentInput, sha, fileGeneration, optionalFileGeneration, safeSceneId } from "./sceneLedgerStore";
 
 /** The episode's current inputs as the ledger fingerprints them (script, boards, voice, recitations), read from disk. */
@@ -69,8 +68,6 @@ export const sourceNow = async (episode: string): Promise<CurrentInput> => {
     refs.push({
       id: scene.id,
       sourceSha256: sha(JSON.stringify(["scene-inputs-v2", chapter.title, scene, boardRecord.scenes[scene.id] ?? null,
-        // إيقاع الحلقة (D143) يغيّر صوت المشهد المسموع ومدته؛ بلا pace تبقى البصمة كما كانت
-        ...(paceKey(plan) === "none" ? [] : [`pace:${paceKey(plan)}`]),
         voiceFingerprint, rec?.sha256 ?? "no-recitation",
         rec?.approvedAt ?? null, rec?.rightsEvidence ?? null])),
     });

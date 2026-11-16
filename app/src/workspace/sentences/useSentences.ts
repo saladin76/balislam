@@ -294,6 +294,7 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
   };
 
   return {
+    episodeId, channelId,
     cited, read, setRead, pron, recs, error, setError, msg, setMsg, busy, drafts, setDrafts, sayDrafts, setSayDrafts, adding, setAdding, ps, owner, fixing, setFixing, why, setWhy,
     fixed, setFixed, cur, setCur, editing, setEditing, chipRefs, wrap, popRef, popPos, lexDrafts, setLexDrafts, carets, splitting, setSplitting,
     load, anchor, scenes, send, run, ref, lexicon, urlOf, stopPlay, playClips, sceneQueue, clipOf, rowKey, playing_, rowActive, pressRow, pressScene,

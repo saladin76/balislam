@@ -75,3 +75,18 @@
 .own-audio-t { font-size: var(--t-12); color: var(--mute); flex: none; }
 .pf-approve { display: grid; gap: 6px; }
 .pf-upload { justify-self: start; cursor: pointer; }
+
+/* «سرعة الإلقاء» و«الفاصل بين الجمل» (D140، app/src/ui/Pace.tsx) — القنوات الثلاث */
+.pace { position: relative; display: inline-flex; flex-direction: column; gap: 4px; min-width: 0; }
+.pace-scene { margin: 0; font-size: 13px; color: var(--warn, #b45309); }
+.pace-box > summary { cursor: pointer; font-size: 13px; list-style: none; display: inline-flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pace-badge { font-size: 12px; padding: 1px 8px; border-radius: 999px; background: var(--warn-bg, #fef3c7); color: var(--warn, #92400e); }
+.pace-body { position: absolute; inset-inline-end: 0; top: calc(100% + 6px); z-index: 30; width: min(560px, 92vw); display: flex; flex-direction: column; gap: 8px;
+  padding: 14px 16px; background: var(--surface, #fff); border: 1px solid var(--border, #ddd); border-radius: 12px; box-shadow: 0 8px 28px rgb(0 0 0 / 14%); }
+.pace-row { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.pace-lb { min-width: 150px; font-weight: 600; font-size: 13px; }
+.pace-est { margin: 0; font-size: 13px; }
+.pace-apply { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.pace-msg, .pace-err { margin: 0; font-size: 12px; }
+.pace-select, .sv-speed { max-width: 170px; }
+.sv-speed-note { font-size: 12px; color: var(--muted, #666); }
