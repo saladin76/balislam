@@ -45,6 +45,8 @@
 
 بالضغط على العلامة: ما ينتظر الحفظ، وما لا يُرسل آليًا، وآخر حفظ وآخر تحديث وآخر تحقق، و«ما وصل في آخر تحديث» سطرًا لكل حلقة («زبدة الكتب 001: المشهد ١ — الرسوم») مع «افتح المشهد واضغط «أنتج هذا المشهد» لترى الجديد» (D148)، وزرّا «احفظ وحدّث الآن» و«أعد التشغيل» (`/api/sync`).
 
+**حين يصل تحديث** تعيد الصفحة تحميل نفسها في مكانها بعد أن يهدأ المالك (لا تركيز في حقل، وثماني ثوانٍ بلا كتابة). وما دام تعديل مفتوحًا في «الجمل» (نافذة الكلمة، أو «النطق» أو نص جملة أو قاموس النطق كُتب ولم يُحفظ) لا تُعاد الصفحة أبدًا، ويُطبَّق التحديث حين يحفظه المالك أو يلغيه (D146، KI-075، `app/src/ui/editsInProgress.ts`).
+
 وبجوارها **«ملاحظات لم تُرسل: N»** (D107، `app/src/ui/NotesBadge.tsx`): يظهر حين يكون على الجهاز ملاحظة لم تصل إلى صندوق Claude، وبالضغط سببها الحقيقي ونص Git تحت «تفاصيل» (`/api/notes/status`). لا يظهر عند الصفر. ملاحظة «خطأ» بلا حلقة تظهر فيه «القناة / عام».
 
 وقبلهما **«ابدأ جلسة عمل — عالج ملاحظاتي تلقائيًا»** (D141، `app/src/ui/WorkSessionControl.tsx`)، واحد لكل القنوات: بالضغط مدة الجلسة (ساعة / ساعتان / ٣ ساعات، الافتراضية ساعتان) و«ابدأ». وهي شغّالة: «جلسة العمل شغّالة حتى HH:MM — تُراجَع ملاحظاتك كل ٥ دقائق» و«أوقف»، وبعد البدء «أول مراجعة تبدأ خلال ساعة على الأكثر، ثم كل ٥ دقائق»، وفي النافذة «آخر ملاحظة عولجت». يكتب علم `notes/work-session.json` على `studio-notes` (استوديو المالك وحده، 403 لغيره)، وتقرؤه مهمة مجدولة في السحابة كل ساعة. تنتهي وحدها عند وقتها، وفشل الدفع يظهر بسببه بالعربية (`/api/notes/work-session`، `docs/studio/notes-inbox.md`).
@@ -128,8 +130,8 @@
 | «عدّل النص» | يعدّل الجملة، ويكتبها في `script.md` أيضًا حين يكون موضعها في السكريبت واحدًا (D99)، فيُعاد فتح مشهدها وحده | نص الآيات لا يُلمس |
 | «قسّم…» | يختار المالك موضع التقسيم بين كلمتين، ويرى الجملتين، ثم «قسّم هنا». التسجيل يبقى في السجل (D102) | `SplitChooser.tsx` |
 | «ادمج مع التالية»، «أضف جملة بعدها»، «احذف الجملة» | تعديل بنية الجمل | لا يُحذف تسجيل مدفوع |
-| «النطق» (D131) | تحت كل جملة راوٍ في القنوات الثلاث، ظاهر دائمًا ويُعدَّل: النص المرسل إلى الصوت بتشكيله (آلي، أو «مكتوب بيدك»). «احفظ النطق» و«تراجع»، و«ارجع إلى النطق الآلي». يُحفظ للجملة في `sentence-pronunciations.json` بجوار السكريبت (محتوى مالك، D101)، ولا يغيّر نص الجملة ولا المشهد ولا السكريبت ولا الترجمة. يجعل التسجيل «تحتاج توليدًا»، ولا يُولَّد شيء وحده | يُرفض فيه القرآن والبسملة (`assertNoQuranForTts`) والتشكيل تحت ٩٨٪؛ لا حقل لصف آية ولا بسملة (`SayEditor.tsx`، `src/voice/sentencePronunciation.ts`) |
-| الضغط على كلمة | «أعد نطق الكلمة» وقاموس النطق (D55): «جرّب نطقًا آخر». لا يعمل على جملة نطقها مكتوب باليد: يقول «عدّل الكلمة في «النطق»» | — |
+| «النطق» (D131) | تحت كل جملة راوٍ في القنوات الثلاث، ظاهر دائمًا ويُعدَّل: النص المرسل إلى الصوت بتشكيله (آلي، أو «مكتوب بيدك»). «احفظ النطق» و«تراجع»، و«ارجع إلى النطق الآلي». «ولّد الجملة» ونطقٌ مكتوب لم يُحفظ بعد: يُحفظ أولًا ثم يُولَّد به (D146). يُحفظ للجملة في `sentence-pronunciations.json` بجوار السكريبت (محتوى مالك، D101)، ولا يغيّر نص الجملة ولا المشهد ولا السكريبت ولا الترجمة. يجعل التسجيل «تحتاج توليدًا»، ولا يُولَّد شيء وحده | يُرفض فيه القرآن والبسملة (`assertNoQuranForTts`) والتشكيل تحت ٩٨٪؛ لا حقل لصف آية ولا بسملة (`SayEditor.tsx`، `src/voice/sentencePronunciation.ts`) |
+| الضغط على كلمة | «أعد نطق الكلمة» وقاموس النطق (D55): «جرّب نطقًا آخر». لا يعمل على جملة نطقها مكتوب باليد: يقول «عدّل الكلمة في «النطق»». الحقل يفتح على تصحيحك لهذه الكلمة إن وُجد، وإلا الكلمة كما كُتبت إن كانت مشكولة (D66)، وإلا ما يُرسل لها الآن. تحته «النطق المستعمل حتى الآن «…» — من: …» بترتيب الغلبة (نطق الجملة D131 ← تصحيحك لهذه الجملة ← قاموس القناة ← النسخة المشكولة). الحفظ يستبدل التصحيح السابق؛ والكلمة كما كُتبت (ولو بلا تشكيل) تزيله فتُنطق من النسخة المشكولة، و«يُرسل:» يقول ذلك. «ارجع للنطق الأصلي «…»» يزيل التصحيح بلا توليد، والتسجيل الحالي كما هو، ويظهر أيضًا في نافذة «لماذا لا» حين لا يُقص التسجيل (D146) | — |
 | «قديم — سُجّل على نص سابق» | الجملة التي تغيّر نصها بعد تسجيلها: يظهر النص القديم ويُسمع تسجيله، ولا يدخل صوت المشهد، و«ولّد» متاح. المعرّفات ثابتة بعد النقل (D97) | — |
 | «كلمة قد تكون نُطقت خطأ: …» (D119) | سطر تحت الجملة إن فُعّل «فحص النطق»: كلمات النص التي لم يُسمع ما يطابقها في التفريغ المحلي، وما سُمع مكانها؛ «لم يُسمع كلام واضح…» لتسجيل بلا كلام. لا يظهر والفحص مطفأ أو غير مثبّت، ولا لصف آية ولا بسملة | تنبيه فقط: **لا يمنع «اعتمد»** ولا يغيّر الجملة ولا السجل (`PronunciationNote.tsx`، `src/voice/pronunciation/`) |
 | «ولّد» | توليد جملة واحدة **مدفوع**، ويُرسل معها نص الجارتين (D94)، والسياق من الخطة الحالية (D100) | بإذن المالك، وتغطية تشكيل ٩٨٪، وحارس القرآن والبسملة |
@@ -267,6 +269,7 @@
 | D130 | ١٣ نوفمبر | **بالإسلام 001، التوجيه 033 (PR #94):** حذف الدائرة والخط من هاتف c1-s118، وإطارات العمودي في استعادة الميزان، ومواد المراجعة. محتوى حلقة، بلا تغيير في الاستوديو | بالإسلام | (PR #94) |
 | D144 | ١٦ نوفمبر | **دفاتر الزمن 001:** بلا افتتاحية القناة، فأول ما يُرى ويُسمع «عرفت الأرض». يغيّر التجميع وMaster وحدهما، ولا يعيد فتح أي مشهد | دفاتر الزمن | (هذا PR) |
 | D143 | ١٦ نوفمبر | **دفاتر الزمن 001 (طلب المالك):** الحلقة تبدأ من أول الكلام، وفي «الإيقاع» (D140) صار للحلقة «سريع» و«الأقصر» (يُطبَّق حين يضغط المالك «أعد إنتاج المشاهد المتأثرة»)، ورسوم جديدة في ١٢ مشهدًا تعود للمراجعة في «٢ المشاهد». لا شاشة ولا بوابة جديدة | دفاتر الزمن | (هذا PR) |
+| D146 | ١٥ نوفمبر | **«بحاول اغير النطق ولكن يعيده الي القديم» (KI-075):** الحفظ الآلي لا يعيد تحميل الصفحة فوق تعديل مفتوح في «الجمل»؛ «ولّد» يحفظ «النطق» المكتوب أولًا؛ حقل الكلمة يفتح على التصحيح المستعمل ويقول من أين؛ الكلمة كما كُتبت تزيل التصحيح؛ و«ارجع للنطق الأصلي» بلا توليد. القنوات الثلاث، وحارس القرآن كما هو | مشترك | (هذا PR) |
 | D138 | ١٥ نوفمبر | **دفاتر الزمن 001، c1-s37 (ملاحظة المالك):** لا نقطتان تنزلان؛ الأرض وشمس الأفق ثم طريق ذهبي إلى الضوء و«الهداية» وضوء يتسع عند «بالأمن»، وبطاقة البقرة ٣٨ من «آدم» فيقصر فراغ النهاية. حقل جديد `safeWord` في `lib-descent` يظهر في محرر المشهد. يعيد فتح c1-s37 وحده | دفاتر الزمن | (هذا PR) |
 | D139 | ١٥ نوفمبر | **زبدة الكتب: تمهيد الآية وبطاقتها مشهد واحد على الشاشة (طلب المالك):** «سورة …» تُكتب في موضع رأس البطاقة ولا يتلاشى التمهيد، والبطاقة الأفقية تبدأ منه على الورقة نفسها وتضيف «الآية …» ونصها. يبقيان مشهدين في «المشاهد» يُعتمدان كما كانا. ونص c1-s30 «أبو شادي» كما في السكريبت فيرتفع منع الإنتاج (KI-071) | زبدة الكتب | (هذا PR) |
 | D147 | ١٥ نوفمبر | **الآية والبسملة على الشاشة حين تُذكران (طلب المالك):** نص السكريبت وحده في القنوات الثلاث قبل التلاوة وبعدها؛ الآية الطويلة صفحات تتبدل مع التلاوة بلا قطع كلمة ولا خط يضيع؛ «خط الأفق» يعرض النص قبل رفع التلاوة؛ البسملة المنطوقة داخل مشهد راوٍ تظهر وحدها. يُعاد فتح المشهد الذي تغيّر عرضه وحده (لا شيء في 001). لا شاشة ولا بوابة جديدة | مشترك | (هذا PR) |
@@ -482,11 +485,23 @@ scene + the sentence text, so a changed sentence falls back to the automatic tex
 the sentence fingerprint (`exact`), so the take reads «تحتاج توليدًا»; nothing is generated by saving. Refused at save:
 Quran/basmala/five words of an episode verse (`assertNoQuranForTts`, the same guard the client runs again), tashkeel
 under 98% (also the generation gate, on the written text), verse and basmala rows. A sentence with a written
-pronunciation refuses `fixword` and «ولّد الجملة كاملة بهذا النطق» (`SAY_WORD_FIX`); a cut of the old scene file is
+pronunciation refuses `fixword` and «ولّد الجملة كاملة بهذا النطق» (`SAY_WORD_FIX`); D146: the page saves a typed,
+unsaved «النطق» (`say`) before any `generate` of that row, so «ولّد» never sends the earlier pronunciation; a cut of the old scene file is
 never taken as said with it (`voiceOf(…, { automatic: true })`). The plan, `script.md` and captions are never touched.
 D132: the fingerprint of a sentence with a written pronunciation is that text alone (`spoken: custom`, plus `exact`), so
 `tashkeel.md` or the legacy dictionary never makes it «تحتاج توليدًا»; a take stored in the D131 form (automatic spoken
 text + `exact`) stays current while that automatic text is unchanged.
+
+**A word's pronunciation in one sentence (D146, KI-075, all three channels).** Precedence of what is sent for a word:
+the sentence «النطق» (D131) > this sentence's correction (`corrections` in the local `voice/sentences.json`) > the
+channel lexicon > `tashkeel.md`/legacy dictionary > the word as written. Each row word carries `sent`, `source`,
+`correction` and `auto` (what is sent with no correction of this sentence). `fixword`/`generate` with a `say` replace the
+earlier correction of that index; a `say` equal to the written word (`isNoopSay`, bare letters allowed: no `checkSay`)
+removes it, the fragment then says `auto` (never the old correction nor bare letters) and `spokenFixes` follows
+`send.applied`. `unfix { id, word }` removes the correction with no voice request and no take touched. The page opens
+the field on `currentSay` (correction ?? voweled written word ?? sent), and while the word popover or any unsaved draft of
+«الجمل» is open, `markEditing` (`app/src/ui/editsInProgress.ts`) holds the D101 auto-reload in `SyncBadge`
+(`tests/word-pronunciation-reverts.test.tsx`, and the «KI» block of `tests/e2e/ui/studio-journey.mjs`).
 
 **«النص المشكول» (D132, the owner's request of 14 Nov, all three channels).** `GET /api/episodes/<ep>/tashkeel` →
 `{ exists, text, revision, report, alignment, saySentences, toneMapStale }` (`src/voice/tashkeelEdit.ts`; `revision` =

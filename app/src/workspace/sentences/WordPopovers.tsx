@@ -8,7 +8,7 @@ import { dropsShadda, isNoopSay, phoneticVariants } from "../../../../src/voice/
 import { useScrollLock } from "../../ui/scrollLock";
 import { Icon } from "../../ui/icons";
 import { Num } from "../../ui/format";
-import { fixNeighbours, neighbourHint, sendPreview, type WordFixDraft, type WordFixResult } from "./format";
+import { fixNeighbours, neighbourHint, sendPreview, sourceLabel, type WordFixDraft, type WordFixResult } from "./format";
 
 /**
  * «أعد نطق الكلمة» (direction D): anchored to its chip with an arrow over a dimmed page (a bottom sheet on a phone):
@@ -22,7 +22,9 @@ export const WordFixPopover: React.FC<{
   pos?: { top: number; left: number; arrow: number; sheet: boolean } | null;
   popRef?: React.Ref<HTMLDivElement>;
   onDraft: (d: WordFixDraft) => void; onClose: () => void; onPlay: () => void; onFix: () => void; onWhole: () => void; onOpenSettings?: () => void;
-}> = ({ words, rowNo, draft: f, busy, noKey, playing, pos, popRef, onDraft, onClose, onPlay, onFix, onWhole, onOpenSettings }) => {
+  /** «ارجع للنطق الأصلي»: removes the owner's correction of this word in this sentence (no generation) */
+  onUnfix?: () => void;
+}> = ({ words, rowNo, draft: f, busy, noKey, playing, pos, popRef, onDraft, onClose, onPlay, onFix, onWhole, onOpenSettings, onUnfix }) => {
   const w = words[f.index]!;
   const nb = fixNeighbours(words.length, f.index, f.wide);
   const noop = isNoopSay(w.say, f.say);
@@ -69,10 +71,16 @@ export const WordFixPopover: React.FC<{
           <span>اكتبها كما يجب أن تُنطق{" "}<small>يغيّر ما يُرسل إلى الصوت وحده؛ نص السكريبت والترجمة كما هما</small></span>
           <span className="ms-pop-inp">
             <input ref={field} dir="rtl" value={f.say} maxLength={80} autoFocus disabled={Boolean(busy)} onChange={(e) => onDraft({ ...f, say: e.target.value })} />
-            {w.sent !== w.say ? <small>النطق المستعمل حتى الآن «{w.sent}»{w.source === "lexicon" ? " (من قاموس النطق)" : w.source === "sentence" ? " (تصحيح سابق لهذه الجملة)" : w.source === "tashkeel" ? " (من النسخة المشكولة)" : ""}</small> : null}
           </span>
+          {/* D146: under the field, not inside its row (a long line there squeezed the input to nothing) */}
+          {w.sent !== w.say ? <small className="sv-fix-now">النطق المستعمل حتى الآن «{w.sent}» — من: {sourceLabel(w.source)}</small> : null}
         </label>
-        <p className="ms-pop-hint sv-fix-send" aria-live="polite"><Icon name="info" /><span>عند «أعد نطق الكلمة» يُرسل: «{sendPreview(w.word, f.say)}»{noop ? " — الكلمة كما كُتبت" : ""}</span></p>
+        {w.correction !== null && onUnfix ? (
+          <p className="ms-pop-hint sv-fix-unfix"><Icon name="undo" /><span>تصحيحك «{w.correction}» محفوظ لهذه الجملة.{" "}
+            <button type="button" className="prep-link" disabled={Boolean(busy)} onClick={onUnfix}>ارجع للنطق الأصلي «{w.auto ?? w.sent}»</button>
+            {" "}<small>(يُزال التصحيح بلا توليد؛ التسجيل الحالي كما هو)</small></span></p>
+        ) : null}
+        <p className="ms-pop-hint sv-fix-send" aria-live="polite"><Icon name="info" /><span>عند «أعد نطق الكلمة» يُرسل: «{noop ? sendPreview(w.word, w.auto ?? w.sent) : sendPreview(w.word, f.say)}»{noop ? " — النطق الأصلي للكلمة (يُزال أي تصحيح سابق لها)" : ""}</span></p>
         {variants.length ? (
           <div className="sv-fix-variants" role="group" aria-label="جرّب صيغة أخرى">
             <span>جرّب صيغة أخرى:</span>
@@ -115,7 +123,9 @@ export const WordWhyPopover: React.FC<{
   word: string; index: number; count: number; rowNo: number; reason: string; blocked: string | null;
   busy: "gen" | "other" | null; pos?: { top: number; left: number; arrow: number; sheet: boolean } | null;
   popRef?: React.Ref<HTMLDivElement>; onClose: () => void; onGenerate: () => void; onOpenSettings?: () => void;
-}> = ({ word, index, count, rowNo, reason, blocked, busy, pos, popRef, onClose, onGenerate, onOpenSettings }) => {
+  /** D146: the owner's correction of this word in this sentence, removable here too (no take needs cutting for it) */
+  correction?: { say: string; auto: string } | null; onUnfix?: () => void;
+}> = ({ word, index, count, rowNo, reason, blocked, busy, pos, popRef, onClose, onGenerate, onOpenSettings, correction, onUnfix }) => {
   const id = `fw-${rowNo}-${index}`;
   const go = useRef<HTMLButtonElement | null>(null);
   const cancel = useRef<HTMLButtonElement | null>(null);
@@ -133,6 +143,11 @@ export const WordWhyPopover: React.FC<{
           <button type="button" className="ms-pop-x sv-fix-x" aria-label="أغلق" onClick={onClose}><Icon name="x" /></button>
         </div>
         <p className="ms-pop-hint is-warn sv-why-line"><Icon name="info" /><span>{reason}</span></p>
+        {correction && onUnfix ? (
+          <p className="ms-pop-hint sv-fix-unfix"><Icon name="undo" /><span>تصحيحك «{correction.say}» محفوظ لهذه الجملة.{" "}
+            <button type="button" className="prep-link" disabled={Boolean(busy)} onClick={onUnfix}>ارجع للنطق الأصلي «{correction.auto}»</button>
+            {" "}<small>(يُزال التصحيح بلا توليد)</small></span></p>
+        ) : null}
         {blocked ? <p className="ms-pop-hint"><Icon name="warn" /><span>{blocked}{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</span></p> : null}
         <div className="ms-pop-acts">
           <button ref={go} type="button" className="ms-pop-go" disabled={Boolean(busy) || Boolean(blocked)} onClick={onGenerate}>

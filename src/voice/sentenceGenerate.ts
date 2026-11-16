@@ -86,8 +86,12 @@ export const correctionFor = (s: Sentence, index: unknown, say: unknown): Senten
   const i = Math.round(Number(index));
   if (!(i >= 0 && i < ws.length)) throw new Error("الكلمة غير موجودة في الجملة؛ حدّث الصفحة.");
   if (s.kind !== "narration" || quranMask(ws)[i]) throw new Error("النص القرآني لا يُغيَّر نطقه ولا يُعاد بالصوت المستنسخ أبدًا.");
-  const bad = checkSay(String(say ?? ""));
-  if (bad) throw new Error(bad);
+  // KI (15 Nov): the word as written (even without tashkeel) is not a pronunciation to check: it removes the earlier
+  // correction (withCorrection), and the word is sent automatically again (tashkeel.md / the channel lexicon).
+  if (!isNoopSay(ws[i]!, String(say ?? ""))) {
+    const bad = checkSay(String(say ?? ""));
+    if (bad) throw new Error(bad);
+  }
   return { index: i, word: ws[i]!, say: String(say).trim().replace(/\s+/g, " ") };
 };
 /**
@@ -113,8 +117,12 @@ export const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list:
   if (base0.chosenTake) throw new Error("هذا التسجيل اخترته وهو بنبرة أو نطق غير المختار الآن؛ ولّد الجملة أولًا ثم صحّح الكلمة.");
   const refusal = wordFixRefusal(s, base0.fingerprint, base0.custom);
   if (refusal) throw new Error(refusal);
-  const { v, client } = await voiceGates(ctx, episode, scene, list, s, opts, [...(s.corrections ?? []).filter((x) => x.index !== c.index), c]);
-  const fixed = sendOf(ctx, s, c);
+  // The word as written (noop) removes the earlier correction: the fragment says the word automatically (its
+  // tashkeel / the lexicon), never the old correction and never the bare undiacritized word.
+  const noop = isNoopSay(c.word, c.say);
+  const rest = (s.corrections ?? []).filter((x) => x.index !== c.index);
+  const { v, client } = await voiceGates(ctx, episode, scene, list, s, opts, noop ? rest : [...rest, c]);
+  const fixed = noop ? sendOf(ctx, { ...s, corrections: rest }) : sendOf(ctx, s, c);
   const ws = words(s.text);
   const k = c.index;
   const tokens = (i: number) => (i >= 0 && i < ws.length ? fixed.perWord[i]!.split(" ").filter(Boolean) : []);
@@ -157,7 +165,7 @@ export const fixWord = async (ctx: Ctx, episode: string, scene: PlanScene, list:
   const file = `${s.id}-fix-${stamp}.wav`;
   await writeAtomic(path.join(dir, file), encodeWav(res.pcm, SENTENCE_SAMPLE_RATE));
   const prevAudio = s.audio!;
-  const spokenFixes = [...(prevAudio.spokenFixes ?? []).filter((x) => x.word !== c.word), { word: coreOf(c.word), say: c.say }];
+  const spokenFixes = [...(prevAudio.spokenFixes ?? []).filter((x) => x.word !== coreOf(c.word)), ...fixed.applied.filter((a) => a.index === k).map((a) => ({ word: a.word, say: a.say }))];
   const take: SentenceAudio = {
     file, fingerprint: v.fingerprint, context: prevAudio.context, duration: res.pcm.length / SENTENCE_SAMPLE_RATE,
     words: remapWords(old, k, res, fragWord), at: new Date().toISOString(), origin: "fix", timing: "aligned",

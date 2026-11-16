@@ -92,13 +92,13 @@ describe("KI-022: الزمن في مشغّل التلاوة بأرقام عرب�
 });
 
 describe("KI-023: نافذة تصحيح الكلمة بلا تناقض وبفواصل", () => {
-  const words = ["وَمَعَ", "السِّنِينَ", "نَحْفَظُ"].map((w, i) => ({ word: w, say: w, sent: i === 1 ? "السِّنِين" : w, source: (i === 1 ? "lexicon" : "written") as never, correction: null, start: i, end: i + 0.5, quran: false }));
+  const words = ["وَمَعَ", "السِّنِينَ", "نَحْفَظُ"].map((w, i) => ({ word: w, say: w, sent: i === 1 ? "السِّنِين" : w, source: (i === 1 ? "lexicon" : "written") as never, correction: null, auto: i === 1 ? "السِّنِين" : w, start: i, end: i + 0.5, quran: false }));
   const html = renderToStaticMarkup(
     <WordFixPopover words={words} rowNo={1} draft={{ row: "r1", index: 1, say: "السِّنِينْ", save: true, wide: false }} busy={null} noKey={false} playing={false}
       pos={{ top: 0, left: 0, arrow: 0, sheet: false }} onDraft={noop} onClose={noop} onPlay={noop} onFix={noop} onWhole={noop} />,
   );
   it("«النطق المستعمل حتى الآن» و«عند «أعد نطق الكلمة» يُرسل»، لا «يُرسل الآن» مع «سيُرسل»", () => {
-    expect(text(html)).toContain("النطق المستعمل حتى الآن «السِّنِين»");
+    expect(text(html)).toContain("النطق المستعمل حتى الآن «السِّنِين» — من: قاموس النطق للقناة");
     expect(text(html)).toContain("عند «أعد نطق الكلمة» يُرسل: «السِّنِينْ»");
     expect(text(html)).not.toContain("يُرسل الآن");
     expect(text(html)).not.toContain("سيُرسل");

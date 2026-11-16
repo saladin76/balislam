@@ -190,6 +190,71 @@ try {
       const produce = page.getByRole("button", { name: "أنتج هذا المشهد" }).first();
       if (await produce.isVisible().catch(() => false)) await produce.click();
     }
+    if (i === 1) {
+      // ── ٢ KI (15 Nov, «بحاول اغير النطق ولكن يعيده الي القديم»): a word's new pronunciation typed in its popover stays
+      // while an update arrives (the auto-sync never reloads over an edit in progress); «ولّد الجملة كاملة بهذا النطق»
+      // sends it; after a reload the field opens on it; «ارجع للنطق الأصلي» removes it with no request ──
+      let updateAt = "2026-11-15T00:00:00.000Z";
+      await page.route("**/api/sync*", (route) => route.fulfill({ contentType: "application/json", body: JSON.stringify({
+        enabled: true, state: "synced", message: "", pending: [], skipped: [], conflicts: 0, lastUpdateAt: updateAt, supervised: false }) }));
+      await page.reload();
+      await page.waitForLoadState("networkidle").catch(() => {});
+      const chip = () => page.locator("button.sv-word", { hasText: "المَصَادِرُ" }).first();
+      await chip().waitFor({ state: "visible", timeout: 180_000 });
+      await chip().click();
+      const whyGo = page.getByRole("button", { name: "ولّد هذه الجملة ثم صحّح الكلمة" }).first();
+      if (await whyGo.isVisible({ timeout: 5_000 }).catch(() => false)) await whyGo.click();
+      const field = page.locator(".sv-fix-say input >> visible=true").first();
+      await field.waitFor({ state: "visible", timeout: 120_000 });
+      await field.fill("المَصَادِرِ");
+      await page.evaluate(() => { window.__kiNoReload = 1; });
+      // the owner looks away from the field (focus off any input), and an update arrives meanwhile
+      await page.locator(".sv-fix .sv-fix-word").first().click();
+      updateAt = "2026-11-15T00:05:00.000Z";
+      await page.waitForTimeout(16_000);
+      ok(await page.evaluate(() => window.__kiNoReload === 1) && (await field.inputValue()) === "المَصَادِرِ",
+        "٢ KI an update arriving while a word's pronunciation is typed does not reload the page nor revert the field");
+      const n1 = voiceCalls.length;
+      await click("ولّد الجملة كاملة بهذا النطق");
+      await until("word pronunciation generated", async () => voiceCalls.length > n1 || null, 60_000, 300);
+      ok(voiceCalls.at(-1).text.includes("المَصَادِرِ"), "٢ KI «ولّد الجملة كاملة بهذا النطق» sends the new pronunciation");
+      // the edit is over: the update that waited reloads the page now
+      await until("reload after the edit", async () => (await page.evaluate(() => window.__kiNoReload !== 1)) || null, 30_000, 500);
+      ok(true, "٢ KI the waiting update reloads the page once the edit is saved");
+      await page.waitForLoadState("networkidle").catch(() => {});
+      const rowNow = async () => (await api("GET", `episodes/${EP}/sentences`)).scenes.flatMap((x) => x.rows).find((x) => x.text.includes("المَصَادِرُ"));
+      const saved = await rowNow();
+      console.log(`[e2e-ui] KI row after reload: wordFix=${JSON.stringify(saved?.wordFix)} word=${JSON.stringify(saved?.words?.[1])}`);
+      ok(saved?.words?.[1]?.correction === "المَصَادِرِ" && saved.spoken.includes("المَصَادِرِ"), "٢ KI after a reload the server still has the new pronunciation and sends it");
+      await chip().waitFor({ state: "visible", timeout: 180_000 });
+      await chip().click();
+      const n2 = voiceCalls.length;
+      const unfix = () => page.getByRole("button", { name: /ارجع للنطق الأصلي/ }).first();
+      if (saved?.wordFix?.ok) {
+        await page.locator(".sv-fix-say input").first().waitFor({ state: "attached", timeout: 60_000 });
+        const pops = await page.locator(".sv-fix").evaluateAll((els) => els.map((e) => `${e.className} style=${e.getAttribute("style")}`));
+        console.log(`[e2e-ui] KI popovers after reload: ${JSON.stringify(pops)}`);
+        await field.waitFor({ state: "visible", timeout: 60_000 });
+        ok((await field.inputValue()) === "المَصَادِرِ" && await page.getByText(/النطق المستعمل حتى الآن «المَصَادِرِ» — من: تصحيحك/).first().isVisible(),
+          "٢ KI after a reload the field opens on the saved pronunciation, and says which source wins");
+        await unfix().click();
+        await until("correction removed", async () => (await field.inputValue().catch(() => "")) === "المَصَادِرُ" || null, 30_000, 300);
+      } else {
+        // the take cannot be cut now (the «why» popover): the correction is still named and removable there
+        await unfix().waitFor({ state: "visible", timeout: 60_000 });
+        ok(true, `٢ KI after a reload the «why» popover names the saved correction (${saved?.wordFix?.reason ?? ""})`);
+        await unfix().click();
+      }
+      await until("correction gone", async () => (await rowNow())?.words?.[1]?.correction === null || null, 30_000, 300);
+      ok(voiceCalls.length === n2 && !(await unfix().isVisible().catch(() => false)),
+        "٢ KI «ارجع للنطق الأصلي» removes the correction with no request");
+      await snap("2-word-pronunciation");
+      await page.keyboard.press("Escape");
+      await page.unroute("**/api/sync*");
+      await go(`episode/${id}`);
+      const produce = page.getByRole("button", { name: "أنتج هذا المشهد" }).first();
+      if (await produce.isVisible().catch(() => false)) await produce.click();
+    }
     await click("اعتمد المشهد", { timeout: 180_000 });
     const watched = page.getByLabel(/شاهدته (بالصوت )?كاملًا/).first();
     await watched.waitFor({ state: "visible", timeout: 60_000 });

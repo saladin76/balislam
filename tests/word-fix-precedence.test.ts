@@ -80,7 +80,7 @@ describe("the word popover", () => {
   });
   it("re-opening after a server round fills the field with the written word, not what was sent or heard before", () => {
     const read = { scenes: [{ id: "c1-s3", rows: [{ id: "t1", wordFix: { ok: true },
-      words: [{ word: "«أَوَّلَ", say: "أَوَّلَ", sent: "أَوَّلُ", source: "tashkeel", correction: null, start: 0, end: 1, quran: false }] }] }] } as unknown as SentencesRead;
+      words: [{ word: "«أَوَّلَ", say: "أَوَّلَ", sent: "أَوَّلُ", source: "tashkeel", correction: null, auto: "أَوَّلُ", start: 0, end: 1, quran: false }] }] }] } as unknown as SentencesRead;
     expect(reopenTarget(read, "c1-s3", 0, 0)).toEqual({ kind: "fix", draft: { row: "t1", index: 0, say: "أَوَّلَ", save: false, wide: false } });
   });
 });

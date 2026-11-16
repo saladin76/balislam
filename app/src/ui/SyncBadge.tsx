@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { api, type SyncStatus } from "../api";
 import { arDigits } from "./format";
 import { OwnerText } from "./OwnerText";
+import { editingInProgress } from "./editsInProgress";
 
 /**
  * «محفوظ في كل الأماكن ✓» (D101): حالة الحفظ الآلي لعمل المالك في المستودع واستقبال التحديثات.
@@ -22,6 +23,7 @@ export const shouldReloadForUpdate = (seen: string | undefined | null, s: Pick<S
   seen !== null && Boolean(s.lastUpdateAt) && s.lastUpdateAt !== seen && !s.restartPending;
 const typing = () => {
   const a = document.activeElement as HTMLElement | null;
+  if (editingInProgress()) return true;
   return !!a && (a.tagName === "TEXTAREA" || a.tagName === "INPUT" || a.tagName === "SELECT" || a.isContentEditable);
 };
 const time = (iso?: string) => iso ? arDigits(new Date(iso).toLocaleTimeString("ar-EG-u-nu-latn", { hour: "2-digit", minute: "2-digit" })) : "";

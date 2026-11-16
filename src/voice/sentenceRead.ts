@@ -9,7 +9,7 @@ import type { PlanScene } from "../plan/types";
 import { coreOf, quranMask, type LexiconEntry } from "./lexicon";
 import { lexiconEffects, type LexiconEffect } from "./pronunciationRules";
 import { contextFingerprint, sentenceStatus, sceneAdoption, sceneSpans, words, recordedOnOtherText, recordedText, type SceneSpan, type Sentence, type SentenceAudio, type SentencesDoc, type SentenceStatus, type TimedWord } from "./sentences";
-import { loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal, waitingReason, autoSendOf, wouldRepeat, type Ctx, type Flat } from "./sentenceContext";
+import { loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, coverageOf, wordFixRefusal, waitingReason, autoSendOf, sendOf, wouldRepeat, type Ctx, type Flat } from "./sentenceContext";
 
 /** نموذج القراءة لـ«الجمل»: كل مشهد بجمله وصفوف آياته وبسملته، وكلمات كل جملة وتصحيحاتها. يقرأ فقط. */
 
@@ -34,9 +34,10 @@ export type SentenceRow = {
    * كلمات النص كما تُعرض (شرائح «أعد نطق الكلمة»): توقيتها في التسجيل الحالي إن صلح.
    * say: الكلمة كما كتبها المالك (بلا ترقيم) — ما يُملأ به حقل النطق (D66: لا النطق القديم ولا المسموع)؛
    * sent: ما يُرسل لها الآن فعلًا؛ source: من أين جاء sent إن اختلف (تصحيح الجملة، القاموس، ملف التشكيل)؛
-   * correction: نطق كتبه المالك لهذه الكلمة في هذه الجملة.
+   * correction: نطق كتبه المالك لهذه الكلمة في هذه الجملة؛ auto: ما يُرسل لها بلا هذا التصحيح (القاموس ثم ملف التشكيل)،
+   * وهو ما يُرسل عند «ارجع للنطق الأصلي» أو عند كتابة الكلمة كما كُتبت.
    */
-  words: { word: string; say: string; sent: string; source: "written" | "sentence" | "lexicon" | "tashkeel"; correction: string | null;
+  words: { word: string; say: string; sent: string; source: "written" | "sentence" | "lexicon" | "tashkeel"; correction: string | null; auto: string;
     start: number | null; end: number | null; quran: boolean }[];
   /**
    * هل تصلح إعادة نطق كلمة في التسجيل الحالي، ولماذا لا. adopt: لا تسجيل للجملة لكن صوت المشهد ملفًا واحدًا
@@ -150,7 +151,8 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
         olderTone: Boolean(s.audio && v.olderTone && s.audio.fingerprint === v.fingerprint),
         contextChanged: Boolean(s.audio && s.audio.origin === "tts" && s.audio.context !== contextFingerprint(nb.previousText, nb.nextText)),
         tashkeel: coverageOf(ctx, s.id, s.text, s.corrections, v.custom), chars: v.send.text.length,
-        ...wordRows(s, v, adoption ? { adopt: adoption.ok, reason: adoption.ok ? undefined : adoption.reason, words: sceneWords } : undefined),
+        ...wordRows(s, v, adoption ? { adopt: adoption.ok, reason: adoption.ok ? undefined : adoption.reason, words: sceneWords } : undefined,
+          s.kind === "narration" && (s.corrections?.length || v.custom) ? sendOf({ ...ctx, says: [] }, { ...s, sceneId: "", corrections: undefined }).perWord : undefined),
         sceneSpan: spans?.[k] ?? null,
         recordedOn: s.audio && recordedOnOtherText(s) ? recordedText(s.audio) : null,
         timingClamped: audio.state === "sentences" ? clip?.sentences?.clamped?.[s.id] ?? null : null,
@@ -186,7 +188,7 @@ const toneRow = (ctx: Ctx, scene: PlanScene, list: Sentence[], s: Sentence, flat
 
 /** صوت المشهد ملفًا واحدًا لجملة بلا تسجيل: يصلح قصه (adopt) بكلماتها بزمنه، أو لماذا لا */
 export type SceneAlt = { adopt: boolean; reason?: string; words?: TimedWord[] };
-export const wordRows = (s: Sentence, v: ReturnType<typeof voiceOf>, scene?: SceneAlt): Pick<SentenceRow, "words" | "wordFix" | "applied" | "appliedState" | "fixes"> => {
+export const wordRows = (s: Sentence, v: ReturnType<typeof voiceOf>, scene?: SceneAlt, autoPerWord?: string[]): Pick<SentenceRow, "words" | "wordFix" | "applied" | "appliedState" | "fixes"> => {
   const refusal = wordFixRefusal(s, v.fingerprint, v.custom);
   const ws = words(s.text);
   const mask = quranMask(ws);
@@ -200,7 +202,8 @@ export const wordRows = (s: Sentence, v: ReturnType<typeof voiceOf>, scene?: Sce
       const correction = s.corrections?.find((c) => c.index === i && c.word === w)?.say ?? null;
       const fromLex = v.send.applied.find((a) => a.index === i);
       const source = fromLex ? fromLex.source : sent === coreOf(w) ? "written" as const : "tashkeel" as const;
-      return { word: w, say: coreOf(w) || w, sent, source, correction, start: at(i, "start"), end: at(i, "end"), quran: mask[i]! || s.kind === "verse" };
+      const auto = correction === null && !v.custom ? sent : coreOf(autoPerWord?.[i] || w) || w;
+      return { word: w, say: coreOf(w) || w, sent, source, correction, auto, start: at(i, "start"), end: at(i, "end"), quran: mask[i]! || s.kind === "verse" };
     }),
     wordFix: !refusal ? { ok: true }
       : adopt ? { ok: false, adopt: true, source: "scene", reason: "تُقص الجملة من صوت المشهد عند الضغط على كلمة، بلا توليد." }
