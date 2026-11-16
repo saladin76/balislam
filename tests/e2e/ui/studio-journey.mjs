@@ -9,7 +9,12 @@
  * The fixture's script and research are put in place through the same routes the page uses; its vowelled copy is created and
  * saved in the page's «النص المشكول» tab (D132).
  *
- *   npm run e2e:ui            (tsx tests/e2e/ui/studio-journey.mjs [--channel dafatir-alzaman] [--port 4451] [--shots <dir>])
+ * Then the step ٢ dock and sentence-panel parity of the three channels (D150, docs/studio/channel-parity.md): episode 002 in
+ * each channel, «اعتمد المشهد» on its first scene from the page, and the dock of a narration scene and of the verse scene
+ * read from the page: the same controls, labels, order and ⏎ everywhere, and a verse's absent voice said by its rule.
+ *
+ *   npm run e2e:ui            (tsx tests/e2e/ui/studio-journey.mjs [--channel dafatir-alzaman] [--port 4451] [--shots <dir>]
+ *                              [--dock-channels balislam,dafatir-alzaman,zubdat-alkutub | none] [--dock-only])
  *
  * Playwright is resolved from the project, PLAYWRIGHT_MODULE, or /opt/node-tools. Exit code 1 when anything fails.
  */
@@ -24,6 +29,10 @@ const CH = arg("channel", "dafatir-alzaman");
 const port = Number(arg("port", "4451"));
 const shots = arg("shots", "");
 const EP = "001";
+const DOCK_CHANNELS = arg("dock-channels", "balislam,dafatir-alzaman,zubdat-alkutub").split(",").filter((c) => c && c !== "none");
+const EP2 = "002";
+// --dock-only: only the D150 dock/sentence parity of the three channels (no main journey), for a quick local check
+const DOCK_ONLY = process.argv.includes("--dock-only");
 const SLUG = "e2e-ui-journey";
 const repo = path.resolve(import.meta.dirname, "..", "..", "..");
 const fixtures = path.join(repo, "tests", "fixtures", "e2e", CH);
@@ -40,8 +49,10 @@ await mkdir(path.join(repo, "renders"), { recursive: true });
 const root = await mkdtemp(path.join(repo, "renders", "e2e-ui-"));
 const drive = await mkdtemp(path.join(os.tmpdir(), "bal-e2e-ui-drive-"));
 const chDir = path.join(root, CH);
-await mkdir(path.join(chDir, "episodes"), { recursive: true });
-for (const f of await readdir(path.join(repo, "channels", CH))) if (f.endsWith(".json")) await cp(path.join(repo, "channels", CH, f), path.join(chDir, f));
+for (const ch of new Set([CH, ...DOCK_CHANNELS])) {
+  await mkdir(path.join(root, ch, "episodes"), { recursive: true });
+  for (const f of await readdir(path.join(repo, "channels", ch))) if (f.endsWith(".json")) await cp(path.join(repo, "channels", ch, f), path.join(root, ch, f));
+}
 Object.assign(process.env, {
   BAL_CHANNELS_DIR: root, BAL_ENV_FILE: path.join(root, ".env"), BAL_CONTENT_SYNC: "off", BAL_DRIVE_PUBLISH_DIR: drive,
   BAL_VOICE_PROVIDER: "fake", BAL_E2E: "1", BAL_E2E_RENDER: "tiny",
@@ -65,8 +76,8 @@ await vite.listen();
 const origin = `http://127.0.0.1:${port}`;
 const fails = [];
 const ok = (cond, what) => { console.log(`${cond ? "ok  " : "FAIL"} ${what}`); if (!cond) fails.push(what); };
-const api = async (method, route, body) => {
-  const r = await realFetch(`${origin}/api/${route}${route.includes("?") ? "&" : "?"}channel=${CH}`, { method, headers: { origin, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
+const api = async (method, route, body, ch = CH) => {
+  const r = await realFetch(`${origin}/api/${route}${route.includes("?") ? "&" : "?"}channel=${ch}`, { method, headers: { origin, "content-type": "application/json" }, body: body ? JSON.stringify(body) : undefined });
   const j = await r.json().catch(() => null);
   if (!r.ok) throw Error(`${method} ${route}: ${j?.error ?? r.status}`);
   return j;
@@ -103,6 +114,7 @@ try {
   const click = async (name, opts = {}) => { const b = page.getByRole("button", { name, exact: opts.exact ?? false }).first(); await b.waitFor({ state: "visible", timeout: opts.timeout ?? 60_000 }); await b.click(); };
   const tick = async (label) => { const c = page.getByLabel(label).first(); await c.waitFor({ state: "visible", timeout: 60_000 }); await c.check(); };
 
+  if (!DOCK_ONLY) {
   // ── ١ «النص المشكول» (D132): no file yet → «أنشئ النسخة المشكولة من السكريبت», then the fixture's vowelled copy typed and saved ──
   const tkFile = path.join(chDir, "episodes", `${EP}-${SLUG}`, "tashkeel.md");
   await go("tashkeel");
@@ -233,6 +245,74 @@ try {
   const manifest = await until("Drive copy", async () => existsSync(path.join(folder, "manifest.json")) ? JSON.parse(await readFile(path.join(folder, "manifest.json"), "utf8")) : null, 300_000);
   ok(manifest.approvals.master.sha256 === masterOk.master.sha256, "٤ the approved Master on Drive with its manifest");
   await snap("4-drive");
+  }
+
+  // ── D150: the step ٢ dock and the sentence panel, the same in the three channels (episode 002 of each) ──
+  const parity = await import("../../../src/studio/channelParity.ts");
+  const { browserPlanRevision: planRevision } = await import("../../../src/plan/revision.ts");
+  const dockOf = async () => {
+    const bar = page.locator(".s3-actbar").first();
+    await bar.waitFor({ state: "visible", timeout: 180_000 });
+    return bar.evaluate((el) => ({
+      buttons: [...el.querySelectorAll("button")].map((b) => (b.querySelector(".lbl")?.textContent ?? b.textContent ?? "").replace(/⏎/g, "").trim()),
+      enter: Boolean(el.querySelector("button.s3-approve kbd")),
+      absent: el.querySelector(".s3-absent")?.textContent?.trim() ?? null,
+    }));
+  };
+  // The sentence controls every narration sentence has, whatever its take (pause depends on a next sentence; «ولّد» on the take).
+  const sentenceControls = () => page.evaluate(() => {
+    const p = document.querySelector(".sv-para");
+    if (!p) return null;
+    const has = (sel) => Boolean(p.querySelector(sel));
+    const btn = (t) => [...p.querySelectorAll("button")].some((b) => b.textContent?.trim() === t);
+    return { tone: has('select.sv-tone'), say: has('textarea[aria-label^="نطق الجملة"]'), more: has('summary[aria-label="المزيد"]'),
+      edit: btn("عدّل النص"), play: has('button[aria-label^="شغّل الجملة"], button[title^="شغّل الجملة"]') };
+  });
+  const docks = {};
+  for (const ch of DOCK_CHANNELS) {
+    const fxd = (f) => readFile(path.join(repo, "tests", "fixtures", "e2e", ch, f), "utf8");
+    const s2 = await fxd("script.md");
+    await api("POST", "episodes", { episode: EP2, slug: "e2e-ui-dock", domain: s2.match(/^domain: (\S+)$/m)[1], title: s2.match(/^title: "(.*)"$/m)[1] }, ch);
+    await api("PUT", `episodes/${EP2}/script`, { text: s2 }, ch);
+    await api("PUT", `episodes/${EP2}/research`, { text: await fxd("research.md") }, ch);
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(path.join(root, ch, "episodes", `${EP2}-e2e-ui-dock`, "tashkeel.md"), await fxd("tashkeel.md"));
+    const p2 = (await api("GET", `episodes/${EP2}`, undefined, ch)).plan;
+    const tone = { balislam: "calm", "dafatir-alzaman": "documentary", "zubdat-alkutub": "warm" }[ch] ?? "calm";
+    await api("PUT", `episodes/${EP2}/plan`, { plan: { ...p2, tone, chapters: p2.chapters.map((c) => ({ ...c, scenes: c.scenes.map((x) => x.id === "c1-end" ? { ...x, durationSec: 4, edited: true } : x) })) },
+      expectedRevision: await planRevision(p2) }, ch);
+    const st2 = await api("GET", `episodes/${EP2}/scene-production`, undefined, ch);
+    await api("POST", `episodes/${EP2}/approve-preparation`, { reviewed: true, scriptSha256: st2.script.sha256, storyboardSha256: st2.storyboard.sha256, note: "e2e dock parity" }, ch);
+    await until(`${ch} drafts`, async () => { const s = await api("GET", `episodes/${EP2}/scene-production`, undefined, ch); return s.prepared.ready === s.prepared.total || null; });
+    const cfg = JSON.parse(await readFile(path.join(repo, "channels", ch, "channel.json"), "utf8"));
+    const planScenes = p2.chapters.flatMap((c) => c.scenes);
+    await page.goto(`${origin}/?link#/${ch}/${EP2}/episode/c1-s1`); await page.waitForLoadState("networkidle").catch(() => {});
+    const first = await dockOf();
+    const sentences = await sentenceControls();
+    await snap(`dock-${ch}-1`);
+    await click("اعتمد المشهد", { timeout: 180_000 });
+    const w = page.getByLabel(/شاهدته (بالصوت )?كاملًا/).first(); await w.waitFor({ state: "visible", timeout: 60_000 }); await w.check();
+    await click("اعتمد المشهد");
+    await until(`${ch} c1-s1 approved`, async () => (await api("GET", `episodes/${EP2}/scene-production`, undefined, ch)).scenes.find((x) => x.id === "c1-s1")?.approved || null, 60_000);
+    await page.goto(`${origin}/?link#/${ch}/${EP2}/episode/c1-s2`); await page.waitForLoadState("networkidle").catch(() => {});
+    const second = await dockOf();
+    await snap(`dock-${ch}-2`);
+    const s2scene = planScenes.find((x) => x.id === "c1-s2");
+    docks[ch] = { first, second, sentences };
+    const want = parity.DOCK_CONTROLS.filter((x) => x.id !== "render").map((x) => x.label);
+    ok(JSON.stringify(first.buttons) === JSON.stringify(want) && first.enter, `D150 ${ch}: the dock of a narration scene is «${want.join(" | ")}» with ⏎ (${first.buttons.join(" | ")})`);
+    const absent = parity.dockVoiceAbsent(cfg, s2scene);
+    ok(absent ? second.absent === absent && second.buttons.length === 3 : JSON.stringify(second.buttons) === JSON.stringify(want),
+      `D150 ${ch}: scene 2 (${s2scene.template}) dock ${absent ? `says «${absent}» in the voice slot` : "is the full dock"} (${second.buttons.join(" | ")}${second.absent ? ` / ${second.absent}` : ""})`);
+  }
+  if (DOCK_CHANNELS.length > 1) {
+    const sig = (d) => JSON.stringify(d.first);
+    ok(new Set(DOCK_CHANNELS.map((c) => sig(docks[c]))).size === 1, `D150: one dock in ${DOCK_CHANNELS.join(", ")}`);
+    ok(new Set(DOCK_CHANNELS.map((c) => JSON.stringify(docks[c].sentences))).size === 1,
+      `D150: the same sentence controls under scene 1 in ${DOCK_CHANNELS.join(", ")} (${DOCK_CHANNELS.map((c) => `${c}: ${JSON.stringify(docks[c].sentences)}`).join(" ; ")})`);
+    ok(Object.values(docks[DOCK_CHANNELS[0]].sentences ?? {}).every(Boolean), `D150: tone, «النطق», «⋯», «عدّل النص» and play under the sentence (${JSON.stringify(docks[DOCK_CHANNELS[0]].sentences)})`);
+  }
+
   ok(errors.length === 0, `no page error (${errors.join(" | ").slice(0, 300)})`);
   ok(outgoing.length === 0, `no request left this machine (${outgoing.join(", ")})`);
 } catch (e) {

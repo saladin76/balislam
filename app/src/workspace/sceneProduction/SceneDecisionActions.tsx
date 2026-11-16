@@ -25,6 +25,11 @@ export const SceneDecisionActions: React.FC<{
   /** review: معاينة المشهد بصوته جاهزة للقرار؛ render: لم تُجهَّز بعد */
   stage: "review" | "render";
   voice: VoiceState;
+  /**
+   * D150 (تطابق القنوات): مشهد بلا صوت يولَّد (آية، أو بلا تعليق) لا يُخفي مكان زر الصوت بصمت؛ في مكانه سطر بالسبب
+   * بقاعدة القناة (`dockVoiceAbsent` في src/studio/channelParity.ts).
+   */
+  voiceAbsent?: string | null;
   voiceBusy: boolean;
   voiceMsg?: string;
   canVoice: boolean;
@@ -120,7 +125,8 @@ export const SceneDecisionActions: React.FC<{
           <span className="ms-dv" aria-hidden="true" />
           {tool("الحركة غير مناسبة", "motion", { "aria-pressed": p.problem?.kind === "motion", disabled: !review || p.pending, onClick: () => p.onProblem("motion") })}
           {tool("النبرة غير مناسبة", "tone", { "aria-pressed": p.problem?.kind === "tone", disabled: !review || p.pending, onClick: () => p.onProblem("tone") })}
-          {p.voice !== "none" ? tool(voiceLabel, "regen", { cta: needVoice && !p.preparing, disabled: voiceOff, title: p.canVoice ? voiceLabel : "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»", onClick: p.onVoice }) : null}
+          {p.voice !== "none" ? tool(voiceLabel, "regen", { cta: needVoice && !p.preparing, disabled: voiceOff, title: p.canVoice ? voiceLabel : "يتطلب مفتاح الصوت من «الاتصالات والمفاتيح»", onClick: p.onVoice })
+            : p.voiceAbsent ? <span className="s3-absent" role="note">{p.voiceAbsent}</span> : null}
           {(!review || p.newerTake === "produce") && !p.preparing ? tool(p.pending ? "جارٍ الإنتاج…" : "أنتج هذا المشهد", "film", { disabled: p.pending || !p.readyForAv || p.voiceBusy || p.awaitingChange != null,
             ...(p.awaitingChange != null ? { title: "بانتظار التعديل: يُنتج من جديد حين تتغيّر مدخلاته" } : {}), onClick: p.onRender }) : null}
         </div>,

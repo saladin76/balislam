@@ -28,6 +28,7 @@ import type { EpisodeMedia } from "../../../src/plan/media";
 import { planIssues, type PlanIssue } from "../../../src/plan/validate";
 import { TRANSITION_HELP } from "../../../src/plan/transitions";
 import { engineEnabled } from "../../../src/plan/engine";
+import { absentWhy } from "../../../src/studio/channelParity";
 import type { ChannelInfo } from "../../../src/channel/types";
 import { langPack } from "../../../src/i18n/packs";
 import { chapterEyebrow } from "../../../src/remotion/scenes/eyebrow";
@@ -438,6 +439,9 @@ export const EpisodeTab: React.FC<{
             </label>
             ) : null}
           </div>
+          {/* D150: the transition field absent by the channel's rule is said, never hidden silently */}
+          {!engineEnabled("transitions", channel.id) && !scene.transition && absentWhy(channel, "scene-transition")
+            ? <div className="help" role="note" style={{ marginTop: -4 }}>«الدخول من المشهد السابق»: {absentWhy(channel, "scene-transition")}</div> : null}
           {(engineEnabled("transitions", channel.id) || scene.transition) && (() => {
             const errs = liveIssues.filter((i) => i.sceneId === scene.id && /الانتقال/.test(i.message));
             return (

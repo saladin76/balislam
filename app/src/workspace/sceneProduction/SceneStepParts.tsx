@@ -21,6 +21,8 @@ import { NoteText, ar, noteInboxLine } from "./notes";
 import { newerTakeLine } from "./newerTake";
 import { liveAudio } from "./liveAudio";
 import { remoteChangeLine } from "./remoteChange";
+import { useChannel } from "../../../../src/channel/context";
+import { allSentencesHint } from "../../../../src/studio/channelParity";
 import type { StepPart } from "./sceneStepView";
 
 /** «قبل أن تعتمد»: this channel's review criteria (from its production rules), on a sticky note in the gutter */
@@ -189,6 +191,7 @@ export const SceneIssuesButton: React.FC<StepPart> = ({ m, v }) => {
 export const SceneMore: React.FC<StepPart> = ({ m, p }) => {
   const { data, issues, order, setEditing, allSentences, setAllSentences, sentencesKey, refresh, shortsOpen, setShortsOpen, moreRef } = m;
   const { episodeId, channelId, hasVoiceKeys, onOpenSettings, onPlanFlush, onPlanReplaced, onMediaChange, onUpdated } = p;
+  const channel = useChannel(); // D150: no promise of a recitation upload in a written-citation channel (D68)
   return (
     <div ref={moreRef}>
       <More>
@@ -210,7 +213,7 @@ export const SceneMore: React.FC<StepPart> = ({ m, p }) => {
         ) : null}
         <div className="s3-more-group">
           <h3>جمل الحلقة كلها</h3>
-          <p className="sp-hint">كل مشاهد الحلقة جملةً جملة بالترتيب، والآيات في مواضعها برفع التلاوة؛ وفيها قاموس النطق.</p>
+          <p className="sp-hint">{allSentencesHint(channel)}</p>
           <button type="button" className="btn" aria-expanded={allSentences} onClick={() => setAllSentences((v) => !v)}>{allSentences ? "أخفِ جمل الحلقة" : "اعرض جمل الحلقة كلها"}</button>
           {allSentences ? (
             <StudioErrorBoundary scope="screen" compact label="جمل الحلقة">
