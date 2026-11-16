@@ -4,13 +4,13 @@
  *  1. Voice: narration for every narrated scene that lacks a current clip, through the existing
  *     generateVoice (tashkeel ≥ 98%, storyboard and tone gates, script+storyboard approval). Quran is
  *     never voiced: verse cards carry no narration and their recitation stays the owner's own recording.
- *  2. Render: AV preview DRAFTS for the current scene and every later unapproved, unsubmitted scene, in
- *     order, one at a time (same renderer and preview slot as «إنتاج المشهد»). A verse card whose human
+ *  2. Render: AV preview DRAFTS for every unapproved, unsubmitted scene (any order is reviewable, D145), in
+ *     episode order, one at a time (same renderer and preview slot as «إنتاج المشهد»). A verse card whose human
  *     recitation is not attached yet does NOT stop the queue: it is drafted with its verse visible, silence
  *     for the plan's duration and a studio-only «التلاوة تُضاف لاحقًا» tag (recitations come last, D34).
  *
- * Nothing here submits or approves anything. A draft becomes reviewable only when its scene is current,
- * and approval stays strictly ordered, owner-authenticated and bound to the exact preview bytes.
+ * Nothing here submits or approves anything. A ready draft is reviewable at once, in any order (D145); approval stays
+ * owner-authenticated and bound to the exact preview bytes. With `renderOnly` («أنتج كل المشاهد الجاهزة») step 1 is skipped.
  * Shared by the Studio server (background queue) and `bal produce` on the Mac.
  */
 import path from "node:path";
@@ -58,9 +58,8 @@ export type PrepareProgress = {
    *   voice phase failed);
    * - `sentences`: a scene voiced sentence by sentence (D50) with sentences whose voice is not current; they are made
    *   in «الجمل», never regenerated whole here;
-   * - `after-gap`: the scene itself is ready, but it comes after the first scene still waiting for its voice (`gap`):
-   *   nothing past it is drafted, since none of it can be reviewed before that voice exists (D38). A verse card or the
-   *   end card lands here, never under `voice`;
+   * - `after-gap`: no longer produced (D145: a ready scene after one still waiting for its voice is drafted and
+   *   reviewable at once); kept in the type so an older job read still parses;
    * - `blocked`: producing it waits for a fix (a verse without its text, a script error, text that differs from the
    *   script; `error` says which);
    * - `failed-before`: the same inputs already failed in the last run (the scene's own «إنتاج المشهد» retries).
@@ -89,14 +88,11 @@ export const renderSceneDraft: RenderSceneDraft = async (episode, sceneId, sourc
   await recordSceneRenderEvidence(episode, sceneId, sourceSha256, "ahead");
 };
 
-/** Scenes that still need a draft, in episode order, from the current scene on. */
+/** Scenes that still need a draft, in episode order, ALL of them (D145: any scene is reviewed in any order). */
 export const scenesToRender = async (episode: string) => {
   const s = await inspectSceneProduction(episode);
-  const from = s.scenes.findIndex((x) => x.id === s.progress.currentScene);
-  if (from < 0) return { list: [] as { id: string; sourceSha256: string }[], blocked: [] as string[],
-    beforeVoiceGap: [] as { id: string; sourceSha256: string }[], held: [] as PrepareSkip[], gap: undefined as string | undefined };
   // M4: a scene sent back for a fix is not re-rendered from the same inputs (it waits for a change).
-  const open = s.scenes.slice(from).filter((x) => (x.status === "queued" || x.status === "needs_revision") && x.draft !== "ready" &&
+  const open = s.scenes.filter((x) => (x.status === "queued" || x.status === "needs_revision") && x.draft !== "ready" &&
     !(x as { awaitingChange?: boolean }).awaitingChange);
   // A scene whose production waits for a fix (verse without text, script error, text ≠ script) is said, not rendered.
   const why = (x: (typeof open)[number]) => [...((x as { blocked?: string[] }).blocked ?? []), ...(s.episodeBlocked ?? [])];
@@ -123,16 +119,14 @@ type QueueItem = { id: string; sourceSha256: string };
  * still waiting for its narration is drafted; a scene whose same inputs failed last run (for a reason of
  * its own, not the network/browser) is skipped by the queue.
  */
-export const pickRenderQueue = (queue: { list: QueueItem[]; beforeVoiceGap: QueueItem[]; gap?: string }, opts: {
-  voiceMissing: boolean; previousFailures?: { id: string; error: string; sourceSha256?: string }[];
+export const pickRenderQueue = (queue: { list: QueueItem[]; beforeVoiceGap?: QueueItem[]; gap?: string }, opts: {
+  /** Kept for callers; no longer holds anything back (D145: a scene after one still waiting for its voice is reviewable now). */
+  voiceMissing?: boolean; previousFailures?: { id: string; error: string; sourceSha256?: string }[];
 }) => {
-  const allowed = opts.voiceMissing ? queue.beforeVoiceGap.filter((x) => queue.list.some((y) => y.id === x.id)) : queue.list;
-  const kept = new Set(allowed.map((x) => x.id));
-  // Ready scenes left for later only because an earlier scene still waits for its voice: «after-gap», never «voice».
-  const skipped: PrepareSkip[] =
-    queue.list.filter((x) => !kept.has(x.id)).map((x) => ({ id: x.id, reason: "after-gap" as const, ...(queue.gap ? { gap: queue.gap } : {}) }));
+  // Every ready scene is drafted, whatever comes before it: scenes are reviewed and approved in any order (D145).
+  const skipped: PrepareSkip[] = [];
   const todo: QueueItem[] = [];
-  for (const x of allowed) {
+  for (const x of queue.list) {
     const before = opts.previousFailures?.find((f) => f.id === x.id && f.sourceSha256 === x.sourceSha256);
     if (before && !environmentalFailure(before.error)) skipped.push({ id: x.id, reason: "failed-before", error: before.error, sourceSha256: x.sourceSha256 });
     else todo.push(x);
@@ -154,6 +148,8 @@ export const prepareAllScenes = async (episode: string, opts: {
   /**
    * «أعد إنتاج المشاهد المتأثرة» (سرعة الإلقاء): drafts only. No voice step at all (no request, not even the basmala
    * scenes), whatever key is configured: the paced copies were already made from the existing takes.
+   * «أنتج كل المشاهد الجاهزة» (D145): free renders only. No voice of any kind is generated (no paid call, whatever
+   * key is configured): only scenes whose takes already exist are drafted; the others are said as waiting for voice.
    */
   renderOnly?: boolean;
 }): Promise<PrepareProgress> => {
@@ -166,6 +162,8 @@ export const prepareAllScenes = async (episode: string, opts: {
   const waitingFix = new Set((await inspectSceneProduction(episode)).scenes
     .filter((x) => ((x as { blocked?: string[] }).blocked ?? []).length).map((x) => x.id));
   const needed = opts.renderOnly ? [] : (await scenesNeedingVoice(episode)).filter((id) => !waitingFix.has(id));
+  // renderOnly («أنتج كل المشاهد الجاهزة»، «أعد إنتاج المشاهد المتأثرة»): no voice client at all, so nothing paid is called.
+  const voiceClient = opts.renderOnly ? null : opts.voiceClient;
   const p: PrepareProgress = {
     phase: "voice", voice: { needed: needed.length, generated: 0, status: needed.length ? "pending" : "none" },
     rendered: [], failed: [],
@@ -182,11 +180,11 @@ export const prepareAllScenes = async (episode: string, opts: {
   };
   emit();
 
-  if (needed.length && !opts.voiceClient) p.voice.status = "no-key";
-  else if (needed.length) {
+  if (needed.length && !voiceClient) p.voice.status = "no-key";
+  else if (needed.length && voiceClient) {
     try {
       await generateVoice(episode, {
-        client: opts.voiceClient, only: needed, shouldStop: opts.shouldStop,
+        client: voiceClient, only: needed, shouldStop: opts.shouldStop,
         onProgress: (m) => {
           const id = m.match(/\)\s*([a-z0-9-]+):/)?.[1];
           if (id) { p.sceneId = id; emit(); }
@@ -205,7 +203,7 @@ export const prepareAllScenes = async (episode: string, opts: {
   // The basmala scenes (owner decision 10 Nov): sentence by sentence, never the basmala itself.
   if (!opts.renderOnly) try {
     const { prepareBasmalaScenes } = await import("../voice/sentenceVoice");
-    const b = await prepareBasmalaScenes(episode, { client: opts.voiceClient, shouldStop: opts.shouldStop });
+    const b = await prepareBasmalaScenes(episode, { client: voiceClient, shouldStop: opts.shouldStop });
     p.voice.generated += b.generated;
     if (b.errors.length && p.voice.status !== "error") {
       p.voice.status = "error";

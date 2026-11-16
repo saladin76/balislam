@@ -141,7 +141,8 @@ export const EpisodeSpine: React.FC<Props> = ({ episodeId, channelId, tab, scrip
     }
     if (!done[1] && !w.progress.currentScene && (w.progress.recitationPending?.length ?? 0) > 0)
       return { text: "كل المشاهد معتمدة، وآيات بانتظار تلاواتها: شاهد المعاينة قبل النهائية وارفع التلاوات.", label: "إلى التلاوات", go: "review" };
-    if (!done[1]) return { text: `${sceneName(w.scenes.map((x) => x.id), w.progress.currentScene)} ينتظر قرارك: شاهده بنصه وحركته وصوته، ثم اعتمده. (مشاهد معتمدة: ${arNum(w.progress.approvedScenes)} من ${arNum(w.progress.totalScenes)})`, label: "إلى المشهد الحالي", go: "episode" };
+    // D145: scenes are decided in any order; the band says how many are left and opens the first of them.
+    if (!done[1]) return { text: `مشاهد معتمدة: ${arNum(w.progress.approvedScenes)} من ${arNum(w.progress.totalScenes)}. شاهد أي مشهد بنصه وحركته وصوته واعتمده، بأي ترتيب؛ أول ما بقي ${sceneName(w.scenes.map((x) => x.id), w.progress.currentScene)}.`, label: "إلى المشاهد", go: "episode" };
     // Step ٣ owns everything after the scenes: assembly, its review, making and approving the final file.
     // Step ٤ owns only the publish permission and the files (funnel audit 8 Nov, D36: no bouncing).
     if (!w.assembly) return { text: "كل المشاهد معتمدة. ادمجها في نسخة واحدة للمشاهدة الكاملة.", label: "إلى التجميع", go: "review" };

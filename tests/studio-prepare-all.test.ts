@@ -88,8 +88,8 @@ const decide = (cmd: Record<string, unknown>, headers: Record<string, string> = 
 const open = (status: string) => (status === "queued" || status === "needs_revision" ? "open" : status);
 const ledger = async () => JSON.parse(await readFile(path.join(epDir, "scene-production.v1.json"), "utf8"));
 /** Start «جهّز كل المشاهد» and wait for the background queue to finish. */
-const prepareAll = async () => {
-  const start = await call("POST", `episodes/${EP}/scene-prepare`);
+const prepareAll = async (body?: { renderOnly: true }) => {
+  const start = await call("POST", `episodes/${EP}/scene-prepare`, body);
   if (start.status !== 200) return start;
   for (let i = 0; i < 600; i++) {
     const r = await call("GET", `episodes/${EP}/scene-prepare`);
@@ -177,7 +177,7 @@ afterAll(async () => {
 });
 
 describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", () => {
-  it("voices and pre-renders every scene without approving anything; approvals stay ordered; an edit discards only its draft", async () => {
+  it("voices and pre-renders every scene without approving anything; approvals in any order; an edit discards only its draft", async () => {
     // ── Script and storyboard approvals (prerequisites) ─────────────────────────────────────────
     // Nothing is prepared before script + storyboard approval, nor from another site.
     expect((await call("POST", `episodes/${EP}/scene-prepare`)).status).toBe(409);
@@ -231,6 +231,11 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     // ── With a (stubbed) voice key: voices for the two scenes, then their drafts, in order ──────
     process.env.ELEVENLABS_API_KEY = "stub-key-not-real";
     process.env.ELEVENLABS_VOICE_ID = "stub-voice";
+    // D145 «أنتج كل المشاهد الجاهزة»: free renders only — even with a key, no voice is generated (nothing paid).
+    const free = await prepareAll({ renderOnly: true });
+    expect(free.body.job, JSON.stringify(free.body)).toMatchObject({ status: "done", voice: { status: "none", needed: 0 }, rendered: [], failed: [] });
+    expect(free.body.job.skipped).toMatchObject([{ id: "c1-s2", reason: "voice" }, { id: "c1-s3", reason: "voice" }]);
+    expect(elevenCalls).toEqual([]);
     const run = await prepareAll();
     expect(run.body.job, JSON.stringify(run.body)).toMatchObject({ status: "done", voice: { status: "done", needed: 2, generated: 2 }, rendered: ["c1-s2", "c1-s3"], failed: [] });
     expect(elevenCalls.filter((c) => c.includes("with-timestamps"))).toHaveLength(2);
@@ -246,12 +251,10 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     expect((await prepareAll()).body.job.rendered).toEqual([]);
     expect(stubbedRenders).toHaveLength(3);
 
-    // ── Approvals stay strictly in order, on the exact draft bytes ──────────────────────────────
-    expect((await decide({ action: "submit-scene", sceneId: "c1-s2", expectedSha256: s.scenes[1].sourceSha256 })).status).toBe(409);
-    expect((await decide({ action: "approve-scene", sceneId: "c1-s2", expectedSha256: s.candidates.scenes["c1-s2"], confirmedWatched: true })).status).toBe(409);
+    // ── Approvals in ANY order (D145), each on the exact draft bytes ───────────────────────────
+    expect((await decide({ action: "approve-scene", sceneId: "c1-s2", expectedSha256: s.candidates.scenes["c1-s2"], confirmedWatched: true })).status).toBe(409); // not submitted
     const approveDraft = async (id: string) => {
       const cur = await state();
-      expect(cur.progress.currentScene).toBe(id);
       const sc = cur.scenes.find((x: any) => x.id === id);
       expect(sc.draft).toBe("ready");
       const bytes = cur.candidates.scenes[id];
@@ -263,8 +266,11 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
       const ok = await decide({ action: "approve-scene", sceneId: id, expectedSha256: bytes, confirmedWatched: true });
       expect(ok.status, JSON.stringify(ok.body)).toBe(200);
     };
+    // The last scene first, then the first; scene 2 stays open.
+    await approveDraft("c1-s3");
+    expect((await state()).progress).toMatchObject({ currentScene: "c1-s1", unapprovedScenes: ["c1-s1", "c1-s2"], canAssemble: false });
     await approveDraft("c1-s1");
-    // The approved scene is never re-rendered by another prepare run.
+    // The approved scenes are never re-rendered by another prepare run.
     expect((await prepareAll()).body.job.rendered).toEqual([]);
 
     // ── Editing scene 2 discards only its draft and re-opens only it ────────────────────────────
@@ -272,8 +278,7 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     expect((await call("PUT", `episodes/${EP}/plan`, { plan: planOf("الشكر قيد النعم"), expectedRevision: await browserPlanRevision((await call("GET", `episodes/${EP}`)).body.plan) })).status).toBe(200);
     const after = await state();
     expect(after.scenes.map((x: any) => [x.id, x.status, x.draft])).toEqual([
-      ["c1-s1", "approved", "none"], ["c1-s2", "queued", "stale"], ["c1-s3", before.scenes[2].status, "ready"]]);
-    expect(open(after.scenes[2].status)).toBe("open");
+      ["c1-s1", "approved", "none"], ["c1-s2", "queued", "stale"], ["c1-s3", "approved", "none"]]);
     expect(after.scenes[0].sourceSha256).toBe(before.scenes[0].sourceSha256);
     expect(after.scenes[2].sourceSha256).toBe(before.scenes[2].sourceSha256);
     expect(Object.keys((await ledger()).previewInputs).sort()).toEqual(["c1-s1", "c1-s3"]);
@@ -288,10 +293,9 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     expect(again.body.job).toMatchObject({ status: "done", rendered: ["c1-s2"], failed: [] });
     expect(stubbedRenders).toEqual(["c1-s1", "c1-s2", "c1-s3", "c1-s2"]);
     await approveDraft("c1-s2");
-    await approveDraft("c1-s3");
     const done = await state();
     expect(done.progress).toMatchObject({ approvedScenes: 3, canAssemble: true, assemblyApproved: false, publishAllowed: false });
     expect((await ledger()).history.map((h: any) => h.action)).toEqual(["approve-script", "approve-storyboard",
-      "submit-scene", "approve-scene", "update-after-preparation", "submit-scene", "approve-scene", "submit-scene", "approve-scene"]);
+      "submit-scene", "approve-scene", "submit-scene", "approve-scene", "update-after-preparation", "submit-scene", "approve-scene"]);
   }, 300_000);
 });

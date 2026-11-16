@@ -50,7 +50,7 @@ describe("أربع خطوات", () => {
     expect(fourSteps(overview({ script: true })).map((s) => s.done)).toEqual([false, false, false, false]);
     expect(fourSteps(overview({ script: true, storyboard: true, canAssemble: true, masterApproved: true, publishAllowed: true }, true)).every((s) => s.done)).toBe(true);
     expect(nextLine(overview({ script: true }))).toEqual({ text: "راجع التجهيز (الستوري بورد والسكريبت) واعتمده", tab: "storyboard" });
-    expect(nextLine(overview({ script: true, storyboard: true, approvedScenes: 11 }))).toEqual({ text: "المشهد ١٢ من ١١٤ ينتظر قرارك", tab: "episode" });
+    expect(nextLine(overview({ script: true, storyboard: true, approvedScenes: 11 }))).toEqual({ text: "باقي ١٠٣ مشاهد من ١١٤ للاعتماد، بأي ترتيب", tab: "episode" });
   });
 
   it("links keep working: each old tab link lands in its new step", () => {

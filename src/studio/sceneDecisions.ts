@@ -14,8 +14,8 @@ import { assertSceneOwner, NO_MASTER_MESSAGE, MASTER_NOT_APPROVED_MESSAGE } from
 export const NO_ASSEMBLY_MESSAGE = "لا توجد نسخة مجمعة بعد: تُدمج المشاهد في «٣ النسخة النهائية» بعد اعتمادها كلها.";
 /**
  * The gate a decision waits for, by order only (no file hashed): assembly after every scene and recitation, its approval
- * after an assembly exists, the Master after the approved assembly, the publish permission after the approved Master;
- * a scene after the one before it. Throws the refusal; the full checks (bytes, epochs, proofs) follow as before.
+ * after an assembly exists, the Master after the approved assembly, the publish permission after the approved Master.
+ * Scenes have no order among themselves (D145). Throws the refusal; the full checks (bytes, epochs, proofs) follow as before.
  */
 export const gateOrderRefusal = async (p: SceneFirstProduction, command: SceneOwnerCommand, scriptPath: string): Promise<void> => {
   const progress = sceneFirstProgress(p);
@@ -31,11 +31,8 @@ export const gateOrderRefusal = async (p: SceneFirstProduction, command: SceneOw
   } else if (command.action === "grant-publish") {
     if (!await exists(masterFile(scriptPath))) throw Error(NO_MASTER_MESSAGE);
     if (!progress.masterApproved) throw Error(MASTER_NOT_APPROVED_MESSAGE);
-  } else if (command.action === "approve-scene" && command.sceneId) {
-    const at = p.scenes.findIndex(s => s.id === command.sceneId);
-    const now = progress.currentScene ? p.scenes.findIndex(s => s.id === progress.currentScene) : -1;
-    if (at >= 0 && now >= 0 && at > now) throw Error("Approve the previous scene, with its sound and video, first.");
   }
+  // D145 (owner decision 15 Nov 2026): a scene is decided in any order; no scene waits for the one before it.
 };
 
 export const decideSceneProduction = async (episode: string,

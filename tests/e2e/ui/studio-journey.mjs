@@ -133,11 +133,13 @@ try {
   const drafts = await until("drafts", async () => { const s = await state(); return s.prepared.ready === s.prepared.total ? s : null; });
   ok(drafts.prepared.ready === total, `the scene drafts prepared on their own (${drafts.prepared.ready}/${total})`);
 
-  // ── ٢ المشاهد: «اعتمد المشهد» → «شاهدته بالصوت كاملًا» → «اعتمد المشهد», scene after scene ──
+  // ── ٢ المشاهد: «اعتمد المشهد» → «شاهدته بالصوت كاملًا» → «اعتمد المشهد», from the LAST scene back (D145: any order) ──
   await go("episode");
   for (let i = 0; i < total; i++) {
     const before = await state();
-    const id = before.progress.currentScene;
+    // The first one taken is the last NARRATED scene (scene 3, before 1 and 2: its sentences carry the tone step below).
+    const open = before.progress.unapprovedScenes ?? [before.progress.currentScene];
+    const id = i === 0 ? open.filter((x) => x !== "c1-end").at(-1) : open.at(-1);
     // The scene by its own address (D102: #/<channel>/<episode>/episode/<scene>), as after a reload on it.
     await go(`episode/${id}`);
     if (i === 0) {

@@ -8,11 +8,12 @@ const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const src = (file: string) => panelSource(file);
 
 describe("Studio V2 one-scene AV production HTTP/UI wiring", () => {
-  it("exposes one current scene at a time with no browser-side approval authority", () => {
+  it("renders any not-yet-approved scene (D145, any order) with no browser-side approval authority", () => {
     const service = src("src/studio/sceneGates.ts");
     expect(service).toContain("assertCurrentSceneRenderAllowed");
     expect(service).toContain("assertSceneOwner();");
-    expect(service).toContain("sceneFirstProgress(state).currentScene !== sceneId");
+    expect(service).not.toContain("sceneFirstProgress(state).currentScene !== sceneId");
+    expect(service).toContain('if (target.status === "approved")');
     expect(service).toContain("target.sourceSha256 !== expectedSha256");
     expect(service).toContain("!current.planReady");
   });

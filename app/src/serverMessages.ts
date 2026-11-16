@@ -30,8 +30,8 @@ const EXACT: Record<string, string> = {
   "The preview changed since it was shown for review.": "تغيّرت معاينة المشهد منذ عرضها؛ شاهدها من جديد.",
   "Source files changed during review; reload before approving.": "تغيّرت ملفات الحلقة أثناء المراجعة؛ حدّث الصفحة ثم اعتمد.",
   "Approve the current script and complete storyboard before producing a scene.": "اعتمد التجهيز (السكريبت والستوري بورد، الخطوة ١) قبل إنتاج أي مشهد.",
-  "The scene is not current or its inputs changed.": "هذا ليس المشهد الحالي أو تغيّر منذ عرضه؛ حُدّثت الحالة.",
-  "Only the current or a later unapproved scene can be prepared, with its current inputs.": "يُجهَّز المشهد الحالي وما بعده فقط، بمدخلاته الحالية.",
+  "The scene is not current or its inputs changed.": "تغيّر هذا المشهد منذ عرضه؛ حُدّثت الحالة.",
+  "This scene is approved; an edit to it re-opens it for a new production and review.": "هذا المشهد معتمد؛ أي تعديل فيه يعيده وحده للإنتاج والمراجعة.",
   "An approved or submitted scene is never re-rendered as a draft.": "المشهد المعتمد أو المرسل للمراجعة لا يُعاد رندره مسودةً.",
   "The scene narration or human Quran recording is not ready for AV production.": "صوت المشهد أو تسجيل التلاوة غير جاهز بعد؛ ولّد الصوت أو أرفق التلاوة أولًا.",
   "Scene changed before the AV evidence was recorded.": "تغيّر المشهد أثناء الرندر؛ أنتجه من جديد.",
@@ -62,7 +62,6 @@ const EXACT: Record<string, string> = {
   "A channel, episode, and at least one scene are required.": "الحلقة بلا مشاهد بعد؛ جهّز الخطة من السكريبت أولًا.",
   "Scene ids must be unique and non-empty.": "في الخطة مشهدان بالمعرّف نفسه أو مشهد بلا معرّف؛ أعد تجهيز الخطة من السكريبت.",
   "Script and storyboard must be approved first.": "اعتمد التجهيز أولًا (السكريبت والستوري بورد، «١ التجهيز»).",
-  "Approve the previous scene, with its sound and video, first.": "اعتمد المشهد السابق بصوته وصورته أولًا؛ المشاهد تُعتمد بالترتيب.",
   "The submitted sound/visual input differs from the current scene.": "تغيّر المشهد منذ إرسال معاينته؛ أنتجه وشاهده من جديد.",
   "Review the scene with its audio and picture.": "شاهد المشهد كاملًا بالصوت والصورة ثم أكّد.",
   "Review the latest rendered audiovisual preview before approving.": "شاهد آخر معاينة مرندرة للمشهد بالصوت والصورة قبل الاعتماد.",
@@ -103,6 +102,8 @@ const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/Command failed: ffmpeg[\s\S]*(?:measured_I|-inf\b|Value -inf)/, () => "الملف صامت أو فارغ: لا صوت مسموع فيه. سجّل التلاوة من جديد وارفعها."],
   [/Command failed: ffprobe[\s\S]*No such file or directory/, () => "الملف المطلوب لم يُصنع بعد على هذا الجهاز؛ أنتجه أولًا ثم أعد المحاولة."],
   [/Command failed: (?:ffmpeg|ffprobe)/, () => "تعذّرت معالجة الملف الصوتي أو المرئي: صيغته غير مدعومة أو هو تالف. ارفعه بصيغة أخرى (MP3 أو WAV أو M4A للصوت)."],
+  // D145: the assembly says which scenes are left (any order); the Studio names the ids «المشهد ٣».
+  [/^All audiovisual scenes must be approved first; not approved yet: (.+)\.$/, (m) => `التجميع ينتظر اعتماد كل المشاهد؛ لم يُعتمد بعد: ${m[1]!.split(", ").join("، ")}.`],
   [/^Scene (\S+) has changed after audiovisual approval\.$/, (m) => `تغيّر المشهد ${m[1]} بعد اعتماده؛ يحتاج إنتاجًا واعتمادًا جديدين.`],
   // Render-browser download failures that escape the renderer's own wrapper (D36).
   [/(getaddrinfo (ENOTFOUND|EAI_AGAIN)[^\n]*remotion|remotion\.media|download(ing)? (the )?(chrome|browser)|headless shell)/i, () =>

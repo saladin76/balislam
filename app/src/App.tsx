@@ -813,7 +813,8 @@ export const App: React.FC = () => {
             onFinalView={setFinalView}
             plan={plan}
             thumb={(id) => <SceneThumb sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
-            onOpenScene={(id) => { setRequestedSceneId(id); setTab("episode"); }}
+            // D145: step ٣'s «باقي … غير معتمدة» links open that scene for review in step ٢ (not its editor).
+            onOpenScene={(id) => { setViewSceneId(id); setTab("episode"); }}
             onOpenStoryboard={() => setTab("storyboard")}
             onOpenScript={() => setTab("script")}
             onOpenPublish={() => setTab("publish")}

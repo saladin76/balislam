@@ -16,6 +16,7 @@ import type { SceneProductionProps } from "../SceneProductionPanel";
 import { noop, problemNote, type ProblemKind } from "./notes";
 import type { VoiceState } from "./SceneDecisionActions";
 import type { VoiceProgress } from "./liveAudio";
+import { nextUnapproved } from "./sceneStates";
 
 export const useSceneProduction = (props: SceneProductionProps) => {
   const {
@@ -32,7 +33,7 @@ export const useSceneProduction = (props: SceneProductionProps) => {
   // وصلات المشاهد التي فحصها المالك في النسخة المجمعة
   const [seams, setSeams] = useState<Record<string, boolean>>({});
   // شاشة المشاهد: المشهد المعروض (يُنظر إليه فقط)، والمشهد المفتوح في المحرر
-  const [viewId, setViewId] = useState<string | null>(null);
+  const [viewId, setViewId] = useState<string | null>(viewSceneId ?? null);
   const [editing, setEditing] = useState<string | null>(editor && requestedSceneId ? requestedSceneId : null);
   const stripRef = useRef<HTMLOListElement>(null);
   // قرار المشهد: مشكلة في لحظة بعينها (الحركة أو النبرة)، وخطوة تأكيد الاعتماد، وتوليد الصوت
@@ -148,7 +149,21 @@ export const useSceneProduction = (props: SceneProductionProps) => {
   };
 
   const humanReviewFocus = channelProductionProfile({ id: channelId }).reviewFocus;
-  const currentId = data?.progress.currentScene ?? null;
+  // ── شاشة «المشاهد»: المشهد المعروض، وكل مشهد مستقل بقراره (D145، قرار المالك ١٥ نوفمبر: أي ترتيب) ──
+  const planScenes = useMemo(() => plan ? plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))) : [], [plan]);
+  const issues = useMemo(() => plan && channel ? planIssues(plan, channel) : [], [plan, channel]);
+  const sceneMode = Boolean(editor && plan);
+  const order = sceneMode ? (data?.scenes.length ? data.scenes.map((s) => s.id) : planScenes.map((x) => x.scene.id)) : [];
+  /** The first scene without an approval (step ٢ opens there); null once every scene is approved. */
+  const nextOpenId = data?.progress.currentScene ?? null;
+  const shownId = viewId && order.includes(viewId) ? viewId : nextOpenId && order.includes(nextOpenId) ? nextOpenId : order[0] ?? null;
+  /**
+   * The scene the decision dock acts on: in step ٢ the scene ON SCREEN whenever it is not approved yet, whatever the
+   * state of the scenes before it (D145); an approved scene on screen has no decision (an edit re-opens it). Outside
+   * step ٢ (the one-decision panel) it is the first scene still open, as before.
+   */
+  const shownApproved = Boolean(shownId && data?.scenes.find((x) => x.id === shownId)?.approved);
+  const currentId = sceneMode ? (data && shownId && !shownApproved ? shownId : null) : nextOpenId;
   const scene = data?.scenes.find(item => item.id === currentId);
   const candidate = currentId ? data?.candidates?.scenes[currentId] : null;
   const previewUrl = currentId && candidate ? api.scenePreviewUrl(episodeId, currentId, candidate) : "";
@@ -189,6 +204,10 @@ export const useSceneProduction = (props: SceneProductionProps) => {
       setConfirming(false);
       if (action === "correct-scene" && sceneId) setSentNotes((m) => ({ ...m, [sceneId]: note.trim() }));
       if (action === "approve-assembly") setSeams({});
+      // «اعتمد المشهد» moves to the next scene NOT yet approved (after this one, then from the start); a correction
+      // keeps its scene on screen (D145: scenes are decided in any order).
+      if (action === "approve-scene" && sceneId) setViewId(nextUnapproved(fresh.scenes, sceneId));
+      else if (action === "correct-scene" && sceneId) setViewId(sceneId);
       setAdvanced(action === "approve-scene");
       return true;
     } catch (e) {
@@ -235,12 +254,6 @@ export const useSceneProduction = (props: SceneProductionProps) => {
   const seamsAll = data?.seams ?? [];
   const seamsDone = seamsAll.filter((x) => seams[x]).length;
 
-  // ── شاشة «المشاهد»: قرار المشهد الحالي، وشريط التقدم، والمحرر خلف «تحرير المشهد» ──
-  const planScenes = useMemo(() => plan ? plan.chapters.flatMap((c) => c.scenes.map((s) => ({ scene: s, chapter: c }))) : [], [plan]);
-  const issues = useMemo(() => plan && channel ? planIssues(plan, channel) : [], [plan, channel]);
-  const sceneMode = Boolean(editor && plan);
-  const order = sceneMode ? (data?.scenes.length ? data.scenes.map((s) => s.id) : planScenes.map((x) => x.scene.id)) : [];
-  const shownId = viewId && order.includes(viewId) ? viewId : currentId && order.includes(currentId) ? currentId : order[0] ?? null;
   useEffect(() => {
     // الشريط يتمرر أفقيًا وحده حتى يظهر المشهد الحالي، دون تحريك الصفحة
     const strip = stripRef.current;
@@ -248,7 +261,7 @@ export const useSceneProduction = (props: SceneProductionProps) => {
     if (!strip || !now) return;
     const s = strip.getBoundingClientRect(), n = now.getBoundingClientRect();
     strip.scrollLeft += (n.left + n.width / 2) - (s.left + s.width / 2);
-  }, [currentId, sceneMode, order.length]);
+  }, [shownId, sceneMode, order.length]);
 
   // dafatir M6: every plan save from this screen (editor fields, tone, text) re-reads the scene state, so a scene
   // waiting for a change unlocks as soon as its inputs changed (no reload).
@@ -356,7 +369,7 @@ export const useSceneProduction = (props: SceneProductionProps) => {
     stripRef, videoRef, videoSeconds, setVideoSeconds, problem, setProblem, problemText, setProblemText, toneChoice, setToneChoice,
     confirming, setConfirming, sentNotes, voiceBusy, voiceMsg, advanced, shortsOpen, setShortsOpen, sentencesKey,
     allSentences, setAllSentences, prepJob, setPrepJob, moreRef, assemblyRef, voiceProgress, onVoiceProgress,
-    markSeam, refresh, renderCurrentScene, assembleScenes, humanReviewFocus, currentId, scene, candidate, previewUrl, allApproved,
+    markSeam, refresh, renderCurrentScene, assembleScenes, humanReviewFocus, currentId, nextOpenId, scene, candidate, previewUrl, allApproved,
     act, draftReady, reviewCurrent, seamsAll, seamsDone, planScenes, issues, sceneMode, order, shownId,
     voiceOf, generateVoice, submitTone, keys, reelOpen, setReelOpen, headRef, reasonsHost, setReasonsHost, openScene, seamAt, setSeamAt,
   };

@@ -28,7 +28,11 @@
 .shell-v3 .s3-len { white-space: nowrap; }
 .shell-v3 .s3-state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--line-strong); }
 .shell-v3 .s3-state.is-now::before { background: var(--acc); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent); }
-.shell-v3 .s3-state.is-done::before { background: var(--ok); }
+.shell-v3 .s3-state.is-done::before, .shell-v3 .s3-state.is-approved::before { background: var(--ok); }
+/* D145: each scene's own state (any order) */
+.shell-v3 .s3-state.is-review::before { background: var(--acc); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 25%, transparent); }
+.shell-v3 .s3-state.is-fix::before { background: var(--warn); }
+.shell-v3 .s3-state.is-conditional::before { background: var(--ok); box-shadow: inset 0 0 0 2px var(--sf), 0 0 0 1px var(--ok); }
 .shell-v3 .s3-edit { min-height: 30px; padding: 0 8px; font-size: var(--t-12); color: var(--ink-2); }
 .shell-v3 .s3-edit svg { width: 14px; height: 14px; }
 .shell-v3 .s3-meta .prep { gap: 4px 8px; }
@@ -101,6 +105,9 @@
 .shell-v3 .s3-legend i { width: 10px; height: 10px; border-radius: 3px; background: var(--line); }
 .shell-v3 .s3-legend i.is-now { background: var(--ink); }
 .shell-v3 .s3-legend i.is-ready { background: var(--sf); box-shadow: 0 0 0 1px color-mix(in srgb, var(--ink) 30%, transparent); }
+.shell-v3 .s3-legend i.is-approved { background: var(--ok); }
+.shell-v3 .s3-legend i.is-fix { background: var(--warn); }
+.shell-v3 .s3-legend i.is-conditional { background: var(--sf); box-shadow: inset 0 0 0 2px var(--ok); }
 .shell-v3 .s3-legend i.is-verse { background: repeating-linear-gradient(-45deg, var(--line) 0 2px, var(--paper) 2px 4px); box-shadow: 0 0 0 1px var(--line); }
 .shell-v3 .s3-chaps { display: flex; gap: 3px; font-size: var(--t-12); color: var(--mute); margin-bottom: 3px; }
 .shell-v3 .s3-chaps span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-inline-start: 3px; border-inline-start: 1.5px solid var(--line); line-height: 1.3; min-width: 0; }
@@ -118,6 +125,8 @@
 .shell-v3 .s3-dot.is-ready .ms-thumb, .shell-v3 .s3-dot.is-done .ms-thumb, .shell-v3 .s3-dot.is-shown .ms-thumb { opacity: 1; filter: none; }
 .shell-v3 .s3-dot.is-ready { background: var(--sf); }
 .shell-v3 .s3-dot.is-done::after { content: ""; position: absolute; top: 4px; inset-inline-start: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--ok); box-shadow: 0 0 0 1.5px var(--sf); }
+.shell-v3 .s3-dot.is-fix::after { content: ""; position: absolute; top: 4px; inset-inline-start: 4px; width: 8px; height: 8px; border-radius: 50%; background: var(--warn); box-shadow: 0 0 0 1.5px var(--sf); }
+.shell-v3 .s3-dot.is-conditional::after { background: var(--sf); box-shadow: inset 0 0 0 2px var(--ok), 0 0 0 1.5px var(--sf); }
 .shell-v3 .s3-dot.is-verse { background: repeating-linear-gradient(-45deg, var(--quiet) 0 5px, var(--paper) 5px 9px); box-shadow: 0 0 0 1px var(--line); }
 .shell-v3 .s3-dot.is-shown { box-shadow: 0 0 0 2px var(--ink); }
 .shell-v3 .s3-dot.is-now::before { content: ""; position: absolute; inset: auto 0 0 0; height: 4px; background: var(--acc); z-index: 2; }

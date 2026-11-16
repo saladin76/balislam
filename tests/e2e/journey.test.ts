@@ -8,7 +8,8 @@
  * Drive copy goes to a temporary folder (BAL_DRIVE_PUBLISH_DIR). The recitation is a generated tone, NEVER a real
  * recitation. No key, no network service, no owner data, no real approval.
  *
- * The steps: create the episode ← «اعتمد التجهيز» ← each scene produced and approved in order ← on one scene
+ * The steps: create the episode ← «اعتمد التجهيز» ← each scene produced and approved in ANY order (D145: the closing
+ * card produced first, scene 3 approved before 1 and 2, the assembly naming what is left) ← on one scene
  * «النبرة غير مناسبة» + note → regenerate → approve ← a scene's text edited after the preparation re-opens only
  * that scene (D76) ← the recitation (بالإسلام) uploaded and approved ← assembly → its approval ← a tiny Master →
  * its approval ← publish permission → the Drive copy, verified file by file against manifest.json.
@@ -95,10 +96,10 @@ for (const channel of selectedChannels()) {
       for (const f of files) expect(f, label).not.toMatch(/scene-production|storyboard\.json$|\/voice\/|\.mp[34]$|\.wav$|\.env|notes\/inbox|recitations\/|out\//);
       return { files, local: all };
     };
-    /** Produce the current scene's cut if its draft is not ready, then submit and approve it. */
+    /** Produce the scene's cut if its draft is not ready, then submit and approve it (any scene, any order: D145). */
     const produceAndApprove = async (id: string, opts: { conditional?: boolean } = {}) => {
       let s = await state(`${id}: before`);
-      expect(s.progress.currentScene, `${id} is the current scene`).toBe(id);
+      expect(s.scenes.find((x: any) => x.id === id)?.approved, `${id} is open`).toBe(false);
       let sc = s.scenes.find((x: any) => x.id === id);
       if (sc.draft !== "ready" || !s.candidates.scenes[id]) {
         const r = await st.call("POST", `episodes/${EP}/scene-av-render`, { sceneId: id, expectedSha256: sc.sourceSha256 });
@@ -214,8 +215,20 @@ for (const channel of selectedChannels()) {
       const firstJob = job.body.job.startedAt;
       expect(again.body.prepare.job, "the finished queue, not a new one").toMatchObject({ status: "done", startedAt: firstJob });
 
-      // ── 3+4. Each scene in order; on one, «النبرة غير مناسبة» → note → regenerate → approve ─────────────
-      for (const id of order()) {
+      // ── 3+4. The scenes in ANY order (D145); on one, «النبرة غير مناسبة» → note → regenerate → approve ────
+      // The closing card is produced first («أنتج هذا المشهد» on the last scene while none is approved).
+      {
+        const last = order()[order().length - 1]!;
+        const cur = await state("produce the last scene first");
+        expect(cur.progress.approvedScenes).toBe(0);
+        const r = await st.call("POST", `episodes/${EP}/scene-av-render`, { sceneId: last, expectedSha256: cur.scenes.find((x: any) => x.id === last).sourceSha256 });
+        ok(`${last}: produced first`, r);
+      }
+      // Scene 3 is approved before scenes 1 and 2, then the closing card, then 1 and 2.
+      const reviewOrder = [c.scenes[2]!, "c1-end", c.scenes[0]!, c.scenes[1]!];
+      expect([...reviewOrder].sort()).toEqual([...order()].sort());
+      const approvedSoFar: string[] = [];
+      for (const id of reviewOrder) {
         if (id === c.toneScene) {
           s = await state(`${id}: tone`);
           const sc = s.scenes.find((x: any) => x.id === id);
@@ -244,12 +257,23 @@ for (const channel of selectedChannels()) {
           expect(superseded.some((f) => f.endsWith(takeBefore)), `${id}: old take kept in voice/superseded (${superseded.join(", ")})`).toBe(true);
           // Only this scene re-opened.
           s = await state(`${id}: after regenerate`);
-          for (const x of s.scenes) if (order().indexOf(x.id) < order().indexOf(id)) expect(x.approved, `${x.id} stays approved`).toBe(true);
+          for (const x of s.scenes) if (approvedSoFar.includes(x.id)) expect(x.approved, `${x.id} stays approved`).toBe(true);
         }
         const conditional = c.verse?.mode === "recitation" && id === c.verse.sceneId;
         await produceAndApprove(id, { conditional });
+        approvedSoFar.push(id);
         const g = await state(`${id}: approved`);
         if (conditional) expect(g.progress.recitationPending, "verse waits for its recitation").toEqual([id]);
+        const left = order().filter((x) => !approvedSoFar.includes(x));
+        expect(g.progress.unapprovedScenes, `${id}: what is left`).toEqual(left);
+        if (left.length) {
+          // The assembly waits for every scene and names the ones left (the Studio numbers them «المشهد ١»).
+          const refused = await st.call("POST", `episodes/${EP}/scene-av-assemble`);
+          expect(refused.status, `${id}: assemble with scenes left`).toBe(409);
+          expect(refused.body.error, `${id}: assembly names what is left`).toMatch(/not approved yet: /);
+          expect(refused.body.error.split("not approved yet: ")[1].split(", ").length, `${id}: every scene left is named`).toBe(left.length);
+          expect(g.progress.currentScene, `${id}: step ٢ opens at the first scene left`).toBe(left[0]);
+        }
       }
       if (c.verse?.mode === "recitation") {
         // D35: no assembly while a verse waits for its recitation.

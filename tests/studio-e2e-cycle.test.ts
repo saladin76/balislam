@@ -227,18 +227,16 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
 
     await assertReadsDoNotWrite("script + storyboard approved");
 
-    // ── 3. Scenes, strictly in order, each with sound and picture ──────────────────────────────
+    // ── 3. Scenes, in ANY order (D145), each with sound and picture ─────────────────────────────
     s = await state();
     expect(s.progress.currentScene).toBe("c1-s1");
     expect(s.scenes.every((x: any) => x.readyForAv)).toBe(true);
-    // Out of order: the second scene cannot be produced or approved first.
-    expect((await render("c1-s2", s.scenes[1].sourceSha256)).status).toBe(409);
     expect((await render("c1-s1", s.scenes[0].sourceSha256, CROSS)).status).toBe(403);
+    // An approval still needs the exact submitted bytes, in any order.
     expect((await decide({ action: "approve-scene", sceneId: "c1-s2", expectedSha256: "a".repeat(64), confirmedWatched: true })).status).toBe(409);
 
     const produceAndApprove = async (id: string) => {
       let cur = await state();
-      expect(cur.progress.currentScene).toBe(id);
       const sc = cur.scenes.find((x: any) => x.id === id);
       const r = await render(id, sc.sourceSha256);
       expect(r.status, JSON.stringify(r.body)).toBe(200);
@@ -263,6 +261,18 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
       expect(ok.status, JSON.stringify(ok.body)).toBe(200);
       expect(ok.body.scenes.find((x: any) => x.id === id).approved).toBe(true);
     };
+    // The last scene first, while scenes 1 and 2 are not approved.
+    await produceAndApprove("c1-s3");
+    s = await state();
+    expect(s.progress.currentScene).toBe("c1-s1");
+    expect(s.progress.unapprovedScenes).toEqual(["c1-s1", "c1-s2"]);
+    // An approved scene is not re-rendered over its reviewed bytes.
+    const again = await render("c1-s3", s.scenes[2].sourceSha256);
+    expect(again.status).toBe(409);
+    expect(again.body.error).toMatch(/approved/);
+    // The assembly waits for every scene and names what is left.
+    const assembleEarly = await call("POST", `episodes/${EP}/scene-av-assemble`);
+    expect(assembleEarly.status).toBe(409);
     await produceAndApprove("c1-s1");
     // Correction path on scene 2: submit, ask for a fix, re-render, then approve.
     {
@@ -289,11 +299,10 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
       await writeFile(path.join(epDir, "plan.json"), JSON.stringify(changed, null, 2));
       expect((await state()).scenes[1].awaitingChange).toBeUndefined();
     }
-    await produceAndApprove("c1-s2");
-    // Not assemblable before the last scene.
+    // Not assemblable while scene 2 is open.
     expect((await call("POST", `episodes/${EP}/scene-av-assemble`)).status).toBe(409);
-    await produceAndApprove("c1-s3");
-    expect(stubbedRenders).toEqual(["c1-s1", "c1-s2", "c1-s2", "c1-s3"]);
+    await produceAndApprove("c1-s2");
+    expect(stubbedRenders).toEqual(["c1-s3", "c1-s1", "c1-s2", "c1-s2"]);
 
     // ── 4. Assembly: built from the approved cuts, watched 1×, every seam checked ──────────────
     s = await state();

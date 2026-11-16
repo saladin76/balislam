@@ -13,6 +13,42 @@ import type { SceneProductionProps } from "../SceneProductionPanel";
 import type { SceneProductionModel } from "./useSceneProduction";
 import { SeamReview, SeamRow, arNumOf } from "./SeamReview";
 import { ar } from "./notes";
+import { assemblyMissing } from "./sceneStates";
+import { SCENES, countAr } from "../../../../src/i18n/count";
+
+/**
+ * D145 (owner decision 15 Nov 2026): scenes are approved in any order, so the assembly says exactly what it still waits
+ * for: «باقي ٧ مشاهد غير معتمدة: ٣، ٨، …», each number a link to that scene in step ٢, then the verse scenes approved
+ * «مشروطًا بالتلاوة». Display only; the server refuses the assembly until every scene has a final approval.
+ */
+export const AssemblyMissing: React.FC<{ data: NonNullable<SceneProductionModel["data"]>; onOpenScene?: (id: string) => void }> = ({ data, onOpenScene }) => {
+  const order = data.scenes.map((x) => x.id);
+  const { unapproved, conditional } = assemblyMissing(data);
+  const links = (ids: string[]) => {
+    const shown = ids.slice(0, 24);
+    return (
+      <span className="sp-missing-ids">
+        {shown.map((id, i) => (
+          <React.Fragment key={id}>
+            {i ? "، " : ""}
+            {onOpenScene
+              ? <button type="button" className="prep-link" onClick={() => onOpenScene(id)} title={sceneName(order, id)}>{ar(order.indexOf(id) + 1)}</button>
+              : ar(order.indexOf(id) + 1)}
+          </React.Fragment>
+        ))}
+        {ids.length > shown.length ? "، …" : ""}
+      </span>
+    );
+  };
+  if (!unapproved.length && !conditional.length) return null;
+  return (
+    <p className="sp-hint sp-missing" role="status" data-missing={unapproved.join(" ")}>
+      {unapproved.length ? <>باقي {countAr(unapproved.length, SCENES)} غير {unapproved.length === 1 ? "معتمد" : "معتمدة"}: {links(unapproved)}.</> : null}
+      {unapproved.length && conditional.length ? " " : ""}
+      {conditional.length ? <>{unapproved.length ? "و" : ""}بانتظار التلاوة ({countAr(conditional.length, SCENES)}): {links(conditional)}.</> : null}
+    </p>
+  );
+};
 
 type Final = { m: SceneProductionModel; p: SceneProductionProps };
 
@@ -40,7 +76,8 @@ export const SeamsBeforeAssembly: React.FC<Final> = ({ m, p }) => {
         <div><h3>الوصلات تُسمع بعد التجميع</h3><p className="sp-hint">{data.progress.canAssemble
           ? "كل المشاهد معتمدة: اجمعها في نسخة واحدة، ثم استمع لكل وصلة بين مشهدين واعتمدها هنا."
           : pendingRecs ? "تُجمع الحلقة بعد اعتماد كل المشاهد وتلاواتها؛ بعدها تُسمع كل وصلة بين مشهدين هنا."
-          : `تُجمع الحلقة بعد اعتماد كل المشاهد (${arNumOf(data.progress.approvedScenes)} من ${arNumOf(data.progress.totalScenes)} الآن)؛ بعدها تُسمع كل وصلة بين مشهدين هنا.`}</p></div>
+          : `تُجمع الحلقة بعد اعتماد كل المشاهد، بأي ترتيب (${arNumOf(data.progress.approvedScenes)} من ${arNumOf(data.progress.totalScenes)} الآن)؛ بعدها تُسمع كل وصلة بين مشهدين هنا.`}</p>
+          {!data.progress.canAssemble ? <AssemblyMissing data={data} onOpenScene={onOpenScene} /> : null}</div>
         <div className="sp-actions">{data.progress.canAssemble
           ? <button className="btn primary" type="button" disabled={pending} onClick={() => void assembleScenes()}>{pending ? "جارٍ الدمج…" : "دمج المشاهد للمراجعة"}</button>
           : pendingRecs
@@ -59,7 +96,8 @@ export const MasterBeforeSeams: React.FC<Final> = ({ m, p }) => {
   return (
     <section className="scene-first-panel sp" aria-label="النسخة الأساسية">
       <div className="sp-row">
-        <div><h3>النسخة الأساسية تُصنع بعد الوصلات</h3><p className="sp-hint">{data.assembly ? "استمع لكل وصلة بين مشهدين في الحلقة المجمعة واعتمدها؛ بعدها تُصنع النسخة الأساسية 4K هنا." : "تُجمع المشاهد المعتمدة أولًا في نسخة واحدة وتُسمع وصلاتها."}</p></div>
+        <div><h3>النسخة الأساسية تُصنع بعد الوصلات</h3><p className="sp-hint">{data.assembly ? "استمع لكل وصلة بين مشهدين في الحلقة المجمعة واعتمدها؛ بعدها تُصنع النسخة الأساسية 4K هنا." : "تُجمع المشاهد المعتمدة أولًا في نسخة واحدة وتُسمع وصلاتها."}</p>
+          {!data.assembly && !data.progress.canAssemble ? <AssemblyMissing data={data} onOpenScene={onOpenScene} /> : null}</div>
         <div className="sp-actions">{data.progress.canAssemble || data.assembly
           ? <button className="btn primary" type="button" onClick={() => onFinalView?.("seams")}>إلى الوصلات</button>
           : (data.progress.recitationPending?.length ?? 0) > 0
@@ -113,7 +151,7 @@ export const DecisionPanel: React.FC<Final> = ({ m, p }) => {
             )}
           </div>
           <div className="sp-side">
-            <p className="sp-kicker">{sceneName(data.scenes.map((x) => x.id), currentId)}، {ar(data.progress.approvedScenes + 1)} من {ar(data.progress.totalScenes)}</p>
+            <p className="sp-kicker">{sceneName(data.scenes.map((x) => x.id), currentId)} — معتمد {ar(data.progress.approvedScenes)} من {ar(data.progress.totalScenes)}</p>
             <div className="scene-first-meter" role="progressbar" aria-valuenow={data.progress.approvedScenes} aria-valuemin={0} aria-valuemax={data.progress.totalScenes}>
               <span style={{ width: `${100 * data.progress.approvedScenes / Math.max(1, data.progress.totalScenes)}%` }} />
             </div>
