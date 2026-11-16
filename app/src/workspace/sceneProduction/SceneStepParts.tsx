@@ -18,6 +18,7 @@ import { sceneName } from "../sceneNames";
 import { Icon } from "../../ui/icons";
 import { Num, duration as clock, ownerText } from "../../ui/format";
 import { NoteText, ar, noteInboxLine } from "./notes";
+import { newerTakeLine } from "./newerTake";
 import { liveAudio } from "./liveAudio";
 import type { StepPart } from "./sceneStepView";
 
@@ -101,7 +102,7 @@ export const SceneMedia: React.FC<StepPart> = ({ m, p, v }) => {
       {isCurrent && previewUrl ? (
         <FramePlayer key={`${currentId}:${candidate}`} ref={videoRef} autoPlay={advanced} expectedDuration={secs(shownId)} onDuration={(seconds) => setVideoSeconds({ id: shownId, seconds })} src={previewUrl} label={`${sceneName(order, currentId)} بالصوت والصورة`} />
       ) : !isCurrent && shownVideo ? (
-        <FramePlayer key={shownId} expectedDuration={secs(shownId)} onDuration={(seconds) => setVideoSeconds({ id: shownId, seconds })} src={shownVideo} label={`${sceneName(order, shownId)} بالصوت والصورة`} />
+        <FramePlayer key={`${shownId}:${shownVideo}`} expectedDuration={secs(shownId)} onDuration={(seconds) => setVideoSeconds({ id: shownId, seconds })} src={shownVideo} label={`${sceneName(order, shownId)} بالصوت والصورة`} />
       ) : livePreview ? (
         // The tag sits under the frame, never over it: burned-in captions run along the top of the picture.
         <figure className="s3-livebox">
@@ -130,6 +131,7 @@ export const SceneSide: React.FC<StepPart> = ({ m, v }) => {
       ) : null}
       {/* QA 12 Nov: «ينقصه صوت الراوي» is said once, in the reasons line above (no second copy here) */}
       {/* 11 Nov: a quiet line, never a second approval: the scene is reviewed with «اعتمد المشهد» like any other */}
+      {shownServer?.newerTake ? <p className="sp-hint s3-newer" role="status">{newerTakeLine(shownServer.newerTake)}</p> : null}
       {shownServer?.afterPreparation ? <p className="sp-hint s3-afterprep" role="note">{afterPreparationLine(shownServer.afterPreparation.what)}</p> : null}
       {shownServer?.blocked?.length || (shownServer && !shownServer.approved && data?.episodeBlocked?.length) ? (
         <p className="sp-hint s3-blocked" role="alert">لا يُنتج قبل إصلاح: {ownerText([...(shownServer.blocked ?? []), ...(data?.episodeBlocked ?? [])].join(" — "), order)}</p>

@@ -20,7 +20,7 @@ export const sceneStepView = (m: SceneProductionModel, p: SceneProductionProps, 
   const shownIdx = order.indexOf(shownId);
   const shownServer = data?.scenes.find((s) => s.id === shownId);
   const isCurrent = Boolean(data && shownId === currentId && scene);
-  const shownVideo = data?.candidates?.scenes[shownId] ? api.previewUrl(episodeId, `scene-${shownId}-av.mp4`) : "";
+  const shownVideo = data?.candidates?.scenes[shownId] ? api.scenePreviewUrl(episodeId, shownId, data.candidates.scenes[shownId]) : "";
   const blocking = issues.filter((i) => i.level === "error").length;
   const approvedCount = data?.progress.approvedScenes ?? 0;
   const openIssues = () => {

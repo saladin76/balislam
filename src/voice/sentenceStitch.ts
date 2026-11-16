@@ -98,6 +98,10 @@ export const recomposeBasmalaScenes = async (episode: string): Promise<string[]>
   return done;
 };
 
+/** The identity of a scene sound composed from its sentences ([id, file, fingerprint, pause] each, and the lead). */
+export const compositionHash = (entries: [string, string, string, number][], pre: number) =>
+  createHash("sha1").update(JSON.stringify({ sentences: entries, pre })).digest("hex").slice(0, 16);
+
 /** يركّب صوت المشهد من جمله ويكتبه في index.json (المسار الذي يقرؤه الرندر والسجل). */
 export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sentence[]): Promise<{ composed: boolean; reason?: string; file?: string }> => {
   const reason = fresh(ctx, scene, list) ? null : waitingReason(ctx, scene, list);
@@ -176,12 +180,14 @@ export const composeSentenceScene = async (ctx: Ctx, scene: PlanScene, list: Sen
   if (peak > 0.98) for (let i = 0; i < out.length; i++) out[i] = out[i]! * (0.98 / peak);
   const audioOf = (x: Sentence) => basmalaAudio.get(x.id) ?? x.audio!;
   const sceneWords = placed.flatMap((p) => shiftWords(audioOf(p.s).words, p.at + pre - p.clip.start));
-  const hash = createHash("sha1").update(JSON.stringify({ sentences: placed.map((p) => [p.s.id, audioOf(p.s).file, audioOf(p.s).fingerprint, p.s.pauseAfterMs]), pre })).digest("hex").slice(0, 16);
+  const hash = compositionHash(placed.map((p) => [p.s.id, audioOf(p.s).file, audioOf(p.s).fingerprint, p.s.pauseAfterMs]), pre);
   const file = `${hash}.wav`;
   const vdir = voiceDirFor(ctx.scriptPath);
   if (!existsSync(path.join(vdir, file))) await writeAtomic(path.join(vdir, file), encodeWav(out, SR));
   const narration = scene.narration.trim();
-  const clip: VoiceClip = { file, hash, text: narration, duration: total, words: sceneWords, ...(timing ? { timing } : {}), sentences: { hash, ids: list.map((s) => s.id), ...(Object.keys(clamped).length ? { clamped } : {}) },
+  const clip: VoiceClip = { file, hash, text: narration, duration: total, words: sceneWords, ...(timing ? { timing } : {}), sentences: { hash, ids: list.map((s) => s.id),
+    // KI-066: the take of each sentence this sound holds, so the studio can say when a newer take is not in it
+    takes: Object.fromEntries(placed.map((p) => [p.s.id, audioOf(p.s).file])), ...(Object.keys(clamped).length ? { clamped } : {}) },
     ...(basmalaAudio.size ? { basmala: { pending: !basmalaRec, sha256: basmalaRec?.sha256 ?? null } } : {}) };
   // index.json يُقرأ من جديد قبل الكتابة: لا يُمس مشهد آخر
   const indexFile = path.join(vdir, "index.json");

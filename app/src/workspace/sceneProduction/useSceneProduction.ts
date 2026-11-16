@@ -151,7 +151,7 @@ export const useSceneProduction = (props: SceneProductionProps) => {
   const currentId = data?.progress.currentScene ?? null;
   const scene = data?.scenes.find(item => item.id === currentId);
   const candidate = currentId ? data?.candidates?.scenes[currentId] : null;
-  const previewUrl = currentId && candidate ? api.previewUrl(episodeId, `scene-${currentId}-av.mp4`) : "";
+  const previewUrl = currentId && candidate ? api.scenePreviewUrl(episodeId, currentId, candidate) : "";
   const allApproved = Boolean(data?.progress.canAssemble);
 
   const act = async (action: SceneOwnerAction["action"], expectedSha256: string, sceneId?: string, noteText?: string, extra?: { tone?: string }): Promise<boolean> => {

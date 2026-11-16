@@ -15,6 +15,7 @@
  * This file keeps the two read models of step ٢ and the home list.
  */
 import path from "node:path";
+import { existsSync, statSync } from "node:fs";
 import { correctionInboxView } from "./notesInbox";
 import { optionalSha, sceneFile, assemblyFile, masterFile } from "./sceneLedgerStore";
 import { view, withState, draftOf, awaitingChange } from "./sceneLedgerState";
@@ -47,7 +48,34 @@ export const summarizeSceneProduction = (episode: string) =>
       masterApproved: v.progress.masterApproved, publishAllowed: v.progress.publishAllowed,
       recitationPending: v.progress.recitationPending.length };
   });
-export const inspectSceneProduction = (episode: string) =>
+export const inspectSceneProduction = async (episode: string) => withNewerTakes(episode, await inspectLedger(episode));
+
+/**
+ * KI-066: «فيه تسجيل جديد لم يدخل الفيديو» beside the scene's player, the same in the three channels. `produce`: the
+ * new take is in the scene's sound (or can be composed into it) and «أنتج هذا المشهد» carries it; `blocked`: other
+ * sentences have no current take yet (`missing`), so the sound cannot hold it and the video stays as it is.
+ * Read only; a failure to read the sentences never hides the step (no line then).
+ */
+const withNewerTakes = async <T extends Awaited<ReturnType<typeof inspectLedger>>>(episode: string, read: T) => {
+  let notices: Record<string, import("../voice/sceneTakes").SceneTakeNotice> = {};
+  try { notices = await (await import("../voice/sceneTakes")).sceneTakeNotices(episode); } catch { /* no line */ }
+  const scriptPath = read.scriptPath;
+  const scenes = read.scenes.map((s) => {
+    const n = notices[s.id];
+    if (!n) return s;
+    const video = read.candidates.scenes[s.id] ? sceneFile(scriptPath, s.id) : null;
+    const videoAt = video && existsSync(video) ? statSync(video).mtimeMs : null;
+    // The sound is newer than the cut on screen, and that cut is not the scene's current draft or submission.
+    const videoOlder = Boolean(videoAt !== null && n.soundAt !== null && n.soundAt > videoAt && s.draft !== "ready" && s.status !== "in_review" && !s.approved);
+    if (!n.outside.length && !videoOlder) return s;
+    const blocked = n.outside.length > 0 && n.missing.length > 0;
+    return { ...s, newerTake: { state: blocked ? "blocked" as const : "produce" as const, sentences: n.outside, missing: blocked ? n.missing : [] } };
+  });
+  const { scriptPath: _sp, ...rest } = read;
+  return { ...rest, scenes };
+};
+
+const inspectLedger = (episode: string) =>
   withState(episode, async (doc, current) => {
     const v = view(doc, current);
     const candidates = Object.fromEntries(await Promise.all(doc.state.scenes.map(async scene =>
@@ -69,7 +97,8 @@ export const inspectSceneProduction = (episode: string) =>
         ...(correction.inbox ? { inbox: correction.inbox } : {}) } } : {}) };
     }));
     return {
-      ...v, scenes,
+      ...v, scenes: scenes as (typeof scenes[number] & { newerTake?: { state: "produce" | "blocked"; sentences: number[]; missing: number[] } })[],
+      scriptPath: current.scriptPath,
       /** «جاهز ١٢ من ٣١»: approved, submitted for review, or with a current draft ready to watch. */
       prepared: {
         ready: scenes.filter(s => s.approved || (s.status === "in_review" && s.previewSha256) || s.draft === "ready").length,
