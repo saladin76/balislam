@@ -194,7 +194,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const timingMode = opts.scenePreview ? "scene-preview" as const
     : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
   const shown = opts.segment ? segmentPlan(plan, { n: 1, title: "", sceneIds: opts.segment.sceneIds }) : { plan, chapter: opts.chapter };
+  // One narration bed (owner, 16 Nov): every narrated scene at the episode's own median loudness, in the Master exactly as
+  // in the assembly (src/studio/narrationLoudness.ts). A single-scene review cut keeps its own level.
+  const narrationGain = opts.scenePreview ? undefined
+    : (await (await import("../studio/narrationLoudness")).narrationLoudness(scriptPath, plan, media)).gain;
   const inputProps = { plan: shown.plan, orientation: opts.orientation, chapter: shown.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel),
+    ...(narrationGain && Object.keys(narrationGain).length ? { narrationGain } : {}),
     ...(opts.draftMarks?.pendingRecitation.length ? { draftMarks: { pendingRecitation: opts.draftMarks.pendingRecitation } } : {}) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = qualitySpec(opts.quality ?? "preview");

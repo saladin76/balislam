@@ -30,28 +30,44 @@ export const fakeDurationFor = (text: string) => {
   return Math.round((LEAD + Math.max(1, n) * WORD_SEC + TAIL) * 1000) / 1000;
 };
 
-/** Every character of the text a time; the words are spaced evenly between the lead and the tail. */
+/**
+ * Every character of the text a time; the words are spaced evenly between the lead and the tail. A performance tag «[…]»
+ * takes no time (as with the real provider, where the tag is not spoken), so the first word starts at the lead.
+ */
 export const fakeAlignment = (text: string): Alignment => {
   const chars = [...text];
   const duration = fakeDurationFor(text);
+  let depth = 0;
+  const spoken = chars.map((ch) => { if (ch === "[") depth++; const on = depth === 0; if (ch === "]") depth = Math.max(0, depth - 1); return on; });
+  // the space right after a tag is not spoken either
+  for (let i = 0; i < chars.length && (!spoken[i] || /\s/.test(chars[i]!)); i++) spoken[i] = false;
+  const n = spoken.filter(Boolean).length;
   const span = duration - LEAD - TAIL;
-  const per = chars.length ? span / chars.length : 0;
+  const per = n ? span / n : 0;
   const r = (x: number) => Math.round(x * 1000) / 1000;
-  return {
-    characters: chars,
-    character_start_times_seconds: chars.map((_, i) => r(LEAD + i * per)),
-    character_end_times_seconds: chars.map((_, i) => r(LEAD + (i + 1) * per)),
-  };
+  const start: number[] = [], end: number[] = [];
+  let k = 0;
+  for (const on of spoken) {
+    start.push(r(LEAD + k * per));
+    if (on) k++;
+    end.push(r(LEAD + k * per));
+  }
+  return { characters: chars, character_start_times_seconds: start, character_end_times_seconds: end };
 };
 
-/** A quiet tone (never silence: the audio checks expect a voice track) of `seconds`, as MP3 44.1 kHz. */
+/**
+ * A tone like a real take (never silence: the audio checks expect a voice track) of `seconds`, as MP3 44.1 kHz: the tone sounds
+ * only between the lead and the tail (where the words are), over a faint room tone (about −66 dBFS) for the whole file, as a
+ * recording has before its first and after its last word. So the seam checks measure real silences, not a tone that never stops.
+ */
 export const fakeToneMp3 = async (seconds: number, freq = 220): Promise<Buffer> => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "bal-fake-voice-"));
   const out = path.join(dir, "tone.mp3");
+  const on = seconds > LEAD + TAIL ? `between(t,${LEAD},${Math.round((seconds - TAIL) * 1000) / 1000})` : "1";
   try {
     await run("ffmpeg", ["-nostdin", "-hide_banner", "-loglevel", "error", "-y",
-      "-f", "lavfi", "-i", `sine=frequency=${freq}:sample_rate=44100:duration=${seconds}`,
-      "-af", "volume=0.25", "-ac", "1", "-c:a", "libmp3lame", "-b:a", "64k", "-map_metadata", "-1", out]);
+      "-f", "lavfi", "-i", `aevalsrc='0.25*sin(2*PI*${freq}*t)*${on}+0.0005*(2*random(0)-1)':s=44100:d=${seconds}`,
+      "-ac", "1", "-c:a", "libmp3lame", "-b:a", "64k", "-map_metadata", "-1", out]);
     return await readFile(out);
   } finally {
     await rm(dir, { recursive: true, force: true });

@@ -1,6 +1,7 @@
 import config from "../../config.json";
 import type { Identity } from "../../brand/identity/index";
 import { sceneSeconds } from "../plan/duration";
+import { sceneAdvanceFrames } from "../plan/seams";
 import { estimateTimings } from "../remotion/scenes/timing";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan, PlanScene } from "../plan/types";
@@ -23,7 +24,9 @@ export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia, i
   const fps = config.video.fps;
   const cues: { start: number; end: number; text: string }[] = [];
   let offset = 0;
-  for (const scene of scenes) {
+  // وصل السرد: التالي يبدأ تحت ذيل السابق كما في الفيديو (src/plan/seams.ts)
+  const adv = sceneAdvanceFrames(scenes, media, { channelId: plan.channel });
+  for (const [k, scene] of scenes.entries()) {
     const dur = sceneSeconds(scene, media);
     const clip = media.voice[scene.id];
     const words =
@@ -36,7 +39,7 @@ export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia, i
       const chunk = words.slice(i, i + per);
       cues.push({ start: offset + chunk[0]!.start, end: offset + chunk[chunk.length - 1]!.end + 0.15, text: chunk.map((w) => w.word).join(" ") });
     }
-    offset += dur;
+    offset += adv[k]! / fps;
   }
   return cues
     .map((c, i) => {

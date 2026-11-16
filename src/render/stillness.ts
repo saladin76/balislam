@@ -1,6 +1,7 @@
 import type { Plan } from "../plan/types";
 import type { EpisodeMedia } from "../plan/media";
 import { sceneSeconds } from "../plan/duration";
+import { sceneAdvanceFrames } from "../plan/seams";
 import { normalizeArabic } from "../script/quranMeta";
 import { estimateTimings, splitWords } from "../remotion/scenes/timing";
 import { basmalaSpans } from "../voice/basmala";
@@ -40,10 +41,14 @@ export type Span = { from: number; to: number; why: string };
 export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<EpisodeMedia, "voice" | "recitations">, chapter?: number): Span[] => {
   const spans: Span[] = [];
   let t = startSec;
+  // وصل السرد (src/plan/seams.ts): كل مشهد يبدأ حيث يبدأ في الفيديو نفسه (التالي قد يبدأ تحت ذيل السابق)
+  const shown = plan.chapters.filter((c) => !chapter || c.number === chapter).flatMap((c) => c.scenes.filter((s) => !(chapter && s.template === "end-screen")));
+  const adv = new Map(shown.map((s, i, all) => [s.id, sceneAdvanceFrames(all, { voice: media?.voice ?? {}, recitations: media?.recitations ?? {} }, { channelId: plan.channel })[i]! / 30]));
   for (const c of plan.chapters) {
     if (chapter && c.number !== chapter) continue;
     for (const [i, s] of c.scenes.entries()) {
       const d = sceneSeconds(s, media);
+      const step = adv.get(s.id) ?? d;
       const shot = String(s.props?.shot ?? "");
       if (s.template === "verse-card") spans.push({ from: t, to: t + d, why: "آية" });
       else if (s.template === "ink-shot" && shot.startsWith("verse-intro")) spans.push({ from: t, to: t + d, why: "تمهيد آية" });
@@ -82,7 +87,7 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
           }
         }
       }
-      t += d;
+      t += step;
     }
   }
   return spans;

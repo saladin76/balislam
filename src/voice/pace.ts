@@ -11,17 +11,13 @@
  */
 import { createHash } from "node:crypto";
 import type { PlanScene } from "../plan/types";
-import { HZ_META } from "../remotion/dafatir/horizon/meta";
 
 export { SPEEDS, PAUSES, speedIds, pauseIds, isSpeed, isPause, DEFAULT_SPEED, DEFAULT_PAUSE, type SpeedId, type PauseId } from "./paceOptions";
 import { SPEEDS, PAUSES, isSpeed, isPause, DEFAULT_SPEED, DEFAULT_PAUSE, type SpeedId, type PauseId } from "./paceOptions";
 
-/** أقل وقفة بين جملتين بعد التقصير، وأقل صمت بعد آخر كلمة، وأقل ذيل للمشهد (ثوانٍ) */
-export const MIN_GAP = 0.08;
-export const MIN_TAIL = 0.1;
-export const MIN_SCENE_TAIL = 0.15;
-/** هامش حول الكلام يبقى معه حين يُمد (لا تُقص نهاية حرف) */
-export const MARGIN = 0.04;
+// الثوابت والاستثناء الصافية في paceCore.ts (يقرؤها الرندر أيضًا لوصل المشاهد، src/plan/seams.ts)
+export { MIN_GAP, MIN_TAIL, MIN_SCENE_TAIL, MARGIN, keepOf, paceExemption, pausedGap } from "./paceCore";
+import { MIN_GAP, MIN_TAIL, MIN_SCENE_TAIL, MARGIN, keepOf, paceExemption } from "./paceCore";
 
 /** pace.json بجوار السكريبت: محتوى المالك (D101). الجمل بمشهدها ونصها، كـ«النطق» (D131). */
 export type PaceDoc = {
@@ -97,19 +93,6 @@ export const sceneSpeedOf = (doc: PaceDoc, sceneId: string): { id: SpeedId; sour
 };
 export const pauseOf = (doc: PaceDoc): PauseId => (isPause(doc.episode?.pause) ? doc.episode!.pause! : DEFAULT_PAUSE);
 
-/**
- * مشهد لا تمسه السرعة ولا الفاصل أبدًا، ولماذا: الآية، وتمهيدها، ولقطات السكون المقصود (كما في src/render/stillness.ts).
- * التلاوة والسكون المقصود يبقيان كما هما حرفًا؛ وما قبلها وما بعدها لا يُعوَّض بحركة (القاعدة الثانية).
- */
-export const paceExemption = (scene: PlanScene, next?: PlanScene): string | null => {
-  const shot = String(scene.props?.shot ?? "");
-  if (scene.template === "verse-card") return "مشهد آية: التلاوة لا تُمد ولا تُقص";
-  if (scene.template === "ink-shot" && shot.startsWith("verse-intro")) return "تمهيد آية: سكون مقصود";
-  if (scene.template === "horizon-shot" && HZ_META[shot]?.still) return HZ_META[shot]!.still === "dhikr" ? "ذكر الله: سكون مقصود" : "تمهيد آية: سكون مقصود";
-  if (scene.narration && next?.template === "verse-card" && /[:：]\s*$/.test(scene.narration.trim())) return "تمهيد آية: سكون مقصود";
-  return null;
-};
-
 export type PaceSentence = { words: number; factor: number; exempt: boolean };
 export type ScenePace = { key: string; sentences: PaceSentence[]; pause: number; exempt: string | null };
 
@@ -141,8 +124,6 @@ export type PacePiece =
 export type PacePlan = { pieces: PacePiece[]; uniform: boolean };
 
 const r4 = (x: number) => Math.round(x * 10000) / 10000;
-export const keepOf = (len: number, factor: number, floor: number) =>
-  factor >= 1 ? len : Math.min(len, Math.max(len * factor, Math.min(len, floor)));
 
 /**
  * يقسم الملف عند حدود الجمل بتوقيت كلماته (عدد الكلمات = مجموع كلمات الجمل)، ويمد كلام كل جملة بمعاملها، ويقصّر

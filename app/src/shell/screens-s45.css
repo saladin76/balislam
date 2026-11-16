@@ -209,3 +209,11 @@
   .shell-v3 .ms-tl-strip { height: 44px; }
   .shell-v3 .ms-tl .s3-legend { display: none; }
 }
+
+/* تقرير الوصلات (المالك ١٦ نوفمبر): الصمت عند كل وصلة قبل المشاهدة */
+.ms-seam-report { margin: 0 0 14px; padding: 10px 14px; border: 1px solid var(--line, #d8d2c4); border-radius: 10px; font-size: 14px; line-height: 1.6; }
+.ms-seam-report.is-warn { border-color: #c2412d; background: rgba(194, 65, 45, 0.06); }
+.ms-seam-report p { margin: 0 0 6px; }
+.ms-seam-report ul { margin: 0 0 8px; padding-inline-start: 18px; }
+.ms-seam-gap { display: block; font-size: 12px; opacity: 0.85; margin-top: 4px; }
+.ms-seam-gap.is-over { color: #c2412d; opacity: 1; font-weight: 600; }

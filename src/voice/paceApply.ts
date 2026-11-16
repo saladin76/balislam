@@ -122,7 +122,14 @@ export const paceStatus = async (episode: string): Promise<PaceStatus> => {
     if (affected) nextVoice[s.id] = predictedClip(r!, sp);
     rows.push({ id: s.id, exempt: sp.exempt, speed: sceneSpeedOf(doc, s.id), hasVoice, desired: sp.key, applied, affected, status: statuses[s.id] ?? null });
   });
-  const total = (voice: Record<string, unknown>) => Math.round(scenes.reduce((a, s) => a + sceneSeconds(s, { voice, recitations: media.recitations } as never), 0) * 10) / 10;
+  // The episode as assembled and in the Master (D149): what runs under the next scene's start is not counted twice
+  const { seamPlan } = await import("../plan/seams");
+  const fps = config.video.fps;
+  const total = (voice: Record<string, unknown>) => {
+    const m = { voice, recitations: media.recitations } as never;
+    const overlap = seamPlan(scenes, m, { fps, channelId: plan.channel }).reduce((n, x) => n + x.overlapFrames, 0) / fps;
+    return Math.round((scenes.reduce((a, s) => a + sceneSeconds(s, m), 0) - overlap) * 10) / 10;
+  };
   const affected = rows.filter((x) => x.affected).map((x) => x.id);
   return {
     episode: { speed: doc.episode?.speed ?? DEFAULT_SPEED, pause: pauseOf(doc), speedSet: isSpeed(doc.episode?.speed), pauseSet: isPause(doc.episode?.pause) },

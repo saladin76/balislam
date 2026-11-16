@@ -82,6 +82,41 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
   return Math.max(min, Math.round(spoken * 10) / 10);
 };
 
+/**
+ * أول لحظة (بالثواني من بداية المشهد) يجوز عندها أن يبدأ المشهد التالي فوقه (وصل السرد، src/plan/seams.ts):
+ * بعد آخر كلمة، وبعد كل ما يمسكه المشهد عمدًا — مدة المالك (تُحترم كما هي)، وزمن قراءة الاستشهاد البصري، وزمن حركة
+ * النص الذي يحتاجه القالب. ذيل الخروج وحده (قلب الصفحة، خفوت الحبر، الإمساك بعد الكلام) يجوز أن يمر تحت بداية التالي.
+ * بلا صوت مطابق: المشهد كله.
+ */
+export const sceneHoldFloor = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice" | "recitations">): number => {
+  const S = sceneSeconds(scene, media);
+  const clip = media?.voice[scene.id];
+  const voiced = clip && clip.text === scene.narration.trim() && clip.words?.length ? clip : undefined;
+  if (!voiced || scene.template === "verse-card") return S;
+  const end = Math.max(...voiced.words.map((w) => w.end));
+  if (scene.durationSec && scene.durationSec > 0) return Math.min(S, Math.max(end, scene.durationSec));
+  if (scene.template === "horizon-shot") {
+    const shot = String(scene.props.shot ?? "");
+    const m = HZ_META[shot];
+    const props = scene.props as Record<string, string | undefined>;
+    const tail = voiced.timing ? voiced.timing.tail : (m?.tail ?? config.voice.tailSeconds);
+    let floor = Math.max(end, S - tail);
+    if (props.verseText && props.verseKey) {
+      try {
+        const vw = verseWindow(props, timelineFromWords(hzSentences(scene.narration), voiced.words.map((w) => ({ word: w.word, start: w.start, end: w.end })), 0));
+        if (vw) floor = Math.max(floor, vw[1]);
+      } catch {
+        return S;
+      }
+    }
+    return Math.min(S, floor);
+  }
+  const min = Math.max(templateById(scene.template)?.minSeconds ?? MIN_SECONDS, textSeconds(scene));
+  const audio = voiced.duration + (voiced.paced?.tailSeconds ?? config.voice.tailSeconds);
+  // مدة يفرضها زمن حركة النص في القالب: تُمسك كلها
+  return min > audio ? S : Math.min(S, end);
+};
+
 export const sceneFrames = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice" | "recitations">, fps = config.video.fps) => {
   const rec = scene.template === "verse-card" && scene.ayahKey ? media?.recitations[scene.ayahKey] : undefined;
   if (rec && recitationSeconds(rec) > 0)

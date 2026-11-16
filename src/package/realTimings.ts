@@ -21,6 +21,14 @@ export const realEpisodeTimings = async (scriptPath: string, plan: Plan): Promis
   const master = await seconds(path.join(dir, "out", "package", `${path.basename(dir).slice(0, 3)}-episode.mp4`));
   if (master) out.totalSeconds = master;
   if (existsSync(path.join(dir, "previews", "episode.mp4"))) {
+    // Joined seams (src/studio/assembleScenes.ts): where each scene really starts in the assembled file
+    const { readSeamsRecord } = await import("../studio/seamsRecord");
+    const rec = await readSeamsRecord(scriptPath);
+    const ids = plan.chapters.flatMap((c) => c.scenes).map((s) => s.id);
+    if (rec && ids.every((id) => Number.isFinite(rec.sceneSeconds[id]))) {
+      out.sceneSeconds = Object.fromEntries(ids.map((id) => [id, rec.sceneSeconds[id]!]));
+      return out;
+    }
     const sceneSeconds: Record<string, number> = {};
     for (const s of plan.chapters.flatMap((c) => c.scenes)) {
       const d = await seconds(path.join(dir, "previews", `scene-${s.id}-av.mp4`));

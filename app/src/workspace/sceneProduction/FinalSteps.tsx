@@ -54,13 +54,13 @@ type Final = { m: SceneProductionModel; p: SceneProductionProps };
 
 /** Step ٣ in views (direction D): the seams of the assembled episode get their own screen. */
 export const FinalSeams: React.FC<Final> = ({ m, p }) => {
-  const { data, seamAt, setSeamAt, seamsAll, seams, markSeam, reviewed, setReviewed, pending, error, act } = m;
+  const { data, seamAt, setSeamAt, seamsAll, seams, markSeam, reviewed, setReviewed, pending, error, act, assembleScenes } = m;
   const { episodeId, plan, thumb } = p;
   const ids = data!.scenes.map((x) => x.id);
   return (
     <SeamReview episodeId={episodeId} data={data!} order={ids} plan={plan} thumb={thumb} at={Math.min(seamAt, Math.max(0, seamsAll.length - 1))} onAt={setSeamAt}
       heard={seams} onHeard={(seam, v, how, playedSec) => void markSeam(seam, v, how ?? "confirmed", playedSec)} reviewed={reviewed} onReviewed={setReviewed} pending={pending} error={error}
-      onApprove={() => void act("approve-assembly", data!.assembly!.sha256)} />
+      onApprove={() => void act("approve-assembly", data!.assembly!.sha256)} onReassemble={() => void assembleScenes()} />
   );
 };
 

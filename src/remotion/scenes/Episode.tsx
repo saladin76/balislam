@@ -1,6 +1,6 @@
 import React from "react";
 import { chapterEyebrow } from "./eyebrow";
-import { AbsoluteFill, Audio, Sequence, Series, staticFile, type CalculateMetadataFunction } from "remotion";
+import { AbsoluteFill, Audio, Sequence, Series, interpolate, staticFile, useCurrentFrame, type CalculateMetadataFunction } from "remotion";
 import config from "../../../config.json";
 import type { Plan, PlanChapter, PlanScene } from "../../plan/types";
 import { sceneFrames } from "../../plan/duration";
@@ -19,6 +19,7 @@ import { parseTransition, transitionIssues, type Transition } from "../../plan/t
 import { FrozenScene, TransitionContext, TransitionIn, type TransitionCtx } from "./transitions";
 import { useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
+import { sceneAdvanceFrames, seamAudio, seamPlan, seamVolumeAt, type SeamAudio } from "../../plan/seams";
 
 export type EpisodeProps = {
   plan: Plan;
@@ -36,6 +37,11 @@ export type EpisodeProps = {
    * in silence for the plan's duration with a small «التلاوة تُضاف لاحقًا» tag. renderEpisode refuses it for Master.
    */
   draftMarks?: { pendingRecitation: string[] };
+  /**
+   * One narration bed (owner, 16 Nov): a linear gain per narrated scene so every scene's narration reaches the episode's
+   * own median loudness (EBU R128, src/studio/narrationLoudness.ts). Never on a recitation; absent = 1.
+   */
+  narrationGain?: Record<string, number>;
 };
 
 /** Small studio tag on a draft verse scene (never in a Master: renderEpisode refuses draftMarks there). */
@@ -65,13 +71,16 @@ export const visualNarrationTimings = (scene: PlanScene, media: EpisodeMedia, ti
     ? toFrames(clip.words, config.video.fps) : undefined;
 };
 
-export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia }> = ({ scene, media }) => {
+export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia; seam?: SeamAudio; gain?: number }> = ({ scene, media, seam, gain }) => {
   const fps = config.video.fps;
   const clip = media.voice[scene.id];
   const rec = scene.ayahKey ? media.recitations[scene.ayahKey] : undefined;
+  const g = config.audio.narrationVolume * (gain && Number.isFinite(gain) && gain > 0 ? gain : 1);
+  const faded = Boolean(seam && (seam.fadeInSec || seam.fadeOutSec));
   return (
     <>
-      {clip && clip.text === scene.narration.trim() ? <Audio src={mediaSrc(media, `voice/${clip.file}`)} volume={config.audio.narrationVolume} /> : null}
+      {clip && clip.text === scene.narration.trim() ? <Audio src={mediaSrc(media, `voice/${clip.file}`)}
+        volume={faded ? (f: number) => g * seamVolumeAt(f / fps, seam!) : g} /> : null}
       {scene.template === "verse-card" && rec
         ? recitationFrameSchedule(rec, fps).map((part, i) => (
             <Sequence key={part.file + "-" + i} from={part.from}
@@ -112,6 +121,12 @@ const ThemedTransition: React.FC<{ t: Transition; themeId: Plan["themeId"]; outg
   );
 };
 
+/** وصل السرد (src/plan/seams.ts): صورة المشهد التالي تظهر فوق ذيل السابق في أول إطاراتها */
+const SeamDissolve: React.FC<{ frames: number; children: React.ReactNode }> = ({ frames, children }) => {
+  const f = useCurrentFrame();
+  return <AbsoluteFill style={{ opacity: interpolate(f, [0, frames], [0, 1], { extrapolateLeft: "clamp", extrapolateRight: "clamp" }) }}>{children}</AbsoluteFill>;
+};
+
 /** الحلقة كاملة (أو فصل واحد) من خطة الحلقة، بالصوت إن وُجد. */
 export const Episode: React.FC<EpisodeProps> = (props) => {
   const { plan, orientation } = props;
@@ -128,7 +143,10 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
           </Series.Sequence>
         ) : null;
       })()}
-      {scenesOf(props).map(({ chapter, scene }, idx, all) => {
+      {(() => { const list = scenesOf(props); const shown = list.map((x) => x.scene);
+        const seams = seamPlan(shown, media, { channelId: plan.channel });
+        const audio = seamAudio(shown, media, { channelId: plan.channel });
+        return list.map(({ chapter, scene }, idx, all) => {
         // المشهد السابق في الفصل نفسه (للانتقال المتصل في السبورة؛ الشورت يبدأ بلا انتقال)
         const prev = idx > 0 && all[idx - 1]!.chapter.number === chapter.number ? all[idx - 1]!.scene : undefined;
         const next = idx < all.length - 1 && all[idx + 1]!.chapter.number === chapter.number ? all[idx + 1]!.scene : undefined;
@@ -150,9 +168,12 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
           ...(tIn?.kind === "carry" ? { carryIn: tIn.dir } : {}),
           ...(tOut?.kind === "carry" ? { carryOut: tOut.dir } : {}),
         };
-        const body = <TransitionContext.Provider value={ctx}>{draw(idx)}</TransitionContext.Provider>;
+        const drawn = <TransitionContext.Provider value={ctx}>{draw(idx)}</TransitionContext.Provider>;
+        const join = idx > 0 ? seams[idx - 1] : undefined;
+        const body = join && join.dissolveFrames > 0 ? <SeamDissolve frames={join.dissolveFrames}>{drawn}</SeamDissolve> : drawn;
         return (
-          <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, media)} name={`${scene.id} · ${scene.template}${tIn ? ` · ${tIn.kind}` : ""}`}>
+          <Series.Sequence key={scene.id} durationInFrames={sceneFrames(scene, media)} offset={join?.overlapFrames ? -join.overlapFrames : 0}
+            name={`${scene.id} · ${scene.template}${tIn ? ` · ${tIn.kind}` : ""}${join?.overlapFrames ? ` · وصل ${join.overlapFrames}` : ""}`}>
             {tIn && tIn.dur > 0 ? (
               <ThemedTransition t={tIn} themeId={plan.themeId} outgoing={<FrozenScene frames={sceneFrames(prev!, media)}>{draw(idx - 1)}</FrozenScene>}>
                 {body}
@@ -160,28 +181,35 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
             ) : (
               body
             )}
-            <SceneAudio scene={scene} media={media} />
+            <SceneAudio scene={scene} media={media} seam={audio[idx]} gain={props.narrationGain?.[scene.id]} />
             {props.draftMarks?.pendingRecitation.includes(scene.id) &&
               ((scene.template === "verse-card" && !isRecitedVerse(scene, media)) || media.voice[scene.id]?.basmala?.pending)
               ? <PendingRecitationTag /> : null}
           </Series.Sequence>
         );
-      })}
+      }); })()}
     </Series>
     </Providers>
   );
 };
 
-export const episodeFrames = (props: Pick<EpisodeProps, "plan" | "chapter" | "media" | "channel">) =>
-  Math.max(1, introFramesFor(props.channel, props.plan, props.chapter) + scenesOf(props).reduce((n, { scene }) => n + sceneFrames(scene, props.media ?? emptyMedia), 0));
+export const episodeFrames = (props: Pick<EpisodeProps, "plan" | "chapter" | "media" | "channel">) => {
+  const media = props.media ?? emptyMedia;
+  const shown = scenesOf(props).map((x) => x.scene);
+  const overlap = seamPlan(shown, media, { channelId: props.plan.channel }).reduce((n, x) => n + x.overlapFrames, 0);
+  return Math.max(1, introFramesFor(props.channel, props.plan, props.chapter) + shown.reduce((n, scene) => n + sceneFrames(scene, media), 0) - overlap);
+};
 
 /** بدايات الفصول بالثواني (لفصول وصف يوتيوب). */
 export const chapterStarts = (plan: Plan, media?: EpisodeMedia, channel?: ChannelInfo) => {
   // الفصل الأول يبدأ من 0:00 (يوتيوب يشترطه) ويشمل الافتتاحية، والبقية تتأخر بمدتها
   let t = introFramesFor(channel, plan) / config.video.fps;
+  const all = plan.chapters.flatMap((c) => c.scenes);
+  const adv = sceneAdvanceFrames(all, media ?? emptyMedia, { channelId: plan.channel });
+  const advOf = new Map(all.map((s, i) => [s.id, adv[i]!]));
   return plan.chapters.map((c, i) => {
     const start = i === 0 ? 0 : t;
-    for (const s of c.scenes) t += sceneFrames(s, media ?? emptyMedia) / config.video.fps;
+    for (const s of c.scenes) t += (advOf.get(s.id) ?? sceneFrames(s, media ?? emptyMedia)) / config.video.fps;
     return { number: c.number, title: c.title, start };
   });
 };

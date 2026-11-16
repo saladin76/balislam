@@ -323,8 +323,10 @@ export const balApi = (): Plugin => ({
               try {
                 const plan = await io.loadPlan(ep);
                 if (!plan) return read;
-                const { assemblySeamTimes } = await load("/src/studio/seamTimes.ts");
-                return { ...read, seamTimes: await assemblySeamTimes(scriptPath, plan, read.seams) };
+                const { assemblySeamTimes, assemblySeamReport } = await load("/src/studio/seamTimes.ts");
+                // Owner, 16 Nov: the silence at every seam, before he watches (a warning above the chosen «الفاصل»)
+                const seamReport = await assemblySeamReport(ep, scriptPath, plan, read.seams).catch(() => undefined);
+                return { ...read, seamTimes: await assemblySeamTimes(scriptPath, plan, read.seams), ...(seamReport ? { seamReport } : {}) };
               } catch { return read; }
             };
             if (req.method === "GET") {

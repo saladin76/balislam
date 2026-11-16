@@ -89,15 +89,8 @@ export const words = (s: string) => s.trim().split(/\s+/).filter(Boolean);
 export const normText = (s: string) => words(s).join(" ");
 export const hasQuranText = (s: string) => QURAN.test(s);
 
-/** وقفة افتراضية بعد الجملة بحسب علامتها */
-export const defaultPauseMs = (text: string): number => {
-  const t = text.trim();
-  if (/[؟?!]["»”)\]]*$/u.test(t)) return 500;
-  if (/[.…]["»”)\]]*$/u.test(t)) return 450;
-  if (/[:؛;]["»”)\]]*$/u.test(t)) return 300;
-  if (/[،,]["»”)\]]*$/u.test(t)) return 220;
-  return 250;
-};
+export { defaultPauseMs } from "./paceCore";
+import { defaultPauseMs } from "./paceCore";
 export const clampPause = (ms: unknown) => Math.max(0, Math.min(3000, Math.round(Number(ms) || 0)));
 
 const splitLong = (ws: string[]): string[][] => {

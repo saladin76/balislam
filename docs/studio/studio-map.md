@@ -145,6 +145,7 @@
 | «نسخة قبل النهائية» | الحلقة بصوت الراوي بلا تلاوات، للمشاهدة فقط | ليست اعتمادًا ولا تجميعًا | `PreFinal.tsx` |
 | التلاوات | رفع واعتماد التلاوات بعد المشاهدة («بالإسلام»، «دفاتر الزمن») | لا تظهر بوابتها في «زبدة الكتب» (D100) | `RecitationItem.tsx` |
 | «الوصلات» | فحص كل وصلة بين مشهدين في النسخة المجمعة. قبل التجميع شرح وزر واحد، بلا بطاقة مشهد ولا عدد (D99/D102)؛ والزر «دمج المشاهد للمراجعة» حين تكون المشاهد كلها معتمدة (D118) | — | `sceneProduction/SeamReview.tsx`، `sceneProduction/FinalSteps.tsx` |
+| تقرير الوصلات (D149) | فوق الوصلات: «الفاصل بين الجمل والمشاهد: «…». أطول صمت عند وصلة متصلة … ث»، وكل وصلة أطول من المختار + ٠٫١ ث بسببها (مدة حددتها / المشهد يمسك صورته للقراءة أو لحركة النص / أول التالي صامت) وزر ينقل إليها؛ وتحت كل وصلة «الصمت … ث (المختار …)» أو «وقفة مقصودة: آية / تمهيد آية / ذكر الله / البسملة / مشهد بلا كلام». و«أعد الدمج» (أساسي إن جُمعت النسخة قبل وصل السرد) | إعادة الدمج ملف جديد: يلغي التجميع وMaster والإذن بالسجل الموقَّع (`assemblyEpoch`)؛ لا اعتماد نيابة عن المالك | `SeamReview.tsx` (`SeamReport`، `SeamGap`)، `src/studio/seamTimes.ts` (`assemblySeamReport`) |
 | «اعتماد التجميع» | بعد مشاهدة المجمعة كاملة ١× وفحص كل وصلة | لا مشهد مشروط ولا آية بلا تلاوة معتمدة (D35) | `src/studio/sceneProduction.ts` |
 | «اعتماد النسخة النهائية» (Master) | رندر 4K، ومشاهدة الملف نفسه، واعتماد بصمته | قرار مستقل عن التجميع | `MakeMaster.tsx` |
 
@@ -538,7 +539,29 @@ Why pre-rendering is safe:
 
 The scene ledger read (`GET scene-production`) adds `scenes[].draft` (`ready` / `stale` / `none`) and
 `prepared: { ready, total }` (approved + submitted + ready drafts), and, while the assembly awaits review,
-`seamTimes: { "<a>><b>": seconds }` from the real cut durations (read-only: jumps the player; never checks a seam, D38).
+`seamTimes: { "<a>><b>": seconds }` from the real cut durations (read-only: jumps the player; never checks a seam, D38),
+and `seamReport` (D149: `source` assembly|legacy, the chosen `pause`, `tolerance` 0.1 s, per seam `gap`/`target`/`kept`/`over`,
+and how many scenes got a loudness gain). With joined seams the times come from `previews/episode.seams.json`.
+
+**One continuous narration at the seams (D149, KI-079, 16 Nov, all channels).** The assembly is no longer a byte concat
+(`-f concat -c copy`): `joinSceneCuts` (`src/studio/assembleScenes.ts`) re-encodes the SAME approved cuts (preview quality)
+on one timeline from `seamPlan` (`src/plan/seams.ts`, pure, shared with the Master): the next scene starts under the
+silent tail of the one before, at last word + chosen gap − its own head, so the speech gap = the gap between two
+sentences under «الفاصل» (`pausedGap`, the same arithmetic as `planPace`; the last sentence's natural pause by its mark:
+«.» 0.45 s, «؟» 0.5 s → «عادي» 0.45, «أقصر» ≈0.30, «الأقصر» ≈0.21). Never earlier than what the scene holds on purpose
+(`sceneHoldFloor`: owner `durationSec`, a visual citation's reading time, a template's text-animation minimum) nor than
+0.05 s after its last word; such a seam stays longer and is reported (`over`), never silently cut. Kept as they are
+(`kept`): verse cards and their lead-in, intended stillness (`paceExemption`), the basmala, a scene without words, a
+planned transition, and a cut whose length is not the plan's. Picture: the earlier cut dissolves under the next for
+`min(overlap, 0.4 s)` (xfade). Sound: each cut's audio is cut to its video length (no AAC padding piles up: the old concat
+drifted ~20 ms per scene), the room tone crosses with an equal-power fade in the earlier file's own last 0.1 s and the
+next head (never on a word), and every narrated scene gets one linear gain to the episode's median EBU R128 loudness
+(±6 dB; not verses, not the basmala; `src/studio/narrationLoudness.ts`). The Master renders the same plan
+(`Series.Sequence offset`, `SeamDissolve`, `SceneAudio` volume, `narrationGain`), so it has the assembly's timeline;
+chapters, captions, stillness windows, motion audit and episode length use `sceneAdvanceFrames`. Scene cuts and the
+ledger are unchanged; re-assembling writes a new file, so the signed ledger drops the assembly, Master and permission.
+`previews/*.seams.json` is local (gitignored). Prosody: sentence requests already carry the neighbour sentences across
+scene boundaries (D94, `neighbours`), not across a verse (KI-011); tested in `tests/seams.test.ts`.
 
 **Owner notes inbox (notes-inbox.md).** After a successful, owner-checked `correct-scene` is saved in the ledger,
 the note is appended to `channels/<ch>/episodes/<ep>/notes/inbox.json` (append-only, gitignored on `main`) and pushed in
