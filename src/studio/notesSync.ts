@@ -23,7 +23,7 @@ import { existsSync, readdirSync } from "node:fs";
 import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { childEnv } from "../../scripts/git-env.mjs";
 import {
-  INBOX_PATH_RE, markNotesSync, mergeInboxNotes, publicNote, readInboxFile, type StudioNote,
+  INBOX_PATH_RE, markNotesSync, mergeInboxNotes, NOTES_BRANCH_PATH_RE, publicNote, readInboxFile, type StudioNote,
 } from "./notesInbox";
 
 export const NOTES_BRANCH = "studio-notes";
@@ -99,15 +99,19 @@ export const notesSendPolicy = async (top: string, remoteUrl: string, env: NodeJ
 /** GitHub refused this device's credentials (not the network): the owner's Mac needs its push sign-in. */
 export const AUTH_FAILURE = /authentication failed|could not read (?:username|password)|terminal prompts disabled|invalid username or password|permission denied|repository not found|access denied|returned error: 40[13]|\b403\b/i;
 /** Never keep a credential embedded in a remote URL in a message. */
+export const scrubGitText = (text: string) => scrub(text);
 const scrub = (text: string) => text.replace(/(\w+:\/\/)[^@/\s]+@/g, "$1***@");
+export const classifyGitFailure = (text: string, fallback: SyncFailure = "error") => classify(text, fallback);
 const classify = (text: string, fallback: SyncFailure = "error"): SyncFailure =>
   !text ? "offline" : NETWORK_FAILURE.test(text) ? "offline" : AUTH_FAILURE.test(text) ? "auth" : fallback;
 
+export const notesRepoTop = (dir: string) => repoTop(dir);
 const repoTop = async (dir: string): Promise<string | null> => {
   const r = await runGit(dir, ["rev-parse", "--show-toplevel"]);
   return r.ok && r.out ? realpath(r.out) : null;
 };
 
+export const notesIdentityEnv = (top: string) => identityEnv(top);
 const identityEnv = async (top: string): Promise<Record<string, string>> => {
   const name = (await runGit(top, ["config", "user.name"])).out || "Studio notes";
   const email = (await runGit(top, ["config", "user.email"])).out || "studio-notes@localhost";
@@ -196,9 +200,9 @@ const syncOnce = async (opts: SyncOpts): Promise<SyncResult> => {
     if (changed) {
       const tree = await runGit(top, ["write-tree"], { env: idx });
       if (!tree.ok) return fail("error", tree.err);
-      // الشجرة صناديق ملاحظات فقط، وإلا لا دفع (الخطاف يشترط ذلك أيضًا).
+      // الشجرة صناديق ملاحظات (وعلم جلسة العمل D141) فقط، وإلا لا دفع (الخطاف يشترط ذلك أيضًا).
       const names = await runGit(top, ["ls-tree", "-r", "--name-only", tree.out]);
-      if (!names.ok || names.out.split("\n").filter(Boolean).some((n) => !INBOX_PATH_RE.test(n)))
+      if (!names.ok || names.out.split("\n").filter(Boolean).some((n) => !NOTES_BRANCH_PATH_RE.test(n)))
         return fail("error", "The notes tree contains a non-notes path.");
       const made = await runGit(top, ["commit-tree", tree.out, ...(tip ? ["-p", tip] : []), "-m",
         `studio notes: ${allIds.length} owner note(s)\n\n${entries.map((e) => e.rel).join("\n")}`], { env: await identityEnv(top) });
@@ -222,11 +226,17 @@ const syncOnce = async (opts: SyncOpts): Promise<SyncResult> => {
 };
 
 let queue: Promise<unknown> = Promise.resolve();
+/** كل دفع إلى studio-notes (الملاحظات وعلم جلسة العمل D141) في طابور واحد: لا دفعان في الوقت نفسه. */
+export const enqueueNotesPush = <T>(work: () => Promise<T>): Promise<T> => {
+  const run = queue.then(work);
+  queue = run.catch(() => undefined);
+  return run;
+};
 let lastAttempt: { at: string; result: SyncResult } | null = null;
 let inFlight = 0;
 /** إرسال متسلسل (لا محاولتان في الوقت نفسه)، مع إعادة واحدة إن سبقنا دفع آخر. لا يرمي أبدًا. */
 export const syncStudioNotes = (opts: SyncOpts): Promise<SyncResult> => {
-  const run = queue.then(async () => {
+  return enqueueNotesPush(async () => {
     try {
       const first = await syncOnce(opts);
       const r = !first.ok && first.reason === "rejected" ? await syncOnce(opts) : first;
@@ -238,8 +248,6 @@ export const syncStudioNotes = (opts: SyncOpts): Promise<SyncResult> => {
       return r;
     }
   });
-  queue = run.catch(() => undefined);
-  return run;
 };
 
 /** While a note waits to be sent, another attempt is made every 10 minutes (QA, 10 Nov 2026). */

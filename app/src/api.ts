@@ -432,6 +432,10 @@ export const api = {
   sendError: (id: string) => call<{ noteId: string; box: "episode" | "general"; channel: string; episode: string }>("/api/errors/send", { method: "POST", json: { id } }),
   /** D107: «ملاحظات لم تُرسل: N» (src/studio/notesSync.ts studioNotesStatus) */
   notesStatus: () => call<NotesStatus>("/api/notes/status"),
+  /** D141: «جلسة عمل» — علم notes/work-session.json على studio-notes (src/studio/workSession.ts) */
+  workSession: () => call<WorkSessionStatus>("/api/notes/work-session"),
+  startWorkSession: (hours: number) => call<WorkSessionStatus>("/api/notes/work-session", { method: "POST", json: { action: "start", hours } }),
+  stopWorkSession: () => call<WorkSessionStatus>("/api/notes/work-session", { method: "POST", json: { action: "stop" } }),
   syncNow: () => call<SyncStatus>("/api/sync", { method: "POST", json: {} }),
   restartStudio: () => call<{ ok: boolean; message: string }>("/api/sync/restart", { method: "POST", json: {} }),
   /** D95: «أبقِ نسختي» أو «خذ الجديد» لملف واحد تعارض فيه تعديل المالك مع التحديث */
@@ -487,6 +491,14 @@ export type NotesStatus = {
   where: { channel: string; episode: string; count: number }[];
 };
 
+/** D141: src/studio/workSession.ts WorkSessionStatus */
+export type WorkSessionStatus = {
+  session: { active: boolean; until: string; startedAt: string; channel: string | null } | null;
+  live: boolean;
+  push: { state: "sent"; at: string; commit: string | null } | { state: "failed"; at: string; reason: NonNullable<NotesStatus["reason"]>; message: string } | null;
+  lastResolved: { at: string; count: number; sinceStart: number } | null;
+  hours: number[];
+};
 /** D144: src/studio/remoteChanges.ts (what a conversation changed, as this machine received it). */
 export type RemoteWhat = "plan" | "script" | "voice" | "tone" | "engine" | "research" | "publish" | "other";
 export type RemoteSceneChangeView = { at: string; what: RemoteWhat[]; subjects: string[]; answer?: string };

@@ -187,7 +187,12 @@ describe("balislam 7 · delete is local, shown and reversible; the studio never 
         expect(text).not.toMatch(/"balislam-archive"/);
         continue;
       }
-      if (!f.endsWith("notesSync.ts")) expect(text, f).not.toMatch(/\["push"|"push",|\["commit"|"commit",|"commit-tree"/);
+      // studio-notes وحده (D107، وعلم «جلسة عمل» D141): notesSync.ts وworkSession.ts بلا --force ولا --no-verify
+      if (f.endsWith("notesSync.ts") || f.endsWith("workSession.ts")) {
+        expect(text, f).toMatch(/\$\{NOTES_REF\}`/);
+        expect(text, f).not.toMatch(/"--no-verify"|"--force"|"-f"/);
+      }
+      if (!f.endsWith("notesSync.ts") && !f.endsWith("workSession.ts")) expect(text, f).not.toMatch(/\["push"|"push",|\["commit"|"commit",|"commit-tree"/);
       expect(text, f).not.toMatch(/"balislam-archive"/);
     }
   });

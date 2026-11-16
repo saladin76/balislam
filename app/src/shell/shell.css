@@ -654,6 +654,19 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .ms-sync-pop ul { margin: 6px 0 0; padding-inline-start: 18px; max-height: 160px; overflow: auto; direction: ltr; text-align: start; font-size: var(--t-12); }
 .ms-sync-pop .acts { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
 .ms-sync-pop .acts button { font: inherit; font-size: var(--t-12); padding: 4px 10px; border-radius: 8px; border: 1px solid var(--line, rgba(127,127,127,.3)); background: none; color: inherit; cursor: pointer; }
+/* «جلسة عمل» (D141، app/src/ui/WorkSessionControl.tsx) */
+.ms-work-live { display: inline-flex; align-items: center; gap: 2px; }
+.ms-work-live > button { font: inherit; font-size: var(--t-12); color: var(--ink); background: none; border: 0; padding: 4px 8px; border-radius: 999px; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; white-space: nowrap; }
+.ms-work-live > button:first-child::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
+.ms-work.is-err .ms-work-live > button:first-child::before { background: var(--bad, var(--warn)); }
+.ms-work-live > .ms-work-stop { border: 1px solid var(--line, rgba(127,127,127,.3)); padding: 2px 10px; }
+.ms-work-live > button:hover, .ms-work-live > button:focus-visible { background: var(--paper-2, rgba(127,127,127,.12)); }
+.ms-work-hours { border: 0; margin: 8px 0 0; padding: 0; display: flex; gap: 12px; flex-wrap: wrap; }
+.ms-work-hours legend { font-size: var(--t-12); color: var(--mute); padding: 0; margin-bottom: 4px; }
+.ms-work-hours label { display: inline-flex; align-items: center; gap: 4px; cursor: pointer; }
+.ms-work-hint { margin-top: 6px; color: var(--mute); font-size: var(--t-12); }
+.ms-work-err { margin-top: 8px; color: var(--bad, var(--warn)); }
+.ms-work-resolved { margin-top: 8px; color: var(--mute); font-size: var(--t-12); }
 @media (max-width: 600px) {
   .ms-sync-pop { position: fixed; inset-inline: 16px; top: 104px; width: auto; }
 }
