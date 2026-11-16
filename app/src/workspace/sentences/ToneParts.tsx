@@ -5,6 +5,7 @@
  * - نبرة المشهد كله أو الحلقة كلها: العدد والرصيد قبل أي توليد، ثم «ولّد الجمل» بضغطة المالك. لا يُولَّد شيء وحده.
  */
 import React, { useRef, useState } from "react";
+import { PlanSpeedSelect } from "../../ui/Pace";
 import { api, type SentenceRow, type SentenceScene, type ToneImpact } from "../../api";
 import { tones, toneIds } from "../../../../src/voice/tones";
 import type { SentencesModel } from "./useSentences";
@@ -112,6 +113,10 @@ export const SceneToneBar: React.FC<{ m: SentencesModel; p: SentencesPanelProps;
           <option value="">{scope === "scene" ? "مثل الحلقة" : "بلا نبرة للحلقة"}</option>
           {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
         </select>
+      </label>
+      {/* D140: السرعة بعد النبرة، للنطاق نفسه (المشهد كله أو الحلقة كلها)؛ بلا توليد */}
+      <label className="sv-sel"><span className="ms-vh">{scope === "scene" ? "سرعة المشهد" : "سرعة الحلقة"}</span>
+        <PlanSpeedSelect key={scope} episodeId={p.episodeId} channelId={p.channelId} sceneId={scope === "scene" ? s.id : undefined} onSaved={() => void m.load()} />
       </label>
       {pick !== null && impact && regen ? (
         <p className="sv-tone-impact" role="status">

@@ -85,6 +85,11 @@ const INVENTORY: Record<string, string> = {
   "PUT episodes/001/tashkeel": "reached",
   "POST episodes/001/tashkeel/check": "reached",
   "GET episodes/abc/tashkeel": "send 400",
+  // «سرعة الإلقاء» و«الفاصل بين الجمل» (D140)
+  "GET episodes/001/pace": "reached",
+  "POST episodes/001/pace": "reached",
+  "PUT episodes/001/pace": "reached",
+  "GET episodes/abc/pace": "send 400",
   "GET episodes/001/quran-text-only": "reached",
   "POST episodes/001/quran-text-only": "reached",
   "GET episodes/001/storyboard": "reached",

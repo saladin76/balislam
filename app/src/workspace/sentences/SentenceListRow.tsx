@@ -8,6 +8,7 @@ import { tones, toneIds } from "../../../../src/voice/tones";
 import { OLDER_TONE, PAUSES, STATUS, ar, inheritLabel, secAr } from "./format";
 import { PlayControl, SentenceFixLine, SentenceSplit, TakeNote, WordChips, type SentencesPart } from "./SentenceParts";
 import { SayEditor } from "./SayEditor";
+import { SentenceSpeed } from "../../ui/Pace";
 
 export const SentenceListRow: React.FC<SentencesPart & { s: SentenceScene; r: SentenceRow; i: number }> = ({ m, s, r, i }) => {
   const { read, drafts, setDrafts, busy, noKey, playing_, rowKeys, carets, run, ref, chipsFor, setSplitting, setAdding, adding } = m;
@@ -67,6 +68,8 @@ export const SentenceListRow: React.FC<SentencesPart & { s: SentenceScene; r: Se
           <option value="">{inheritLabel(r)}</option>
           {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
         </select>
+        {r.kind === "narration" ? <SentenceSpeed episodeId={m.episodeId} channelId={m.channelId} sceneId={r.sceneId} text={r.text} speed={r.speed}
+          inherited={r.inheritedSpeed} exempt={r.paceExempt} disabled={anyBusy} onSaved={() => void m.load()} /> : null}
         {!r.last ? (
           <select className="sv-pause" aria-label="الوقفة بعد الجملة" value={r.pauseAfterMs} disabled={anyBusy}
             onChange={(e) => void run(`pause:${r.id}`, { ...ref(r), action: "pause", ms: Number(e.target.value) })}>
