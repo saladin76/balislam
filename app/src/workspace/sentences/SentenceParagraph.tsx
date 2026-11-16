@@ -6,6 +6,7 @@
 import React from "react";
 import type { SentenceScene } from "../../api";
 import { tones, toneIds } from "../../../../src/voice/tones";
+import { SentenceSpeed } from "../../ui/Pace";
 import { Icon } from "../../ui/icons";
 import { Num } from "../../ui/format";
 import { PAUSES, STATUS, ar, inheritLabel, secAr } from "./format";
@@ -101,6 +102,12 @@ export const SentenceParagraph: React.FC<SentencesPart & { s: SentenceScene }> =
             {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
           </select>
         </label>
+        {r.kind === "narration" ? (
+          <label className="sv-sel is-speed"><span className="ms-vh">سرعة الجملة</span>
+            <SentenceSpeed episodeId={m.episodeId} channelId={m.channelId} sceneId={r.sceneId} text={r.text} speed={r.speed}
+              inherited={r.inheritedSpeed} exempt={r.paceExempt} disabled={anyBusy} onSaved={() => void m.load()} />
+          </label>
+        ) : null}
         {!r.last ? (
           <label className="sv-sel is-pause"><span className="ms-vh">الوقفة بعد الجملة</span>
             <select className="sv-pause" value={r.pauseAfterMs} disabled={anyBusy}

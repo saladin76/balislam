@@ -10,6 +10,7 @@
  *   - script.md: لا خطأ جديد في فحص السكريبت (checkForChannel).
  *   - publish.json: لا أثر جديد لأدوات الإنتاج في أي نص (findTraces، القاعدة الأولى).
  *   - sentence-pronunciations.json (D131): لا قرآن ولا بسملة في أي نطق، وتشكيله ≥ ٩٨٪.
+ *   - pace.json («سرعة الإلقاء»): سرعات وفاصل معروفة وحدها (checkPaceDoc).
  *   - tashkeel.md (D132): نص صالح غير فارغ (لا رموز تحكم ولا حروف تالفة، وفي حد الحجم)، بجوار سكريبت الحلقة.
  * «جديد» تعني: غير موجود في نسخة --base. الأخطاء القديمة لا تمنع حفظ تعديل لا يمسّها، ولا تُخفى:
  * يعرضها الاستوديو في مكانها. الخروج 0 فقط إذا لم يظهر شيء جديد.
@@ -70,6 +71,11 @@ for (const file of files) {
           const bad = typeof e?.say === "string" ? checkSentenceSay(e.say) : "النطق ليس نصًا.";
           if (bad) failures.push(`${file}: نطق مرفوض في ${e?.scene ?? "؟"} — ${bad}`);
         }
+      }
+      if (file.endsWith("/pace.json")) {
+        // «سرعة الإلقاء»: only the known speeds and gaps reach main (the Studio reads nothing else from it)
+        const { checkPaceDoc } = await import("../src/voice/pace.ts");
+        for (const e of checkPaceDoc(data)) failures.push(`${file}: ${e}`);
       }
       if (file.endsWith("/publish.json")) {
         const hits = (v: unknown) => strings(v).flatMap((s) => findTraces(s));
