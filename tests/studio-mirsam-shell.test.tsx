@@ -129,7 +129,7 @@ describe("dark mode: the system decides until the owner chooses; the choice is r
 });
 
 describe("the word popover", () => {
-  const words = ["وَمَعَ", "السِّنِينَ", "نَحْفَظُ", "هَذِهِ", "الْأَفْعَالَ", "حَتَّى", "تَصِيرَ", "مَأْلُوفَةً", "لَنَا"].map((w, i) => ({ word: w, say: w, sent: w, source: "written" as const, correction: null, start: i * 0.4, end: i * 0.4 + 0.3, quran: false }));
+  const words = ["وَمَعَ", "السِّنِينَ", "نَحْفَظُ", "هَذِهِ", "الْأَفْعَالَ", "حَتَّى", "تَصِيرَ", "مَأْلُوفَةً", "لَنَا"].map((w, i) => ({ word: w, say: w, sent: w, source: "written" as const, correction: null, auto: w, start: i * 0.4, end: i * 0.4 + 0.3, quran: false }));
   const pop = (over: Partial<React.ComponentProps<typeof WordFixPopover>> = {}) => renderToStaticMarkup(
     <WordFixPopover words={words} rowNo={3} draft={{ row: "r3", index: 1, say: "السِّنِين", save: true, wide: false }} busy={null} noKey={false} playing={false}
       pos={{ top: 10, left: 20, arrow: 200, sheet: false }} onDraft={noop} onClose={noop} onPlay={noop} onFix={noop} onWhole={noop} {...over} />,

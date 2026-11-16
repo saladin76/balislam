@@ -30,6 +30,19 @@ export const inheritLabel = (r: SentenceRow) => {
   return r.toneSource === "scene" ? `مثل المشهد (${n})` : r.toneSource === "episode" ? `مثل الحلقة (${n})` : `مثل القناة (${n})`;
 };
 
+/**
+ * KI (15 Nov) over D66: the field opens on the owner's own correction of this word in this sentence when there is one
+ * (he edits the pronunciation in use, not the bare word next to it); else on the written word when it carries its
+ * tashkeel (D66); else, for a script written without tashkeel, on what is sent for it now (tashkeel.md / the lexicon),
+ * since the bare letters are no pronunciation at all.
+ */
+export const currentSay = (w: Pick<SentenceRow["words"][number], "correction" | "sent" | "say">) =>
+  w.correction ?? (/[\u064B-\u0652]/.test(w.say) ? w.say : w.sent);
+/** Where the pronunciation sent for the word comes from, in the order that wins (D131 > sentence > lexicon > tashkeel). */
+export const sourceLabel = (source: SentenceRow["words"][number]["source"]) =>
+  source === "sentence" ? "تصحيحك لهذه الكلمة في هذه الجملة (يغلب قاموس القناة والنسخة المشكولة)"
+    : source === "lexicon" ? "قاموس النطق للقناة (يغلب النسخة المشكولة)"
+      : source === "tashkeel" ? "النسخة المشكولة" : "الكلمة كما كُتبت";
 /** «أعد نطق الكلمة»: the open word, its written pronunciation, and how much of the sentence is re-said with it. */
 export type WordFixDraft = { row: string; index: number; say: string; save: boolean; wide: boolean };
 /** The neighbours re-said with the word (one each side by default; two under «المزيد»), clipped to the sentence. */
@@ -63,7 +76,7 @@ export const reopenTarget = (next: SentencesRead, sceneId: string, k: number, i:
   { kind: "fix"; draft: WordFixDraft } | { kind: "why"; row: string; index: number } | null => {
   const row = next.scenes.find((x) => x.id === sceneId)?.rows[k];
   if (!row || !row.words[i]) return null;
-  return row.wordFix.ok ? { kind: "fix", draft: { row: row.id, index: i, say: row.words[i]!.say, save: false, wide: false } } : { kind: "why", row: row.id, index: i };
+  return row.wordFix.ok ? { kind: "fix", draft: { row: row.id, index: i, say: currentSay(row.words[i]!), save: false, wide: false } } : { kind: "why", row: row.id, index: i };
 };
 
 export const OLDER_TONE = "وُلّدت بنبرة سابقة";

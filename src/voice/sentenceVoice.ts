@@ -34,7 +34,7 @@ import { normWord, stripTashkeel } from "./tashkeel";
 import { coreOf, NOOP_SAY, removeLexiconEntry, sayWarnings, setLexiconEntry } from "./lexicon";
 import { isNoopSay, type LexiconMatch } from "./pronunciationRules";
 import { addSentenceAfter, clampPause, contextFingerprint, deleteSentence, editSentenceText, heardKey, mergeWithNext, reconcileScene, sceneNarration, sentenceStatus, splitSentence, normText, splitBasmalaInList, words, recordedText, recordedOnOtherText } from "./sentences";
-import { sentencesFileFor, sentencesDirFor, writeAtomic, saveDoc, basmalaScenes, loadToneMapLite, type Ctx, loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, sayOf, autoSendOf, SAY_WORD_FIX, wouldRepeat, SAME_SEND } from "./sentenceContext";
+import { sentencesFileFor, sentencesDirFor, writeAtomic, saveDoc, basmalaScenes, loadToneMapLite, type Ctx, loadCtx, allScenes, isNarrated, sceneSentences, voiceOf, flatten, neighbours, sayOf, autoSendOf, sendOf, SAY_WORD_FIX, wouldRepeat, SAME_SEND } from "./sentenceContext";
 import { checkSentenceSay, writeSay } from "./sentencePronunciation";
 import { planVerseTexts } from "./quranGuard";
 import { type SentencesRead, readSentences } from "./sentenceRead";
@@ -50,7 +50,7 @@ export type { WordFixOutcome } from "./sentenceGenerate";
 // ── الأفعال ──────────────────────────────────────────────────────────────────
 
 export type SentenceCommand = {
-  action: "init" | "adopt" | "edit" | "split" | "merge" | "delete" | "add" | "tone" | "pause" | "generate" | "restore" | "heard" | "fixword" | "say" | "use-take";
+  action: "init" | "adopt" | "edit" | "split" | "merge" | "delete" | "add" | "tone" | "pause" | "generate" | "restore" | "heard" | "fixword" | "unfix" | "say" | "use-take";
   /** معرّف الجملة؛ أو مشهد ورقم الجملة فيه لصف لم يبدأ العمل على مشهده بعد */
   id?: string; sceneId?: string; index?: number;
   text?: string; at?: number; tone?: string | null; ms?: number; note?: string; value?: boolean;
@@ -112,11 +112,11 @@ const writeSceneNarration = async (scriptPath: string, sceneId: string, narratio
 export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts: SentenceActionOptions = {}): Promise<SentenceActionResult> => {
   const { assertSceneOwner, serialized } = await import("../studio/sceneService");
   assertSceneOwner();
-  const actions = ["init", "adopt", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard", "fixword", "say", "use-take"];
+  const actions = ["init", "adopt", "edit", "split", "merge", "delete", "add", "tone", "pause", "generate", "restore", "heard", "fixword", "unfix", "say", "use-take"];
   if (!cmd || !actions.includes(cmd.action) || (cmd.text !== undefined && (typeof cmd.text !== "string" || cmd.text.length > 4000)) ||
       (cmd.note !== undefined && (typeof cmd.note !== "string" || cmd.note.length > 2000)) ||
       (cmd.say !== undefined && (typeof cmd.say !== "string" || cmd.say.length > 200)) || (cmd.word !== undefined && !Number.isInteger(cmd.word)) ||
-      (cmd.action === "fixword" && (cmd.word === undefined || cmd.say === undefined)) ||
+      (cmd.action === "fixword" && (cmd.word === undefined || cmd.say === undefined)) || (cmd.action === "unfix" && cmd.word === undefined) ||
       (cmd.neighbours !== undefined && cmd.neighbours !== 1 && cmd.neighbours !== 2) ||
       (cmd.pronunciation !== undefined && cmd.pronunciation !== null && (typeof cmd.pronunciation !== "string" || cmd.pronunciation.length > 4000)) ||
       (cmd.action === "say" && cmd.pronunciation === undefined) ||
@@ -245,6 +245,22 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         } else list = list.map((x) => (x.id === s.id ? { ...x, tone: (tone ?? undefined) as Tone | undefined } : x));
         // D136: a new tone for this sentence is the owner's new choice: a take chosen before it no longer stands in
         list = list.map((x) => (x.id === s.id && x.chosen ? { ...x, chosen: undefined } : x));
+        break;
+      }
+      case "unfix": {
+        // «ارجع للنطق الأصلي» (KI, 15 Nov): the owner's correction of this word in this sentence is removed; the word is
+        // sent automatically again (tashkeel.md, then the channel lexicon). Nothing is generated; no take is deleted.
+        const s = one();
+        const i = Number(cmd.word);
+        const ws = words(s.text);
+        if (!(i >= 0 && i < ws.length)) throw new Error("الكلمة غير موجودة في الجملة؛ حدّث الصفحة.");
+        const had = (s.corrections ?? []).some((x) => x.index === i);
+        const rest = (s.corrections ?? []).filter((x) => x.index !== i);
+        list = list.map((x) => (x.id === s.id ? { ...x, corrections: rest.length ? rest : undefined } : x));
+        const auto = coreOf(sendOf(ctx, { ...s, corrections: rest }).perWord[i] || ws[i]!) || ws[i]!;
+        message = had
+          ? `أُزيل تصحيحك لـ«${coreOf(ws[i]!)}» في هذه الجملة؛ يُرسل لها الآن «${auto}». التسجيل الحالي كما هو: «أعد نطق الكلمة» أو «ولّد الجملة» ليُسمع.`
+          : `لا تصحيح لـ«${coreOf(ws[i]!)}» في هذه الجملة؛ يُرسل لها «${auto}».`;
         break;
       }
       case "say": {

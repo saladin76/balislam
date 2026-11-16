@@ -13,7 +13,7 @@ import { SentenceSceneBlock } from "./sentences/SentenceSceneBlock";
 // Work ٨ (D-split): the state and every server call live in `sentences/useSentences.ts`; each visible part is its
 // own component under `sentences/`. This file keeps the props, the public exports and the panel's frame.
 export {
-  fixNeighbours, neighbourHint, wordClick, reopenTarget, sendPreview, OLDER_TONE, UPGRADE_ALL, toneUpgradeConfirm, type WordFixDraft,
+  fixNeighbours, neighbourHint, wordClick, reopenTarget, sendPreview, currentSay, sourceLabel, OLDER_TONE, UPGRADE_ALL, toneUpgradeConfirm, type WordFixDraft,
 } from "./sentences/format";
 export { WordFixPopover, WordWhyPopover, WordFixLine } from "./sentences/WordPopovers";
 

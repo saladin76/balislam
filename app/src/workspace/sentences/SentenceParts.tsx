@@ -15,7 +15,7 @@ import { Icon } from "../../ui/icons";
 import type { Clip } from "../sentencePlayer";
 import type { SentencesPanelProps } from "../SentencesPanel";
 import type { SentencesModel } from "./useSentences";
-import { OLDER_TONE, ar, fixNeighbours } from "./format";
+import { OLDER_TONE, ar, fixNeighbours, reopenTarget } from "./format";
 import { WordFixLine, WordFixPopover, WordWhyPopover } from "./WordPopovers";
 import { ToneLine } from "./ToneParts";
 
@@ -145,7 +145,13 @@ export const SentenceWordPopover: React.FC<SentencesPart> = ({ m, p }) => {
       onDraft={setFixing} onClose={close}
       onPlay={() => (ps?.key === `word:${r.id}:${f.index}` ? stopPlay() : playWord(r, f.index))}
       onFix={async () => done(await send(`fix:${r.id}`, { ...ref(r), action: "fixword", word: f.index, say: f.say, save: save(), ...(f.wide ? { neighbours: 2 as const } : {}) }))}
-      onWhole={async () => { const res = await send(`gen:${r.id}`, { ...ref(r), action: "generate", word: f.index, say: f.say, save: save() }); if (res) setFixing(null); }} />
+      onWhole={async () => { const res = await send(`gen:${r.id}`, { ...ref(r), action: "generate", word: f.index, say: f.say, save: save() }); if (res) setFixing(null); }}
+      onUnfix={async () => {
+        const res = await send(`unfix:${r.id}`, { ...ref(r), action: "unfix", word: f.index });
+        if (!res) return;
+        const t = reopenTarget(res.read, s.id, s.rows.findIndex((y) => y.id === r.id), f.index);
+        setFixing(t?.kind === "fix" ? { ...t.draft, wide: f.wide } : null);
+      }} />
   );
 };
 
@@ -159,12 +165,15 @@ export const SentenceWhyPopover: React.FC<SentencesPart> = ({ m, p }) => {
   if (!s || !r || !r.words[why.index]) return null;
   const k = s.rows.indexOf(r);
   const close = () => { const chip = chipRefs.current[`${r.id}:${why.index}`]; setWhy(null); chip?.focus(); };
+  const ww = r.words[why.index]!;
   const blocked = noKey ? "التوليد يحتاج مفتاح الصوت" : !r.tashkeel.ok ? `التشكيل ${ar(Math.round(r.tashkeel.coverage * 100))}٪ (الحد ٩٨٪)` : null;
   return (
     <WordWhyPopover popRef={popRef} pos={popPos} word={r.words[why.index]!.word} index={why.index} count={r.words.length} rowNo={k + 1}
       reason={r.wordFix.reason ?? "لا تسجيل يُقص لهذه الجملة"} blocked={blocked} busy={busy ? (busy === `gen:${r.id}` ? "gen" : "other") : null}
       onOpenSettings={noKey ? onOpenSettings : undefined} onClose={close}
-      onGenerate={async () => { const res = await send(`gen:${r.id}`, { ...ref(r), action: "generate" }); if (res) reopen(res.read, s.id, k, why.index); }} />
+      onGenerate={async () => { const res = await send(`gen:${r.id}`, { ...ref(r), action: "generate" }); if (res) reopen(res.read, s.id, k, why.index); }}
+      correction={ww.correction !== null ? { say: ww.correction, auto: ww.auto ?? ww.sent } : null}
+      onUnfix={async () => { if (await send(`unfix:${r.id}`, { ...ref(r), action: "unfix", word: why.index })) setWhy(null); }} />
   );
 };
 

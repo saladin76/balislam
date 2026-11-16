@@ -10,7 +10,8 @@ import { versesAreCitations } from "../../../../src/quran/citation";
 import { pagePlayer, sentenceClip, type Clip, type PlayerState } from "../sentencePlayer";
 import { recitationUrl } from "../RecitationItem";
 import type { SentencesPanelProps } from "../SentencesPanel";
-import { ar, reopenTarget, toneUpgradeConfirm, wordClick, type WordFixDraft } from "./format";
+import { ar, currentSay, reopenTarget, toneUpgradeConfirm, wordClick, type WordFixDraft } from "./format";
+import { markEditing } from "../../ui/editsInProgress";
 
 export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPlanReplaced, onMediaChange, onChanged, hasVoiceKeys, onVoiceProgress }: SentencesPanelProps) => {
   /** D68: a channel whose verses are written citations shows the verse as a silent card, never «ارفع التلاوة». */
@@ -76,7 +77,8 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
     if (!anchor) { setPopPos(null); return; }
     const chip = chipRefs.current[`${anchor.row}:${anchor.index}`];
     const box = wrap.current;
-    if (!chip || !box) return;
+    // D146: never a popover left measured-hidden (a chip not attached yet, e.g. right after a reload): a bottom sheet
+    if (!chip || !box || !chip.isConnected) { setPopPos({ top: 0, left: 0, arrow: 0, sheet: true }); return; }
     const sheet = typeof window !== "undefined" && window.innerWidth <= 720;
     if (sheet) {
       // Keep the sentence in view above the sheet: scroll the page (only vertically) so the word sits near the top.
@@ -113,6 +115,21 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
   }, [anchor]);
 
   const scenes = useMemo(() => (read?.scenes ?? []).filter((s) => !sceneId || s.id === sceneId), [read, sceneId]);
+  /** D131: a «النطق» typed and not saved yet (differs from what is sent now) */
+  const sayDirty = (id: string) => {
+    const d = sayDrafts[id];
+    if (d === undefined) return false;
+    const r = (read?.scenes ?? []).flatMap((x) => x.rows).find((x) => x.id === id);
+    return !r || d.trim().split(/\s+/).join(" ") !== r.spoken;
+  };
+  // KI (15 Nov): an edit in progress here (the word popover, a «النطق» or a text being typed) holds the auto-sync's
+  // page reload (SyncBadge, D101) until it is saved or cancelled, so an arriving update never takes the owner's typing.
+  const allRows = (read?.scenes ?? []).flatMap((x) => x.rows);
+  const editingNow = Boolean(fixing || adding || editing || Object.keys(sayDrafts).some(sayDirty)
+    || Object.entries(drafts).some(([id, d]) => d !== allRows.find((x) => x.id === id)?.text)
+    || Object.entries(lexDrafts).some(([w, d]) => d.trim() !== (read?.lexicon ?? []).find((e) => e.word === w)?.say));
+  useEffect(() => { markEditing(owner, editingNow); }, [owner, editingNow]);
+  useEffect(() => () => markEditing(owner, false), [owner]);
   // D131: tell step ٢ how many narration sentences of the shown scene have a current take (its silent preview says it)
   const progressRef = useRef(onVoiceProgress);
   progressRef.current = onVoiceProgress;
@@ -131,6 +148,14 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
     try {
       // A generation reads the plan's tones from disk: a tone chosen a moment ago is saved first (D136)
       if (opts.edits || cmd.action === "generate") await onBeforeEdit?.();
+      // KI (15 Nov): «ولّد» with a «النطق» typed and not saved: it is saved first, so the generation says what the
+      // owner wrote (before, the draft was ignored and the earlier pronunciation was sent again)
+      if (cmd.action === "generate" && cmd.say === undefined && cmd.id && sayDirty(cmd.id)) {
+        const id = cmd.id;
+        const sr = await api.sentenceAction(episodeId, channelId, { action: "say", id, pronunciation: sayDrafts[id]! });
+        setRead(sr.read);
+        setSayDrafts(({ [id]: _x, ...rest }) => rest);
+      }
       let r = await api.sentenceAction(episodeId, channelId, cmd);
       // D136: nothing that would be sent changed («لم يتغير شيء يُرسل — سيخرج تسجيل مشابه»): the owner confirms first
       if (r.confirm) {
@@ -256,7 +281,7 @@ export const useSentences = ({ episodeId, channelId, sceneId, onBeforeEdit, onPl
     setFixed(null);
     if ((fixing?.row === r.id && fixing.index === i) || (why?.row === r.id && why.index === i)) { setFixing(null); setWhy(null); return; }
     setCur(r.id);
-    if (kind === "fix") { setWhy(null); setFixing({ row: r.id, index: i, say: w.say, save: false, wide: false }); return; }
+    if (kind === "fix") { setWhy(null); setFixing({ row: r.id, index: i, say: currentSay(w), save: false, wide: false }); return; }
     setFixing(null);
     if (kind === "adopt") {
       const sc = scenes.find((x) => x.rows.some((y) => y.id === r.id));

@@ -131,7 +131,7 @@ describe("owner decision 10 Nov: «احفظ هذا النطق للقناة» is 
   it("a word chip opens the fix with save: false", () => {
     const panel = src("app/src/workspace/SentencesPanel.tsx");
     expect(panel).not.toMatch(/save: true, wide: false/);
-    expect(panel).toContain("say: w.say, save: false, wide: false");
+    expect(panel).toContain("say: currentSay(w), save: false, wide: false");
   });
 });
 
