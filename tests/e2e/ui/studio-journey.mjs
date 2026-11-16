@@ -147,6 +147,8 @@ try {
 
   // ── ٢ المشاهد: «اعتمد المشهد» → «شاهدته بالصوت كاملًا» → «اعتمد المشهد», from the LAST scene back (D145: any order) ──
   await go("episode");
+  const kiScene = plan.chapters.flatMap((c) => c.scenes).find((x) => x.narration.includes("المَصَادِرُ"))?.id;
+  ok(Boolean(kiScene), "٢ KI the fixture has the scene the word-pronunciation block runs on");
   for (let i = 0; i < total; i++) {
     const before = await state();
     // The first one taken is the last NARRATED scene (scene 3, before 1 and 2: its sentences carry the tone step below).
@@ -190,7 +192,8 @@ try {
       const produce = page.getByRole("button", { name: "أنتج هذا المشهد" }).first();
       if (await produce.isVisible().catch(() => false)) await produce.click();
     }
-    if (i === 1) {
+    // D145: scenes are approved from the last one back, so the block runs on the scene that says «المَصَادِرُ», wherever it falls
+    if (kiScene && id === kiScene) {
       // ── ٢ KI (15 Nov, «بحاول اغير النطق ولكن يعيده الي القديم»): a word's new pronunciation typed in its popover stays
       // while an update arrives (the auto-sync never reloads over an edit in progress); «ولّد الجملة كاملة بهذا النطق»
       // sends it; after a reload the field opens on it; «ارجع للنطق الأصلي» removes it with no request ──
