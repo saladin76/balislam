@@ -55,6 +55,8 @@ export type VoiceClip = {
    * (`pending`) — a draft only, approved «مشروطًا بالتلاوة», never assembled into a Master.
    */
   basmala?: { pending: boolean; sha256: string | null };
+  /** معدل التشغيل في الرندر (إيقاع الحلقة، src/plan/pace.ts). لا يُكتب في voice/index.json؛ يضعه pacedVoice وحده */
+  rate?: number;
 };
 export type VoiceIndex = Record<string, VoiceClip>;
 

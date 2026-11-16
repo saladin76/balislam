@@ -106,6 +106,8 @@ const Lineline: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const gaps = [at(tl, "سجلا"), at(tl, "متصلا"), at(tl, "يروي")].map((a) => prog(t, a - 0.05, a + 0.5, easeOut));
   const adam = pop(t, at(tl, "آدم"));
   const oldest = pop(t, at(tl, "آثارها"));
+  // D143: «من آدم عليه السلام إلى أقدم المجتمعات التي وصلت إلينا»: علامة ذهبية تسير على الخط من طرف آدم إلى أقدم الآثار
+  const travel = prog(t, at(tl, "أقدم") - 0.5, at(tl, "آثارها"), easeOut);
   const qs = [
     // V9: «يروي لنا تفاصيل كل جيل»
     { w: "تفاصيل", a: at(tl, "تفاصيل") },
@@ -150,6 +152,9 @@ const Lineline: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
           </g>
         );
       })}
+      <g opacity={travel > 0 && travel < 1 ? 1 : 0} transform={`translate(${1700 - 1440 * travel} ${LINE_Y})`}>
+        <path d="M0 -20 L14 0 L0 20 L-14 0 Z" fill={C.gold} stroke={C.ink} strokeWidth={3} />
+      </g>
       {qs.map((q, i) => {
         const [a, b] = GAPS[i]!;
         const o = pop(t, q.a, 0.5);
@@ -499,7 +504,8 @@ const Closing: React.FC<HzProps> = ({ t, tl, dur, p }) => {
 // اليمنى: شاهد أثري ← خط منقّط نحو بطاقة شخصية بلا اسم (ولا وجه) عليها ختم «القرآن»، والخط يُشطب؛ ثم ختم «حقيقة مؤكدة» يُشطب.
 // اليسرى: ثلاثة أعمدة تُرسم عند «سنميز»، ويُكتب عنوان كل عمود عند كلمته (الأول بعد نافذة ذكر الله).
 const Sources: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const find = prog(t, at(tl, "اكتشاف") - 0.05, at(tl, "اكتشاف") + 0.6, easeOut);
+  // D143: الأداة تُرسم من «ننسب» حتى «اكتشاف» (كانت الصفحة ساكنة في «فلا يمكننا أن ننسب كل»)
+  const find = prog(t, Math.min(at(tl, "ننسب"), at(tl, "اكتشاف")) - 0.05, at(tl, "اكتشاف") + 0.6, easeOut);
   const card = prog(t, at(tl, "شخصية") - 0.05, at(tl, "شخصية") + 0.5, easeOut);
   const link = prog(t, at(tl, "إلى") - 0.05, at(tl, "شخصية") + 0.2);
   const seal = pop(t, at(tl, "القرآن"));

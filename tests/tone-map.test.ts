@@ -510,7 +510,8 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
     expect(v18.approved).toBe(false);
     // التشكيل الذي بُنيت عليه v1.9 محفوظ باسمه (versions/v9.2)؛ tashkeel.md الحي يحرّره المالك (D132) فتُعلَّم الخريطة قديمة في الاستوديو
     expect(v18.source.tashkeel!.sha256).toBe(sha("versions/v9.2/tashkeel.md"));
-    expect(v18.source.script!.sha256).toBe(sha("script.md"));
+    // D143: السكريبت الحي يحرّره المالك (حذف البسملة بطلبه)؛ الذي بُنيت عليه الخريطة محفوظ في versions/v9.2
+    expect(v18.source.script!.sha256).toBe(sha("versions/v9.2/script.md"));
     // والخطة التي بُنيت عليها محفوظة كذلك (versions/v9.2/plan.json)؛ الحية يغيّرها المالك أو قرار لاحق (D134: صفحة الغلاف)
     expect(v18.source.plan!.sha256).toBe(sha("versions/v9.2/plan.json"));
     expect(v18.legend.tones).toEqual(v17.legend.tones);

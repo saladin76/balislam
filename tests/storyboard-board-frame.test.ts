@@ -104,10 +104,12 @@ describe("لوحات الستوري بورد من الخطة (bal storyboard --s
     for (const r of t.scenes) expect(r.frame).toBe(shotFrame(r.scene, r.durationInFrames));
   });
 
-  it("V9.2 الحالية: توقيت اللوحات = تكوين الحلقة، 49 لوحة بلا بطاقة آية ولا فصل", () => {
+  it("V9.2 (محفوظة، versions/v9.2): توقيت اللوحات = تكوين الحلقة، 49 لوحة بلا بطاقة آية ولا فصل", () => {
+    // D143: الخطة الحية يحرّرها المالك (حذف الغلاف والبسملة بطلبه)، فيُفحص العدد على النسخة المحفوظة
+    const plan92 = JSON.parse(readFileSync(path.join(EP, "versions/v9.2/plan.json"), "utf8")) as Plan;
     const channel = channelInfo(loadChannel("dafatir-alzaman"));
-    const t = boardTimings(plan8, channel);
-    expect(t.total).toBe(episodeFrames({ plan: plan8, channel, media: emptyMedia }));
+    const t = boardTimings(plan92, channel);
+    expect(t.total).toBe(episodeFrames({ plan: plan92, channel, media: emptyMedia }));
     expect(t.scenes).toHaveLength(49);
     expect(t.scenes.filter((x) => x.scene.template === "verse-card" || x.scene.props?.shot === "chapter")).toEqual([]);
     for (const r of t.scenes) expect(r.frame).toBe(shotFrame(r.scene, r.durationInFrames));

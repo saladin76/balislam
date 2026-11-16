@@ -12,54 +12,6 @@
       "title": "",
       "scenes": [
         {
-          "id": "c1-s0",
-          "template": "horizon-shot",
-          "narration": "",
-          "line": 16,
-          "props": {
-            "shot": "cover",
-            "page": "blank",
-            "exit": ""
-          },
-          "sfx": [
-            {
-              "id": "swipe-paper",
-              "at": 2
-            },
-            {
-              "id": "aah-intro",
-              "at": 1
-            },
-            {
-              "id": "hum-low",
-              "at": 0.5
-            },
-            {
-              "id": "aah-rise",
-              "at": 0.5
-            },
-            {
-              "id": "aah-soft",
-              "at": 0.5
-            }
-          ],
-          "edited": true,
-          "durationSec": 3
-        },
-        {
-          "id": "c1-s1",
-          "template": "horizon-shot",
-          "narration": "بسم الله الرحمن الرحيم.",
-          "line": 14,
-          "props": {
-            "shot": "basmala",
-            "reveal": "fade"
-          },
-          "sfx": [],
-          "edited": true,
-          "durationSec": 2.5
-        },
-        {
           "id": "c1-s2",
           "template": "horizon-shot",
           "narration": "عرفت الأرض أممًا كثيرة، وتعاقبت عليها أجيال لا يعلم عددها إلا الله.",
@@ -193,7 +145,10 @@
           "props": {
             "shot": "lib-term",
             "term": "خلق آدم",
-            "termWord": "خلق"
+            "termWord": "خلق",
+            "kind": "text",
+            "source": "يحدثنا القرآن الكريم",
+            "sourceWord": "يحدثنا"
           },
           "sfx": [],
           "edited": true
@@ -263,7 +218,7 @@
           "props": {
             "shot": "lib-names",
             "mode": "name",
-            "wordWord": "فأنبأهم",
+            "wordWord": "ينبئهم",
             "ref": "البقرة · ٣٣"
           },
           "sfx": [],
@@ -378,7 +333,7 @@
             "aWord": "يدعو",
             "bLabel": "الإنسان",
             "bText": "ليس مسلوب الإرادة",
-            "bWord": "مسلوب"
+            "bWord": "الإنسان"
           },
           "sfx": [],
           "edited": true
@@ -504,8 +459,10 @@
             "term": "الهبوط إلى الأرض",
             "termWord": "الهبوط",
             "kind": "text",
-            "source": "حدث آخر أخبرنا به القرآن الكريم",
-            "sourceWord": "حدث"
+            "source": "حدث آخر",
+            "sourceWord": "القصة",
+            "sub": "أخبرنا به القرآن الكريم",
+            "subWord": "أخبرنا"
           },
           "sfx": [],
           "edited": true
@@ -670,5 +627,9 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-15T15:49:34.707Z"
+  "updatedAt": "2026-11-15T15:49:34.707Z",
+  "pace": {
+    "rate": 1.1,
+    "gap": 0.4
+  }
 }

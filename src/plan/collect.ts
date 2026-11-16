@@ -1,3 +1,4 @@
+import { pacedVoice } from "./pace";
 import path from "node:path";
 import { createHash } from "node:crypto";
 import { existsSync, readdirSync } from "node:fs";
@@ -62,7 +63,8 @@ export const resolveImageRef = (ref: string, images: string[] = []) => images.fi
 export const collectMedia = async (
   episode: string, plan: Plan, opts: { requireApprovedQuran?: boolean } = {},
 ): Promise<Omit<EpisodeMedia, "mode" | "base">> => {
-  const voice = await loadVoiceIndex(episode);
+  // إيقاع الحلقة (D143): كل مستهلك للوسائط يرى الزمن المسموع نفسه
+  const voice = pacedVoice(await loadVoiceIndex(episode), plan);
   const used = new Set(plan.chapters.flatMap((c) => c.scenes.flatMap((s) => s.sfx.map((x) => x.id))));
   const sfx = availableSfx().filter((id) => used.has(id));
   const recitations: Record<string, Recitation> = {};
