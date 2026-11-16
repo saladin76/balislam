@@ -5,6 +5,7 @@ import { Num, arDigits, episodeTitle } from "../ui/format";
 import { groupEpisodes } from "../tabs/seriesView";
 import { SyncBadge } from "../ui/SyncBadge";
 import { NotesBadge } from "../ui/NotesBadge";
+import { WorkSessionControl } from "../ui/WorkSessionControl";
 
 /** The picker's groups: «عام» last; series names from the channel's series. */
 export const groupBySeries = (eps: EpisodeSummary[], names: Record<string, string>) =>
@@ -67,6 +68,7 @@ export const TopBar: React.FC<Props> = (p) => {
         </nav>
       ) : <span />}
       <div className="ms-me">
+        <WorkSessionControl />
         <NotesBadge />
         <SyncBadge hasUnsaved={!!p.save && (p.save.unsaved || p.save.state !== "saved")} />
         {saveLabel ? <span className={`ms-save${p.save!.state === "error" ? " is-err" : saveLabel !== "محفوظ على جهازك" ? " is-dirty" : ""}`} role="status">{saveLabel}</span> : null}

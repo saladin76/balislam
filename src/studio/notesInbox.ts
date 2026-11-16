@@ -77,6 +77,13 @@ export const resolvedFileFor = (episodeDir: string) => path.join(notesDirFor(epi
  * للقناة `channels/<القناة>/notes/inbox.json` (خطأ بلا حلقة، D112). النمط نفسه في `.githooks/pre-push`.
  */
 export const INBOX_PATH_RE = /^channels\/[a-z0-9-]+\/(?:episodes\/[^/]+\/)?notes\/inbox\.json$/;
+/**
+ * «جلسة عمل» (D141): علم واحد في جذر الفرع studio-notes يكتبه الاستوديو وحده (`src/studio/workSession.ts`)، وتقرؤه
+ * المهمة المجدولة في السحابة كل ساعة. لا يُكتب على main أبدًا.
+ */
+export const WORK_SESSION_PATH = "notes/work-session.json";
+/** كل ما يُسمح به على الفرع studio-notes: صناديق الملاحظات وعلم جلسة العمل. النمط نفسه في `.githooks/pre-push`. */
+export const NOTES_BRANCH_PATH_RE = /^(?:channels\/[a-z0-9-]+\/(?:episodes\/[^/]+\/)?notes\/inbox\.json|notes\/work-session\.json)$/;
 
 const NOTE_PREFIX_RE = /^\[(الحركة|النبرة) @(\d{1,3}:\d{2})\]\s*/;
 /** «[الحركة @0:12] …» ← النوع واللحظة والنص (problemNote في SceneProductionPanel). */
