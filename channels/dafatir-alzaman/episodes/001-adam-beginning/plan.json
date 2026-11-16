@@ -117,12 +117,7 @@
             "shot": "question",
             "from": "555,575,1.12"
           },
-          "sfx": [
-            {
-              "id": "swipe-paper",
-              "at": 0.5
-            }
-          ],
+          "sfx": [],
           "edited": true,
           "tone": "warm"
         },
@@ -627,5 +622,5 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-15T15:49:34.707Z"
+  "updatedAt": "2026-11-16T05:03:27.118Z"
 }
