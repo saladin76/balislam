@@ -1,5 +1,6 @@
 import config from "../../config.json";
 import { sceneFrames } from "./duration";
+import { seamPlan } from "./seams";
 import type { EpisodeMedia } from "./media";
 import type { Plan } from "./types";
 
@@ -11,9 +12,11 @@ import type { Plan } from "./types";
  */
 export type EpisodeLength = { seconds: number; source: "voice" | "plan" };
 
-export const episodeLength = (plan: Pick<Plan, "chapters">, media?: Pick<EpisodeMedia, "voice" | "recitations">, fps = config.video.fps): EpisodeLength => {
+export const episodeLength = (plan: Pick<Plan, "chapters"> & { channel?: string }, media?: Pick<EpisodeMedia, "voice" | "recitations">, fps = config.video.fps): EpisodeLength => {
   const scenes = plan.chapters.flatMap((c) => c.scenes);
-  const frames = scenes.reduce((n, s) => n + sceneFrames(s, media, fps), 0);
+  // وصل السرد (src/plan/seams.ts): ما يمر من ذيل مشهد تحت التالي لا يُعدّ مرتين
+  const overlap = media ? seamPlan(scenes, media, { fps, channelId: plan.channel }).reduce((n, x) => n + x.overlapFrames, 0) : 0;
+  const frames = scenes.reduce((n, s) => n + sceneFrames(s, media, fps), 0) - overlap;
   const narrated = scenes.filter((s) => s.narration?.trim());
   const measured = narrated.length > 0 && narrated.every((s) => media?.voice[s.id]?.text === s.narration.trim());
   return { seconds: Math.round((frames / fps) * 10) / 10, source: measured ? "voice" : "plan" };

@@ -201,6 +201,8 @@ export type SceneProductionRead = {
   seams: string[];
   /** While the assembly awaits review: each seam's time in the assembled file (seconds), if known. */
   seamTimes?: Record<string, number>;
+  /** While the assembly awaits review (owner, 16 Nov): the silence at each seam and a warning above the chosen «الفاصل». */
+  seamReport?: import("../../src/studio/seamTimes").SeamReport;
   master: { sha256: string; approved: true; publishAllowed: boolean } | null;
   candidates: { scenes: Record<string, string | null>; assemblySha256: string | null;
     masterSha256: string | null };

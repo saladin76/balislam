@@ -33,7 +33,9 @@ export const SeamReview: React.FC<{
   at: number; onAt: (i: number) => void; heard: Record<string, boolean>;
   onHeard: (seam: string, v: boolean, how?: "played" | "confirmed", playedSec?: number) => void;
   reviewed: boolean; onReviewed: (v: boolean) => void; pending: boolean; error: string; onApprove: () => void;
-}> = ({ episodeId, data, order, plan, thumb, at, onAt, heard, onHeard, reviewed, onReviewed, pending, error, onApprove }) => {
+  /** «أعد الدمج»: a new assembly from the same approved cuts (cancels this one's review through the ledger). */
+  onReassemble?: () => void;
+}> = ({ episodeId, data, order, plan, thumb, at, onAt, heard, onHeard, reviewed, onReviewed, pending, error, onApprove, onReassemble }) => {
   const player = useRef<HTMLVideoElement>(null);
   const stopAt = useRef<number | null>(null);
   const [needs, setNeeds] = useState("");
@@ -86,6 +88,9 @@ export const SeamReview: React.FC<{
   const verse = (id: string) => scenesOf.get(id)?.scene.template === "verse-card";
   const pendingRec = new Set(data.progress.recitationPending ?? []);
   const chapterOf = (id: string) => scenesOf.get(id)?.chapter;
+  const report = data.seamReport;
+  const rowOf = new Map((report?.rows ?? []).map((r) => [r.seam, r]));
+  const longSeams = (report?.rows ?? []).filter((r) => r.over);
   return (
     <section className="ms-final" aria-label="الوصلات بين المشاهد">
       <header className="ms-final-head">
@@ -96,6 +101,7 @@ export const SeamReview: React.FC<{
         </dl>
       </header>
       {error ? <p className="scene-first-error" role="alert"><OwnerText text={error} /></p> : null}
+      {report ? <SeamReport report={report} order={order} long={longSeams} pending={pending} onReassemble={onReassemble} onAt={(s) => { const i = seams.indexOf(s); if (i >= 0) onAt(i); }} /> : null}
       {seam ? (
         <>
           <div className="ms-seam">
@@ -107,6 +113,7 @@ export const SeamReview: React.FC<{
               <span>الوصلة <Num>{`${sceneNoOr(order, a)} ← ${sceneNoOr(order, b)}`}</Num></span>
               <b>{tAt !== undefined ? <Num className="clk">{clockAr(tAt)}</Num> : "—"}</b>
               <span>موضعها في الحلقة</span>
+              {rowOf.get(seam) ? <SeamGap row={rowOf.get(seam)!} tolerance={report!.tolerance} /> : null}
             </div>
             <figure className="ms-seam-f">
               {tAt !== undefined ? <video src={`${src}#t=${(tAt + 0.12).toFixed(2)}`} preload="metadata" muted playsInline aria-label={`أول لحظة من ${sceneName(order, b)}`} /> : <div className="sp-empty">بلا توقيت</div>}
@@ -192,6 +199,38 @@ export const SeamReview: React.FC<{
   );
 };
 export const arNumOf = (n: number) => n.toLocaleString("ar-EG");
+const secAr = (x: number) => `${x.toLocaleString("ar-EG", { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ث`;
+
+/** The silence of one seam: «الصمت ٠٫٢٢ ث (المختار ٠٫٢١)», a warning above the chosen gap, or why it is a deliberate pause. */
+export const SeamGap: React.FC<{ row: NonNullable<SceneProductionRead["seamReport"]>["rows"][number]; tolerance: number }> = ({ row }) => (
+  <span className={`ms-seam-gap${row.over ? " is-over" : ""}`} data-seam-gap={row.seam}>
+    {row.gap === null ? (row.kept ?? "وقفة مقصودة")
+      : row.kept ? <>الصمت <Num>{secAr(row.gap)}</Num>، وقفة مقصودة: {row.kept}</>
+      : <>الصمت <Num>{secAr(row.gap)}</Num>{row.target !== null ? <> (المختار <Num>{secAr(row.target)}</Num>)</> : null}{row.over ? <>، أطول من المختار: {row.over}</> : null}</>}
+  </span>
+);
+
+/** Step ٣ seam report (owner, 16 Nov): before watching, how long the narration stops at each seam. */
+export const SeamReport: React.FC<{ report: NonNullable<SceneProductionRead["seamReport"]>; order: string[]; long: { seam: string; gap: number | null; over?: string }[];
+  pending: boolean; onReassemble?: () => void; onAt: (seam: string) => void }> = ({ report, order, long, pending, onReassemble, onAt }) => {
+  const joined = report.rows.filter((r) => !r.kept && r.gap !== null);
+  const max = joined.reduce((m, r) => Math.max(m, r.gap!), 0);
+  return (
+    <div className={`ms-seam-report${long.length ? " is-warn" : ""}`} role={long.length ? "alert" : undefined} data-seam-report={report.source}>
+      <p>
+        {report.source === "legacy"
+          ? <>هذه النسخة جُمعت قبل وصل السرد: الكلام يتوقف عند الوصلات أطول من الفاصل بين الجمل. اضغط «أعد الدمج» لتُجمع المشاهد المعتمدة نفسها متصلة.</>
+          : <>الفاصل بين الجمل والمشاهد: «{report.pause.nameAr}». أطول صمت عند وصلة متصلة <Num>{secAr(max)}</Num>{long.length ? <>، و<Num>{arNumOf(long.length)}</Num> وصلة أطول من المختار</> : <>، وكل الوصلات في حدّ المختار</>}.</>}
+      </p>
+      {long.length ? (
+        <ul>{long.slice(0, 12).map((r) => (
+          <li key={r.seam}><button type="button" className="prep-link" onClick={() => onAt(r.seam)}>{seamName(order, r.seam)}</button>: {r.gap !== null ? <Num>{secAr(r.gap)}</Num> : null} — {r.over}</li>
+        ))}</ul>
+      ) : null}
+      {onReassemble ? <button type="button" className={report.source === "legacy" ? "btn primary" : "btn"} disabled={pending} onClick={onReassemble}>{pending ? "جارٍ الدمج…" : "أعد الدمج"}</button> : null}
+    </div>
+  );
+};
 /** Mirrors SEAM_WINDOW_SEC (src/studio/seamChecks.ts): 3 s before and after the seam. */
 const SEAM_WINDOW = 6;
 const sceneNoOr = (order: string[], id?: string) => { const i = id ? order.indexOf(id) : -1; return i >= 0 ? String(i + 1) : "؟"; };

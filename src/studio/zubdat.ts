@@ -85,6 +85,9 @@ export const episodeTimeline = async (episode: string): Promise<{ plan: Plan; sp
   const fps = config.video.fps;
   let t = introFramesFor(channelInfo(loadChannel()), plan);
   const spans: SceneSpan[] = [];
+  const { sceneAdvanceFrames } = await import("../plan/seams");
+  const all = plan.chapters.flatMap((c) => c.scenes);
+  const adv = new Map(all.map((s, i) => [s.id, sceneAdvanceFrames(all, media, { fps, channelId: plan.channel })[i]!]));
   for (const c of plan.chapters)
     for (const s of c.scenes) {
       const dur = Math.round(sceneSeconds(s, media) * fps);
@@ -92,7 +95,7 @@ export const episodeTimeline = async (episode: string): Promise<{ plan: Plan; sp
       const voiced = Boolean(clip && clip.text === s.narration.trim());
       const timings = voiced ? toFrames(clip!.words, fps) : s.narration ? estimateTimings(s.narration, 6, dur - 12) : [];
       spans.push({ scene: s, chapter: c.number, start: t, dur, timings, voiced });
-      t += dur;
+      t += adv.get(s.id) ?? dur;
     }
   return { plan, spans, total: t };
 };
