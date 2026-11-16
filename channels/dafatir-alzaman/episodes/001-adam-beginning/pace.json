@@ -4,5 +4,13 @@
   "episode": {
     "speed": "fast",
     "pause": "shortest"
-  }
+  },
+  "sentences": [
+    {
+      "scene": "c1-s12",
+      "text": "ثم يحدثنا القرآن الكريم عن خلق آدم عليه السلام.",
+      "speed": "medium",
+      "at": "2026-11-16T04:49:23.179Z"
+    }
+  ]
 }
