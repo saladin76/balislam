@@ -151,6 +151,11 @@ export const prepareAllScenes = async (episode: string, opts: {
   shouldStop?: () => boolean;
   /** The previous run's failures; the same scene with the same inputs is not rendered again by the queue. */
   previousFailures?: { id: string; error: string; sourceSha256?: string }[];
+  /**
+   * «أعد إنتاج المشاهد المتأثرة» (سرعة الإلقاء): drafts only. No voice step at all (no request, not even the basmala
+   * scenes), whatever key is configured: the paced copies were already made from the existing takes.
+   */
+  renderOnly?: boolean;
 }): Promise<PrepareProgress> => {
   assertSceneOwner();
   await requireSceneProductionReady(episode);
@@ -160,7 +165,7 @@ export const prepareAllScenes = async (episode: string, opts: {
   // A scene whose production waits for a fix is not voiced either (its voice gate would refuse the whole batch).
   const waitingFix = new Set((await inspectSceneProduction(episode)).scenes
     .filter((x) => ((x as { blocked?: string[] }).blocked ?? []).length).map((x) => x.id));
-  const needed = (await scenesNeedingVoice(episode)).filter((id) => !waitingFix.has(id));
+  const needed = opts.renderOnly ? [] : (await scenesNeedingVoice(episode)).filter((id) => !waitingFix.has(id));
   const p: PrepareProgress = {
     phase: "voice", voice: { needed: needed.length, generated: 0, status: needed.length ? "pending" : "none" },
     rendered: [], failed: [],
@@ -198,7 +203,7 @@ export const prepareAllScenes = async (episode: string, opts: {
   }
 
   // The basmala scenes (owner decision 10 Nov): sentence by sentence, never the basmala itself.
-  try {
+  if (!opts.renderOnly) try {
     const { prepareBasmalaScenes } = await import("../voice/sentenceVoice");
     const b = await prepareBasmalaScenes(episode, { client: opts.voiceClient, shouldStop: opts.shouldStop });
     p.voice.generated += b.generated;
@@ -210,6 +215,10 @@ export const prepareAllScenes = async (episode: string, opts: {
     if (p.voice.status !== "error") { p.voice.status = "error"; p.voice.error = (e as Error).message; }
   }
 
+  // سرعة الإلقاء: every scene not yet approved or submitted gets the chosen pace from its own existing take (free) before
+  // its draft is rendered, so a draft is never made at a pace the owner did not choose. Approved scenes wait for the
+  // owner's «أعد إنتاج المشاهد المتأثرة». A failure here leaves the scene «متأثرًا» and never stops the queue.
+  try { await (await import("../voice/paceApply")).refreshPace(episode, { open: true }); } catch { /* shown in «الإيقاع» */ }
   p.phase = "render";
   // Said before any render starts, so the owner sees the real blocker at once: every scene still waiting for its
   // voice, whole-scene (`voice`) or sentence by sentence (`sentences`, zubdat D-7: these were skipped silently).
@@ -217,7 +226,7 @@ export const prepareAllScenes = async (episode: string, opts: {
   const managed = await (await import("../voice/sentenceVoice")).sentenceManagedScenes(await resolveScriptPath(episode));
   for (const id of first.blocked) skip({ id, reason: managed.has(id) ? "sentences" : "voice" });
   for (const x of first.held) skip(x);
-  if (first.blocked.length && !opts.voiceClient && p.voice.status !== "error") p.voice.status = "no-key";
+  if (first.blocked.length && !opts.voiceClient && !opts.renderOnly && p.voice.status !== "error") p.voice.status = "no-key";
   const voiceMissing = first.blocked.length > 0 || p.voice.status === "no-key" || p.voice.status === "error";
   emit();
   const tried = new Map<string, string>(); // scene → inputs already attempted (no retry loop on failure)
