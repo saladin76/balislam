@@ -141,9 +141,11 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
           </g>
         ) : (
           <g>
-            <SText x={cx} y={348} size={34} font="tajawal" weight={700} color={C.page}>
+            {/* D143: «ليست في معرفة نوع الشجرة» تُقرأ لحظة نطقها، ويُخط تحتها عند «نوع» */}
+            <SText x={cx} y={348} size={34} font="tajawal" weight={700} color={C.page} o={pop(t, at(tl, "ليست"))}>
               ليست في نوع الشجرة
             </SText>
+            <Ink d={`M${cx + 150} 366 H${cx - 150}`} w={3} p={prog(t, at(tl, "نوع", 2) - 0.05, at(tl, "نوع", 2) + 0.7)} c={C.page} />
             <SText x={cx} y={490} size={110} o={ibra} color={C.ink}>
               العبرة
             </SText>
@@ -200,6 +202,9 @@ const Whisper: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const p1 = pop(t, at(tl, "ملكين"));
   const p2 = pop(t, at(tl, "الخالدين"));
   const strike = prog(t, end(tl, "الخالدين") + 0.15, end(tl, "الخالدين") + 0.7);
+  // D143: «وزعم أن النهي عن الشجرة…» — خط زعمه يمتد من «زعم:» إلى حد النهي عند «النهي»، والحد ينبض عند «الشجرة»
+  const claim = prog(t, at(tl, "النهي") - 0.05, at(tl, "النهي") + 0.8, easeOut);
+  const pulse = prog(t, at(tl, "الشجرة") - 0.05, at(tl, "الشجرة") + 0.9);
   const cam = camPath(t, NEUTRAL, [
     { a: at(tl, "وسوس") - 0.2, b: at(tl, "وزوجه") + 0.2, cx: 900, cy: 480, s: 1.06 },
     // «وزعم… الخالدين»: دائرة النهي (x≈410–710) كاملة مع الوعدين (ر٢٩)
@@ -219,6 +224,7 @@ const Whisper: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     <g>
       <path d={WHISPER} fill="none" stroke={EMBER} strokeWidth={6} strokeLinecap="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - w0} opacity={0.85 * (1 - 0.5 * pull)} />
       <path d={TOWARD} fill="none" stroke={EMBER} strokeWidth={6} strokeLinecap="round" strokeDasharray="10 10" opacity={0.85 * pull} />
+      <path d="M1250 600 C1050 520 900 520 735 560" fill="none" stroke={EMBER} strokeWidth={4} strokeLinecap="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - claim} opacity={0.8 * (1 - pull)} />
     </g>
   );
   const R = (
@@ -240,6 +246,7 @@ const Whisper: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const L = (
     <g>
       <Forbidden x={560} y={560} mark={forb} bound={forb} />
+      <ellipse cx={560} cy={560} rx={170 + 60 * pulse} ry={170 + 60 * pulse} fill="none" stroke={EMBER} strokeWidth={5} opacity={pulse > 0 && pulse < 1 ? 0.7 * (1 - pulse) : 0} />
       {both}
     </g>
   );
@@ -259,7 +266,9 @@ const Breach: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const a = verb ? at(tl, verb) : 0;
   const v9 = tl.words.some((w) => w.w.startsWith("ورق"));
   const seal = v9 ? pop(t, at(tl, "القرآن")) : 0;
-  const leaves = v9 ? [at(tl, "يستران"), at(tl, "أنفسهما"), at(tl, "ورق"), at(tl, "الجنة")].map((x) => prog(t, x - 0.05, x + 0.6, easeOut)) : [];
+  // D143: الورقة الأولى عند «فشرعا» (بدء الستر) لا عند «يستران»، والحد المخروق ينبض عند «بدت» (ظهرت العاقبة)
+  const leaves = v9 ? [tl.words.some((w) => w.w.startsWith("فشرعا")) ? at(tl, "فشرعا") : at(tl, "يستران"), at(tl, "يستران"), at(tl, "أنفسهما"), at(tl, "ورق")].map((x) => prog(t, x - 0.05, x + 0.6, easeOut)) : [];
+  const shown = v9 && tl.words.some((w) => w.w.startsWith("بدت")) ? prog(t, at(tl, "بدت") - 0.05, at(tl, "بدت") + 0.9) : 0;
   const sin = v9 ? pop(t, at(tl, "المخالفة")) : 0;
   const goOn = v9 ? prog(t, at(tl, "تتوقف") - 0.1, end(tl, "الحد") + 0.3, easeOut) : 0;
   const cam = !ate
@@ -285,6 +294,7 @@ const Breach: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
       L={
         <g>
           <Forbidden x={560} y={520} mark={1} bound={1} breach={br} />
+          <ellipse cx={560} cy={520} rx={170 + 60 * shown} ry={170 + 60 * shown} fill="none" stroke={EMBER} strokeWidth={5} opacity={shown > 0 && shown < 1 ? 0.7 * (1 - shown) : 0} />
           {v9 ? (
             <Word x={560} y={860} size={52} p={sin} font="tajawal" weight={700} color={EMBER}>
               المخالفة
