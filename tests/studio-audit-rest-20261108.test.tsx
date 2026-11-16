@@ -29,16 +29,13 @@ const src = (f: string) => panelSource(f);
 
 describe("5 · «جهّز كل المشاهد» بلا صوت لا يبدأ رندرًا لا يُراجع", () => {
   const q = (ids: string[]) => ids.map((id) => ({ id, sourceSha256: h(id.slice(-1)) }));
-  it("without a voice, only scenes before the first one waiting for its narration are drafted", () => {
-    // open scenes in order: s1 ready, s2 waits for voice, s3 ready (e.g. the closing scene, no narration)
+  it("D145: without a voice every ready scene is drafted, even after one still waiting for its narration (any order)", () => {
+    // open scenes in order: s1 ready, s2 waits for voice (not in `list`), s3 ready (e.g. the closing scene, no narration)
     const queue = { list: q(["s1", "s3"]), beforeVoiceGap: q(["s1"]) };
-    expect(pickRenderQueue(queue, { voiceMissing: true })).toEqual({
-      // 12 Nov (QA balislam 9): s3 is ready itself; it waits only because it comes after the gap («after-gap», not «voice»)
-      todo: q(["s1"]), skipped: [{ id: "s3", reason: "after-gap" }] });
-    // with the voice made, everything ready is drafted as before
+    expect(pickRenderQueue(queue, { voiceMissing: true })).toEqual({ todo: q(["s1", "s3"]), skipped: [] });
     expect(pickRenderQueue(queue, { voiceMissing: false })).toEqual({ todo: q(["s1", "s3"]), skipped: [] });
-    // the current scene itself waits for voice: nothing is rendered at all
-    expect(pickRenderQueue({ list: q(["s3"]), beforeVoiceGap: [] }, { voiceMissing: true }).todo).toEqual([]);
+    // the first open scene waits for voice: what is ready after it is still drafted
+    expect(pickRenderQueue({ list: q(["s3"]), beforeVoiceGap: [] }, { voiceMissing: true }).todo).toEqual(q(["s3"]));
   });
   it("the same inputs that failed last time are skipped; a changed scene or a network failure is retried", () => {
     const queue = { list: q(["s1", "s2"]), beforeVoiceGap: q(["s1", "s2"]) };
@@ -52,7 +49,7 @@ describe("5 · «جهّز كل المشاهد» بلا صوت لا يبدأ رن
   it("the button never says it is making voice when there is no key", () => {
     const ui = src("app/src/workspace/PrepareAll.tsx");
     expect(ui).toContain(`job!.phase === "voice" && job!.voice.status === "pending" && job!.voice.needed > 0 ? "يولّد الصوت…"`);
-    expect(ui).toContain("يُجهَّز ما قبل أول مشهد ينقصه صوته فقط");
+    expect(ui).toContain("يُجهَّز كل مشهد صوته جاهز، وما ينقصه صوته ينتظر");
   });
 });
 
@@ -89,7 +86,11 @@ describe("10 · «بانتظار التعديل» لمن طُلب تعديله �
     expect(p.scenes[1]!.sourceSha256).toBe(h("3"));
   });
   it("the badge says «بانتظار التعديل» only with the owner's correction", () => {
-    expect(src("app/src/workspace/SceneProductionPanel.tsx")).toContain(`scene.correction ? "بانتظار التعديل" : "عُدّل؛ يحتاج إنتاجًا جديدًا"`);
+    // D145: each scene's own state; «بانتظار التعديل» only with a correction (or a fix awaited), else «عُدّل؛ يحتاج إنتاجًا جديدًا»
+    const panel = src("app/src/workspace/SceneProductionPanel.tsx");
+    expect(panel).toContain(`s.status === "needs_revision" && (s.awaitingChange || s.correction)) return "fix"`);
+    expect(panel).toContain(`fix: "بانتظار التعديل"`);
+    expect(panel).toContain(`scene?.status === "needs_revision" ? "عُدّل؛ يحتاج إنتاجًا جديدًا"`);
   });
 });
 
@@ -162,8 +163,8 @@ describe("14 · صفحة المفاتيح: شرح قصير وعودة إلى ا�
 describe("16 · بعد اعتماد كل المشاهد يبقى الشريط والمشغّل لإعادة المشاهدة", () => {
   it("step ٣ keeps the strip and an approved scene's video, with one forward action", () => {
     const ui = src("app/src/workspace/SceneProductionPanel.tsx");
-    expect(ui).toContain("const allDoneHere = Boolean(sceneMode && onOpenFinal && data && data.script.approved && data.storyboard.approved && !currentId);");
-    expect(ui).toContain("(currentId && scene) || allDoneHere");
+    expect(ui).toContain("const allDoneHere = Boolean(sceneMode && onOpenFinal && data && data.script.approved && data.storyboard.approved && !nextOpenId);");
+    expect(ui).toContain("(!data || nextOpenId || allDoneHere)");
     expect(ui).toContain("اختر أي مشهد من الشريط لتعيد مشاهدته");
   });
 });

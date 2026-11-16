@@ -133,7 +133,7 @@ describe("KI-015: الستوري بورد يسمّي اللوحات لا الم�
     const panel = src("app/src/tabs/StoryboardPanel.tsx");
     expect(panel).not.toContain("— معتمد {ar(st.approved)}");
     expect(panel).toContain("لوحة معتمدة");
-    expect(src("app/src/shell/EpisodeSpine.tsx")).toContain("(مشاهد معتمدة: ${arNum(w.progress.approvedScenes)} من");
+    expect(src("app/src/shell/EpisodeSpine.tsx")).toContain("مشاهد معتمدة: ${arNum(w.progress.approvedScenes)} من");
   });
 });
 

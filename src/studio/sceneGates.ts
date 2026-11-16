@@ -35,16 +35,16 @@ export const assertSceneNotAwaitingChange = async (episode: string, sceneId: str
   });
 };
 /**
- * Which scene may be rendered into its AV preview slot.
+ * Which scene may be rendered into its AV preview slot (owner decision 15 Nov 2026, D145: any scene, any order).
  *
- * - "current": the first unapproved scene only (the single-scene «إنتاج المشهد» button).
- * - "ahead": «جهّز كل المشاهد» pre-renders DRAFTS for the current scene and every later scene that is
- *   neither approved nor submitted (status queued/needs_revision). This is safe because a render never
- *   changes approval state: it only records a render-to-input proof (previewInputs). Approval still
- *   requires, strictly in order, an owner-authenticated submit of the exact bytes on disk (bound to the
- *   proof and to the scene's current inputs), then an owner-authenticated approval of those same bytes
- *   after watching with sound (canWorkOn refuses any scene whose predecessors are not approved).
- *   Approved and in-review scenes are never re-rendered here, so their reviewed bytes stay untouched.
+ * - "current": the single-scene «أنتج هذا المشهد» button, on ANY scene that is not approved yet (queued, in review or
+ *   sent back), whatever the state of the scenes before it. An approved scene is not re-rendered over its reviewed
+ *   bytes: an edit to it re-opens it (reviseSceneInput) and then it renders like any other.
+ * - "ahead": «جهّز كل المشاهد» / «أنتج كل المشاهد الجاهزة» render DRAFTS for every scene that is neither approved nor
+ *   submitted (status queued/needs_revision), in any order. A render never changes approval state: it only records a
+ *   render-to-input proof (previewInputs). Approval still requires an owner-authenticated submit of the exact bytes on
+ *   disk (bound to the proof and to the scene's current inputs), then an owner-authenticated approval of those same
+ *   bytes after watching with sound. Approved and in-review scenes are never re-rendered here.
  *
  * Source fingerprint and human approvals are verified by the trusted local server, never by
  * client-supplied flags.
@@ -57,18 +57,13 @@ export const checkRenderAllowed = (state: SceneFirstProduction, current: Current
       !state.storyboard.approval || state.storyboard.approval.sha256 !== state.storyboard.sha256 ||
       !current.planReady)
     throw Error("Approve the current script and complete storyboard before producing a scene.");
-  const now = sceneFirstProgress(state).currentScene;
+  if (!target || target.sourceSha256 !== expectedSha256)
+    throw Error("The scene is not current or its inputs changed.");
   if (mode === "current") {
-    if (!target || sceneFirstProgress(state).currentScene !== sceneId || target.sourceSha256 !== expectedSha256)
-      throw Error("The scene is not current or its inputs changed.");
-  } else {
-    const at = state.scenes.findIndex(scene => scene.id === sceneId);
-    const from = now ? state.scenes.findIndex(scene => scene.id === now) : -1;
-    if (!target || from < 0 || at < from || target.sourceSha256 !== expectedSha256)
-      throw Error("Only the current or a later unapproved scene can be prepared, with its current inputs.");
-    if (target.status !== "queued" && target.status !== "needs_revision")
-      throw Error("An approved or submitted scene is never re-rendered as a draft.");
-  }
+    if (target.status === "approved")
+      throw Error("This scene is approved; an edit to it re-opens it for a new production and review.");
+  } else if (target.status !== "queued" && target.status !== "needs_revision")
+    throw Error("An approved or submitted scene is never re-rendered as a draft.");
   // 11 Nov: after a carried-forward change, what refuses is scoped to the scene (a verse without its text, a script
   // error on its narration); a script error belonging to no scene waits for every scene not yet approved.
   const blocked = [...(current.blocks.scenes[sceneId] ?? []), ...current.blocks.episode];

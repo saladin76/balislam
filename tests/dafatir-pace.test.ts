@@ -15,6 +15,10 @@ describe("دفاتر الزمن 001 بعد طلب المالك (D143)", () => {
     expect(ids).not.toContain("c1-s1");
     expect(p.chapters[0]!.scenes[0]!.narration.trim().length).toBeGreaterThan(0);
   });
+  it("وبلا افتتاحية القناة قبله: أول ما يُرى ويُسمع «عرفت الأرض» (طلب المالك ١٦ نوفمبر: «خلي الفيديو يبدأ من اول عرفت الارض»)", () => {
+    expect(p.intro).toBe(false);
+    expect(p.chapters[0]!.scenes[0]!.narration.startsWith("عرفت الأرض")).toBe(true);
+  });
   it("الإيقاع في pace.json (أداة D140): ملف صالح بسرعة أعلى من «متوسط» وفاصل أقصر من «عادي»", () => {
     const doc = JSON.parse(readFileSync(`${EP}/pace.json`, "utf8"));
     expect(checkPaceDoc(doc)).toEqual([]);

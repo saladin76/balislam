@@ -24,7 +24,7 @@ export type SceneState = {
     /**
      * «اعتماد مشروط بالتلاوة» (owner decision, 8 Nov): the verse scene's picture and narration were
      * approved while its human recitation was not yet attached (a silent placeholder in the draft).
-     * It keeps the ORDER moving (later scenes can be approved) but never counts as a final approval:
+     * It counts as this scene's decision (scenes are decided in any order, D145) but never as a final approval:
      * assembly, Master and publish stay blocked until the recitation is attached, which changes the
      * scene's inputs, re-opens only this scene and requires a fresh, unconditional approval.
      */
@@ -129,12 +129,15 @@ const sceneIndex = (p: SceneFirstProduction, sceneId: string): number => {
   if (index < 0) return block("Unknown scene.");
   return index;
 };
-const canWorkOn = (p: SceneFirstProduction, index: number): void => {
+/**
+ * Owner decision 15 Nov 2026 (D145, supersedes the sequential part of D24/D31/D40): every scene is its own unit and is
+ * produced, reviewed, approved or sent back in ANY order, whatever the state of the scenes before it. What stays:
+ * «اعتمد التجهيز» first, and the assembly (then Master, then publish) only once EVERY scene has a final approval.
+ */
+const canWorkOn = (p: SceneFirstProduction, _index: number): void => {
   if (!p.script.approval || p.script.approval.sha256 !== p.script.sha256 ||
       !p.storyboard.approval || p.storyboard.approval.sha256 !== p.storyboard.sha256)
     return block("Script and storyboard must be approved first.");
-  if (p.scenes.slice(0, index).some((s) => !validSceneApproval(s)))
-    return block("Approve the previous scene, with its sound and video, first.");
 };
 const replaceScene = (p: SceneFirstProduction, index: number, scene: SceneState): SceneFirstProduction => ({
   ...p, scenes: p.scenes.map((s, i) => i === index ? scene : s),
@@ -191,14 +194,22 @@ export const requestSceneCorrection = (p: SceneFirstProduction, sceneId: string)
     status: "needs_revision" });
 };
 
+/** The first scene, in episode order, without an approval (a starting point only; scenes are decided in any order). */
 export const nextSceneId = (p: SceneFirstProduction): string | null =>
   p.scenes.find((s) => !validSceneApproval(s))?.id ?? null;
 
+/** Every scene without an approval, in episode order: what is left before the assembly (D145). */
+export const unapprovedSceneIds = (p: SceneFirstProduction): string[] =>
+  p.scenes.filter((s) => !validSceneApproval(s)).map((s) => s.id);
+
 export const approvedSceneInputsSha256 = (p: SceneFirstProduction): string => {
-  if (nextSceneId(p) || !p.script.approval || !p.storyboard.approval ||
+  const left = unapprovedSceneIds(p);
+  if (left.length || !p.script.approval || !p.storyboard.approval ||
       p.script.approval.sha256 !== p.script.sha256 ||
       p.storyboard.approval.sha256 !== p.storyboard.sha256)
-    return block("All audiovisual scenes and upstream sources must be approved.");
+    return block(left.length
+      ? `All audiovisual scenes must be approved first; not approved yet: ${left.slice(0, 12).join(", ")}${left.length > 12 ? "…" : ""}.`
+      : "All audiovisual scenes and upstream sources must be approved.");
   const waiting = recitationPendingScenes(p);
   if (waiting.length)
     return block(`Attach the human recitation and re-approve these verse scenes first: ${waiting.join(", ")}.`);
@@ -292,8 +303,11 @@ export const assertExactMasterReadyForPublish = (p: SceneFirstProduction, actual
 };
 
 export const sceneFirstProgress = (p: SceneFirstProduction) => ({
+  /** The first scene without an approval (where step ٢ opens); any scene may be decided first (D145). */
   currentScene: nextSceneId(p),
-  /** In approval order (includes «مشروط بالتلاوة»); see recitationPending for the conditional ones. */
+  /** Every scene without an approval, in episode order: the assembly waits for all of them. */
+  unapprovedScenes: unapprovedSceneIds(p),
+  /** Approved scenes, any order (includes «مشروط بالتلاوة»); see recitationPending for the conditional ones. */
   approvedScenes: p.scenes.filter(validSceneApproval).length,
   totalScenes: p.scenes.length,
   /** Verse scenes approved on condition of their recitation: assembly/Master wait for them. */

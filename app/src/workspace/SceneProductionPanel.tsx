@@ -89,7 +89,7 @@ export type SceneProductionProps = {
 export const SceneProductionPanel: React.FC<SceneProductionProps> = (props) => {
   const { editor, onCloseEditor, onOpenPreparation, onOpenStoryboard, onOpenFinal, onPlanFlush, finalView } = props;
   const m = useSceneProduction(props);
-  const { data, sceneMode, editing, setEditing, setViewId, refresh, order, shownId, currentId, scene } = m;
+  const { data, sceneMode, editing, setEditing, setViewId, refresh, order, shownId, nextOpenId } = m;
 
   if (sceneMode && editing) {
     // dafatir M6: an edit in the editor changes the scene's inputs; the state is read again on the way back
@@ -123,8 +123,9 @@ export const SceneProductionPanel: React.FC<SceneProductionProps> = (props) => {
     );
   }
   // Item 16: after the last approval step ٢ keeps its strip and player, so any approved scene can be rewatched.
-  const allDoneHere = Boolean(sceneMode && onOpenFinal && data && data.script.approved && data.storyboard.approved && !currentId);
-  if (sceneMode && shownId && (!data || (currentId && scene) || allDoneHere)) {
+  // D145: any scene opens here in any order; the decision dock acts on the scene on screen when it is not approved yet.
+  const allDoneHere = Boolean(sceneMode && onOpenFinal && data && data.script.approved && data.storyboard.approved && !nextOpenId);
+  if (sceneMode && shownId && (!data || nextOpenId || allDoneHere)) {
     return <SceneStep m={m} p={props} shownId={shownId} allDoneHere={allDoneHere} />;
   }
 

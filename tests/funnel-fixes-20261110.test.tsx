@@ -85,7 +85,7 @@ describe("M3: failures expire when the scene succeeds or its inputs change", () 
   it("the owner's «استأنف التجهيز» retries previous failures; an automatic start does not", () => {
     const api = src("app/server/api.ts");
     expect(api).toContain("opts.retryFailed ? [] : prepareJob(key)?.failed ?? []");
-    expect(api).toContain("await startPrepare({ retryFailed: true })");
+    expect(api).toContain("await startPrepare({ retryFailed: true, renderOnly: pb?.renderOnly === true })");
   });
 });
 

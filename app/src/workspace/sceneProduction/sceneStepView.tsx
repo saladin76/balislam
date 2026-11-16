@@ -11,9 +11,10 @@ import type { SceneProductionProps } from "../SceneProductionPanel";
 import type { SceneProductionModel } from "./useSceneProduction";
 import type { ActionLock } from "./SceneDecisionActions";
 import { ar } from "./notes";
+import { SCENE_STATE_LABEL, nextUnapproved, sceneStateOf } from "./sceneStates";
 
 export const sceneStepView = (m: SceneProductionModel, p: SceneProductionProps, shownId: string) => {
-  const { data, error, pending, reviewed, setViewId, setProblem, setConfirming, problem, confirming, currentId, scene, draftReady,
+  const { data, error, pending, reviewed, setViewId, setProblem, setConfirming, problem, confirming, currentId, nextOpenId, scene, draftReady,
     planScenes, issues, order, prepJob, moreRef, reviewCurrent } = m;
   const { episodeId, media } = p;
   const hit = planScenes.find((x) => x.scene.id === shownId);
@@ -27,29 +28,29 @@ export const sceneStepView = (m: SceneProductionModel, p: SceneProductionProps, 
     const d = moreRef.current?.querySelector("details");
     if (d) { d.open = true; d.scrollIntoView({ block: "nearest", behavior: "smooth" }); }
   };
-  const statusOf = (id: string) => {
-    const s = data?.scenes.find((x) => x.id === id);
-    if (s?.approved) return "done";
-    if (id === currentId) return "now";
-    return "later";
-  };
+  // D145: each scene shows its OWN state (no «ينتظر دوره»): لم يُنتج / جاهز للمراجعة / معتمد / بانتظار التعديل / مشروط بالتلاوة
+  const statusOf = (id: string) => sceneStateOf(data?.scenes.find((x) => x.id === id));
   const status = statusOf(shownId);
   const prepRunning = prepJob?.status === "running";
   const preparing: "now" | "queued" | null = !prepRunning || !currentId ? null
     : prepJob!.sceneId === currentId ? "now"
     : prepJob!.skipped?.some((x) => x.id === currentId) || prepJob!.failed.some((x) => x.id === currentId) ? null : "queued";
-  // مشهد غير الحالي، أو الحالة لم تُقرأ بعد: سبب واحد وزر واحد، بلا شريط معطّل
+  // The scene on screen is approved (or the state is not read yet): one reason and one way on, never a disabled bar.
+  // Any scene not approved is decided right here, whatever the scenes before it (D145).
+  const ahead = data ? nextUnapproved(data.scenes, shownId) : null;
   const lock: ActionLock | undefined = !data
     ? { reason: error ? "تعذّر تحميل حالة الحلقة؛ أعد فتحها." : "جارٍ تحميل حالة الحلقة…" }
-    : !isCurrent && currentId
-      ? { reason: status === "done" ? "اعتُمد هذا المشهد؛ القرار الآن على المشهد الحالي." : "يُعتمد بعد ما قبله، بالترتيب.", action: { label: `إلى المشهد الحالي (${ar(order.indexOf(currentId) + 1)})`, onClick: () => setViewId(null) } }
+    : !isCurrent && nextOpenId
+      ? { reason: shownServer?.conditional ? "اعتُمد هذا المشهد مشروطًا بالتلاوة؛ يُفتح وحده حين ترفع تلاوته. أي تعديل فيه يعيده للمراجعة."
+          : "اعتُمد هذا المشهد. أي تعديل فيه يعيده وحده للمراجعة.",
+        ...(ahead ? { action: { label: `إلى المشهد ${ar(order.indexOf(ahead) + 1)} (غير معتمد)`, onClick: () => setViewId(ahead) } } : {}) }
       : !isCurrent
         ? { reason: "لا مشهد ينتظر قرارًا الآن." }
         : undefined;
   const reviewReady = Boolean(isCurrent && scene && ((scene.status === "in_review" && scene.previewSha256) || draftReady));
-  const stateText = status === "done" ? (shownServer?.conditional ? "معتمد مشروطًا بالتلاوة" : "معتمد")
-    : status === "now" ? (scene?.status === "in_review" || (isCurrent && draftReady) ? "جاهز للمراجعة" : scene?.status === "needs_revision" ? (scene.correction ? "بانتظار التعديل" : "عُدّل؛ يحتاج إنتاجًا جديدًا") : preparing === "now" ? "يُجهَّز الآن" : "المشهد الحالي")
-    : "ينتظر دوره";
+  const stateText = status === "todo" && preparing === "now" ? "يُجهَّز الآن"
+    : status === "todo" && scene?.status === "needs_revision" ? "عُدّل؛ يحتاج إنتاجًا جديدًا"
+    : SCENE_STATE_LABEL[status];
   const go = (delta: number) => {
     const i = shownIdx + delta;
     if (i < 0 || i >= order.length) return;

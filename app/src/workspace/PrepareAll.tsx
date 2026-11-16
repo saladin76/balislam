@@ -65,7 +65,8 @@ const ar = (n: number) => n.toLocaleString("ar-EG");
  * the missing voices, then pre-renders every remaining scene's AV draft in the background, in order. This is
  * only a status line «جاهز ١٢ من ١١٤» with «أوقف» while it runs and «استأنف» when it stopped (a Studio restart,
  * «أوقف», or an error). A finished run with scenes still waiting (no voice yet) says why instead of offering a
- * button that would skip them again. Drafts are not approvals: each scene is still watched and approved in order.
+ * button that would skip them again. «أنتج كل المشاهد الجاهزة» renders every scene whose voice exists, generating
+ * nothing (D145). Drafts are not approvals: each scene is still watched and approved by the owner, in any order.
  */
 export const PrepareAll: React.FC<{
   episodeId: string;
@@ -110,11 +111,11 @@ export const PrepareAll: React.FC<{
     return () => clearInterval(id);
   }, [running, episodeId, channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const start = async () => {
+  const start = async (opts: { renderOnly?: boolean } = {}) => {
     setStarting(true);
     setError("");
     try {
-      const r = await api.startScenePrepare(episodeId, channelId);
+      const r = await api.startScenePrepare(episodeId, channelId, opts);
       setInfo((old) => ({ ...(old ?? { voiceKey: r.voiceKey }), ...r }));
       seen.current = r.job ? `${r.job.status}:${r.job.rendered.length}:${r.job.voice.generated}` : "";
     } catch (e) {
@@ -168,7 +169,8 @@ export const PrepareAll: React.FC<{
   const summary = finished ? [
     dot(`انتهى التجهيز: ${made}`),
     waitingVoice.length ? dot(`${noKey ? "لا يوجد مفتاح صوت فلم يُولَّد صوت؛ " : ""}ينتظر الصوت ${list(waitingVoice)}${of("sentences").length ? " (صوته جملةً جملة في «الجمل»)" : ""}`) : "",
-    afterGap.length ? `و${ar(afterGap.length)} ${afterGap.length === 1 ? "مشهد جاهز يُجهَّز" : "مشاهد جاهزة تُجهَّز"} بعد صوت ${sceneName(order, afterGap[0]!.gap ?? waitingVoice[0]?.id ?? "")}، لأن المراجعة بالترتيب.` : "",
+    // D145: no longer produced (every ready scene is drafted, any order); an older job read may still carry it.
+    afterGap.length ? `و${ar(afterGap.length)} ${afterGap.length === 1 ? "مشهد جاهز لم يُجهَّز بعد" : "مشاهد جاهزة لم تُجهَّز بعد"}؛ «أنتج كل المشاهد الجاهزة» يجهّزها.` : "",
     held.length ? dot(`${list(held)} ${held.length === 1 ? "ينتظر" : "تنتظر"} إصلاحًا: ${named(held[0]!.error?.split(" — ")[0])}`) : "",
   ].filter(Boolean).join(" ") : "";
   const summaryShort = finished ? `انتهى التجهيز: ${made}${noKey && waitingVoice.length ? " — لا يوجد مفتاح صوت" : waitingVoice.length ? ` — ينتظر صوت ${list(waitingVoice)}` : held.length ? ` — ${list(held)} ${held.length === 1 ? "ينتظر" : "تنتظر"} إصلاحًا` : ""}` : "";
@@ -182,8 +184,15 @@ export const PrepareAll: React.FC<{
         </button>
       ) : !allReady && (!job || job.status === "stopped" || job.status === "error" || finishedWithErrors) ? (
         <button type="button" className="btn ghost" disabled={starting} onClick={() => void start()}
-          title="يكمل تجهيز المشاهد الباقية بالترتيب؛ الاعتماد يبقى لك مشهدًا مشهدًا">
+          title="يكمل تجهيز المشاهد الباقية؛ الاعتماد يبقى لك مشهدًا مشهدًا، بأي ترتيب">
           {starting ? "جارٍ البدء…" : label}
+        </button>
+      ) : null}
+      {/* D145: free renders only — every scene whose voice already exists is drafted; no voice is generated (nothing paid). */}
+      {!running && !allReady ? (
+        <button type="button" className="btn ghost prep-render-ready" disabled={starting} onClick={() => void start({ renderOnly: true })}
+          title="رندر مجاني لكل مشهد صوته جاهز، بأي ترتيب؛ لا يولّد أي صوت. الاعتماد يبقى لك مشهدًا مشهدًا">
+          أنتج كل المشاهد الجاهزة
         </button>
       ) : null}
       {starting && !running ? <span className="prep-note" role="status">يبدأ التجهيز…</span> : null}
@@ -202,7 +211,7 @@ export const PrepareAll: React.FC<{
       ) : summary ? (
         <span className="prep-note is-summary" role="status" title={summary}>{summaryShort}{noKey && onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</span>
       ) : noKey ? (
-        <span className="prep-note">لا يوجد مفتاح صوت: يُجهَّز ما قبل أول مشهد ينقصه صوته فقط{waitingVoice.length ? ` (${ar(waitingVoice.length)} ينتظر الصوت)` : ""}{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</span>
+        <span className="prep-note">لا يوجد مفتاح صوت: يُجهَّز كل مشهد صوته جاهز، وما ينقصه صوته ينتظر{waitingVoice.length ? ` (${ar(waitingVoice.length)} ينتظر الصوت)` : ""}{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</span>
       ) : failedBefore.length ? (
         <span className="prep-note" title={failedBefore.map((f) => `${sceneName(order, f.id)}: ${named(f.error)}`).join("\n")}>لم يُعَد {sceneName(order, failedBefore[0]!.id)}{failedBefore.length > 1 ? ` و${ar(failedBefore.length - 1)} غيره` : ""}: تعذّر بالمدخلات نفسها في المرة السابقة. «استأنف التجهيز» يعيد محاولته.</span>
       ) : job?.status === "stopped" ? (
