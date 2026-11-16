@@ -413,19 +413,36 @@ export const balApi = (): Plugin => ({
               await load("/src/studio/sceneService.ts");
             try { await assertCurrentSceneRenderAllowed(ep, sceneId, expectedSha256); await assertSceneNotAwaitingChange(ep, sceneId); }
             catch (error) { return refuse(error); }
+            // KI-066: «أنتج هذا المشهد» renders the scene's sound; a sentence take outside it is composed in first, or the
+            // owner is told why it cannot be yet (never the old sound again without a word). No voice request here.
+            let renderSha256 = expectedSha256;
+            try {
+              const takes = await load("/src/voice/sceneTakes.ts");
+              const n = (await takes.sceneTakeNotices(ep))[sceneId];
+              if (n?.outside.length) {
+                if (n.missing.length) throw new Error(takes.newerTakeBlockedMessage(n));
+                if (await takes.composeSceneForRender(ep, sceneId)) {
+                  // The scene's inputs changed with its sound: render against its new fingerprint (the ledger
+                  // records the change on this read, as after any voice change).
+                  const { inspectSceneProduction } = await load("/src/studio/sceneService.ts");
+                  renderSha256 = (await inspectSceneProduction(ep)).scenes.find((x: { id: string }) => x.id === sceneId)?.sourceSha256 ?? expectedSha256;
+                  await assertCurrentSceneRenderAllowed(ep, sceneId, renderSha256);
+                }
+              }
+            } catch (error) { return refuse(error); }
             const { renderShotsPreview } = await load("/src/render/shotsPreview.ts");
             const output = await renderShotsPreview(ep, [sceneId], {
               slot: `scene-${sceneId}-av`,
               title: `المشهد ${sceneId} — صوت وصورة للمراجعة`,
               note: "نسخة مرشحة غير معتمدة حتى مشاهدة المشهد واتخاذ قرار المالك.",
               verifyBeforePublish: () => assertCurrentSceneRenderAllowed(
-                ep, sceneId, expectedSha256,
+                ep, sceneId, renderSha256,
               ),
               // Recitations come last (owner decision, 8 Nov): a verse scene without one renders as a
               // marked draft with silence; its approval can only be conditional (sceneProduction.ts).
               allowPendingRecitation: true,
             });
-            await recordSceneRenderEvidence(ep, sceneId, expectedSha256);
+            await recordSceneRenderEvidence(ep, sceneId, renderSha256);
             return send(res, 200, { ok: true, version: output.version,
               preview: `scene-${sceneId}-av.mp4` });
           }
