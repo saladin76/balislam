@@ -80,7 +80,7 @@ export const VoicePlanPanel: React.FC<{
   const [confirming, setConfirming] = useState(false);
   useEffect(() => setConfirming(false), [plan.fingerprint]);
   return (
-    <div className="prep-note prep-voice-plan" role="group" aria-label="توليد الصوت">
+    <div className="prep-voice-plan" role="group" aria-label="توليد الصوت">
       <span role="status">{voicePlanLine(plan)}.</span>
       {plan.excluded.length ? <span className="prep-voice-excluded"> لا يُرسل إلى الصوت المستنسخ أبدًا: {voicePlanExcluded(plan, order)}.</span> : null}
       {" "}

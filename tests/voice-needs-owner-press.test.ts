@@ -326,6 +326,13 @@ describe("the panel the owner sees (step ٢ header and the spine)", () => {
     const noKey = renderToStaticMarkup(React.createElement(VoicePlanPanel, { plan, order, voiceKey: false, busy: false, onGenerate: () => { generated++; } }));
     expect(noKey).toContain("لا يوجد مفتاح صوت");
     expect(noKey).not.toContain("ولّد الصوت الآن");
+    // Visible where the owner looks (CI journey, 16 Nov): the step ٢ header hides plain `.prep-note` lines, so the
+    // panel is never one; its own class shows it in full, wrapping.
+    expect(html).toMatch(/^<div class="prep-voice-plan" role="group"/);
+    const css = readFileSync(path.join(repo, "app/src/shell/screens-s3.css"), "utf8");
+    expect(css).toContain(".s3-meta .prep-note:not(.is-err):not(.is-summary) { display: none; }");
+    expect(readFileSync(path.join(repo, "app/src/shell/shell.css"), "utf8")).toMatch(/\.prep-voice-plan \{ display: flex;/);
+    expect(css).toContain(".s3-meta .prep:has(> .prep-voice-plan) { flex-wrap: wrap; white-space: normal; }");
     // The request is sent from the confirmation button alone; the first press only opens it.
     const src = readFileSync(path.join(repo, "app/src/workspace/PrepareAll.tsx"), "utf8");
     expect(src.match(/onGenerate\(plan\.fingerprint\)/g)).toHaveLength(1);

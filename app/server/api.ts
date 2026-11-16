@@ -520,7 +520,11 @@ export const balApi = (): Plugin => ({
 
           if (parts[2] === "scene-prepare" && parts.length === 3) {
             const key = `${ch}/${ep}`;
-            const voiceKey = Boolean(process.env.ELEVENLABS_API_KEY && (channelMod.loadChannel(ch).voice?.id || process.env.ELEVENLABS_VOICE_ID));
+            // Whether «ولّد الصوت الآن» could reach a voice at all: the same factory the paid run uses (no request is made;
+            // the test-only fake provider counts, so the panel's press is reachable in the e2e journeys).
+            const { elevenLabsFromEnv: voiceFactory } = await load("/src/voice/elevenlabs.ts");
+            let voiceKey = false;
+            try { voiceKey = Boolean(channelMod.runWithChannel(ch, () => voiceFactory())); } catch { voiceKey = false; }
             const { scenesNeedingVoice } = await load("/src/studio/prepareAll.ts");
             // M3: the job as the owner reads it against the ledger now (stale failures dropped, scenes named);
             // M1: which scenes have no tone, so the stopped line can offer the episode tone right there.
