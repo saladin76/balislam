@@ -1,5 +1,5 @@
 /**
- * D144 (KI-074): «تعديلات المحادثات تظهر في الاستوديو». An edit a channel conversation pushes to main reaches the owner's
+ * D148 (KI-074): «تعديلات المحادثات تظهر في الاستوديو». An edit a channel conversation pushes to main reaches the owner's
  * studio by the automatic receive (D101); videos never do. The studio must say which scene changed, flag its old video,
  * and say plainly when updates did not arrive. A bare «GitHub», the owner's Mac clone and a «cloud» clone pushing.
  */
@@ -57,7 +57,7 @@ const setup = () => {
 const sync = (root: string, extra: Parameters<typeof createContentSync>[1] = {}) =>
   createContentSync(root, { enabled: true, quietMs: 0, log: () => {}, ...extra });
 
-describe("D144: what a conversation changed reaches the scene it changed", { timeout: 120_000 }, () => {
+describe("D148: what a conversation changed reaches the scene it changed", { timeout: 120_000 }, () => {
   it("plan, renderer code named by `Studio-Scenes:`, and «أُصلحت» on the owner's note: each scene is named", async () => {
     const r = setup();
     const from = g(r.mac, "rev-parse", "HEAD");
@@ -130,7 +130,7 @@ describe("D144: what a conversation changed reaches the scene it changed", { tim
   });
 });
 
-describe("D144: the receive is visible in the studio", { timeout: 120_000 }, () => {
+describe("D148: the receive is visible in the studio", { timeout: 120_000 }, () => {
   it("a received conversation edit is listed with its episode and scene", async () => {
     const r = setup();
     r.push("زبدة الكتب 001: حركة المشهد الثاني", { [`${EP}/plan.json`]: plan({ "c1-s2": { props: { motion: "new" } } }) });

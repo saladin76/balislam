@@ -182,7 +182,7 @@ export type SceneProductionRead = {
      * المشهد» carries it; `blocked`: the sentences in `missing` have no current take, so the scene's sound cannot hold it yet.
      */
     newerTake?: { state: "produce" | "blocked"; sentences: number[]; missing: number[] };
-    /** D144: a conversation's change reached this machine after the scene's video was made (src/studio/remoteChanges.ts). */
+    /** D148: a conversation's change reached this machine after the scene's video was made (src/studio/remoteChanges.ts). */
     remoteChange?: RemoteSceneChangeView;
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
@@ -516,7 +516,7 @@ export type WorkSessionStatus = {
   lastResolved: { at: string; count: number; sinceStart: number } | null;
   hours: number[];
 };
-/** D144: src/studio/remoteChanges.ts (what a conversation changed, as this machine received it). */
+/** D148: src/studio/remoteChanges.ts (what a conversation changed, as this machine received it). */
 export type RemoteWhat = "plan" | "script" | "voice" | "tone" | "engine" | "research" | "publish" | "other";
 export type RemoteSceneChangeView = { at: string; what: RemoteWhat[]; subjects: string[]; answer?: string };
 export type ReceivedSummary = { at: string; from: string; to: string; commits: string[];

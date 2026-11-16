@@ -40,7 +40,7 @@ export const sourceNow = async (episode: string): Promise<CurrentInput> => {
   const refs = [];
   const textChanged: Record<string, boolean> = {};
   const onScreen: Record<string, string | null> = {};
-  // D144: a renderer-code change a conversation named for a scene (`Studio-Scenes:` or its «أُصلحت» on the owner's note)
+  // D148: a renderer-code change a conversation named for a scene (`Studio-Scenes:` or its «أُصلحت» on the owner's note)
   // does not change the scene's own content, so it is carried as a permanent local marker; a scene without one keeps
   // exactly the fingerprint it had (src/studio/remoteChanges.ts).
   const engine = await remoteEngineTokens(path.dirname(scriptPath));
