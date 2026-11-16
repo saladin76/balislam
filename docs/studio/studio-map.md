@@ -256,6 +256,7 @@
 | D143 | ١٦ نوفمبر | **دفاتر الزمن 001 (طلب المالك):** الحلقة تبدأ من أول الكلام، وفي «الإيقاع» (D140) صار للحلقة «سريع» و«الأقصر» (يُطبَّق حين يضغط المالك «أعد إنتاج المشاهد المتأثرة»)، ورسوم جديدة في ١٢ مشهدًا تعود للمراجعة في «٢ المشاهد». لا شاشة ولا بوابة جديدة | دفاتر الزمن | (هذا PR) |
 | D138 | ١٥ نوفمبر | **دفاتر الزمن 001، c1-s37 (ملاحظة المالك):** لا نقطتان تنزلان؛ الأرض وشمس الأفق ثم طريق ذهبي إلى الضوء و«الهداية» وضوء يتسع عند «بالأمن»، وبطاقة البقرة ٣٨ من «آدم» فيقصر فراغ النهاية. حقل جديد `safeWord` في `lib-descent` يظهر في محرر المشهد. يعيد فتح c1-s37 وحده | دفاتر الزمن | (هذا PR) |
 | D139 | ١٥ نوفمبر | **زبدة الكتب: تمهيد الآية وبطاقتها مشهد واحد على الشاشة (طلب المالك):** «سورة …» تُكتب في موضع رأس البطاقة ولا يتلاشى التمهيد، والبطاقة الأفقية تبدأ منه على الورقة نفسها وتضيف «الآية …» ونصها. يبقيان مشهدين في «المشاهد» يُعتمدان كما كانا. ونص c1-s30 «أبو شادي» كما في السكريبت فيرتفع منع الإنتاج (KI-071) | زبدة الكتب | (هذا PR) |
+| D147 | ١٥ نوفمبر | **الآية والبسملة على الشاشة حين تُذكران (طلب المالك):** نص السكريبت وحده في القنوات الثلاث قبل التلاوة وبعدها؛ الآية الطويلة صفحات تتبدل مع التلاوة بلا قطع كلمة ولا خط يضيع؛ «خط الأفق» يعرض النص قبل رفع التلاوة؛ البسملة المنطوقة داخل مشهد راوٍ تظهر وحدها. يُعاد فتح المشهد الذي تغيّر عرضه وحده (لا شيء في 001). لا شاشة ولا بوابة جديدة | مشترك | (هذا PR) |
 | D134 | ١٤ نوفمبر | **دفاتر الزمن 001، البسملة مرة واحدة (ملاحظة المالك، KI-064):** صفحة الغلاف c1-s0 فارغة، والبسملة تُكتب في مشهدها c1-s1 وحده وتظهر بهدوء قبل تسجيل المالك. تغيير في مدخلات المشهدين فيعيد فتحهما وحدهما في «٢ المشاهد» («تحديث بعد التجهيز»، بلا اعتماد جديد). لا شاشة ولا بوابة جديدة | دفاتر الزمن | (هذا PR) |
 | D140 | ١٥ نوفمبر | **«سرعة الإلقاء» و«الفاصل بين الجمل والمشاهد» (بطلب المالك رغم التجميد):** كل نبرة بثلاث سرعات «هادئ» ×0.93 و«متوسط» (سرعة النبرة، الافتراضي) و«سريع» ×1.15، بجوار قائمة النبرة في «الجمل» ومحرر المشهد والحلقة، ولوحة «الإيقاع» في رأس «٢ المشاهد» بالفاصل والمدة التقديرية و«أعد إنتاج المشاهد المتأثرة — مجانًا». `pace.json` محتوى مالك؛ التطبيق يمد التسجيلات القائمة (atempo) إلى `voice/paced-*.wav` بلا طلب صوت والأصل لا يُمس؛ `loadVoiceIndex` يقرأ النسخة المطبَّقة، ومسارات صنع الصوت الخام. المشهد الذي تغيّر صوته وحده يعود للمراجعة (القاعدة القائمة). لا يُمد: التلاوة والبسملة ومشهد الآية وتمهيدها والسكون المقصود | مشترك | (هذا PR) |
 | D132 | ١٤ نوفمبر | **«النص المشكول» في شريط الخطوة ١ (بطلب المالك رغم التجميد):** تبويب بجوار «السكريبت» في القنوات الثلاث يعرض `tashkeel.md` ويُحرَّر كالسكريبت، بشارة «التشكيل ٩٩٪»، و«أنشئ النسخة المشكولة من السكريبت» حين لا يوجد، ومشكلات المطابقة مع جمل السكريبت في مكانها. الحفظ بنسخة الملف (409 إن تغيّر بعد فتحه)، ويغيّر ما يُرسل إلى الصوت وحده، والجمل المتأثرة «تحتاج توليدًا» ببصمتها بلا توليد؛ و«النطق» المكتوب يعلو عليه لجملته (بصمة الجملة ذات «النطق» صارت من نصها وحده). ليس من بصمة التجهيز: لا «تحديث بعد التجهيز» ولا بوابة جديدة | مشترك | (هذا PR) |
@@ -535,6 +536,26 @@ asked to fix). The ledger lock waits for a live writer up to `LEDGER_LOCK_WAIT_M
 process's (D34). In step ٢ (D40; step ٣ before) a ready draft of the current scene is shown
 for review directly: «اعتمد» or a problem report first submits those exact bytes (the UI checks the server recorded the
 same SHA-256 it played), then decides. After «اعتمد» the next scene's draft opens and plays.
+
+**Verse and basmala on screen (D147, owner request 15 Nov «لما يذكر ايه خليها تظهر على الشاشة»).** The verse text
+is the script's text only (`withQuran` from `script.md`), shown for the whole verse scene in every channel, before and after
+the recitation (so the pre-final view shows it too). One mechanism, channel styling kept:
+- Long verses become pages (`src/quran/versePages.ts`, `PagedVerse.tsx`): a verse that fits one card is unchanged; otherwise
+  it is split at ۝, then waqf marks, then between words (never inside a word), the font never below 0.6, pages fading in
+  place with their share of letters over the recitation (or the scene before it), the last held to the end; ﴿ on the first
+  page and ﴾ on the last. In the classic card (بالإسلام), the page card and «خط الأفق» (دفاتر الزمن) and the ink card
+  (زبدة الكتب; landscape D139 layout shrinks above 50 letters, `INK_WIDE_ROOM`). The reference stays where each channel puts
+  it (under the card; the ink head above it, D61/D139).
+- «خط الأفق» (`HorizonVerse`) shows the script text before the recitation; «موضع آية» only for a verse with no text in the
+  script. Its centre card never exceeds the portrait frame.
+- The basmala spoken inside a narration scene is drawn alone over the template for its words' window
+  (`BasmalaOnScreen.tsx`; not on a verse card nor the dafatir `basmala` shot), script words as written, intended stillness
+  («بسملة» in `stillness.ts`).
+- Ledger: a scene's input fingerprint gains `quranOnScreenSignature` (`src/quran/onScreen.ts`) only when its on-screen
+  rendering changed (basmala overlay, paged verse, ink landscape verse over 50 letters), so that scene alone re-opens. No
+  scene of the three 001 episodes changed. Verse text never reaches TTS (`assertNoQuranForTts` unchanged).
+- A verse mentioned by meaning only (no text in the script) shows its reference or nothing: the text must come from the
+  owner (B-011). A ﴿…﴾ quote inside a narration sentence is still refused by the voice guard (no upload path).
 
 **Recitations last (D35, owner decision 8 Nov).** The owner records the Quran verses himself and adds them at the end;
 before that he watches a pre-final version with narration and no recitation. Final gates are unchanged.

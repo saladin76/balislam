@@ -7,6 +7,7 @@ import { HZ_SCENES } from "../dafatir/horizon/episode001";
 import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../dafatir/horizon/meta";
 import { buildTimeline, timelineFromWords, type Timeline } from "../dafatir/horizon/timeline";
 import { VERSE_PLACEHOLDER } from "../../plan/quranText";
+import { pageLetterBudget, pageOpacity, pageWindows, versePages } from "../../quran/versePages";
 import { horizonShotWordIssue } from "../../plan/shotWords";
 import { verseRef } from "../dafatir/horizon/kit";
 import type { SceneBase, StringFields } from "./types";
@@ -105,23 +106,30 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
 };
 
 /**
- * موضع آية في «خط الأفق»: بلا نص معتمد يظهر وسم إنتاج واضح (المرجع، ومصدر النص والتلاوة) فوق صفحة ساكنة،
- * ولا إطار آية ولا نص مؤقت. عند إرفاق نص الآية من السكريبت والتلاوة البشرية المرفوعة يتحول المشهد إلى بطاقة آية متزامنة بالصوت.
+ * موضع آية في «خط الأفق»: بلا نص في السكريبت يظهر وسم إنتاج واضح (المرجع، ومصدر النص والتلاوة) فوق صفحة ساكنة،
+ * ولا إطار آية ولا نص مؤقت. ونص الآية من السكريبت يظهر دائمًا، قبل التلاوة أيضًا («نسخة قبل النهائية» بلا تلاوات،
+ * طلب المالك ١٥ نوفمبر)، ويتزامن مع التلاوة البشرية عند إرفاقها. الآية الطويلة صفحات على مدى التلاوة (versePages).
  */
 export type HorizonVerseProps = SceneBase & { text?: string; ayahKey?: string; reciter?: string; recitationDuration?: number; head?: string };
 export const HorizonVerse: React.FC<HorizonVerseProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
   const t = frame / fps;
-  const has = Boolean(props.text && props.text !== VERSE_PLACEHOLDER && props.reciter);
+  const has = Boolean(props.text?.trim() && props.text !== VERSE_PLACEHOLDER);
   const key = props.ayahKey ?? "";
+  const show = props.recitationDuration ? 1 : prog(t, 0.1, 0.6);
+  const windows = has ? pageWindows(versePages(props.text!, pageLetterBudget(props.orientation === "portrait" ? 80 : 90)), props.recitationDuration ? 0 : 0.6 * fps,
+    (props.recitationDuration ?? (durationInFrames / fps) * 0.85) * fps - (props.recitationDuration ? 0 : 0.6 * fps)) : [];
   return (
     <SceneShell {...props} narration={undefined} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless>
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <Dusk />
         <Book id="vs" t={t} dur={durationInFrames / fps} cam={NEUTRAL} R={props.head ? <ChapterHead label={props.head} /> : undefined} />
         {has ? (
-          <VerseCard show={props.recitationDuration ? 1 : prog(t, 0.1, 0.6)} text={props.text!} refKey={key} reciter={props.reciter!} />
+          windows.map((w, i) => {
+            const o = windows.length > 1 ? pageOpacity(w, frame) : 1;
+            return o > 0 ? <VerseCard key={i} show={show * o} text={w.text} refKey={key} reciter={props.reciter} /> : null;
+          })
         ) : (
           <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", background: "rgba(13,10,20,0.35)" }}>
             <div style={{ padding: "26px 48px 30px", border: "3px dashed rgba(241,228,203,0.75)", borderRadius: 14, background: "rgba(13,10,20,0.82)", color: C.parchment, direction: "rtl", textAlign: "center", fontFamily: "'Tajawal', sans-serif" }}>

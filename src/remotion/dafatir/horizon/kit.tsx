@@ -286,7 +286,8 @@ export const VerseCard: React.FC<{ show: number; text: string; refKey: string; r
       <div
         style={{
           ...(place === "page" ? { position: "absolute" as const, left: side === "r" ? 975 : 165, top: y, transform: `translateY(calc(-50% + ${(1 - show) * 18}px))` } : { position: "relative" as const }),
-          width: place === "page" ? 780 : 1320,
+          // في الإطار الرأسي لا تتجاوز البطاقة عرض الشاشة (كانت تُقص عند الحافتين)
+          width: place === "page" ? 780 : "min(1320px, calc(100% - 230px))",
           padding: place === "page" ? "36px 44px 28px" : "44px 64px 34px",
           background: "#FBF4E6",
           border: `3px double rgba(74,46,31,0.65)`,
