@@ -182,7 +182,7 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
 
   // مقاطع الشورتس من الخطة (plan.shorts) لا من عدد الأقسام (src/plan/shorts.ts)
   const sceneById = new Map(plan.chapters.flatMap((ch) => ch.scenes).map((s) => [s.id, s]));
-  const shorts: ShortKit[] = shortSegments(plan, 6).segments.map((seg) => {
+  const shorts: ShortKit[] = shortSegments(plan).segments.map((seg) => {
     const c = { number: seg.n, title: seg.title };
     const text = seg.sceneIds.map((id) => sceneById.get(id)?.narration ?? "").filter(Boolean).join(" ");
     const ss = sentences(text);

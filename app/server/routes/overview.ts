@@ -15,6 +15,7 @@ const buildOverview = async (episodesDir: string, load: RouteCtx["load"]) => {
     const { episodeLength } = await load("/src/plan/episodeLength.ts");
     const { collectMedia } = await load("/src/plan/collect.ts");
     const { episodeSeriesOf: seriesOf } = await load("/src/channel/seriesStore.ts");
+    const { shortSegments } = await load("/src/plan/shorts.ts");
     const out = [];
     for (const d of await episodeDirs(episodesDir)) {
       const dir = path.join(episodesDir, d);
@@ -45,7 +46,8 @@ const buildOverview = async (episodesDir: string, load: RouteCtx["load"]) => {
         scenes: scenes.length,
         voice: { done: voiceOk, total: voiced.length },
         blocking: issues.filter((i: any) => i.level === "error").length,
-        package: { video: Boolean(video), shorts: pkgFiles.filter((f) => /-short-\d\.mp4$/.test(f)).length, thumbnails: pkgFiles.filter((f) => f.endsWith(".png")).length, updatedAt: video ? statSync(path.join(pkgDir, video)).mtimeMs : null },
+        // بلا حد لعدد الشورتس (D151): `-short-12.mp4` يُعد كما يُعد `-short-2.mp4`، و`planned` ما في الخطة من مقاطع
+        package: { video: Boolean(video), shorts: pkgFiles.filter((f) => /-short-\d+\.mp4$/.test(f)).length, planned: plan ? shortSegments(plan).segments.length : 0, thumbnails: pkgFiles.filter((f) => f.endsWith(".png")).length, updatedAt: video ? statSync(path.join(pkgDir, video)).mtimeMs : null },
         planUpdatedAt: plan?.updatedAt ? Date.parse(plan.updatedAt) : null,
         // One length everywhere (D52): the plan's own duration, measured once the voice exists.
         length: plan ? episodeLength(plan, await collectMedia(id, plan).catch(() => undefined)) : null,

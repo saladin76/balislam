@@ -283,7 +283,12 @@ export const OpsRoom: React.FC<{
   );
 };
 
-/** شورتس يوم: ما حُدد في التقويم، وإلا التلقائي (اليوم n بعد آخر حلقة طويلة = الشورت n منها، حتى 6). */
+/**
+ * عدد شورتس حلقة (D151: بلا حد): ما في خطتها من مقاطع أو ما صُنع منها، أيهما أكثر. للتقويم وحده؛ لا يمنع شيئًا.
+ */
+export const episodeShortsCount = (e: Pick<Overview, "package">): number => Math.max(e.package.planned ?? 0, e.package.shorts);
+
+/** شورتس يوم: ما حُدد في التقويم، وإلا التلقائي (اليوم n بعد آخر حلقة طويلة = الشورت n منها، حتى آخر شورت فيها). */
 const shortsFor = (d: OpsChannel, date: string): { ep: string; n: number }[] => {
   const cal = d.calendar?.[date];
   if (cal?.shorts) return cal.shorts;
@@ -299,7 +304,7 @@ const shortsFor = (d: OpsChannel, date: string): { ep: string; n: number }[] => 
   const out: { ep: string; n: number }[] = [];
   for (let k = 0; k < per; k++) {
     const n = (days - 1) * per + k + 1;
-    if (n >= 1 && n <= 6) out.push({ ep: dated.e.id, n });
+    if (n >= 1 && n <= episodeShortsCount(dated.e)) out.push({ ep: dated.e.id, n });
   }
   return out;
 };
@@ -308,6 +313,10 @@ const fmtDay = (date: string) => {
   const d = new Date(`${date}T00:00:00`);
   return `${DAYS[d.getDay()]} ${arDigits(`${d.getDate()}/${d.getMonth() + 1}`)}`;
 };
+
+/** أرقام شورتس حلقة في محدد اليوم: كل شورت فيها (بلا حد)، ورقم محفوظ أكبر منها يبقى ظاهرًا لا يُمحى */
+const shortNumbers = (e: Pick<Overview, "package"> | undefined, current: number): number[] =>
+  Array.from({ length: Math.max(1, e ? episodeShortsCount(e) : 0, current) }, (_, i) => i + 1);
 
 /** تعديل يوم في تقويم قناة: الحلقة الطويلة، والشورتس، ويوم بلا نشر، وملاحظة. */
 const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n: number }[]; onClose: () => void; onSaved: () => void }> = ({ ops, date, auto, onClose, onSaved }) => {
@@ -343,7 +352,7 @@ const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n
       const next = { ...(ops.calendar ?? {}) };
       const day: CalendarDay = {};
       if (off) day.off = true;
-      if (custom && !off) day.shorts = shorts.filter((x) => x.ep && x.n >= 1 && x.n <= 6);
+      if (custom && !off) day.shorts = shorts.filter((x) => x.ep && Number.isInteger(x.n) && x.n >= 1);
       if (note.trim()) day.note = note.trim();
       if (Object.keys(day).length) next[date] = day;
       else delete next[date];
@@ -384,12 +393,12 @@ const DayEditor: React.FC<{ ops: OpsChannel; date: string; auto: { ep: string; n
                           {eps.map((e) => <option key={e.id} value={e.id}>{arDigits(e.id)} — {episodeTitle(e.title) || e.dir}</option>)}
                         </select>
                         <select value={x.n} onChange={(e) => setShorts(shorts.map((y, k) => (k === i ? { ...y, n: Number(e.target.value) } : y)))} style={{ width: 110 }}>
-                          {[1, 2, 3, 4, 5, 6].map((n) => <option key={n} value={n}>شورت {n}</option>)}
+                          {shortNumbers(eps.find((e) => e.id === x.ep), x.n).map((n) => <option key={n} value={n}>شورت {arDigits(String(n))}</option>)}
                         </select>
                         <button className="btn ghost small" onClick={() => setShorts(shorts.filter((_, k) => k !== i))}>حذف</button>
                       </div>
                     ))}
-                    <button className="btn small" style={{ alignSelf: "flex-start" }} disabled={!eps.length} onClick={() => setShorts([...shorts, { ep: shorts.at(-1)?.ep ?? eps.at(-1)?.id ?? "", n: Math.min(6, (shorts.at(-1)?.n ?? 0) + 1) }])}>+ أضف شورت</button>
+                    <button className="btn small" style={{ alignSelf: "flex-start" }} disabled={!eps.length} onClick={() => setShorts([...shorts, { ep: shorts.at(-1)?.ep ?? eps.at(-1)?.id ?? "", n: (shorts.at(-1)?.n ?? 0) + 1 }])}>+ أضف شورت</button>
                     {!shorts.length ? <span className="help">بلا شورتس في هذا اليوم.</span> : null}
                   </div>
                 ) : null}
