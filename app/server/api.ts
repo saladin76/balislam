@@ -11,7 +11,7 @@ import { restoreUntrackedPreviews } from "./untrackedPreviews.ts";
 import { HttpError, safeName, assertSafeMediaFile, isMissingFileError, redactPaths } from "./util.ts";
 import { MAX_BODY_BYTES, readBody } from "./body.ts";
 import { writeFileAtomic, writeJsonAtomic } from "../../src/io/atomicJson.ts";
-import { prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
+import { PREPARE_RUNNING_MESSAGE, prepareJob, startPrepareJob, stopPrepareJob } from "./prepare.ts";
 import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
 import { captureRouteError, handleErrorRoutes, isProgrammingError, testFault } from "./errors.ts";
 import { handlePronunciationRoutes } from "./pronunciationCheck.ts";
@@ -291,6 +291,12 @@ export const balApi = (): Plugin => ({
           // Single-owner vNext: one authenticated approval for each complete
           // audiovisual scene. Hashes, actor and paths are server-derived.
           // A refused owner action answers 403 (identity) or 409 (gate/order/stale hash), never 500.
+          // سرعة الإلقاء (src/voice/paceApply.ts): بعد صوت جديد، المشاهد التي تغيّر تسجيلها الأصلي (والمذكورة) تُطبَّق عليها
+          // السرعة المختارة من تسجيلها الجديد. مجاني، ولا يمس مشهدًا لم يتغير صوته. فشله لا يُفشل الطلب: يبقى المشهد «متأثرًا».
+          const paceAfterVoice = async (scenes: string[]) => {
+            try { await (await load("/src/voice/paceApply.ts")).refreshPace(ep, { scenes }); }
+            catch (error) { console.warn(`[pace] ${(error as Error).message}`); }
+          };
           const refuse = async (error: unknown) => {
             if (error instanceof HttpError) throw error;
             const { isOwnerAuthError } = await load("/src/studio/sceneService.ts");
@@ -427,7 +433,7 @@ export const balApi = (): Plugin => ({
           // «جهّز كل المشاهد»: voice for scenes lacking it, then AV drafts in order in the background.
           // Drafts are never submissions or approvals (see prepareAll.ts / sceneService.ts).
           // Starts the queue for an owner already checked and an episode already ready (callers check).
-          const startPrepare = async (opts: { retryFailed?: boolean } = {}) => {
+          const startPrepare = async (opts: { retryFailed?: boolean; renderOnly?: boolean } = {}) => {
             const key = `${ch}/${ep}`;
             const { prepareAllScenes } = await load("/src/studio/prepareAll.ts");
             if (prepareJob(key)?.status === "running") return prepareJob(key)!;
@@ -437,7 +443,7 @@ export const balApi = (): Plugin => ({
             // M3: the owner's own «استأنف التجهيز» retries them (the failure expires on that press).
             const previousFailures = opts.retryFailed ? [] : prepareJob(key)?.failed ?? [];
             return startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
-              prepareAllScenes(ep, { voiceClient, onProgress, shouldStop, previousFailures })), busy);
+              prepareAllScenes(ep, { voiceClient: opts.renderOnly ? null : voiceClient, renderOnly: opts.renderOnly, onProgress, shouldStop, previousFailures })), busy);
           };
 
           // Step ١ «التجهيز» (funnel v3): ONE owner action writes the script approval, then the board record when
@@ -513,8 +519,19 @@ export const balApi = (): Plugin => ({
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const { assertSceneOwner, requireSceneProductionReady } = await load("/src/studio/sceneService.ts");
+            const pb = await readBody(req).catch(() => ({}));
             try { assertSceneOwner(); await requireSceneProductionReady(ep); }
             catch (error) { return refuse(error); }
+            // «أعد إنتاج المشاهد المتأثرة» (سرعة الإلقاء): النسخ المطبَّقة من التسجيلات القائمة (مجانًا)، ثم المسودات وحدها:
+            // لا طلب صوت في هذه الدفعة أبدًا (renderOnly). كل مشهد تغيّر صوته يعود للمراجعة بقاعدة السجل القائمة.
+            if (pb?.pace === "apply") {
+              if (prepareJob(key)?.status === "running") return send(res, 409, { error: PREPARE_RUNNING_MESSAGE });
+              const { refreshPace } = await load("/src/voice/paceApply.ts");
+              let pace;
+              try { pace = await refreshPace(ep, { all: true }); } catch (error) { return refuse(error); }
+              const job = await startPrepare({ retryFailed: true, renderOnly: true });
+              return send(res, 200, { job, voiceKey, pace, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
+            }
             const job = await startPrepare({ retryFailed: true });
             return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
           }
@@ -672,6 +689,8 @@ export const balApi = (): Plugin => ({
             let result;
             try { result = await sv.sentenceAction(ep, body, { client: elevenLabsFromEnv() }); }
             catch (error) { return refuse(error); }
+            // سرعة الإلقاء: صوت المشهد الذي تغيّر يتبع السرعة المختارة (مجانًا، من التسجيل الجديد نفسه)
+            await paceAfterVoice(result.composed?.composed ? [result.composed.sceneId] : []);
             const plan = await io.readPlanFile(scriptPath);
             return send(res, 200, { ...result, ...(result.planChanged ? { plan } : {}), media: await mediaFor(plan) });
           }
@@ -718,6 +737,7 @@ export const balApi = (): Plugin => ({
                 const managed: Set<string> = await sv.sentenceManagedScenes(scriptPath);
                 if (b.scenes?.length === 1 && managed.has(b.scenes[0])) {
                   const r = await sv.regenerateSceneSentences(ep, b.scenes[0], { client, confirmSame: b.confirmSame === true });
+                  await paceAfterVoice(b.scenes);
                   const plan = await io.readPlanFile(scriptPath);
                   // D136: nothing sent would change: nothing was generated, the owner confirms first
                   if (r.confirm) return send(res, 200, { report: null, generated: false, confirm: r.confirm, media: await mediaFor(plan) });
@@ -725,6 +745,7 @@ export const balApi = (): Plugin => ({
                 }
               }
               const report = await generateVoice(ep, { client, dryRun, only: b.scenes, force: b.force });
+              if (!dryRun) await paceAfterVoice(Array.isArray(b.scenes) ? b.scenes : []);
               const plan = await io.readPlanFile(scriptPath);
               // QA balislam 3: a dry run because there is no key is said as such (the studio never shows success for it).
               return send(res, 200, { report, generated: !dryRun, ...(client ? {} : { noKey: true }), media: await mediaFor(plan) });

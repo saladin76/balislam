@@ -14,6 +14,7 @@ import { defaultsFor } from "../../../src/plan/generate";
 import { sceneFrames, sceneSeconds } from "../../../src/plan/duration";
 import { introFramesFor } from "../../../src/remotion/scenes/ChannelIntro";
 import { inheritedToneLabel, tones, toneIds } from "../../../src/voice/tones";
+import { PlanSpeedSelect } from "../ui/Pace";
 import { sfxLibrary, sfxCategoryNamesAr } from "../../../brand/sfx";
 import type { Identity } from "../../../brand/identity/index";
 import type { CharacterPose, CharacterVariant } from "../../../characters/Character";
@@ -351,6 +352,7 @@ export const EpisodeTab: React.FC<{
               <option value="">{channel.tone && channel.tone in tones ? `نبرة القناة (${tones[channel.tone as keyof typeof tones].nameAr})` : `بلا نبرة للحلقة (يلزم اختيار نبرة كل مشهد)`}</option>
               {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}: {tones[t].useAr}</option>)}
             </select>
+            <PlanSpeedSelect id="ep-speed" episodeId={episodeId} />
           </div>
         </div>
         {onOpenVoice ? (
@@ -533,6 +535,10 @@ export const EpisodeTab: React.FC<{
                   <option value="">{inheritedToneLabel(plan.tone, channel.tone)}</option>
                   {toneIds.map((t) => <option key={t} value={t}>{tones[t].nameAr}</option>)}
                 </select>
+              </label>
+              <label className="field">
+                <span>السرعة</span>
+                <PlanSpeedSelect id="sc-speed" episodeId={episodeId} sceneId={scene.id} />
               </label>
               <label className="field">
                 <span>الصوت</span>

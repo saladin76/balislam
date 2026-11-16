@@ -9,6 +9,7 @@ import { afterPreparationLine, api } from "../../api";
 import { showsDivision } from "../../../../src/script/divisions";
 import { More } from "../../shell/Screen";
 import { PrepareAll } from "../PrepareAll";
+import { EpisodePace } from "../../ui/Pace";
 import { SentencesPanel } from "../SentencesPanel";
 import { ShortsPicker } from "../../tabs/ShortsPicker";
 import { StudioErrorBoundary } from "../../shell/ErrorBoundary";
@@ -61,6 +62,7 @@ export const SceneHeader: React.FC<StepPart> = ({ m, p, v }) => {
         <span className={`s3-state is-${status}`}>{stateText}</span>
         {hit ? <span className="s3-len"><Num className="clk">{clock(videoSeconds?.id === shownId ? videoSeconds.seconds : secs(shownId))}</Num></span> : null}
         {prepLine}
+        <EpisodePace episodeId={episodeId} channelId={channelId} shownId={shownId} onApplied={() => { void refresh().catch(() => {}); onUpdated?.(); }} />
         <button type="button" className="btn ghost s3-edit" onClick={() => setEditing(shownId)}><Icon name="doc" />تحرير المشهد</button>
       </div>
     </header>

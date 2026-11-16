@@ -55,13 +55,26 @@ export type VoiceClip = {
    * (`pending`) — a draft only, approved «مشروطًا بالتلاوة», never assembled into a Master.
    */
   basmala?: { pending: boolean; sha256: string | null };
+  /**
+   * «سرعة الإلقاء» المطبَّقة (src/voice/paceFile.ts): هذا المقطع نسخة ممدودة من تسجيل أصلي لم يُمس (`from`)، بمعامل
+   * السرعة والفاصل، وذيل المشهد بعده (tailSeconds) إن قُصّر الفاصل. لا يظهر في voice/index.json الخام أبدًا.
+   */
+  paced?: { key: string; from: { file: string; hash: string; duration: number }; speed: number; pause: number; tailSeconds?: number };
 };
 export type VoiceIndex = Record<string, VoiceClip>;
 
 export const voiceDirFor = (scriptPath: string) => path.join(path.dirname(scriptPath), "voice");
 
-export const loadVoiceIndex = async (episode: string): Promise<VoiceIndex> =>
-  (await readJson<VoiceIndex>(path.join(voiceDirFor(await resolveScriptPath(episode)), "index.json"))) ?? {};
+/**
+ * فهرس الصوت كما يقرؤه الرندر والسجل والمدد: «سرعة الإلقاء» المطبَّقة (src/voice/paceFile.ts) مكان الأصل حين صُنعت منه
+ * نفسه، وإلا الأصل كما هو. مسارات صنع الصوت تقرأ voice/index.json الخام مباشرة.
+ */
+export const loadVoiceIndex = async (episode: string): Promise<VoiceIndex> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const raw = (await readJson<VoiceIndex>(path.join(voiceDirFor(scriptPath), "index.json"))) ?? {};
+  const { pacedOverlay } = await import("./paceFile");
+  return pacedOverlay(scriptPath, raw);
+};
 
 /** قاموس نطق القناة الحالية: channels/<القناة>/pronunciation.json */
 const loadDictionary = async () => readJson<{ entries?: { text: string; say: string }[] }>(channelPaths().pronunciation).then((d) => d ?? {});
@@ -228,7 +241,8 @@ export const VOICE_BUSY_MESSAGE = "يُولَّد صوت هذه الحلقة ا�
  */
 const supersedeUnused = async (dir: string, used: Set<string>, pattern: RegExp, run: { startedAt: number; created: Set<string> }, superseded: string) => {
   for (const f of await readdir(dir).catch(() => [] as string[])) {
-    if (!pattern.test(f) || used.has(f)) continue;
+    // «سرعة الإلقاء»: النسخ المطبَّقة paced-*.wav تشير إليها voice/paced.json لا الفهرس؛ تبقى في مكانها
+    if (!pattern.test(f) || used.has(f) || f.startsWith("paced-")) continue;
     const full = path.join(dir, f);
     const st = await stat(full).catch(() => null);
     if (!st?.isFile()) continue;

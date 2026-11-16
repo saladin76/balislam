@@ -74,7 +74,8 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
     return Math.max(MIN_SECONDS, hzEstimateSeconds(scene.narration, shot, props));
   }
   const min = Math.max(templateById(scene.template)?.minSeconds ?? MIN_SECONDS, textSeconds(scene));
-  if (voiced) return Math.max(min, voiced.duration + config.voice.tailSeconds);
+  // «الفاصل بين الجمل» المطبَّق يقصّر ذيل المشهد أيضًا (src/voice/pace.ts sceneTailFor)؛ بلا تطبيق كما كان
+  if (voiced) return Math.max(min, voiced.duration + (voiced.paced?.tailSeconds ?? config.voice.tailSeconds));
   const n = words(scene.narration);
   if (!n) return base;
   const spoken = (n / config.speech.wordsPerMinute) * 60 + 1.2;

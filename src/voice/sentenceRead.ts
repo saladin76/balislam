@@ -66,6 +66,11 @@ export type SentenceRow = {
   chosen: boolean;
   /** D110: the scene's current audio clamped this sentence's timing to its file (ms), «التوقيت ضُبط قليلًا»; null otherwise */
   timingClamped: number | null;
+  /**
+   * «سرعة الإلقاء» (src/voice/pace.ts، بجوار النبرة): speed = سرعة صريحة لهذه الجملة أو ""، وinheritedSpeed = ما ترثه
+   * (المشهد ثم الحلقة ثم «متوسط»). paceExempt: لماذا لا تُغيَّر سرعتها (البسملة، الآية، السكون المقصود)، أو null.
+   */
+  speed: string; inheritedSpeed: string; paceExempt: string | null;
 };
 export type VerseRow = {
   id: string; sceneId: string; kind: "verse-card"; ayahKey: string; reference: string;
@@ -97,6 +102,11 @@ export type SentencesRead = {
 
 export const readSentences = async (episode: string): Promise<SentencesRead> => {
   const ctx = await loadCtx(episode);
+  const { loadPace } = await import("./paceFile");
+  const { paceExemption } = await import("./pace");
+  const { sentenceSpeedRow } = await import("./paceApply");
+  const pace = await loadPace(ctx.scriptPath);
+  const planScenes = allScenes(ctx.plan).map((x) => x.scene);
   const index = (await readJson<VoiceIndex>(path.join(voiceDirFor(ctx.scriptPath), "index.json"))) ?? {};
   const flat = flatten(ctx);
   const { ownAudioStatus } = await import("../quran/manualAudio");
@@ -123,6 +133,7 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
     // صوت المشهد ملفًا واحدًا: هل يُقص إلى جمله بتوقيت كلماته (الضغط على كلمة جملة بلا تسجيل)
     const adoption = clip && audio.state === "scene" ? sceneAdoption(clip, list.map((s) => s.text)) : null;
     let w0 = 0;
+    const sceneExempt = paceExemption(scene, planScenes[planScenes.indexOf(scene) + 1]);
     const rows = list.map((s, k): SentenceRow => {
       const count = words(s.text).length;
       const sceneWords = adoption?.ok ? clip!.words.slice(w0, w0 + count) : undefined;
@@ -145,6 +156,8 @@ export const readSentences = async (episode: string): Promise<SentencesRead> => 
         timingClamped: audio.state === "sentences" ? clip?.sentences?.clamped?.[s.id] ?? null : null,
         recordedTone: v.pinnedTone ?? null,
         ...toneRow(ctx, scene, list, s, flat),
+        ...sentenceSpeedRow(pace, scene.id, s.text),
+        paceExempt: sceneExempt ?? (s.kind === "basmala" ? "البسملة تسجيل المالك: لا تُغيَّر سرعتها" : s.kind === "verse" ? "نص قرآني: لا يُغيَّر" : null),
       };
     });
     const sceneOlder = Boolean(clip && audio.state === "scene" && !clip.basmala && isSupersededVersion(clip.presetVersion));

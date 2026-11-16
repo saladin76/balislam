@@ -15,6 +15,7 @@ import type { ScriptSaveReply } from "./planGuard";
 import { ownerJob, ownerMessage } from "./serverMessages";
 import { emitStudioError } from "./errorEvents";
 import { ownerText, planOrder } from "../../src/i18n/sceneNames";
+import type { PaceCommand, PaceStatus, RefreshResult } from "../../src/voice/paceApply";
 import type { LexiconCommand, SentenceCommand, SentencesRead, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 
@@ -331,6 +332,14 @@ export const api = {
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
       method: "POST",
     }, channel).then(prepareRead),
+  /** «سرعة الإلقاء» و«الفاصل بين الجمل»: الإعداد والمشاهد المتأثرة والمدة (قراءة)، والحفظ (pace.json وحده) */
+  pace: (episode: string, channel: string | undefined) => call<PaceStatus>(`/api/episodes/${episode}/pace`, undefined, channel),
+  setPace: (episode: string, channel: string | undefined, body: PaceCommand) =>
+    call<PaceStatus>(`/api/episodes/${episode}/pace`, { method: "POST", json: body }, channel),
+  /** «أعد إنتاج المشاهد المتأثرة»: نسخ السرعة من التسجيلات القائمة (مجانًا) ثم المسودات وحدها، بلا أي طلب صوت */
+  applyPace: (episode: string, channel: string) =>
+    call<ScenePrepareRead & { pace?: RefreshResult }>(`/api/episodes/${episode}/scene-prepare`, { method: "POST", json: { pace: "apply" } }, channel)
+      .then((r) => ({ ...prepareRead(r), pace: r.pace })),
   /** «أوقف»: the step in progress finishes and is kept; nothing new starts. */
   stopScenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
