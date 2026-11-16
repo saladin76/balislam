@@ -20,6 +20,7 @@ import { Num, duration as clock, ownerText } from "../../ui/format";
 import { NoteText, ar, noteInboxLine } from "./notes";
 import { newerTakeLine } from "./newerTake";
 import { liveAudio } from "./liveAudio";
+import { remoteChangeLine } from "./remoteChange";
 import type { StepPart } from "./sceneStepView";
 
 /** «قبل أن تعتمد»: this channel's review criteria (from its production rules), on a sticky note in the gutter */
@@ -133,6 +134,8 @@ export const SceneSide: React.FC<StepPart> = ({ m, v }) => {
       {/* 11 Nov: a quiet line, never a second approval: the scene is reviewed with «اعتمد المشهد» like any other */}
       {shownServer?.newerTake ? <p className="sp-hint s3-newer" role="status">{newerTakeLine(shownServer.newerTake)}</p> : null}
       {shownServer?.afterPreparation ? <p className="sp-hint s3-afterprep" role="note">{afterPreparationLine(shownServer.afterPreparation.what)}</p> : null}
+      {/* D148: a conversation's change arrived after this video was made; the cloud never sends videos here */}
+      {shownServer?.remoteChange ? <p className="sp-hint s3-remote" role="status">{remoteChangeLine(shownServer.remoteChange)}</p> : null}
       {shownServer?.blocked?.length || (shownServer && !shownServer.approved && data?.episodeBlocked?.length) ? (
         <p className="sp-hint s3-blocked" role="alert">لا يُنتج قبل إصلاح: {ownerText([...(shownServer.blocked ?? []), ...(data?.episodeBlocked ?? [])].join(" — "), order)}</p>
       ) : null}

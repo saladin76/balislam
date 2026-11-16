@@ -10,6 +10,7 @@ import { createSceneFirstProduction } from "./sceneProduction";
 import { loadChannel } from "../channel";
 import { versesAreCitations } from "../quran/citation";
 import { NO_BLOCKS } from "./afterPreparation";
+import { remoteEngineTokens } from "./remoteChanges";
 import { type CurrentInput, sha, fileGeneration, optionalFileGeneration, safeSceneId } from "./sceneLedgerStore";
 
 /** The episode's current inputs as the ledger fingerprints them (script, boards, voice, recitations), read from disk. */
@@ -39,6 +40,10 @@ export const sourceNow = async (episode: string): Promise<CurrentInput> => {
   const refs = [];
   const textChanged: Record<string, boolean> = {};
   const onScreen: Record<string, string | null> = {};
+  // D148: a renderer-code change a conversation named for a scene (`Studio-Scenes:` or its «أُصلحت» on the owner's note)
+  // does not change the scene's own content, so it is carried as a permanent local marker; a scene without one keeps
+  // exactly the fingerprint it had (src/studio/remoteChanges.ts).
+  const engine = await remoteEngineTokens(path.dirname(scriptPath));
   for (const chapter of plan.chapters) for (const scene of chapter.scenes) {
     onScreen[scene.id] = quranOnScreenSignature(scene, channel?.verse?.style);
     const narration = scene.narration?.trim() ?? "";
@@ -75,7 +80,8 @@ export const sourceNow = async (episode: string): Promise<CurrentInput> => {
         voiceFingerprint, rec?.sha256 ?? "no-recitation",
         rec?.approvedAt ?? null, rec?.rightsEvidence ?? null,
         // الآية/البسملة على الشاشة (١٥ نوفمبر): يُعاد فتح المشهد الذي تغيّر عرضه وحده؛ غيره بصمته كما كانت
-        ...(onScreen[scene.id] ? [onScreen[scene.id]] : [])])),
+        ...(onScreen[scene.id] ? [onScreen[scene.id]] : []),
+        ...(engine[scene.id]?.length ? [["remote-engine", ...engine[scene.id]!]] : [])])),
     });
   }
   return {
