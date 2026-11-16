@@ -1,7 +1,8 @@
 /**
  * «جهّز كل المشاهد»: one owner action that prepares an episode's scenes for back-to-back review.
  *
- *  1. Voice: narration for every narrated scene that lacks a current clip, through the existing
+ *  1. Voice — ONLY when the owner confirmed «ولّد الصوت الآن» (`voiceScenes` from `voiceGenerationPlan`; D151: every
+ *     other start is `renderOnly`, with no voice client at all): narration for every narrated scene that lacks a current clip, through the existing
  *     generateVoice (tashkeel ≥ 98%, storyboard and tone gates, script+storyboard approval). Quran is
  *     never voiced: verse cards carry no narration and their recitation stays the owner's own recording.
  *  2. Render: AV preview DRAFTS for every unapproved, unsubmitted scene (any order is reviewable, D145), in
@@ -21,6 +22,7 @@ import { readPlanFile } from "../plan/io";
 import { loadVoiceIndex, voiceDirFor, generateVoice } from "../voice/generate";
 import type { ElevenLabsClient } from "../voice/elevenlabs";
 import { ownerText as nameSceneIds } from "../i18n/sceneNames";
+import config from "../../config.json";
 import {
   assertSceneOwner, assertSceneNotAwaitingChange, assertSceneRenderAllowed, inspectSceneProduction, recordSceneRenderEvidence,
   requireSceneProductionReady,
@@ -42,6 +44,65 @@ export const scenesNeedingVoice = async (episode: string): Promise<string[]> => 
     return !clip || clip.text !== text || path.basename(clip.file) !== clip.file || !existsSync(path.join(dir, clip.file));
   }).map((s) => s.id);
 };
+
+/**
+ * D-next (owner decision 15–16 Nov): what «ولّد الصوت الآن» would pay for, read only (no request, no write). After
+ * «اعتمد التجهيز» nothing paid starts on its own: the owner sees «جاهز لتوليد صوت N جملة في M مشهد — نحو X حرف من
+ * الرصيد», with the verse and basmala scenes listed as never voiced, and only his confirmed press starts the voice.
+ * `fingerprint` binds that press to exactly this plan: if anything changed since he read it, the press is refused
+ * with the new numbers (nothing is paid).
+ */
+export type VoiceGenerationPlan = {
+  /** Narration sentences that would be voiced (a whole-scene request voices all of its scene's sentences). */
+  sentences: number;
+  /** Scenes that would be voiced, in episode order. */
+  scenes: string[];
+  /** Characters sent to the voice service (the existing dry-run count: `generateVoice({ dryRun })`). */
+  chars: number;
+  credits: number;
+  /** Never sent to the cloned voice: verse scenes (the owner's recitation) and the basmala (his own recording). */
+  excluded: { id: string; reason: "verse" | "basmala" | "quran" }[];
+  fingerprint: string;
+};
+
+export const voiceGenerationPlan = async (episode: string): Promise<VoiceGenerationPlan> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const plan = await readPlanFile(scriptPath);
+  const all = plan ? plan.chapters.flatMap((c) => c.scenes) : [];
+  const order = all.map((x) => x.id);
+  const waitingFix = new Set((await inspectSceneProduction(episode)).scenes
+    .filter((x) => ((x as { blocked?: string[] }).blocked ?? []).length).map((x) => x.id));
+  const needed = (await scenesNeedingVoice(episode)).filter((id) => !waitingFix.has(id));
+  const report = needed.length ? await generateVoice(episode, { dryRun: true, only: needed }) : null;
+  const quran = new Set(report?.quranRefused ?? []);
+  const whole = report ? report.toGenerate.filter((j) => !quran.has(j.scene)) : [];
+  const wholeScenes = new Set(whole.map((j) => j.scene));
+  const sv = await import("../voice/sentenceVoice");
+  const basmala = await sv.basmalaScenes(scriptPath);
+  let read: Awaited<ReturnType<typeof sv.readSentences>> | null = null;
+  try { read = await sv.readSentences(episode); } catch { /* no sentence model yet: nothing to count */ }
+  const rowsOf = (id: string) => read?.scenes.find((x) => x.id === id)?.rows ?? [];
+  // The basmala scenes: their narration sentences only (prepareBasmalaScenes), never the basmala itself.
+  const basmalaRows = basmala.filter((id) => !waitingFix.has(id)).flatMap((id) => rowsOf(id)
+    .filter((r) => r.kind === "narration" && r.status !== "generated" && r.status !== "heard"));
+  const narrationRows = (id: string) => rowsOf(id).filter((r) => r.kind === "narration").length || 1;
+  const scenes = order.filter((id) => wholeScenes.has(id) || basmalaRows.some((r) => r.sceneId === id));
+  const sentences = [...wholeScenes].reduce((n, id) => n + narrationRows(id), 0) + basmalaRows.length;
+  const chars = whole.reduce((n, j) => n + j.chars, 0) + basmalaRows.reduce((n, r) => n + r.chars, 0);
+  const excluded: VoiceGenerationPlan["excluded"] = [
+    ...all.filter((x) => x.template === "verse-card").map((x) => ({ id: x.id, reason: "verse" as const })),
+    ...basmala.map((id) => ({ id, reason: "basmala" as const })),
+    ...[...quran].map((id) => ({ id, reason: "quran" as const })),
+  ].sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+  const { createHash } = await import("node:crypto");
+  const fingerprint = createHash("sha256").update(JSON.stringify({
+    whole: whole.map((j) => [j.id, j.chars]), basmala: basmalaRows.map((r) => [r.id, r.chars, r.spoken]),
+  })).digest("hex").slice(0, 16);
+  return { sentences, scenes, chars, credits: Math.ceil(chars * config.voice.creditsPerChar), excluded, fingerprint };
+};
+
+/** The owner's confirmation no longer matches what would be paid for (the plan changed since he read it). */
+export const VOICE_PLAN_CHANGED = "تغيّر ما سيُولَّد منذ عرضه عليك؛ لم يُصرف شيء. راجع العدد والتكلفة الجديدين ثم اضغط «ولّد الصوت الآن» من جديد.";
 
 export type PrepareProgress = {
   phase: "voice" | "render" | "done";
@@ -152,6 +213,11 @@ export const prepareAllScenes = async (episode: string, opts: {
    * key is configured): only scenes whose takes already exist are drafted; the others are said as waiting for voice.
    */
   renderOnly?: boolean;
+  /**
+   * The scenes the owner confirmed in «ولّد الصوت الآن» (voiceGenerationPlan().scenes): the paid step voices these and
+   * nothing else, even if another scene came to need voice meanwhile.
+   */
+  voiceScenes?: string[];
 }): Promise<PrepareProgress> => {
   assertSceneOwner();
   await requireSceneProductionReady(episode);
@@ -161,7 +227,8 @@ export const prepareAllScenes = async (episode: string, opts: {
   // A scene whose production waits for a fix is not voiced either (its voice gate would refuse the whole batch).
   const waitingFix = new Set((await inspectSceneProduction(episode)).scenes
     .filter((x) => ((x as { blocked?: string[] }).blocked ?? []).length).map((x) => x.id));
-  const needed = opts.renderOnly ? [] : (await scenesNeedingVoice(episode)).filter((id) => !waitingFix.has(id));
+  const confirmed = opts.voiceScenes ? new Set(opts.voiceScenes) : null;
+  const needed = opts.renderOnly ? [] : (await scenesNeedingVoice(episode)).filter((id) => !waitingFix.has(id) && (!confirmed || confirmed.has(id)));
   // renderOnly («أنتج كل المشاهد الجاهزة»، «أعد إنتاج المشاهد المتأثرة»): no voice client at all, so nothing paid is called.
   const voiceClient = opts.renderOnly ? null : opts.voiceClient;
   const p: PrepareProgress = {
@@ -203,7 +270,7 @@ export const prepareAllScenes = async (episode: string, opts: {
   // The basmala scenes (owner decision 10 Nov): sentence by sentence, never the basmala itself.
   if (!opts.renderOnly) try {
     const { prepareBasmalaScenes } = await import("../voice/sentenceVoice");
-    const b = await prepareBasmalaScenes(episode, { client: voiceClient, shouldStop: opts.shouldStop });
+    const b = await prepareBasmalaScenes(episode, { client: voiceClient, shouldStop: opts.shouldStop, only: confirmed ?? undefined });
     p.voice.generated += b.generated;
     if (b.errors.length && p.voice.status !== "error") {
       p.voice.status = "error";

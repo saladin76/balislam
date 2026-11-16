@@ -177,28 +177,46 @@ export const startRenderJob = (root: string, ch: string, b: { episode: string; o
  * ومفتاح «مشغول» لحلقتها فلا تُطلق مرتين. المنتهية تبقى في السجل ولا تُعاد.
  */
 let recovering: Promise<unknown> | null = null;
+/**
+ * Owner decision (15–16 Nov): a job that can spend voice credit never resumes on its own after a restart. «توليد
+ * المؤثرات الناقصة» (`bal sfx`) and any run told to generate voice are left stopped, with a card that says so; the
+ * owner presses the button again if he wants it. Free work (renders, packaging, the Master from existing voice) resumes.
+ */
+export const paidJobDef = (def: Pick<TaskDef, "args" | "meta">) => {
+  const meta = def.meta as { type?: string; job?: { kind?: string } } | undefined;
+  return meta?.job?.kind === "sfx" || (def.args ?? []).includes("--generate-voice");
+};
+export const PAID_JOB_NOT_RESUMED = "أوقفتها إعادة تشغيل الاستوديو قبل أن تكتمل، ولا يُستأنف عمل يصرف رصيدًا وحده. اضغط الزر من جديد إن أردت إكماله؛ ما اكتمل قبلها محفوظ.";
+/** One job of the queue ledger after a restart: re-attached (free work) or left stopped with its card (paid work). */
+export const attachRecovered = (def: TaskDef): TaskSpec | null => {
+  const meta = def.meta as { type?: string; job?: Record<string, unknown> } | undefined;
+  if (meta?.type === "long" && meta.job && paidJobDef(def)) {
+    const job = meta.job as Omit<LongJob, "id" | "status" | "pct" | "log" | "startedAt">;
+    longJobs.set(def.id, { ...job, id: def.id, status: "error", pct: 0, log: [PAID_JOB_NOT_RESUMED], startedAt: Date.now(),
+      error: PAID_JOB_NOT_RESUMED, recovered: true });
+    return null;
+  }
+  if (meta?.type === "long" && meta.job) {
+    const job = meta.job as Omit<LongJob, "id" | "status" | "pct" | "log" | "startedAt">;
+    const j: LongJob = { ...job, id: def.id, status: "running", pct: 1, log: ["استُعيدت بعد إعادة تشغيل الاستوديو"], startedAt: Date.now(), queued: true, recovered: true };
+    const key = `${job.channel}/${job.episode ?? job.kind}`;
+    busy.add(key);
+    longJobs.set(j.id, j);
+    return attach(def, j, key, longLine(j), 300);
+  }
+  if (meta?.type === "render" && meta.job) {
+    const m = meta.job as { channel: string; episode: string; orientation: string; chapter?: number };
+    const job: RenderJob = { id: def.id, ...m, status: "running", pct: 0, log: ["استُعيدت بعد إعادة تشغيل الاستوديو"], queued: true, recovered: true };
+    const key = `${m.channel}/${m.episode}`;
+    busy.add(key);
+    renderJobs.set(job.id, job);
+    return attach(def, job, key, renderLine(job), 50);
+  }
+  return null;
+};
 export const recoverStudioQueue = () =>
   (recovering ??= studioPool
-    .recover((def) => {
-      const meta = def.meta as { type?: string; job?: Record<string, unknown> } | undefined;
-      if (meta?.type === "long" && meta.job) {
-        const job = meta.job as Omit<LongJob, "id" | "status" | "pct" | "log" | "startedAt">;
-        const j: LongJob = { ...job, id: def.id, status: "running", pct: 1, log: ["استُعيدت بعد إعادة تشغيل الاستوديو"], startedAt: Date.now(), queued: true, recovered: true };
-        const key = `${job.channel}/${job.episode ?? job.kind}`;
-        busy.add(key);
-        longJobs.set(j.id, j);
-        return attach(def, j, key, longLine(j), 300);
-      }
-      if (meta?.type === "render" && meta.job) {
-        const m = meta.job as { channel: string; episode: string; orientation: string; chapter?: number };
-        const job: RenderJob = { id: def.id, ...m, status: "running", pct: 0, log: ["استُعيدت بعد إعادة تشغيل الاستوديو"], queued: true, recovered: true };
-        const key = `${m.channel}/${m.episode}`;
-        busy.add(key);
-        renderJobs.set(job.id, job);
-        return attach(def, job, key, renderLine(job), 50);
-      }
-      return null;
-    })
+    .recover(attachRecovered)
     .then((r) => {
       if (r.requeued.length) console.log(`استُعيدت ${r.requeued.length} مهمة من طابور الرندر${r.killedOrphans.length ? `، وأُوقفت ${r.killedOrphans.length} عملية يتيمة` : ""}.`);
       return r;

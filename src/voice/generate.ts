@@ -200,7 +200,7 @@ const partsJobsFor = async (ctx: import("./dafatirParts").PartsContext, voiceKey
   });
 };
 
-export type VoicePlanReport = { total: number; toGenerate: { id: string; chars: number }[]; cached: string[]; chars: number; credits: number; missingTones: string[]; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary;
+export type VoicePlanReport = { total: number; /** `scene`: the scene the clip belongs to (a dafatir part's scene; a scene's own id otherwise) */ toGenerate: { id: string; chars: number; scene: string }[]; cached: string[]; chars: number; credits: number; missingTones: string[]; /** مدقق التشكيل للمشاهد المطلوبة */ tashkeel: TashkeelReport; /** سجل التوثيق */ review: ReviewSummary;
   /** مشاهد نصها فيه قرآن فلا تُرسل إلى الصوت المستنسخ (quranGuard.ts) */ quranRefused?: string[];
   /** مقاطع صالحة مولَّدة بإعدادات إصدار نبرات سابق (لا تُعاد إلا بـ upgradeTone)، ومشاهدها */
   olderTone: { ids: string[]; scenes: string[]; chars: number } };
@@ -331,7 +331,7 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
   const chars = todo.reduce((n, j) => n + j.spoken.length, 0);
   const report: VoicePlanReport = {
     total: jobs.length,
-    toGenerate: todo.map((j) => ({ id: j.id, chars: j.spoken.length })),
+    toGenerate: todo.map((j) => ({ id: j.id, chars: j.spoken.length, scene: sceneOf(j) })),
     cached: jobs.filter(isCached).map((j) => j.id),
     olderTone: { ids: older.map((j) => j.id), scenes: [...new Set(older.map(sceneOf))], chars: older.reduce((n, j) => n + j.spoken.length, 0) },
     chars,

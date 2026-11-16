@@ -112,8 +112,9 @@ describe("«أنتج كل المشاهد الجاهزة»: free renders only", (
     expect(prep).toContain("const needed = opts.renderOnly ? [] :");
     expect(prep).toContain("if (!opts.renderOnly) try {");
     const api = panelSource("app/server/api.ts");
-    expect(api).toContain("const voiceClient = opts.renderOnly ? null : elevenLabsFromEnv();");
-    expect(api).toContain("renderOnly: pb?.renderOnly === true");
+    // 15–16 Nov: every start is free unless it carries the scenes the owner confirmed in «ولّد الصوت الآن».
+    expect(api).toContain("const voiceClient = paid ? channelMod.runWithChannel(ch, () => elevenLabsFromEnv()) : null;");
+    expect(api).toContain("renderOnly: !paid");
     expect(panelSource("app/src/workspace/PrepareAll.tsx")).toContain("أنتج كل المشاهد الجاهزة");
   });
 });
