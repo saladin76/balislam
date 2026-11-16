@@ -261,6 +261,8 @@ const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   ]);
   // يبدأ المشهد من حيث انتهى الدرج: ما خُصّ به آدم من علم، ثم ينفتح على ما نتعلمه نحن
   const recap = 1 - prog(t, learn - 0.2, learn + 0.4);
+  // D143: «ما علمه لآدم» — خط ذهبي تحت «علم خص به آدم» لحظة «علمه» (كانت البطاقة ساكنة طوال الجملة)
+  const taught = prog(t, at(tl, "علمه") - 0.05, at(tl, "علمه") + 0.8);
   const R = (
     <g>
       {p.head ? <ChapterHead label={p.head} /> : null}
@@ -270,6 +272,7 @@ const Knowledge: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         <SText x={1365} y={450} size={64} color={C.ink}>
           علم خص به آدم
         </SText>
+        <Ink d="M1580 478 H1150" w={4} p={taught} c={C.gold} />
         <QuranSeal x={1635} y={306} s={0.7} />
       </g>
       <WriteIn id="kw-i" x={1365} y={470} size={120} p={ilm} label="العلم" />
@@ -360,6 +363,8 @@ const Honor: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       <Word x={1365} y={230} size={46} p={adam} font="tajawal" weight={500} color={C.inkSoft}>
         آدم عليه السلام
       </Word>
+      {/* D143: خط ذهبي تحت اسمه عند «عليه السلام» بعد سكون ذكر الله، قبل الأمر بالسجود */}
+      <Ink d="M1500 250 H1230" w={3} p={prog(t, Math.max(at(tl, "السلام"), end(tl, "الله") + 0.3), Math.max(at(tl, "السلام"), end(tl, "الله") + 0.3) + 0.8)} c={C.gold} />
       <WriteIn id="hn-s" x={1365} y={340} size={100} p={sujud} label="السجود" />
       <Ink d="M1500 370 H1230" w={3} p={sujud} c={C.gold} />
       {col(1530, "تكريم", takrim, true, check)}
@@ -751,6 +756,9 @@ const Warning: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const run = prog(t, at(tl, "عداوة") - 0.05, at(tl, "قديمة") + 0.3);
   const old = pop(t, at(tl, "قديمة"));
   const seal = pop(t, at(tl, "القرآن"));
+  // D143 (طلب المالك «لا جملة بلا رسوم وحركة»): «هذه الأحداث التي أخبرنا بها» — أحداث القصة علامات على الخط، تتتابع
+  const evA = at(tl, "الأحداث") - 0.05;
+  const events = [0, 1, 2, 3].map((i) => pop(t, evA + i * 0.35, 0.4));
   const cam = camPath(t, NEUTRAL, [
     // «ومنذ هذه الأحداث… نعرف»: من الصفحتين إلى بداية الخط وهو يُرسم
     { a: 0.2, b: at(tl, "عداوة") - 0.1, cx: 1380, cy: 560, s: 1.1 },
@@ -760,6 +768,11 @@ const Warning: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     <g>
       <path d="M1740 600 C1400 592 1200 608 960 600 C700 592 450 608 200 600" fill="none" stroke={C.ink} strokeWidth={4} pathLength={1} strokeDasharray="1" strokeDashoffset={1 - line} />
       <path d="M1740 640 C1400 632 1200 648 960 640 C700 632 450 648 260 640" fill="none" stroke={EMBER} strokeWidth={6} pathLength={1} strokeDasharray="1" strokeDashoffset={1 - run} strokeLinecap="round" />
+      {[1640, 1520, 1400, 1280].map((x, i) => (
+        <g key={x} opacity={events[i]} transform={`translate(${x} 600) scale(${0.6 + 0.4 * events[i]!})`}>
+          <path d="M0 -22 L12 0 L0 22 L-12 0 Z" fill={C.page} stroke={C.ink} strokeWidth={4} />
+        </g>
+      ))}
     </g>
   );
   return (

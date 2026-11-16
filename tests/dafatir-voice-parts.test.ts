@@ -268,7 +268,8 @@ describe("دفاتر الزمن: نسخة المحتوى V8 (v1.4) محفوظة 
 describe("دفاتر الزمن: نسخة المحتوى V9 الحالية (v1.5) صالحة للتوليد", () => {
   it("49 جزءًا لـ 84 مقطعًا في 48 مشهدًا منطوقًا (V9.2، الأمر 031)، ولا آية ولا بطاقة فصل", () => {
     const map9 = JSON.parse(readFileSync(path.join(EP, "tone-map.json"), "utf8")) as ToneMap;
-    const plan9 = JSON.parse(readFileSync(path.join(EP, "plan.json"), "utf8")) as Plan;
+    // D143: الخطة الحية يحرّرها المالك؛ الخريطة v1.9 بُنيت على V9.2 المحفوظة
+    const plan9 = JSON.parse(readFileSync(path.join(EP, "versions/v9.2/plan.json"), "utf8")) as Plan;
     // التشكيل الذي بُنيت عليه الخريطة (V9.2) محفوظ باسمه: المالك يحرّر tashkeel.md الحي من الاستوديو (D132)
     const v = validatePartsContext(map9, plan9, readFileSync(path.join(EP, "versions/v9.2/tashkeel.md"), "utf8"));
     expect(v).toHaveLength(49);
