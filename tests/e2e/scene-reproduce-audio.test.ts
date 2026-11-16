@@ -118,9 +118,13 @@ for (const channel of selectedChannels()) {
       const cutAfter = s.candidates.scenes[id] as string;
       expect(cutAfter, "a new cut").not.toBe(cutBefore);
       expect(await sha256File(videoFile)).toBe(cutAfter);
-      // The fake take of the longer pronunciation is ~0.84 s longer: the cut carries it.
+      // The fake take of the longer pronunciation is ~0.84 s longer: the scene's sound grew (less than that: it is now
+      // composed from its sentences and their pauses, not the old one-file take), and the cut is longer and holds it all.
+      const clipAfter = (await voiceIndex())[id];
+      expect(clipAfter.duration - clipBefore.duration, `sound ${clipBefore.duration} → ${clipAfter.duration}`).toBeGreaterThan(0.1);
       const durAfter = Number(probe(videoFile).format.duration);
-      expect(durAfter - durBefore, `video ${durBefore} → ${durAfter}`).toBeGreaterThan(0.5);
+      expect(durAfter, `video ${durBefore} → ${durAfter}`).toBeGreaterThan(durBefore + 0.1);
+      expect(durAfter + 0.05, `video ${durAfter} holds the sound ${clipAfter.duration}`).toBeGreaterThanOrEqual(clipAfter.duration);
       expect(s.scenes.find((x: any) => x.id === id).newerTake ?? false, "nothing newer than the video now").toBe(false);
       // The player URL carries the cut (app/src/api.ts scenePreviewUrl), so a new cut under the same name is a new URL;
       // the server serves it whatever the query, with no cache.
