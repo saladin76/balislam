@@ -8,6 +8,9 @@ import { T } from "../../i18n/context";
 import { useChannel } from "../../channel/context";
 import { VERSE_PLACEHOLDER } from "../../plan/quranText";
 import { enter, fade, useSceneFrame } from "./motion";
+import { PagedVerse, usePages } from "./PagedVerse";
+import { pageLetterBudget } from "../../quran/versePages";
+import config from "../../../config.json";
 import type { VerseCardProps } from "./types";
 
 /** نجمة ثمانية صغيرة للزخرفة (مربعان متراكبان). */
@@ -64,16 +67,18 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
   const baseVerse = useSize("verse", orientation);
   const refSize = useSize("reference", orientation);
   const portrait = orientation === "portrait";
-  const letters = text.replace(/[ً-ٰٟۖ-ۭ\s]/g, "").length;
   const room = portrait ? 80 : 90;
+  // الآية الطويلة صفحات بخط مقروء (لا يصغر تحت 0.6)؛ القصيرة صفحة واحدة كما كانت
+  const { pages, letters } = usePages(text, pageLetterBudget(room));
   const verseFit = letters > room ? Math.max(0.42, Math.sqrt(room / letters)) : 1;
   const verseSize = Math.round(baseVerse * verseFit);
 
   const synchronized = Boolean(props.recitationDuration && props.recitationDuration > 0);
+  const paged = pages.length > 1;
   const page = synchronized ? 1 : enter(frame, 0, 26, 100);
   // نص لم يُجلب بعد: سطور فارغة في مكان الآية، ولا يظهر نص مؤقت ولا اسم مصدر مكان كلام الله
   const pending = !text.trim() || text === VERSE_PLACEHOLDER;
-  const chunks = reveal ? verseChunks(text) : [text];
+  const chunks = reveal && !paged ? verseChunks(text) : [text];
   // الكشف يبدأ بعد انفتاح الصفحة وينتهي قبل آخر التلاوة بقليل، فتبقى الآية كاملة لحظة الختام
   const start = synchronized ? 0 : 18;
   const end = Math.max(start + 1, Math.round(durationInFrames * 0.78));
@@ -109,6 +114,14 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
               <div style={{ fontSize: Math.round(verseSize * 0.5), fontWeight: 700, color: "#A8322A" }}>مشهد غير مكتمل: لم يُجلب نص الآية</div>
               <div style={{ fontSize: Math.round(verseSize * 0.34), color: HZ.ink, opacity: 0.8 }}>اجلب نصوص الآيات وتلاواتها من الاستوديو، ثم أعد المعاينة</div>
             </div>
+          ) : paged ? (
+            <PagedVerse pages={pages} frame={frame} start={start}
+              span={synchronized ? props.recitationDuration! * config.video.fps : end - start}
+              wrap={(page, i, n) => (
+                <div style={{ direction: "rtl", fontFamily: fontFamilies.scripture, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance", opacity: i === 0 ? verseTextOpacity(frame, 10, 20, synchronized) : 1 }}>
+                  {i === 0 ? <span style={{ color: HZ.sand }}>﴿ </span> : null}{page}{i === n - 1 ? <span style={{ color: HZ.sand }}> ﴾</span> : null}
+                </div>
+              )} />
           ) : (
           <div style={{ direction: "rtl", fontFamily: fontFamilies.scripture, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance" }}>
             <span style={{ color: HZ.sand, opacity: verseTextOpacity(frame, 10, 14, synchronized) }}>﴿</span>{" "}
@@ -160,8 +173,8 @@ const VerseCardClassic: React.FC<VerseCardProps> = (props) => {
   const line = t.character.style === "line";
   // الآيات الطويلة (مثل آية الكرسي) يصغر خطها حتى تبقى البطاقة داخل الإطار؛ القصيرة كما هي
   // نعدّ الحروف دون علامات التشكيل والوقف (الرسم العثماني كثير العلامات)
-  const letters = text.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\s]/g, "").length;
   const room = (portrait ? 80 : 90) * (meaning ? 0.7 : 1);
+  const { pages, letters } = usePages(text, pageLetterBudget(room));
   const verseFit = letters > room ? Math.max(0.42, Math.sqrt(room / letters)) : 1;
   const verseSize = Math.round(baseVerse * verseFit);
 
@@ -223,7 +236,13 @@ const VerseCardClassic: React.FC<VerseCardProps> = (props) => {
               textWrap: "balance",
             }}
           >
-            <span style={{ color: line ? c.primary : c.primary }}>﴿</span> {text} <span style={{ color: c.primary }}>﴾</span>
+            <PagedVerse pages={pages} frame={frame} start={synchronized ? 0 : 14}
+              span={synchronized ? props.recitationDuration! * config.video.fps : Math.max(1, durationInFrames * 0.85 - 14)}
+              wrap={(page, i, n) => (
+                <span>
+                  {i === 0 ? <span style={{ color: c.primary }}>﴿</span> : null}{i === 0 ? " " : null}{page}{i === n - 1 ? " " : null}{i === n - 1 ? <span style={{ color: c.primary }}>﴾</span> : null}
+                </span>
+              )} />
           </div>
           {meaning ? (
             <div style={{ fontFamily: fontFamilies.body, fontSize: meaningSize, lineHeight: 1.5, textAlign: "center", color: c.ink, opacity: meaningIn * 0.85, maxWidth: portrait ? 820 : 1180, marginTop: portrait ? -18 : -14, textWrap: "balance" }}>
@@ -260,6 +279,9 @@ const arabicDigits = (s: string) => s.replace(/[0-9]/g, (d) => "٠١٢٣٤٥٦٧
 export const inkVerseReference = (reference: string): string =>
   reference.replace(/\s*·\s*/, /[–-]/.test(reference) ? "، الآيتان " : "، الآية ").replace(/\s*·\s*/g, "، ");
 
+/** حروف سطري النص بالحجم الكامل في بطاقة الحبر الأفقية (D139) */
+export const INK_WIDE_ROOM = 50;
+
 const VerseInk: React.FC<VerseCardProps> = (props) => {
   const { orientation, text, reference, reciter } = props;
   const frame = useSceneFrame();
@@ -269,9 +291,10 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
   const t = useTheme("paper");
   const c = t.colors;
   const portrait = orientation === "portrait";
-  const letters = text.replace(/[\u064B-\u065F\u0670\u06D6-\u06ED\s]/g, "").length;
   const room = portrait ? 80 : 95;
+  const { pages, letters } = usePages(text, pageLetterBudget(room));
   const fit = letters > room ? Math.max(0.45, Math.sqrt(room / letters)) : 1;
+  const wide = usePages(text, pageLetterBudget(INK_WIDE_ROOM));
   const size = Math.round(baseVerse * fit * (portrait ? 1 : 1.08));
   const inP = props.recitationDuration && props.recitationDuration > 0 ? 1 : fade(frame, 0, 14);
   const pending = !text.trim() || text === VERSE_PLACEHOLDER;
@@ -282,6 +305,8 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
     // بموضع آخر لقطة في التمهيد وخطه (INK_VERSE)، فلا تتلاشى ولا تتحرك؛ ويُضاف تحتها رقم الآية ونصها فقط.
     const V = INK_VERSE;
     const parts = inkVerseParts(reference);
+    // مساحة النص تحت الرأس (INK_VERSE.textTop–textBottom) تتسع لنحو ٥٠ حرفًا بالحجم الكامل: ما زاد يصغر حتى 0.6 ثم صفحات
+    const wSize = Math.round(baseVerse * (wide.letters > INK_WIDE_ROOM ? Math.sqrt(INK_WIDE_ROOM / wide.letters) : 1) * 1.08);
     const z = { ink: c.ink, paper: c.bg, hl: c.highlight, alert: c.secondary, faint: c.inkSoft };
     return (
       <SceneShell {...props} exitFrames={props.recitationDuration ? 0 : undefined} captions={false} motif={false} background={c.bg} durationInFrames={durationInFrames}>
@@ -301,7 +326,11 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
                 <div style={{ fontWeight: 400, fontSize: Math.round(refSize * 0.9), color: c.inkSoft }}>البطاقة غير مكتملة ولا تُعتمد — اجلب نصوص الآيات ثم أعد المعاينة</div>
               </div>
             ) : (
-              <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: 1400 }}>{text}</div>
+              <div style={{ fontFamily: fontFamilies.scripture, fontSize: wSize, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: 1400, width: wide.pages.length > 1 ? "100%" : undefined }}>
+                <PagedVerse pages={wide.pages} frame={frame} start={0}
+                  span={props.recitationDuration && props.recitationDuration > 0 ? props.recitationDuration * config.video.fps : durationInFrames * 0.85}
+                  wrap={(page) => page} />
+              </div>
             )}
             <div style={{ width: 2 * V.ruleHalf, height: V.ruleW, background: c.ink }} />
             {reciter ? (
@@ -326,7 +355,11 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
             <div style={{ fontWeight: 400, fontSize: Math.round(refSize * 0.9), color: c.inkSoft }}>البطاقة غير مكتملة ولا تُعتمد — اجلب نصوص الآيات ثم أعد المعاينة</div>
           </div>
         ) : (
-          <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: portrait ? 900 : 1400 }}>{text}</div>
+          <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: portrait ? 900 : 1400, width: pages.length > 1 ? "100%" : undefined }}>
+            <PagedVerse pages={pages} frame={frame} start={0}
+              span={props.recitationDuration && props.recitationDuration > 0 ? props.recitationDuration * config.video.fps : durationInFrames * 0.85}
+              wrap={(page) => page} />
+          </div>
         )}
         <div style={{ width: portrait ? 420 : 560, height: 3, background: c.ink }} />
         {reciter ? (
