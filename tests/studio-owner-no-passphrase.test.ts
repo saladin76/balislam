@@ -114,6 +114,12 @@ describe("no passphrase: the loopback, same-origin Studio request is the owner",
     expect((await decide(cmd, { host: `evil.example:${port}` })).status).toBe(403);
     // Policy edits (channel rules) follow the same single rule.
     expect((await call("PUT", "channel", { channel: {} }, { ...same(), [REMOTE]: "192.168.1.20" })).status).toBe(403);
+    // «جلسة عمل» (D141): لا تُشغَّل ولا تُوقف إلا من استوديو المالك على جهازه.
+    for (const action of ["start", "stop"]) {
+      expect((await call("POST", "notes/work-session", { action, hours: 2 }, { ...same(), [REMOTE]: "192.168.1.20" })).status, action).toBe(403);
+      expect((await call("POST", "notes/work-session", { action, hours: 2 }, { origin: "https://evil.example" })).status, action).toBe(403);
+    }
+    expect((await call("GET", "notes/work-session")).body).toMatchObject({ session: null, live: false });
     expect((await state()).script.approved).toBe(false);
   });
 
