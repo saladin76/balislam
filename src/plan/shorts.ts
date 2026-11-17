@@ -22,7 +22,8 @@ export type ShortSelection = { source: "plan" | "divisions" | "none"; segments: 
 const flatScenes = (plan: Pick<Plan, "chapters">): PlanScene[] =>
   plan.chapters.flatMap((c) => c.scenes).filter((s) => s.template !== "end-screen");
 
-export const shortSegments = (plan: Pick<Plan, "chapters" | "shorts">, max = 6): ShortSelection => {
+/** كل المقاطع بلا حد لعددها (D152، طلب المالك ١٦ نوفمبر: «غير محدود»)؛ القواعد على كل شورت وحده كما هي. */
+export const shortSegments = (plan: Pick<Plan, "chapters" | "shorts">): ShortSelection => {
   const issues: string[] = [];
   if (Array.isArray(plan.shorts)) {
     const all = flatScenes(plan);
@@ -33,13 +34,12 @@ export const shortSegments = (plan: Pick<Plan, "chapters" | "shorts">, max = 6):
       const b = at.get(x.to);
       if (a === undefined || b === undefined) return void issues.push(`الشورت ${k + 1}: المشهد «${a === undefined ? x.from : x.to}» غير موجود في الخطة.`);
       if (a > b) return void issues.push(`الشورت ${k + 1}: «${x.from}» بعد «${x.to}» في ترتيب الحلقة.`);
-      if (segments.length >= max) return;
       segments.push({ n: segments.length + 1, title: (x.title ?? "").trim(), sceneIds: all.slice(a, b + 1).map((s) => s.id) });
     });
     return { source: "plan", segments, issues };
   }
   if (plan.chapters.length >= 2) {
-    const segments = plan.chapters.slice(0, max).map((c, i) => ({
+    const segments = plan.chapters.map((c, i) => ({
       n: i + 1, title: c.title, chapter: c.number,
       sceneIds: c.scenes.filter((s) => s.template !== "end-screen").map((s) => s.id),
     }));
@@ -62,8 +62,22 @@ export const segmentPlan = <P extends Plan>(plan: P, seg: ShortSegment): { plan:
 
 /* ── اختيار المالك لمقاطع الشورتس من الاستوديو (D83): «النشر ← الشورتس والريلز ← مقاطع الشورتس» ── */
 
-/** أكثر عدد يُصنع (شورت يومي لأسبوع الحلقة؛ ما يصنعه `npx bal make` افتراضيًا) */
-export const SHORTS_MAX = 6;
+/*
+ * لا حد لعدد الشورتس في الحلقة (D152، طلب المالك ١٦ نوفمبر: «خلي عدد الشورتس او الريلز داخل الاستديو غير محدود»).
+ * كان هنا SHORTS_MAX = 6 (شورت يومي لأسبوع الحلقة). الأرقام في أسماء الملفات بلا أصفار (`-short-12.mp4`)
+ * وتُرتّب ترتيبًا عدديًا بـ shortFileNumber؛ والصناعة بالترتيب واحدًا بعد واحد في المهمة نفسها.
+ */
+
+/** رقم الشورت من اسم ملفه (`<id>-short-<n>.mp4` أو ترجمته)، أو null */
+export const shortFileNumber = (name: string): number | null => {
+  const m = name.match(/-short-(\d+)\.(?:mp4|[a-z]{2,3}\.srt)$/);
+  return m ? Number(m[1]) : null;
+};
+/** ملفات الشورتس (mp4) مرتبة بأرقامها: 2 قبل 10 */
+export const sortShortFiles = <T extends { name: string } | string>(files: readonly T[]): T[] =>
+  files
+    .filter((f) => /-short-\d+\.mp4$/.test(typeof f === "string" ? f : f.name))
+    .sort((a, b) => shortFileNumber(typeof a === "string" ? a : a.name)! - shortFileNumber(typeof b === "string" ? b : b.name)!);
 /** عنوان المقطع للنشر وحده: سطر واحد قصير */
 export const SHORT_TITLE_MAX = 100;
 
@@ -109,7 +123,7 @@ export type ShortsInputCheck = { shorts: PlanShort[]; errors: string[]; warnings
 
 /**
  * يفحص ما يرسله الاستوديو قبل كتابته في `plan.shorts`. لا يُصلح شيئًا ضمنيًا: أي خطأ يرفض الحفظ كله.
- * - قائمة (ولو فارغة) من {from, to, title?}، حتى SHORTS_MAX؛
+ * - قائمة (ولو فارغة) من {from, to, title?}، بلا حد لعددها (D152)؛
  * - المشهدان موجودان في الخطة وليسا شاشة النهاية، والبداية قبل النهاية أو هي (يعبر الأقسام بلا قيد)؛
  * - العنوان سطر واحد حتى SHORT_TITLE_MAX حرفًا وبلا أثر لأدوات الإنتاج (القاعدة الأولى: نص منشور)؛
  * - لا مقطعان متطابقان. والتداخل بين مقطعين تنبيه لا خطأ.
@@ -119,7 +133,6 @@ export const checkShortsInput = (plan: Pick<Plan, "chapters">, input: unknown, f
   const errors: string[] = [];
   const warnings: string[] = [];
   if (!Array.isArray(input)) return { shorts: [], errors: ["المقاطع يجب أن تكون قائمة."], warnings };
-  if (input.length > SHORTS_MAX) errors.push(`أكثر عدد للشورتس ${SHORTS_MAX}؛ احذف ${input.length - SHORTS_MAX}.`);
   const all = flatScenes(plan);
   const at = new Map(all.map((s, i) => [s.id, i]));
   const shorts: PlanShort[] = [];

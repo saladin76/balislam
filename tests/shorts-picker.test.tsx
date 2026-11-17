@@ -1,6 +1,6 @@
 /**
  * D83: صاحب القناة يحدد مقاطع الشورتس بنفسه من الاستوديو («٤ النشر ← الشورتس والريلز ← مقاطع الشورتس»).
- * - الفحص: من مشهد إلى مشهد ولو عبر الأقسام، حتى ستة، بلا شاشة النهاية ولا مقطع مقلوب أو مكرر، والعنوان المنشور بلا أثر أدوات.
+ * - الفحص: من مشهد إلى مشهد ولو عبر الأقسام، بلا حد لعددها (D152؛ tests/shorts-unlimited.test.tsx)، بلا شاشة النهاية ولا مقطع مقلوب أو مكرر، والعنوان المنشور بلا أثر أدوات.
  * - الحفظ يكتب plan.shorts وحدها (لا مشهد ولا ختم ولا updatedAt)، و«احذف الاختيار» يعيد السلوك السابق.
  * - الخادم: القراءة مفتوحة من الصفحة، والكتابة من موقع آخر 403 (studioRequestRefusal)، والخطأ 400 بأسماء المشاهد.
  * - الواجهة: الصفوف والمدة والنص، بلا زر مملوء، والاختيار مسموح قبل اعتماد النسخة الأساسية.
@@ -15,7 +15,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
-import { checkShortsInput, segmentPlan, shortRange, shortSegments, shortsScenes, suggestedShorts, SHORTS_MAX } from "../src/plan/shorts";
+import { checkShortsInput, segmentPlan, shortRange, shortSegments, shortsScenes, suggestedShorts } from "../src/plan/shorts";
 import { findTraces } from "../src/package/traces";
 import { ENGINE_FEATURES, channelEngineFeatures, engineEnabled } from "../src/plan/engine";
 import { ShortsPicker, describeShort } from "../app/src/tabs/ShortsPicker";
@@ -42,10 +42,12 @@ describe("فحص المقاطع (checkShortsInput)", () => {
     expect(pick.segments[0]!.sceneIds).toEqual(["c1-s2", "c2-s1"]);
     expect(segmentPlan(p, pick.segments[0]!).plan.chapters).toHaveLength(1);
   });
-  it("يرفض: ليس قائمة، أكثر من ستة، مشهد غير موجود أو شاشة النهاية، مقلوب، مكرر، عنوان بأثر أدوات أو بسطرين", () => {
+  it("يرفض: ليس قائمة، مشهد غير موجود أو شاشة النهاية، مقلوب، مكرر، عنوان بأثر أدوات أو بسطرين", () => {
     const p = plan();
     expect(checkShortsInput(p, "x").errors).toHaveLength(1);
-    expect(checkShortsInput(p, Array.from({ length: SHORTS_MAX + 1 }, () => ({ from: "c1-s1", to: "c1-s1" }))).errors.join(" ")).toMatch(/أكثر عدد للشورتس 6/);
+    // لا حد لعددها (D152): سبعة مقاطع مختلفة صالحة، والمكرر وحده مرفوض
+    const seven = [["c1-s1", "c1-s1"], ["c1-s2", "c1-s2"], ["c2-s1", "c2-s1"], ["c2-s2", "c2-s2"], ["c1-s1", "c1-s2"], ["c1-s2", "c2-s1"], ["c2-s1", "c2-s2"]];
+    expect(checkShortsInput(p, seven.map(([from, to]) => ({ from, to }))).errors).toEqual([]);
     expect(checkShortsInput(p, [{ from: "c9-s1", to: "c1-s1" }]).errors[0]).toMatch(/«c9-s1» غير موجود/);
     expect(checkShortsInput(p, [{ from: "c1-s1", to: "c2-end" }]).errors[0]).toMatch(/غير موجود/);
     expect(checkShortsInput(p, [{ from: "c2-s1", to: "c1-s1" }]).errors[0]).toMatch(/بعد مشهد النهاية/);
@@ -88,7 +90,7 @@ describe("سجل أدوات المحرك", () => {
 });
 
 describe("الواجهة (ShortsPicker)", () => {
-  const read = { saved: null, suggested: [{ from: "c1-s1", to: "c1-s2" }], divisions: 2, max: 6, titleMax: 100,
+  const read = { saved: null, suggested: [{ from: "c1-s1", to: "c1-s2" }], divisions: 2, titleMax: 100,
     scenes: shortsScenes(plan(), () => 30) };
   it("تعرض الصفوف ومدة كل مقطع ونصه، بلا زر مملوء، والاختيار مسموح قبل الاعتماد", () => {
     const html = renderToStaticMarkup(<ShortsPicker episodeId="986" approved={false} initial={read} />);
@@ -177,7 +179,7 @@ describe("الخادم: GET/PUT /api/episodes/<ep>/shorts", () => {
     expect(r.body.suggested).toHaveLength(2);
     expect(r.body.scenes.map((s: { n: number }) => s.n)).toEqual([1, 2, 3, 4]);
     expect(r.body.scenes.every((s: { seconds: number }) => s.seconds > 0)).toBe(true);
-    expect(r.body.max).toBe(6);
+    expect(r.body).not.toHaveProperty("max");
   });
   it("الكتابة من موقع آخر 403 ولا تمس الخطة؛ والخطأ 400 بأسماء المشاهد", async () => {
     const before = await readFile(path.join(epDir, "plan.json"), "utf8");

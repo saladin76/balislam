@@ -56,7 +56,7 @@ export const sourcesBlock = (plan: Plan, script: string, media: EpisodeMedia, ch
 };
 
 /** نص الوصف والعناوين لليوتيوب: الحلقة والشورتس، بالفصول والمصادر والإفصاح. */
-export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, shortsCount: number, channel: ChannelConfig = defaultChannel, real?: RealTimings): string => {
+export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, channel: ChannelConfig = defaultChannel, real?: RealTimings): string => {
   const parsed = parseScript(script);
   const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
   const starts = chapterTimeline(plan, media, channelInfo(channel), real).starts;
@@ -90,7 +90,7 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
 
   // مقاطع الشورتس من الخطة (plan.shorts) لا من عدد الأقسام (src/plan/shorts.ts)
   const byId = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s]));
-  const shorts = shortSegments(plan, shortsCount).segments.map((seg) => {
+  const shorts = shortSegments(plan).segments.map((seg) => {
     const line = seg.sceneIds.map((id) => byId.get(id)?.narration ?? "").find(Boolean) ?? "";
     const title = seg.title || line;
     return [
@@ -140,7 +140,7 @@ export const publishChecklist = (plan: Plan, hasVoice: boolean, channel: Channel
 لا يُنشر شيء لم تشاهده كاملًا بنفسك.
 
 ## قبل الرفع
-- [ ] شاهدت الحلقة كاملة والشورتس الستة إلى آخر ثانية
+- [ ] شاهدت الحلقة كاملة وكل شورت إلى آخر ثانية
 - [ ] كل آية وحديث وافق عليهما المراجع الشرعي
 - [ ] لا أخطاء نطق (إن وُجد خطأ: أضف الكلمة لقاموس النطق وأعد توليد المشهد فقط)
 ${hasVoice ? "" : "- [ ] ⚠️ الصوت غير مكتمل (مشاهد بلا صوت أو بصوت قديم): هذه نسخة معاينة لا تُنشر\n"}
@@ -154,6 +154,6 @@ ${hasVoice ? "" : "- [ ] ⚠️ الصوت غير مكتمل (مشاهد بلا 
 - [ ] التوقيت: ${channel.youtube.postingTime}
 
 ## الشورتس
-- [ ] شورت يوميًا لستة أيام، بنفس التوقيت
+- [ ] شورت يوميًا بنفس التوقيت حتى آخر شورت (أو كما في التقويم)
 - [ ] رابط الحلقة الكاملة في وصف كل شورت، وربط الشورت بالحلقة من خيار «الفيديو المرتبط»
 `;

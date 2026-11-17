@@ -3,13 +3,16 @@
  * للنشر وحده، ويضيف ويحذف ويرتّب، ويرى المدة التقريبية ونص المقطع قبل الحفظ. الحفظ يكتب `plan.shorts` وحدها
  * (لا يمس مشهدًا ولا اعتمادًا). الاختيار مسموح قبل اعتماد النسخة الأساسية؛ الصناعة نفسها تبقى بعده (القاعدة الرابعة).
  * مكانه: «٤ النشر ← الشورتس والريلز»، داخل الصف المطوي نفسه، بلا زر مملوء (الفعل الواحد للشاشة في لوحة القرار).
+ * بلا حد لعدد الشورتس (D152، طلب المالك ١٦ نوفمبر): القائمة مرقّمة، وكل صف يُرسم وحده (React.memo) فلا تعيد
+ * الكتابة في عنوان شورت رسم ثلاثين صفًا، و«الموضع» ينقل الشورت إلى أي رقم بضغطة بدل ↑↓ مرات كثيرة.
  */
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { notifyPlanServerFields } from "../planServerFields";
 import { api, type ShortsRead } from "../api";
 import type { PlanShort } from "../../../src/plan/types";
 import { shortRange, type ShortsScene } from "../../../src/plan/shorts";
 import { arNum, clockAr } from "../workspace/sceneNames";
+import { SHORTS, countAr } from "../../../src/i18n/count";
 import "./shorts.css";
 import { OwnerText } from "../ui/OwnerText";
 
@@ -31,6 +34,76 @@ const sceneLabel = (s: ShortsScene) => {
   const t = s.text.length > 46 ? `${s.text.slice(0, 46)}…` : s.text;
   return `${arNum(s.n)} — ${t}`;
 };
+
+/** «لا شورتس» / «شورت واحد» / «شورتان» / «٣ شورتس» / «١١ شورتًا» (العدد كما يُقرأ، بلا «من ٦») */
+export const shortsCountLabel = (n: number): string => countAr(n, SHORTS, "لا شورتس");
+
+/** ينقل الصف ذا المفتاح إلى الموضع `to` (0…) ويبقي البقية بترتيبها */
+export const moveShort = <T extends { key: number }>(rows: readonly T[], key: number, to: number): T[] => {
+  const from = rows.findIndex((r) => r.key === key);
+  if (from < 0 || to < 0 || to >= rows.length || to === from) return rows as T[];
+  const c = [...rows];
+  const [x] = c.splice(from, 1);
+  c.splice(to, 0, x!);
+  return c;
+};
+
+type RowProps = {
+  row: Row; i: number; count: number; d: ReturnType<typeof describeShort>; expanded: boolean; multiDivision: boolean;
+  options: React.ReactNode; titleMax: number;
+  onPatch: (key: number, p: Partial<PlanShort>) => void; onMoveTo: (key: number, to: number) => void;
+  onRemove: (key: number) => void; onToggle: (key: number) => void;
+};
+
+/** صف شورت واحد؛ لا يُعاد رسمه إلا إن تغيّر هو أو رقمه أو عدد الصفوف */
+const ShortRow = memo<RowProps>(({ row: r, i, count, d, expanded, multiDivision, options, titleMax, onPatch, onMoveTo, onRemove, onToggle }) => {
+  const label = arNum(i + 1);
+  return (
+    <li className={`shp-row${d.valid ? "" : " is-bad"}`} data-short={i + 1}>
+      <div className="shp-n" aria-hidden="true">{label}</div>
+      <div className="shp-body">
+        <div className="shp-pick">
+          <label>
+            <span className="s45-label">من</span>
+            <select value={r.from} onChange={(e) => onPatch(r.key, { from: e.target.value })} aria-label={`بداية الشورت ${label}`}>{options}</select>
+          </label>
+          <label>
+            <span className="s45-label">إلى</span>
+            <select value={r.to} onChange={(e) => onPatch(r.key, { to: e.target.value })} aria-label={`نهاية الشورت ${label}`}>{options}</select>
+          </label>
+          <label className="shp-title">
+            <span className="s45-label">العنوان</span>
+            <input type="text" value={r.title ?? ""} maxLength={titleMax} placeholder="اختياري — للنشر وحده، لا يظهر على الشاشة"
+              onChange={(e) => onPatch(r.key, { title: e.target.value })} aria-label={`عنوان الشورت ${label}`} />
+          </label>
+        </div>
+        <div className="shp-meta">
+          {d.valid ? (
+            <>
+              <span>≈ {clockAr(d.seconds)}</span>
+              <span>{arNum(d.picked.length)} {d.picked.length === 1 ? "مشهد" : "مشاهد"}</span>
+              {multiDivision && d.divisions.length > 1 ? <span>يعبر {arNum(d.divisions.length)} أقسام</span> : null}
+              {d.seconds > 180 ? <span className="shp-warn">أطول من ٣ دقائق</span> : d.seconds > 60 ? <span className="shp-warn">أطول من دقيقة</span> : null}
+            </>
+          ) : <span className="shp-warn">اختر بداية ونهاية صحيحتين</span>}
+          <button type="button" className="btn ghost small" aria-expanded={expanded} onClick={() => onToggle(r.key)}>{expanded ? "أخفِ النص" : "النص"}</button>
+        </div>
+        {expanded && d.valid ? <p className="shp-text" dir="auto">{d.text}</p> : null}
+      </div>
+      <div className="shp-tools">
+        <button type="button" className="btn ghost small" disabled={i === 0} onClick={() => onMoveTo(r.key, i - 1)} aria-label={`انقل الشورت ${label} للأعلى`}>↑</button>
+        <button type="button" className="btn ghost small" disabled={i === count - 1} onClick={() => onMoveTo(r.key, i + 1)} aria-label={`انقل الشورت ${label} للأسفل`}>↓</button>
+        {count > 2 ? (
+          <select className="shp-pos" value={i} onChange={(e) => onMoveTo(r.key, Number(e.target.value))} aria-label={`موضع الشورت ${label}`}>
+            {Array.from({ length: count }, (_, k) => <option key={k} value={k}>الموضع {arNum(k + 1)}</option>)}
+          </select>
+        ) : null}
+        <button type="button" className="btn ghost small" onClick={() => onRemove(r.key)} aria-label={`احذف الشورت ${label}`}>حذف</button>
+      </div>
+    </li>
+  );
+});
+ShortRow.displayName = "ShortRow";
 
 /** `initial`: قراءة جاهزة (للعرض الأول والاختبار)؛ وإلا تُقرأ من الخادم */
 export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; initial?: ShortsRead }> = ({ episodeId, approved, initial }) => {
@@ -55,14 +128,22 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
   }, [episodeId, adopt]);
   useEffect(() => { if (!initial) reload(); }, [reload, initial]);
 
-  const scenes = data?.scenes ?? [];
+  const scenes = useMemo(() => data?.scenes ?? [], [data]);
   // اقتراح لم يُحفظ يُحفظ ولو كما هو (فيصير اختيارًا صريحًا)؛ والمحفوظ لا يُحفظ إلا إن تغيّر
   const dirty = !data ? false : data.saved === null ? rows.length > 0 || data.suggested.length > 0 : !sameList(rows, data.saved);
   const unsavedSuggestion = Boolean(data && data.saved === null);
-  const max = data?.max ?? 6;
-  const summary = useMemo(() => rows.map((r) => describeShort(scenes, r)), [rows, scenes]);
+  // ملخص كل صف يُحسب مرة لكل صف تغيّر (المفتاح الصف نفسه)، فيبقى ثابتًا لصفوف لم تتغير ولا يُعاد رسمها
+  const summaryCache = useMemo(() => new WeakMap<Row, ReturnType<typeof describeShort>>(), [scenes]);
+  const summary = useMemo(() => rows.map((r) => {
+    let d = summaryCache.get(r);
+    if (!d) { d = describeShort(scenes, r); summaryCache.set(r, d); }
+    return d;
+  }), [rows, scenes, summaryCache]);
+  const total = summary.reduce((n, d) => n + (d.valid ? d.seconds : 0), 0);
+  // قائمة المشاهد تُبنى مرة وتُشارك بين كل الصفوف
+  const options = useMemo(() => scenes.map((s) => <option key={s.id} value={s.id}>{sceneLabel(s)}</option>), [scenes]);
 
-  const patch = (key: number, p: Partial<PlanShort>) => setRows((rs) => rs.map((r) => {
+  const patch = useCallback((key: number, p: Partial<PlanShort>) => setRows((rs) => rs.map((r) => {
     if (r.key !== key) return r;
     const next = { ...r, ...p };
     // البداية بعد النهاية: تتبعها النهاية (لا مقطع مقلوب)
@@ -71,9 +152,9 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
     if (p.from && a > b) next.to = next.from;
     if (p.to && b < a) next.from = next.to;
     return next;
-  }));
+  })), [scenes]);
   const add = () => {
-    if (!scenes.length || rows.length >= max) return;
+    if (!scenes.length) return;
     // يبدأ الجديد بعد آخر مقطع إن أمكن
     const last = rows.at(-1);
     const after = last ? scenes.findIndex((s) => s.id === last.to) + 1 : 0;
@@ -83,14 +164,9 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
     setOpen(seq);
     setSeq((n) => n + 1);
   };
-  const move = (i: number, d: -1 | 1) => setRows((rs) => {
-    const j = i + d;
-    if (j < 0 || j >= rs.length) return rs;
-    const c = [...rs];
-    [c[i], c[j]] = [c[j]!, c[i]!];
-    return c;
-  });
-  const remove = (key: number) => setRows((rs) => rs.filter((r) => r.key !== key));
+  const moveTo = useCallback((key: number, to: number) => setRows((rs) => moveShort(rs, key, to)), []);
+  const remove = useCallback((key: number) => setRows((rs) => rs.filter((r) => r.key !== key)), []);
+  const toggle = useCallback((key: number) => setOpen((o) => (o === key ? null : key)), []);
 
   const save = async () => {
     setErr(""); setSaving(true);
@@ -116,64 +192,23 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
     <section className="shp" aria-label="مقاطع الشورتس">
       <div className="shp-head">
         <h3>مقاطع الشورتس</h3>
-        <span className="s45-note">{arNum(rows.length)} من {arNum(max)}</span>
+        <span className="s45-note">{shortsCountLabel(rows.length)}{rows.length ? `، ≈ ${clockAr(total)}` : ""}</span>
       </div>
       <p className="s45-note">
         {unsavedSuggestion
           ? (data.suggested.length ? "مقترحة من الأقسام كما تُصنع اليوم (بلا عناوين). عدّلها أو احفظها كما هي." : "الحلقة نص متصل: أضف كل شورت من مشهد البداية إلى مشهد النهاية.")
           : "اختيارك محفوظ في خطة الحلقة."}
         {" "}{approved ? "تُصنع بزر «اصنع الشورتس والريلز» بعد الحفظ." : "الاختيار مسموح الآن، والصناعة بعد اعتماد النسخة الأساسية."}
+        {" "}أضف ما شئت من الشورتس؛ لا حد لعددها.
       </p>
 
       {rows.length ? (
         <ol className="shp-list">
-          {rows.map((r, i) => {
-            const d = summary[i]!;
-            const expanded = open === r.key;
-            return (
-              <li key={r.key} className={`shp-row${d.valid ? "" : " is-bad"}`}>
-                <div className="shp-n" aria-hidden="true">{arNum(i + 1)}</div>
-                <div className="shp-body">
-                  <div className="shp-pick">
-                    <label>
-                      <span className="s45-label">من</span>
-                      <select value={r.from} onChange={(e) => patch(r.key, { from: e.target.value })} aria-label={`بداية الشورت ${arNum(i + 1)}`}>
-                        {scenes.map((s) => <option key={s.id} value={s.id}>{sceneLabel(s)}</option>)}
-                      </select>
-                    </label>
-                    <label>
-                      <span className="s45-label">إلى</span>
-                      <select value={r.to} onChange={(e) => patch(r.key, { to: e.target.value })} aria-label={`نهاية الشورت ${arNum(i + 1)}`}>
-                        {scenes.map((s) => <option key={s.id} value={s.id}>{sceneLabel(s)}</option>)}
-                      </select>
-                    </label>
-                    <label className="shp-title">
-                      <span className="s45-label">العنوان</span>
-                      <input type="text" value={r.title ?? ""} maxLength={data.titleMax} placeholder="اختياري — للنشر وحده، لا يظهر على الشاشة"
-                        onChange={(e) => patch(r.key, { title: e.target.value })} aria-label={`عنوان الشورت ${arNum(i + 1)}`} />
-                    </label>
-                  </div>
-                  <div className="shp-meta">
-                    {d.valid ? (
-                      <>
-                        <span>≈ {clockAr(d.seconds)}</span>
-                        <span>{arNum(d.picked.length)} {d.picked.length === 1 ? "مشهد" : "مشاهد"}</span>
-                        {data.divisions >= 2 && d.divisions.length > 1 ? <span>يعبر {arNum(d.divisions.length)} أقسام</span> : null}
-                        {d.seconds > 180 ? <span className="shp-warn">أطول من ٣ دقائق</span> : d.seconds > 60 ? <span className="shp-warn">أطول من دقيقة</span> : null}
-                      </>
-                    ) : <span className="shp-warn">اختر بداية ونهاية صحيحتين</span>}
-                    <button type="button" className="btn ghost small" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : r.key)}>{expanded ? "أخفِ النص" : "النص"}</button>
-                  </div>
-                  {expanded && d.valid ? <p className="shp-text" dir="auto">{d.text}</p> : null}
-                </div>
-                <div className="shp-tools">
-                  <button type="button" className="btn ghost small" disabled={i === 0} onClick={() => move(i, -1)} aria-label={`انقل الشورت ${arNum(i + 1)} للأعلى`}>↑</button>
-                  <button type="button" className="btn ghost small" disabled={i === rows.length - 1} onClick={() => move(i, 1)} aria-label={`انقل الشورت ${arNum(i + 1)} للأسفل`}>↓</button>
-                  <button type="button" className="btn ghost small" onClick={() => remove(r.key)} aria-label={`احذف الشورت ${arNum(i + 1)}`}>حذف</button>
-                </div>
-              </li>
-            );
-          })}
+          {rows.map((r, i) => (
+            <ShortRow key={r.key} row={r} i={i} count={rows.length} d={summary[i]!} expanded={open === r.key}
+              multiDivision={data.divisions >= 2} options={options} titleMax={data.titleMax}
+              onPatch={patch} onMoveTo={moveTo} onRemove={remove} onToggle={toggle} />
+          ))}
         </ol>
       ) : null}
 
@@ -181,7 +216,7 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
       {notes.length ? <ul className="shp-notes">{notes.map((n) => <li key={n}>{n}</li>)}</ul> : null}
 
       <div className="s45-actions">
-        <button type="button" className="btn" disabled={saving || rows.length >= max || !scenes.length} onClick={add}>أضف شورتًا</button>
+        <button type="button" className="btn" disabled={saving || !scenes.length} onClick={add}>أضف شورتًا</button>
         <button type="button" className="btn" disabled={saving || !dirty || summary.some((d) => !d.valid)} onClick={() => void save()}>{saving ? "جارٍ الحفظ…" : "احفظ المقاطع"}</button>
         {data.saved !== null ? <button type="button" className="btn ghost" disabled={saving} onClick={() => void reset()}>احذف الاختيار</button> : null}
       </div>

@@ -47,6 +47,17 @@ export const busyMessage = "توجد مهمة جارية على هذه الحل�
 export const busyRefusal = (key: string) => (prepareRunning(key) ? PREPARE_RUNNING_MESSAGE : busyMessage);
 
 
+/**
+ * الشورت n من N (D152: بلا حد لعددها) يأخذ نصيبه من 80→98%. السطر القديم بلا «من N» كان يفترض ستة.
+ */
+const shortPct = (label: string, p: number): number | null => {
+  const m = label.match(/الشورت (\d+)(?: من (\d+))?/);
+  if (!m) return null;
+  const n = Number(m[1]);
+  const total = Math.max(n, Number(m[2] ?? 6));
+  return Math.min(98, 80 + ((n - 1 + p / 100) * 18) / total);
+};
+
 /** تقدير التقدم من سطور bal make: «٣/٥ …» ثم «الحلقة: 40%» … */
 export const progressFrom = (job: LongJob, line: string) => {
   const step = line.match(/^([٠-٩1-9])\/([٠-٩1-9])/);
@@ -58,18 +69,18 @@ export const progressFrom = (job: LongJob, line: string) => {
   if (pct && job.kind !== "sfx" && !/^\s*FRAMES /.test(line)) {
     const p = Number(pct[1]);
     if (/الحلقة/.test(line)) job.pct = Math.max(job.pct, 60 + p * 0.2);
-    const short = line.match(/الشورت (\d)/);
-    if (short) job.pct = Math.max(job.pct, 80 + (Number(short[1]) - 1) * 3.3 + p * 0.033);
+    const short = shortPct(line, p);
+    if (short !== null) job.pct = Math.max(job.pct, short);
   }
   if (/^PROGRESS (\d+)/.test(line)) job.pct = Number(line.match(/^PROGRESS (\d+)/)![1]);
   // M7: frame progress of a render inside make/package («FRAMES الحلقة 37»), so a long 4K render moves
   // smoothly from 60% instead of sitting there between the 20% log lines.
-  const frames = line.trim().match(/^FRAMES (\S+(?: \d)?) (\d+)$/);
+  const frames = line.trim().match(/^FRAMES (.+?) (\d+)$/);
   if (frames) {
     const p = Number(frames[2]);
     if (frames[1] === "الحلقة") job.pct = Math.max(job.pct, Math.min(98, 60 + p * (job.kind === "make" ? 0.38 : 0.2)));
-    const short = frames[1]!.match(/^الشورت (\d)$/);
-    if (short) job.pct = Math.max(job.pct, Math.min(98, 80 + (Number(short[1]) - 1) * 3.3 + p * 0.033));
+    const short = /^الشورت \d+(?: من \d+)?$/.test(frames[1]!) ? shortPct(frames[1]!, p) : null;
+    if (short !== null) job.pct = Math.max(job.pct, short);
   }
 };
 
