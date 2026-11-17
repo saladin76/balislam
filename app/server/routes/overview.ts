@@ -46,7 +46,7 @@ const buildOverview = async (episodesDir: string, load: RouteCtx["load"]) => {
         scenes: scenes.length,
         voice: { done: voiceOk, total: voiced.length },
         blocking: issues.filter((i: any) => i.level === "error").length,
-        // بلا حد لعدد الشورتس (D151): `-short-12.mp4` يُعد كما يُعد `-short-2.mp4`، و`planned` ما في الخطة من مقاطع
+        // بلا حد لعدد الشورتس (D152): `-short-12.mp4` يُعد كما يُعد `-short-2.mp4`، و`planned` ما في الخطة من مقاطع
         package: { video: Boolean(video), shorts: pkgFiles.filter((f) => /-short-\d+\.mp4$/.test(f)).length, planned: plan ? shortSegments(plan).segments.length : 0, thumbnails: pkgFiles.filter((f) => f.endsWith(".png")).length, updatedAt: video ? statSync(path.join(pkgDir, video)).mtimeMs : null },
         planUpdatedAt: plan?.updatedAt ? Date.parse(plan.updatedAt) : null,
         // One length everywhere (D52): the plan's own duration, measured once the voice exists.

@@ -284,7 +284,7 @@ export const OpsRoom: React.FC<{
 };
 
 /**
- * عدد شورتس حلقة (D151: بلا حد): ما في خطتها من مقاطع أو ما صُنع منها، أيهما أكثر. للتقويم وحده؛ لا يمنع شيئًا.
+ * عدد شورتس حلقة (D152: بلا حد): ما في خطتها من مقاطع أو ما صُنع منها، أيهما أكثر. للتقويم وحده؛ لا يمنع شيئًا.
  */
 export const episodeShortsCount = (e: Pick<Overview, "package">): number => Math.max(e.package.planned ?? 0, e.package.shorts);
 

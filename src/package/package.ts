@@ -94,7 +94,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
   await writeFile(path.join(dir, `${id}-episode.${lang}.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
   if (stage === "shorts") {
     // شورت قديم رقمه أكبر من عدد المقاطع المحفوظة الآن (حذف المالك مقاطع): يُحذف بترجمته، فلا يبقى بجوار Master
-    // ولا يُسلَّم إلى Drive (D151؛ الأرقام 1…N تُكتب من جديد تحت).
+    // ولا يُسلَّم إلى Drive (D152؛ الأرقام 1…N تُكتب من جديد تحت).
     for (const f of await readdir(dir)) {
       const k = shortFileNumber(f);
       if (k !== null && k > shorts.length) await unlink(path.join(dir, f));
@@ -169,7 +169,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
       await writeFile(renderInfoFile(dir), JSON.stringify(info, null, 2) + "\n");
       await writeFile(reportFile, `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     } else {
-      // بلا حد لعدد الشورتس (D151): تُصنع بالترتيب واحدًا بعد واحد في هذه المهمة.
+      // بلا حد لعدد الشورتس (D152): تُصنع بالترتيب واحدًا بعد واحد في هذه المهمة.
       for (const seg of shorts) {
         last = -1;
         const n = seg.n;

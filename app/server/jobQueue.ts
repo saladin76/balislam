@@ -48,7 +48,7 @@ export const busyRefusal = (key: string) => (prepareRunning(key) ? PREPARE_RUNNI
 
 
 /**
- * الشورت n من N (D151: بلا حد لعددها) يأخذ نصيبه من 80→98%. السطر القديم بلا «من N» كان يفترض ستة.
+ * الشورت n من N (D152: بلا حد لعددها) يأخذ نصيبه من 80→98%. السطر القديم بلا «من N» كان يفترض ستة.
  */
 const shortPct = (label: string, p: number): number | null => {
   const m = label.match(/الشورت (\d+)(?: من (\d+))?/);

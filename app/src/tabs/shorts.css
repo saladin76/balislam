@@ -18,7 +18,7 @@
 .shp-warn { color: var(--warn); font-weight: 600; }
 .shp-text { margin: 0; padding: var(--s2) var(--s3); border-radius: var(--r-sm); background: var(--quiet); color: var(--ink); font-size: 13px; line-height: 1.9; white-space: pre-line; }
 .shp-tools { display: flex; flex-direction: column; gap: var(--s1); }
-/* «الموضع»: ينقل الشورت إلى أي رقم (بلا حد لعددها، D151) */
+/* «الموضع»: ينقل الشورت إلى أي رقم (بلا حد لعددها، D152) */
 .shp-tools .shp-pos { height: 28px; max-width: 112px; padding: 0 6px; border: 1px solid var(--line-2); border-radius: var(--r); background: var(--panel); color: var(--ink); font: inherit; font-size: 12px; }
 .shp-notes { margin: 0; padding-inline-start: 18px; font-size: 12.5px; color: var(--warn); }
 @media (max-width: 640px) {

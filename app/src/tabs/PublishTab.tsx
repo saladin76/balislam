@@ -197,7 +197,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const yt = useMemo(() => parseYoutube(pkg?.youtube ?? ""), [pkg?.youtube]);
   const files = pkg?.files ?? [];
   const video = files.find((f) => f.name.endsWith("-episode.mp4"));
-  // بلا حد لعددها (D151): كل `-short-<n>.mp4` مرتبة بأرقامها (2 قبل 10)
+  // بلا حد لعددها (D152): كل `-short-<n>.mp4` مرتبة بأرقامها (2 قبل 10)
   const shorts = sortShortFiles(files);
   const thumbs = files.filter((f) => f.name.endsWith(".png"));
   const render = pkg?.render ?? null;
