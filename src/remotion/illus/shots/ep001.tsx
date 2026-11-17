@@ -182,7 +182,7 @@ const SCALE_SHOTS: Record<string, Def> = {
             <W1View frame={frame} show={1} orange={o} pill={P(frame, tZ, 14)} pillX={portrait ? 1000 : SX - 340} pillY={portrait ? 360 : 380} pillSize={portrait ? 44 : 60} speak={P(frame, tQ - 2, 8)} />
           </g>
         ),
-        spans: [thing("pill", (portrait ? 1000 : SX - 380) - 90, (portrait ? 1000 : SX - 380) + 90, frame >= tZ + 20)],
+        spans: [thing("pill", (portrait ? 1000 : SX - 340) - 90, (portrait ? 1000 : SX - 340) + 90, frame >= tZ + 20)],
       };
     },
   },
