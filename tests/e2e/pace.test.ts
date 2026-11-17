@@ -13,7 +13,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { browserPlanRevision } from "../../src/plan/revision";
 import { CASES, selectedChannels, type ChannelCase } from "./channels";
-import { ffmpeg, fixturesDir, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
+import { ffmpeg, fixturesDir, generateVoiceConfirmed, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
 
 const EP = "001";
 /**
@@ -96,7 +96,9 @@ for (const channel of selectedChannels()) {
       let s = await state("fresh");
       ok("approve preparation", await st.call("POST", `episodes/${EP}/approve-preparation`,
         { reviewed: true, scriptSha256: s.script.sha256, storyboardSha256: s.storyboard.sha256, note: "راجعته بنفسي" }));
-      const job = await waitFor("drafts", () => st.call("GET", `episodes/${EP}/scene-prepare`), (x) => x.body.job && x.body.job.status !== "running", 1_200_000, 1000);
+      await waitFor("free drafts", () => st.call("GET", `episodes/${EP}/scene-prepare`), (x) => x.body.job && x.body.job.status !== "running", 1_200_000, 1000);
+      // Owner decision (15–16 Nov): the voice is generated only by his confirmed «ولّد الصوت الآن».
+      const { job } = await generateVoiceConfirmed(st, EP);
       expect(job.body.job, JSON.stringify(job.body).slice(0, 1200)).toMatchObject({ status: "done", failed: [] });
 
       // The recitation first (بالإسلام), so its bytes are there to stay untouched.

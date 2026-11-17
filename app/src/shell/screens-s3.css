@@ -209,6 +209,7 @@
   /* one tidy status line: state, length, the preparing count, then «تحرير المشهد» at the end; each item on one line */
   .shell-v3 .s3-meta { width: 100%; margin: 0; flex-wrap: wrap; gap: 6px 14px; }
   .shell-v3 .s3-meta .prep { flex-wrap: nowrap; white-space: nowrap; }
+  .shell-v3 .s3-meta .prep:has(> .prep-voice-plan) { flex-wrap: wrap; white-space: normal; }
   .shell-v3 .s3-meta .s3-edit { margin-inline-start: auto; }
   .shell-v3 .s3-sub { flex: 1 1 auto; }
   .shell-v3 .s3-frame, .shell-v3 .s3-live { border-radius: var(--r-lg); }

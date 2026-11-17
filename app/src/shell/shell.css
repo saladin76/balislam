@@ -406,6 +406,11 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .prep-count { font-size: var(--t-12); font-weight: 500; color: var(--mute); font-variant-numeric: tabular-nums; }
 .prep-note { font-size: var(--t-12); color: var(--mute); max-width: 60ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .prep-note.is-err { color: var(--err); }
+/* D151: what «ولّد الصوت الآن» would pay for — always shown in full where the preparing line is (never a hidden
+   one-line note, never ellipsised): the count, the cost, the never-voiced scenes, then the press and its confirmation. */
+.prep-voice-plan { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 10px; flex-basis: 100%; min-width: 0;
+  font-size: var(--t-12); color: var(--ink); white-space: normal; }
+.prep-voice-plan .prep-voice-excluded { color: var(--mute); }
 .prep .btn { min-height: 28px; padding: 0 10px; font-size: var(--t-12); }
 
 /* ── Decision strip of steps ٣ and ٤ (SceneProductionPanel without a plan) ── */

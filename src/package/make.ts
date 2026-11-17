@@ -11,10 +11,16 @@ import { generateVoice } from "../voice/generate";
 import { packageEpisode } from "./package";
 import { planIssues } from "../plan/validate";
 
+/** The final file found voice that was never generated (owner decision 15–16 Nov: it does not pay for it). */
+export const missingVoiceMessage = (clips: number, chars: number) =>
+  `ينقص صوت ${clips.toLocaleString("ar-EG")} ${clips === 1 ? "مقطع" : "مقاطع"} (نحو ${chars.toLocaleString("ar-EG")} حرف). النسخة النهائية لا تولّد صوتًا وحدها: ولّده من «٢ المشاهد» («ولّد الصوت الآن») ثم أعد المحاولة. لم يُصرف شيء.`;
+
 export type MakeOptions = {
   episode: string;
   /** يكمل بلا صوت (نسخة معاينة لا تُنشر) */
   noVoice?: boolean;
+  /** `bal make --generate-voice` only (the owner's explicit CLI flag): generate missing voice here. Never from the Studio. */
+  generateVoice?: boolean;
   skipVideo?: boolean;
   onProgress?: (msg: string) => void;
 };
@@ -48,14 +54,22 @@ export const makeEpisode = async (opts: MakeOptions) => {
   for (const i of blocking) log(`   ⚠️ (${i.sceneId}): ${i.message}`);
 
   log("٤/٥ الصوت…");
-  const el = opts.noVoice ? null : elevenLabsFromEnv();
-  if (el) {
-    const r = await generateVoice(ep, { client: el, onProgress: (m) => log(`   ${m}`) });
-    log(`   ولّد ${r.toGenerate.length} مقطعًا (${r.chars} حرفًا ≈ ${r.credits} رصيد)، وأعاد استخدام ${r.cached.length}.`);
-  } else if (opts.noVoice) {
+  // Owner decision (15–16 Nov): the final file never pays for voice on its own. It is made from the voice the owner
+  // already generated with his own press («ولّد الصوت الآن», a scene's «ولّد/أعد توليد الصوت», «الجمل»); a missing clip
+  // is refused before anything is paid. Only the CLI's explicit `bal make --generate-voice` may generate here.
+  if (opts.noVoice) {
     log("   ⚠️ معاينة بلا توليد صوت (--no-voice): يُستخدم الصوت المحفوظ إن وُجد، ولا يُصرف أي رصيد. لا تُنشر.");
   } else {
-    throw new Error("مفتاح ElevenLabs أو الصوت غير مضاف. أضفهما من تبويب «الإعدادات» في الاستوديو، أو اختر «معاينة بلا صوت».");
+    const dry = await generateVoice(ep, { dryRun: true });
+    if (dry.toGenerate.length && !opts.generateVoice)
+      throw new Error(`${missingVoiceMessage(dry.toGenerate.length, dry.chars)}`);
+    const el = opts.generateVoice ? elevenLabsFromEnv() : null;
+    if (dry.toGenerate.length && !el)
+      throw new Error("مفتاح ElevenLabs أو الصوت غير مضاف. أضفهما من تبويب «الإعدادات» في الاستوديو، أو اختر «معاينة بلا صوت».");
+    // Nothing to generate: the run only links the scenes to their saved clips (no request, no key needed).
+    const r = await generateVoice(ep, { client: el, onProgress: (m) => log(`   ${m}`) });
+    log(r.toGenerate.length ? `   ولّد ${r.toGenerate.length} مقطعًا (${r.chars} حرفًا ≈ ${r.credits} رصيد)، وأعاد استخدام ${r.cached.length}.`
+      : `   الصوت كله محفوظ (${r.cached.length} مقطعًا)؛ لم يُولَّد شيء ولم يُصرف رصيد.`);
   }
 
   log("٥/٥ الرندر والتغليف…");

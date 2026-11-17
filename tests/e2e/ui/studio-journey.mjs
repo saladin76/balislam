@@ -142,8 +142,20 @@ try {
   const prepared = await until("preparation approved", async () => { const s = await state(); return s.script.approved && s.storyboard.approved ? s : null; }, 60_000);
   ok(Boolean(prepared), "١ «اعتمد التجهيز» from the page: script and storyboard approved");
   const total = prepared.scenes.length;
+  // D151 (owner decision 15–16 Nov): the approval starts only the free drafts; not one voice request until the owner's
+  // «ولّد الصوت الآن» and its confirmation, which say the count and the cost first.
+  await until("free drafts", async () => (await api("GET", `episodes/${EP}/scene-prepare`)).job?.status === "done" || null, 600_000, 500);
+  ok(voiceCalls.length === 0, "١ D151 «اعتمد التجهيز» sends no voice request (only the free drafts start)");
+  await go("episode");
+  await page.getByText(/جاهز لتوليد صوت .+ في .+ — نحو .+ من الرصيد/).first().waitFor({ timeout: 120_000 });
+  await click("ولّد الصوت الآن");
+  await page.getByText(/سيُصرف نحو .+ من رصيد الصوت/).first().waitFor({ timeout: 30_000 });
+  ok(voiceCalls.length === 0, "٢ D151 the first press only asks for confirmation, naming the cost");
+  await snap("2-voice-confirm");
+  await click("نعم، ولّد الصوت");
+  await until("voice generated", async () => voiceCalls.length > 0 || null, 120_000, 300);
   const drafts = await until("drafts", async () => { const s = await state(); return s.prepared.ready === s.prepared.total ? s : null; });
-  ok(drafts.prepared.ready === total, `the scene drafts prepared on their own (${drafts.prepared.ready}/${total})`);
+  ok(drafts.prepared.ready === total, `the scene drafts prepared after the confirmed voice (${drafts.prepared.ready}/${total})`);
 
   // ── ٢ المشاهد: «اعتمد المشهد» → «شاهدته بالصوت كاملًا» → «اعتمد المشهد», from the LAST scene back (D145: any order) ──
   await go("episode");
@@ -351,6 +363,10 @@ try {
       expectedRevision: await planRevision(p2) }, ch);
     const st2 = await api("GET", `episodes/${EP2}/scene-production`, undefined, ch);
     await api("POST", `episodes/${EP2}/approve-preparation`, { reviewed: true, scriptSha256: st2.script.sha256, storyboardSha256: st2.storyboard.sha256, note: "e2e dock parity" }, ch);
+    // D151: the voice only on the owner's confirmed «ولّد الصوت الآن» (fake provider), after the free drafts.
+    await until(`${ch} free drafts`, async () => (await api("GET", `episodes/${EP2}/scene-prepare`, undefined, ch)).job?.status === "done" || null, 600_000, 500);
+    const vp = (await api("GET", `episodes/${EP2}/scene-prepare`, undefined, ch)).voicePlan;
+    if (vp?.scenes?.length) await api("POST", `episodes/${EP2}/scene-prepare`, { voice: { confirm: true, fingerprint: vp.fingerprint } }, ch);
     await until(`${ch} drafts`, async () => { const s = await api("GET", `episodes/${EP2}/scene-production`, undefined, ch); return s.prepared.ready === s.prepared.total || null; });
     const cfg = JSON.parse(await readFile(path.join(repo, "channels", ch, "channel.json"), "utf8"));
     const planScenes = p2.chapters.flatMap((c) => c.scenes);

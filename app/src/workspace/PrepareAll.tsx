@@ -1,10 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
-import { api, type ScenePrepareRead } from "../api";
+import { api, type ScenePrepareRead, type VoiceGenerationPlan } from "../api";
 import { ownerMessage } from "../serverMessages";
 import { nameSceneIds, sceneName, sceneNames } from "./sceneNames";
 import { tones, toneIds } from "../../../src/voice/tones";
 import { OwnerText } from "../ui/OwnerText";
-import { DRAFTS, SCENES, countAr } from "../../../src/i18n/count";
+import { DRAFTS, LETTERS, SCENES, SENTENCES, countAr } from "../../../src/i18n/count";
 
 /**
  * M1: when the episode has no tone the voice cannot be made and preparing stops at once. The choice is
@@ -60,9 +60,50 @@ export const EpisodeTonePick: React.FC<{ onPick: (tone: string) => Promise<void>
 
 const ar = (n: number) => n.toLocaleString("ar-EG");
 
+/** «جاهز لتوليد صوت N جملة في M مشهد — نحو X حرف من الرصيد» (owner decision 15–16 Nov). */
+export const voicePlanLine = (p: Pick<VoiceGenerationPlan, "sentences" | "scenes" | "chars">) =>
+  `جاهز لتوليد صوت ${countAr(p.sentences, SENTENCES)} في ${countAr(p.scenes.length, SCENES)} — نحو ${countAr(p.chars, LETTERS)} من الرصيد`;
+const EXCLUDED_WHY = { verse: "آية: تلاوتك", basmala: "البسملة: تسجيلك، وجمل الراوي فيه تُحسب", quran: "نصه فيه آية: انقلها إلى مشهد آية" } as const;
+/** The scenes the cloned voice never receives, named («المشهد ٤ (آية: تلاوتك)»). */
+export const voicePlanExcluded = (p: Pick<VoiceGenerationPlan, "excluded">, order: string[]) =>
+  p.excluded.map((x) => `${sceneName(order, x.id)} (${EXCLUDED_WHY[x.reason]})`).join("، ");
+
 /**
- * Preparing the scenes (funnel v3): it starts ON ITS OWN right after «اعتمد التجهيز» (step ١) and generates
- * the missing voices, then pre-renders every remaining scene's AV draft in the background, in order. This is
+ * Owner decision (15–16 Nov): after «اعتمد التجهيز» nothing paid starts on its own. This panel says what the voice
+ * would cost and waits for his press: «ولّد الصوت الآن», then a confirmation naming the cost; only «نعم، ولّد الصوت»
+ * sends the request (bound to the plan he read by its fingerprint). «تراجع» sends nothing.
+ */
+export const VoicePlanPanel: React.FC<{
+  plan: VoiceGenerationPlan; order: string[]; voiceKey: boolean; busy: boolean;
+  onGenerate: (fingerprint: string) => void; onOpenSettings?: () => void;
+}> = ({ plan, order, voiceKey, busy, onGenerate, onOpenSettings }) => {
+  const [confirming, setConfirming] = useState(false);
+  useEffect(() => setConfirming(false), [plan.fingerprint]);
+  return (
+    <div className="prep-voice-plan" role="group" aria-label="توليد الصوت">
+      <span role="status">{voicePlanLine(plan)}.</span>
+      {plan.excluded.length ? <span className="prep-voice-excluded"> لا يُرسل إلى الصوت المستنسخ أبدًا: {voicePlanExcluded(plan, order)}.</span> : null}
+      {" "}
+      {!voiceKey ? (
+        <>لا يوجد مفتاح صوت.{onOpenSettings ? <> <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</>
+      ) : confirming ? (
+        <span role="alert">
+          سيُصرف نحو {countAr(plan.chars, LETTERS)} من رصيد الصوت. هل تولّده الآن؟{" "}
+          <button type="button" className="btn primary" disabled={busy} onClick={() => { setConfirming(false); onGenerate(plan.fingerprint); }}>نعم، ولّد الصوت</button>{" "}
+          <button type="button" className="btn ghost" onClick={() => setConfirming(false)}>تراجع</button>
+        </span>
+      ) : (
+        <button type="button" className="btn" disabled={busy} onClick={() => setConfirming(true)}
+          title="لا يُولَّد شيء قبل تأكيدك؛ والمسودات المجانية تُجهَّز دون انتظاره">ولّد الصوت الآن</button>
+      )}
+    </div>
+  );
+};
+
+/**
+ * Preparing the scenes (funnel v3): it starts ON ITS OWN right after «اعتمد التجهيز» (step ١) and pre-renders, free,
+ * every scene whose voice already exists. The missing voice is never generated on its own (owner decision 15–16 Nov):
+ * `VoicePlanPanel` shows its count and cost and waits for «ولّد الصوت الآن» + confirmation. This is
  * only a status line «جاهز ١٢ من ١١٤» with «أوقف» while it runs and «استأنف» when it stopped (a Studio restart,
  * «أوقف», or an error). A finished run with scenes still waiting (no voice yet) says why instead of offering a
  * button that would skip them again. «أنتج كل المشاهد الجاهزة» renders every scene whose voice exists, generating
@@ -111,7 +152,7 @@ export const PrepareAll: React.FC<{
     return () => clearInterval(id);
   }, [running, episodeId, channelId]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const start = async (opts: { renderOnly?: boolean } = {}) => {
+  const start = async (opts: { renderOnly?: boolean; voice?: { confirm: true; fingerprint: string } } = {}) => {
     setStarting(true);
     setError("");
     try {
@@ -120,6 +161,8 @@ export const PrepareAll: React.FC<{
       seen.current = r.job ? `${r.job.status}:${r.job.rendered.length}:${r.job.voice.generated}` : "";
     } catch (e) {
       setError((e as Error).message);
+      // VOICE_PLAN_CHANGED: nothing was paid; the new count and cost are read again for a fresh confirmation.
+      void load();
     } finally {
       setStarting(false);
     }
@@ -154,8 +197,8 @@ export const PrepareAll: React.FC<{
   const failedBefore = job && !running ? of("failed-before") : [];
   // M1/M3: a run that finished with a voice error or failed scenes offers «استأنف التجهيز» (it retries them);
   // so does a run that waited for a voice key once the key is there.
-  const finishedWithErrors = Boolean(job && job.status === "done" && (job.voice.status === "error" || job.failed.length > 0 || failedBefore.length > 0 ||
-    (waitingVoice.length > 0 && info?.voiceKey)));
+  // The voice itself is offered only by «ولّد الصوت الآن» below (owner decision 15–16 Nov), never by this button.
+  const finishedWithErrors = Boolean(job && job.status === "done" && (job.voice.status === "error" || job.failed.length > 0 || failedBefore.length > 0));
   const toneMissing = info?.toneMissing ?? [];
   const named = (m?: string) => nameSceneIds(ownerMessage(m ?? ""), order);
   const list = (xs: { id: string }[]) => sceneNames(order, xs.map((x) => x.id), 3);
@@ -184,7 +227,7 @@ export const PrepareAll: React.FC<{
         </button>
       ) : !allReady && (!job || job.status === "stopped" || job.status === "error" || finishedWithErrors) ? (
         <button type="button" className="btn ghost" disabled={starting} onClick={() => void start()}
-          title="يكمل تجهيز المشاهد الباقية؛ الاعتماد يبقى لك مشهدًا مشهدًا، بأي ترتيب">
+          title="يكمل المسودات المجانية للمشاهد التي صوتها جاهز، ولا يولّد صوتًا؛ الاعتماد يبقى لك مشهدًا مشهدًا، بأي ترتيب">
           {starting ? "جارٍ البدء…" : label}
         </button>
       ) : null}
@@ -196,6 +239,10 @@ export const PrepareAll: React.FC<{
         </button>
       ) : null}
       {starting && !running ? <span className="prep-note" role="status">يبدأ التجهيز…</span> : null}
+      {!running && info?.voicePlan && info.voicePlan.scenes.length > 0 ? (
+        <VoicePlanPanel plan={info.voicePlan} order={order} voiceKey={Boolean(info.voiceKey)} busy={starting} onOpenSettings={onOpenSettings}
+          onGenerate={(fingerprint) => void start({ voice: { confirm: true, fingerprint } })} />
+      ) : null}
       {job?.voice.status === "error" && !running ? (
         // M2 (QA dafatir): the real cause first; the tone choice only when the cause is the missing tone.
         <div className="prep-note is-err prep-error-card" role="alert" title={named(job.voice.error)}>توقف توليد الصوت: {named(job.voice.error?.split("\n")[0])}
