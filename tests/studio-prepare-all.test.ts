@@ -88,7 +88,7 @@ const decide = (cmd: Record<string, unknown>, headers: Record<string, string> = 
 const open = (status: string) => (status === "queued" || status === "needs_revision" ? "open" : status);
 const ledger = async () => JSON.parse(await readFile(path.join(epDir, "scene-production.v1.json"), "utf8"));
 /** Start «جهّز كل المشاهد» and wait for the background queue to finish. */
-const prepareAll = async (body?: { renderOnly: true }) => {
+const prepareAll = async (body?: { renderOnly: true } | { voice: { confirm: true; fingerprint: string } }) => {
   const start = await call("POST", `episodes/${EP}/scene-prepare`, body);
   if (start.status !== 200) return start;
   for (let i = 0; i < 600; i++) {
@@ -221,9 +221,15 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
 
     // ── No voice key: said plainly, nothing crashes, voiced scenes are still prepared ───────────
     const noKeyRead = await call("GET", `episodes/${EP}/scene-prepare`);
-    expect(noKeyRead.body).toMatchObject({ job: null, voiceKey: false, needVoice: 2 });
+    expect(noKeyRead.body).toMatchObject({ job: null, voiceKey: false, needVoice: 2,
+      voicePlan: { sentences: 2, scenes: ["c1-s2", "c1-s3"], excluded: [] } });
+    expect(noKeyRead.body.voicePlan.chars).toBeGreaterThan(0);
+    // A plain start (owner decision 15–16 Nov) is free: drafts of the scenes whose voice exists, no voice step.
     const noKey = await prepareAll();
-    expect(noKey.body.job, JSON.stringify(noKey.body)).toMatchObject({ status: "done", voice: { status: "no-key", needed: 2 }, rendered: ["c1-s1"], failed: [] });
+    expect(noKey.body.job, JSON.stringify(noKey.body)).toMatchObject({ status: "done", voice: { status: "none", needed: 0 }, rendered: ["c1-s1"], failed: [] });
+    // «ولّد الصوت الآن» confirmed without a key: said plainly, nothing crashes, nothing is called.
+    const noKeyVoice = await prepareAll({ voice: { confirm: true, fingerprint: noKeyRead.body.voicePlan.fingerprint } });
+    expect(noKeyVoice.body.job, JSON.stringify(noKeyVoice.body)).toMatchObject({ status: "done", voice: { status: "no-key", needed: 2 }, rendered: [], failed: [] });
     expect(elevenCalls).toEqual([]);
     s = await state();
     expect(s.prepared).toEqual({ ready: 1, total: 3 });
@@ -236,7 +242,18 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     expect(free.body.job, JSON.stringify(free.body)).toMatchObject({ status: "done", voice: { status: "none", needed: 0 }, rendered: [], failed: [] });
     expect(free.body.job.skipped).toMatchObject([{ id: "c1-s2", reason: "voice" }, { id: "c1-s3", reason: "voice" }]);
     expect(elevenCalls).toEqual([]);
-    const run = await prepareAll();
+    // «استأنف التجهيز» (a plain start) is free too, with a key: nothing paid without the owner's confirmed press.
+    expect((await prepareAll()).body.job).toMatchObject({ status: "done", voice: { status: "none", needed: 0 }, rendered: [] });
+    // «ولّد الصوت الآن» needs its confirmation, from the Studio page, of the plan the owner read.
+    const plan = (await call("GET", `episodes/${EP}/scene-prepare`)).body.voicePlan;
+    expect((await call("POST", `episodes/${EP}/scene-prepare`, { voice: {} })).status).toBe(400);
+    expect((await call("POST", `episodes/${EP}/scene-prepare`, { voice: { confirm: true } })).status).toBe(400);
+    expect((await call("POST", `episodes/${EP}/scene-prepare`, { voice: { confirm: true, fingerprint: plan.fingerprint } }, CROSS)).status).toBe(403);
+    const stale = await call("POST", `episodes/${EP}/scene-prepare`, { voice: { confirm: true, fingerprint: "0".repeat(16) } });
+    expect(stale.status).toBe(409);
+    expect(stale.body).toMatchObject({ code: "VOICE_PLAN_CHANGED", voicePlan: { fingerprint: plan.fingerprint } });
+    expect(elevenCalls).toEqual([]);
+    const run = await prepareAll({ voice: { confirm: true, fingerprint: plan.fingerprint } });
     expect(run.body.job, JSON.stringify(run.body)).toMatchObject({ status: "done", voice: { status: "done", needed: 2, generated: 2 }, rendered: ["c1-s2", "c1-s3"], failed: [] });
     expect(elevenCalls.filter((c) => c.includes("with-timestamps"))).toHaveLength(2);
     expect(stubbedRenders).toEqual(["c1-s1", "c1-s2", "c1-s3"]);

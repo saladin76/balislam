@@ -146,3 +146,18 @@ export const waitFor = async <T>(label: string, read: () => Promise<T>, done: (v
     await new Promise((r) => setTimeout(r, everyMs));
   }
 };
+
+/**
+ * Owner decision (15–16 Nov): after «اعتمد التجهيز» nothing paid starts on its own. This is the owner's own press:
+ * read the plan the panel shows («جاهز لتوليد صوت N جملة في M مشهد — نحو X حرف من الرصيد»), press «ولّد الصوت
+ * الآن», confirm («نعم، ولّد الصوت»), and wait for the queue (voice, then the drafts it unblocked).
+ */
+export const generateVoiceConfirmed = async (st: Pick<Studio, "call">, ep: string) => {
+  const read = await st.call("GET", `episodes/${ep}/scene-prepare`);
+  if (read.status !== 200) throw new Error(`[e2e] scene-prepare read: ${read.status} ${JSON.stringify(read.body).slice(0, 600)}`);
+  const plan = read.body.voicePlan;
+  const start = await st.call("POST", `episodes/${ep}/scene-prepare`, { voice: { confirm: true, fingerprint: plan?.fingerprint } });
+  if (start.status !== 200) throw new Error(`[e2e] «ولّد الصوت الآن»: ${start.status} ${JSON.stringify(start.body).slice(0, 600)}`);
+  const job = await waitFor("voice + drafts", () => st.call("GET", `episodes/${ep}/scene-prepare`), (x) => x.body.job && x.body.job.status !== "running", 1_200_000, 1000);
+  return { plan, job };
+};

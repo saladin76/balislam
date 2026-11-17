@@ -528,11 +528,12 @@ export const toneNames = Object.fromEntries(Object.entries(tones).map(([k, v]) =
  * tone, the Quran guard), and the scene is composed with the owner's recording or its marked placeholder.
  * The basmala itself is never sent to the voice. Returns what was voiced and what could not be, per scene.
  */
-export const prepareBasmalaScenes = async (episode: string, opts: { client: ElevenLabsClient | null; shouldStop?: () => boolean }) => {
+export const prepareBasmalaScenes = async (episode: string, opts: { client: ElevenLabsClient | null; shouldStop?: () => boolean; /** the scenes the owner confirmed */ only?: Set<string> }) => {
   const scriptPath = await resolveScriptPath(episode);
-  const ids = await basmalaScenes(scriptPath);
+  const all = await basmalaScenes(scriptPath);
+  const ids = opts.only ? all.filter((id) => opts.only!.has(id)) : all;
   const out = { generated: 0, errors: [] as { id: string; error: string }[] };
-  if (!ids.length) return out;
+  if (!all.length) return out;
   await recomposeBasmalaScenes(episode);
   if (!opts.client) return out;
   for (const sceneId of ids) {

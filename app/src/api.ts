@@ -240,7 +240,12 @@ export type PreparationRead = { scriptErrors: number; versesMissing: string[]; b
   planErrors?: { scene: string; message: string }[] };
 export type ScenePrepareRead = { job: ScenePrepareJob | null; voiceKey: boolean; needVoice?: number;
   /** M1: narrated scenes with no tone at all; the stopped line offers the episode tone right there. */
-  toneMissing?: string[] };
+  toneMissing?: string[];
+  /** What «ولّد الصوت الآن» would pay for (read only); nothing paid starts without the owner's confirmed press. */
+  voicePlan?: VoiceGenerationPlan | null };
+/** src/studio/prepareAll.ts `voiceGenerationPlan` */
+export type VoiceGenerationPlan = { sentences: number; scenes: string[]; chars: number; credits: number;
+  excluded: { id: string; reason: "verse" | "basmala" | "quran" }[]; fingerprint: string };
 export type SceneOwnerAction = {
   action: "approve-script" | "approve-storyboard" | "submit-scene" | "approve-scene" |
     "correct-scene" | "assemble" | "approve-assembly" | "approve-master" | "grant-publish";
@@ -325,10 +330,11 @@ export const api = {
     call<PreparationRead>(`/api/episodes/${episode}/approve-preparation`, undefined, channel),
   /**
    * «اعتمد التجهيز»: the script approval, then (if needed) the board record, then the storyboard approval, each
-   * checked by the server; then the scenes start preparing on their own (drafts only, nothing approved).
+   * checked by the server; then the free drafts start on their own (scenes whose voice exists; nothing approved, nothing
+   * paid: the voice waits for «ولّد الصوت الآن», owner decision 15–16 Nov).
    */
   approvePreparation: (episode: string, channel: string, body: { scriptSha256: string; storyboardSha256: string; reviewed: boolean; note?: string }) =>
-    call<SceneProductionRead & { prepare: { job: ScenePrepareJob | null; error?: string } }>(`/api/episodes/${episode}/approve-preparation`, {
+    call<SceneProductionRead & { prepare: { job: ScenePrepareJob | null; voicePlan?: VoiceGenerationPlan | null; error?: string } }>(`/api/episodes/${episode}/approve-preparation`, {
       method: "POST", json: body,
     }, channel),
   /** M6: the seams heard in the current assembly (server-side, per assembly fingerprint). */
@@ -339,10 +345,14 @@ export const api = {
   /** «جهّز كل المشاهد»: status of the background queue (read-only). */
   scenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel).then(prepareRead),
-  /** `renderOnly`: «أنتج كل المشاهد الجاهزة» — free renders of scenes whose takes exist; never any voice (D145). */
-  startScenePrepare: (episode: string, channel: string, opts: { renderOnly?: boolean } = {}) =>
+  /**
+   * Free by default: «أنتج كل المشاهد الجاهزة» / «استأنف التجهيز» render the scenes whose takes exist; never any voice
+   * (D145; owner decision 15–16 Nov). `voice`: «ولّد الصوت الآن» after the owner confirmed the plan he read — the only
+   * start that may pay; a plan changed since is refused (409 VOICE_PLAN_CHANGED) with the new numbers.
+   */
+  startScenePrepare: (episode: string, channel: string, opts: { renderOnly?: boolean; voice?: { confirm: true; fingerprint: string } } = {}) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
-      method: "POST", ...(opts.renderOnly ? { json: { renderOnly: true } } : {}),
+      method: "POST", ...(opts.voice ? { json: { voice: opts.voice } } : opts.renderOnly ? { json: { renderOnly: true } } : {}),
     }, channel).then(prepareRead),
   /** «سرعة الإلقاء» و«الفاصل بين الجمل»: الإعداد والمشاهد المتأثرة والمدة (قراءة)، والحفظ (pace.json وحده) */
   pace: (episode: string, channel: string | undefined) => call<PaceStatus>(`/api/episodes/${episode}/pace`, undefined, channel),

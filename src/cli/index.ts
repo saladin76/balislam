@@ -448,16 +448,21 @@ program
 
 program
   .command("produce <episode>")
-  .description("«جهّز كل المشاهد»: يولّد صوت المشاهد التي تنقصه (بوابة التشكيل 98%، ولا يُولَّد قرآن أبدًا)، ثم يرندر مسودات AV للمشهد الحالي وما بعده بالترتيب. لا يعتمد شيئًا ولا يرسل للمراجعة؛ الاعتماد بالترتيب في الاستوديو بعد المشاهدة. يعمل مباشرة على جهاز المالك بلا كلمة مرور.")
-  .option("--no-voice", "بلا توليد صوت (ترندر المشاهد التي لها صوت فقط)")
-  .action(async (episode: string, opts: { voice: boolean }) => {
-    const { prepareAllScenes } = await import("../studio/prepareAll");
+  .description("«جهّز كل المشاهد»: يرندر مسودات AV لكل مشهد صوته جاهز (مجانًا). لا يولّد صوتًا إلا مع --generate-voice (يصرف رصيدًا، بوابة التشكيل 98%، ولا يُولَّد قرآن أبدًا). لا يعتمد شيئًا ولا يرسل للمراجعة؛ الاعتماد في الاستوديو بعد المشاهدة. يعمل مباشرة على جهاز المالك بلا كلمة مرور.")
+  .option("--generate-voice", "يولّد الصوت الناقص أولًا (يصرف رصيدًا): يطبع العدد والحروف قبل البدء")
+  .option("--no-voice", "(الافتراضي الآن) بلا توليد صوت")
+  .action(async (episode: string, opts: { voice: boolean; generateVoice?: boolean }) => {
+    const { prepareAllScenes, voiceGenerationPlan } = await import("../studio/prepareAll");
     const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
-    const voiceClient = opts.voice ? elevenLabsFromEnv() : null;
+    // Owner decision (15–16 Nov): nothing paid without his explicit request; the flag is that request.
+    const paid = opts.generateVoice === true && opts.voice !== false;
+    const voiceClient = paid ? elevenLabsFromEnv() : null;
     let last = "";
     try {
+      const plan = paid ? await voiceGenerationPlan(episode) : null;
+      if (plan) console.log(`الصوت: ${plan.sentences} جملة في ${plan.scenes.length} مشهد — نحو ${plan.chars} حرف من الرصيد.`);
       const r = await prepareAllScenes(episode, {
-        voiceClient,
+        voiceClient, renderOnly: !paid, ...(plan ? { voiceScenes: plan.scenes } : {}),
         onProgress: (p) => {
           const line = p.phase === "voice" ? `الصوت${p.sceneId ? `: ${p.sceneId}` : ""}` : p.phase === "render" && p.sceneId ? `مسودة: ${p.sceneId} (${p.rendered.length} جاهزة)` : "";
           if (line && line !== last) console.log((last = line));
@@ -819,10 +824,11 @@ program
   .description("من السكريبت إلى ملفات النشر بأمر واحد: فحص ← آيات ← مشاهد ← صوت ← رندر ← تغليف")
   .argument("<episode>", "رقم الحلقة")
   .option("--no-voice", "نسخة معاينة بلا صوت (لا تُنشر)")
+  .option("--generate-voice", "يولّد الصوت الناقص هنا (يصرف رصيدًا؛ بلا هذا الخيار يُرفض الصوت الناقص ولا يُصرف شيء)")
   .option("--skip-video", "بلا رندر فيديو")
-  .action(async (episode: string, opts: { voice?: boolean; skipVideo?: boolean }) => {
+  .action(async (episode: string, opts: { voice?: boolean; generateVoice?: boolean; skipVideo?: boolean }) => {
     const { makeEpisode } = await import("../package/make");
-    const r = await makeEpisode({ episode, noVoice: opts.voice === false, skipVideo: opts.skipVideo, onProgress: (m) => console.log(m) });
+    const r = await makeEpisode({ episode, noVoice: opts.voice === false, generateVoice: opts.generateVoice === true, skipVideo: opts.skipVideo, onProgress: (m) => console.log(m) });
     console.log(`\nتم. الملفات في ${path.relative(projectRoot, r.dir)}. راجع publish-checklist.md قبل النشر.`);
   });
 

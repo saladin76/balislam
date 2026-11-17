@@ -449,21 +449,30 @@ export const balApi = (): Plugin => ({
               preview: `scene-${sceneId}-av.mp4` });
           }
 
-          // «جهّز كل المشاهد»: voice for scenes lacking it, then AV drafts in order in the background.
+          // «جهّز كل المشاهد»: AV drafts in the background, and the voice ONLY on the owner's confirmed «ولّد الصوت الآن».
           // Drafts are never submissions or approvals (see prepareAll.ts / sceneService.ts).
           // Starts the queue for an owner already checked and an episode already ready (callers check).
-          const startPrepare = async (opts: { retryFailed?: boolean; renderOnly?: boolean } = {}) => {
+          // Owner decision (15–16 Nov): nothing paid starts without his press in that moment. Every start is free
+          // (`renderOnly`: no voice client at all) unless `voiceScenes` carries the scenes he confirmed.
+          const startPrepare = async (opts: { retryFailed?: boolean; voiceScenes?: string[] } = {}) => {
             const key = `${ch}/${ep}`;
             const { prepareAllScenes } = await load("/src/studio/prepareAll.ts");
             if (prepareJob(key)?.status === "running") return prepareJob(key)!;
+            const paid = Boolean(opts.voiceScenes);
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
-            // D145 «أنتج كل المشاهد الجاهزة»: no voice client at all, so nothing paid can be called.
-            const voiceClient = opts.renderOnly ? null : elevenLabsFromEnv();
+            const voiceClient = paid ? channelMod.runWithChannel(ch, () => elevenLabsFromEnv()) : null;
             // Audit item 5: an automatic start does not re-render a scene whose same inputs just failed.
             // M3: the owner's own «استأنف التجهيز» retries them (the failure expires on that press).
             const previousFailures = opts.retryFailed ? [] : prepareJob(key)?.failed ?? [];
             return startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
-              prepareAllScenes(ep, { voiceClient: opts.renderOnly ? null : voiceClient, renderOnly: opts.renderOnly, onProgress, shouldStop, previousFailures })), busy);
+              prepareAllScenes(ep, { voiceClient, renderOnly: !paid, voiceScenes: opts.voiceScenes, onProgress, shouldStop, previousFailures })), busy);
+          };
+          // What «ولّد الصوت الآن» would pay for (read only; never fails the read it rides on).
+          const voicePlanRead = async () => {
+            try {
+              const { voiceGenerationPlan } = await load("/src/studio/prepareAll.ts");
+              return await channelMod.runWithChannel(ch, () => voiceGenerationPlan(ep));
+            } catch { return null; }
           };
 
           // Step ١ «التجهيز» (funnel v3): ONE owner action writes the script approval, then the board record when
@@ -485,12 +494,14 @@ export const balApi = (): Plugin => ({
             try { already = isPreparationApproved(await inspectSceneProduction(ep)); } catch { /* approvePreparation says why */ }
             let read;
             try { read = await approvePreparation(ep, body); } catch (error) { return refuse(error); }
-            if (already) return send(res, 200, { ...read, prepare: { job: prepareJob(`${ch}/${ep}`) } });
+            if (already) return send(res, 200, { ...read, prepare: { job: prepareJob(`${ch}/${ep}`), voicePlan: await voicePlanRead() } });
             let job = null;
             let prepareError: string | undefined;
+            // Owner decision (15–16 Nov): only the free drafts start here (scenes whose voice exists). The voice waits
+            // for «ولّد الصوت الآن»: the response carries its count and cost (`voicePlan`), nothing paid is called.
             try { await requireSceneProductionReady(ep); job = await startPrepare(); }
             catch (error) { prepareError = (error as Error).message; }
-            return send(res, 200, { ...read, prepare: { job, ...(prepareError ? { error: prepareError } : {}) } });
+            return send(res, 200, { ...read, prepare: { job, voicePlan: await voicePlanRead(), ...(prepareError ? { error: prepareError } : {}) } });
           }
 
           // M6: the seams the owner heard, per assembly fingerprint, kept on the server (src/studio/seamChecks.ts).
@@ -509,7 +520,11 @@ export const balApi = (): Plugin => ({
 
           if (parts[2] === "scene-prepare" && parts.length === 3) {
             const key = `${ch}/${ep}`;
-            const voiceKey = Boolean(process.env.ELEVENLABS_API_KEY && (channelMod.loadChannel(ch).voice?.id || process.env.ELEVENLABS_VOICE_ID));
+            // Whether «ولّد الصوت الآن» could reach a voice at all: the same factory the paid run uses (no request is made;
+            // the test-only fake provider counts, so the panel's press is reachable in the e2e journeys).
+            const { elevenLabsFromEnv: voiceFactory } = await load("/src/voice/elevenlabs.ts");
+            let voiceKey = false;
+            try { voiceKey = Boolean(channelMod.runWithChannel(ch, () => voiceFactory())); } catch { voiceKey = false; }
             const { scenesNeedingVoice } = await load("/src/studio/prepareAll.ts");
             // M3: the job as the owner reads it against the ledger now (stale failures dropped, scenes named);
             // M1: which scenes have no tone, so the stopped line can offer the episode tone right there.
@@ -530,7 +545,7 @@ export const balApi = (): Plugin => ({
               } catch { return []; }
             };
             if (req.method === "GET")
-              return send(res, 200, { job: await viewOf(prepareJob(key)), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
+              return send(res, 200, { job: await viewOf(prepareJob(key)), voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing(), voicePlan: await voicePlanRead() });
             if (req.method === "DELETE") {
               // «أوقف»: owner-only; the step in progress finishes and is kept, nothing new starts.
               const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
@@ -549,11 +564,26 @@ export const balApi = (): Plugin => ({
               const { refreshPace } = await load("/src/voice/paceApply.ts");
               let pace;
               try { pace = await refreshPace(ep, { all: true }); } catch (error) { return refuse(error); }
-              const job = await startPrepare({ retryFailed: true, renderOnly: true });
-              return send(res, 200, { job, voiceKey, pace, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
+              const job = await startPrepare({ retryFailed: true });
+              return send(res, 200, { job, voiceKey, pace, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing(), voicePlan: await voicePlanRead() });
             }
-            const job = await startPrepare({ retryFailed: true, renderOnly: pb?.renderOnly === true });
-            return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing() });
+            // «ولّد الصوت الآن» (owner decision 15–16 Nov): the ONLY start that may pay. It carries the owner's explicit
+            // confirmation of the plan he read; a plan that changed since is refused with the new numbers (nothing paid).
+            if (pb?.voice !== undefined) {
+              if (pb.voice?.confirm !== true || typeof pb.voice?.fingerprint !== "string")
+                return send(res, 400, { error: "توليد الصوت يحتاج تأكيدك: اضغط «ولّد الصوت الآن» ثم أكّد." });
+              if (prepareJob(key)?.status === "running") return send(res, 409, { error: PREPARE_RUNNING_MESSAGE });
+              const { voiceGenerationPlan, VOICE_PLAN_CHANGED } = await load("/src/studio/prepareAll.ts");
+              let plan;
+              try { plan = await channelMod.runWithChannel(ch, () => voiceGenerationPlan(ep)); } catch (error) { return refuse(error); }
+              if (plan.fingerprint !== pb.voice.fingerprint)
+                return send(res, 409, { error: VOICE_PLAN_CHANGED, code: "VOICE_PLAN_CHANGED", voicePlan: plan });
+              const job = await startPrepare({ retryFailed: true, voiceScenes: plan.scenes });
+              return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing(), voicePlan: plan });
+            }
+            // «أنتج كل المشاهد الجاهزة» / «استأنف التجهيز»: free drafts only, whatever key is configured (D145; 15–16 Nov).
+            const job = await startPrepare({ retryFailed: true });
+            return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing(), voicePlan: await voicePlanRead() });
           }
 
           // D120: the old approval records (six-stage ledger, old script signoff, separate voice approval) are gone;

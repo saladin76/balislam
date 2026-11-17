@@ -28,7 +28,7 @@ import { isOwnerContentPath } from "../../scripts/contentPaths.mjs";
 import { pushContentOnce, pendingContent } from "../../app/server/contentSync";
 import { safeFastForward, readConflicts, resolveConflict } from "../../app/server/safeUpdate";
 import { CASES, selectedChannels, type ChannelCase } from "./channels";
-import { ffmpeg, fixturesDir, git, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
+import { ffmpeg, fixturesDir, generateVoiceConfirmed, git, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
 
 const EP = "001";
 const CROSS = { origin: "https://evil.example" };
@@ -188,9 +188,22 @@ for (const channel of selectedChannels()) {
       expect(approved.body.prepare.error, "preparation started").toBeUndefined();
       s = await gates("prepared", { currentScene: "c1-s1", approvedScenes: 0, canAssemble: false });
       expect(s.script.approved && s.storyboard.approved && s.boards.current).toBe(true);
-      const job = await waitFor("scene drafts", () => st.call("GET", `episodes/${EP}/scene-prepare`), (x) => x.body.job && x.body.job.status !== "running", 1_200_000, 1000);
+      // Owner decision (15–16 Nov): the approval starts only free work. Not one voice request until his confirmed
+      // «ولّد الصوت الآن»; the response already carries its count and cost, the verse scene listed as never voiced.
+      const free = await waitFor("free drafts", () => st.call("GET", `episodes/${EP}/scene-prepare`), (x) => x.body.job && x.body.job.status !== "running", 1_200_000, 1000);
+      expect(free.body.job.voice, "no voice step after the approval").toMatchObject({ status: "none", needed: 0 });
+      expect(fakeCalls.length, "voice requests before the owner's press").toBe(0);
+      const shown = approved.body.prepare.voicePlan;
+      expect(shown.scenes.length, `voice plan: ${JSON.stringify(shown)}`).toBe(c.scenes.length - (c.verse ? 1 : 0));
+      expect(shown.sentences).toBeGreaterThanOrEqual(shown.scenes.length);
+      expect(shown.chars).toBeGreaterThan(0);
+      if (c.verse) expect(shown.excluded.map((x: any) => x.id), "the verse scene is never voiced").toContain(c.verse.sceneId);
+      expect((await st.call("POST", `episodes/${EP}/scene-prepare`, { voice: { confirm: true, fingerprint: shown.fingerprint } }, CROSS)).status, "another site").toBe(403);
+      expect((await st.call("POST", `episodes/${EP}/scene-prepare`, { voice: { confirm: true, fingerprint: "stale" } })).status, "a plan he did not read").toBe(409);
+      expect(fakeCalls.length, "still no voice request").toBe(0);
+      const { job } = await generateVoiceConfirmed(st, EP);
       expect(job.body.job, `drafts: ${JSON.stringify(job.body).slice(0, 1500)}`).toMatchObject({ status: "done", failed: [] });
-      expect(job.body.job.rendered.sort()).toEqual(order().sort());
+      expect([...free.body.job.rendered, ...job.body.job.rendered].sort()).toEqual(order().sort());
       expect(job.body.job.voice).toMatchObject({ status: "done" });
       // The voice came from the fake provider only; no verse ever went to it (the guard runs before any provider).
       expect(fakeCalls.length, "fake voice requests").toBeGreaterThanOrEqual(c.scenes.length - (c.verse ? 1 : 0));
