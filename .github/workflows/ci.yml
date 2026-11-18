@@ -41,32 +41,53 @@ jobs:
   # The owner's whole journey over the real Studio server (stabilization brief, work ٤): fake voice provider,
   # tiny real Remotion renders, Drive copy to a temp folder, content sync on a temp git repo. No key, no network service.
   # Every push / PR: «بالإسلام» (the longest rules: verse, recitation, D35). Nightly and on demand: all three channels.
-  e2e:
-    needs: check
+  # Which channels the e2e journeys run on (KI-083): the scheduled run and a PR that touches shared code → all three;
+  # a PR that only changes one channel's content → that channel; anything else → «بالإسلام». A list, so each channel
+  # runs as its own job in parallel: three channels one after another passed the 75-minute limit once the 25-shorts
+  # journey joined (run 44257847109, cancelled at 1h15m).
+  e2e-plan:
     runs-on: ubuntu-latest
-    timeout-minutes: 75
-    env:
-      BAL_E2E_CHANNELS: ${{ github.event_name == 'schedule' && 'all' || github.event.inputs.channels || 'balislam' }}
+    outputs:
+      channels: ${{ steps.plan.outputs.channels }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # A PR that touches shared code is tested on all three channels (one channel's journey cannot see a break in
-      # another's: the scheduled run found «دفاتر الزمن» and «زبدة الكتب» red days after the change that did it).
-      # A PR that only changes one channel's content keeps the single-channel run.
-      - name: Channels for this run
-        if: github.event_name == 'pull_request'
+      - id: plan
         env:
+          EVENT: ${{ github.event_name }}
+          INPUT: ${{ github.event.inputs.channels }}
           BASE: ${{ github.event.pull_request.base.sha }}
         run: |
-          if git diff --name-only "$BASE"...HEAD | grep -qE '^(src|app|scripts|bin|brand|tests|\.github)/|^package(-lock)?\.json$|^vite|^tsconfig'; then
-            echo "BAL_E2E_CHANNELS=all" >> "$GITHUB_ENV"; echo "shared code changed: all channels"
-          else
-            # Content only: test the channels whose content changed (none of the three → the default).
-            CH=$(git diff --name-only "$BASE"...HEAD | sed -nE 's#^channels/(balislam|dafatir-alzaman|zubdat-alkutub)/.*#\1#p' | sort -u | paste -sd, -)
-            if [ -n "$CH" ]; then echo "BAL_E2E_CHANNELS=$CH" >> "$GITHUB_ENV"; fi
-            echo "content only: ${CH:-$BAL_E2E_CHANNELS}"
+          ALL='["balislam","dafatir-alzaman","zubdat-alkutub"]'
+          list() { printf '%s' "$1" | tr ',' '\n' | sed '/^$/d; s/.*/"&"/' | paste -sd, - | sed 's/.*/[&]/'; }
+          if [ "$EVENT" = "schedule" ]; then OUT=$ALL
+          elif [ "$EVENT" = "workflow_dispatch" ]; then
+            if [ -z "$INPUT" ] || [ "$INPUT" = "all" ]; then OUT=$ALL; else OUT=$(list "$INPUT"); fi
+          elif [ "$EVENT" = "pull_request" ]; then
+            CHANGED=$(git diff --name-only "$BASE"...HEAD)
+            if printf '%s\n' "$CHANGED" | grep -qE '^(src|app|scripts|bin|brand|tests|\.github)/|^package(-lock)?\.json$|^vite|^tsconfig'; then OUT=$ALL
+            else
+              CH=$(printf '%s\n' "$CHANGED" | sed -nE 's#^channels/(balislam|dafatir-alzaman|zubdat-alkutub)/.*#\1#p' | sort -u | paste -sd, -)
+              OUT=$(list "${CH:-balislam}")
+            fi
+          else OUT='["balislam"]'
           fi
+          echo "channels=$OUT" >> "$GITHUB_OUTPUT"; echo "e2e channels: $OUT"
+
+  e2e:
+    needs: [check, e2e-plan]
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: ${{ fromJSON(needs.e2e-plan.outputs.channels) }}
+    name: e2e (${{ matrix.channel }})
+    env:
+      BAL_E2E_CHANNELS: ${{ matrix.channel }}
+    steps:
+      - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -77,6 +98,22 @@ jobs:
         run: npx remotion browser ensure
       - name: Full journey (API)
         run: npm run e2e
+
+  # The Studio page journey (Playwright) covers the three channels in one run (its dock parity, D150): once, beside the e2e jobs.
+  e2e-ui:
+    needs: check
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg
+      - run: npm ci
+      - name: Render browser (Remotion)
+        run: npx remotion browser ensure
       - name: Full journey (the Studio page, Playwright)
         run: |
           npm install --no-save --no-audit --no-fund playwright@1.63.0
@@ -90,12 +127,11 @@ jobs:
           path: ${{ runner.temp }}/e2e-ui-shots
           if-no-files-found: ignore
 
-
   # main لا يحمرّ بصمت (KI-068، D137): حفظ الاستوديو يمر على بوابة المحتوى وحدها بلا اختبارات (D101)، فإن حمّر
   # main تُفتح قضية واحدة «main أحمر» بالفحص الفاشل والـcommit (أو يُضاف إليها تعليق)، وتُغلق آليًا عند أول main أخضر.
   # يراها كل مطوّر ووكيل في GitHub وفي «npx bal notes --open» أول كل جلسة. لا تغيّر محتوى ولا تمنع حفظًا.
   main-status:
-    needs: [check, e2e]
+    needs: [check, e2e, e2e-ui]
     if: always() && (github.event_name == 'push' || github.event_name == 'schedule') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
@@ -108,6 +144,7 @@ jobs:
           REPO: ${{ github.repository }}
           CHECK: ${{ needs.check.result }}
           E2E: ${{ needs.e2e.result }}
+          E2EUI: ${{ needs.e2e-ui.result }}
           SHA: ${{ github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           TITLE: ${{ github.event.head_commit.message || 'التشغيل المجدول (القنوات الثلاث)' }}
@@ -115,7 +152,7 @@ jobs:
           set -u
           MARK="main أحمر (CI)"
           open=$(gh api "repos/$REPO/issues?state=open&per_page=100" --jq ".[] | select(.pull_request == null and .title == \"$MARK\") | .number" | head -1)
-          if [ "$CHECK" = "success" ] && { [ "$E2E" = "success" ] || [ "$E2E" = "skipped" ]; }; then
+          if [ "$CHECK" = "success" ] && { [ "$E2E" = "success" ] || [ "$E2E" = "skipped" ]; } && { [ "$E2EUI" = "success" ] || [ "$E2EUI" = "skipped" ]; }; then
             [ -n "$open" ] && gh api -X POST "repos/$REPO/issues/$open/comments" -f body="main أخضر من جديد على \`${SHA:0:8}\` ($RUN_URL)." >/dev/null \
               && gh api -X PATCH "repos/$REPO/issues/$open" -f state=closed >/dev/null
             exit 0
