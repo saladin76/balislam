@@ -1,5 +1,6 @@
 /**
- * الهويات المعتمدة من صاحب القنوات (٣ نوفمبر ٢٠٢٦، لوحة «هويات القنوات الثلاث»).
+ * الهويات المعتمدة من صاحب القنوات (٣ نوفمبر ٢٠٢٦، لوحة «هويات القنوات الثلاث»)؛ «بالإسلام» أُعيدت إلى هويتها الأصلية
+ * «باء التشغيل» يوم ١٨ نوفمبر، وبلا افتتاحية في القنوات الثلاث (قرارا المالك، D154 وD155).
  * مصدر واحد يقرؤه تبويب «القناة» في الاستوديو (يعرض الهوية ويقفل الشعار والافتتاحية والمصغّرة)
  * واختبار tests/identity-approved.test.ts (يرفض أي تغيير أو تسرّب بصمة قناة إلى أخرى).
  * لا يُعدَّل إلا باعتماد جديد بعد ستوري بورد.
@@ -9,9 +10,11 @@ export type ApprovedIdentity = {
   approvedOn: string;
   /** وصف الهوية في سطر */
   summaryAr: string;
+  /** شعار «شارة» (emblem) باسمه، أو «baa» لشعار «باء التشغيل» (logo.type = "baa") */
   emblem: string;
-  intro: "mihrab" | "horizon" | "highlighter";
-  thumbnail: "mihrab" | "horizon" | "highlighter";
+  /** «none»: الفيديو يبدأ بالمضمون مباشرة بلا افتتاحية (قرار المالك ١٨ نوفمبر، القنوات الثلاث) */
+  intro: "none" | "mihrab" | "horizon" | "highlighter";
+  thumbnail: "circle" | "mihrab" | "horizon" | "highlighter";
   fonts: { heading: string; body: string; wordmark: string };
   /** ألوان الهوية الأساسية بأسمائها (للعرض) */
   palette: { hex: string; nameAr: string }[];
@@ -28,30 +31,32 @@ const SKIN = ["#E7C3A0", "#D2A782"];
 
 export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
   balislam: {
-    nameAr: "محراب النور",
-    approvedOn: "2026-11-03",
-    summaryAr: "قوس محراب نحاسي يضيء بنور الفجر، باء بضربة فرشاة نقطتها شمس، ختم أحمر صغير، ونقش النجمة الثمانية.",
-    emblem: "mihrab",
-    intro: "mihrab",
-    thumbnail: "mihrab",
-    fonts: { heading: "Aref Ruqaa", body: "Tajawal", wordmark: "Aref Ruqaa" },
+    nameAr: "باء التشغيل",
+    approvedOn: "2026-11-18",
+    summaryAr: "حرف الباء ونقطته زر تشغيل على مربع بلون المجال: نحاس «أقواس دافئة» (الافتراضي)، وزمرد «حبر وورق»، وورد «دفء البيت»، وليل «ليلٌ هادئ». الهوية الأصلية قبل «محراب النور»، أُعيدت بقرار المالك.",
+    emblem: "baa",
+    intro: "none",
+    thumbnail: "circle",
+    fonts: { heading: "El Messiri", body: "IBM Plex Sans Arabic", wordmark: "Readex Pro" },
     palette: [
-      { hex: "#0B1F1C", nameAr: "ليل زمردي" },
-      { hex: "#C9A24A", nameAr: "نحاس" },
-      { hex: "#F2B35B", nameAr: "فجر" },
-      { hex: "#F4EEE2", nameAr: "ورق" },
-      { hex: "#C2412D", nameAr: "ختم" },
+      { hex: "#B4532F", nameAr: "نحاس" },
+      { hex: "#1E6B5C", nameAr: "زمرد" },
+      { hex: "#C2566B", nameAr: "ورد" },
+      { hex: "#0E1A2B", nameAr: "ليل" },
+      { hex: "#D9A441", nameAr: "ذهب" },
+      { hex: "#EFE4D3", nameAr: "ورق" },
     ],
-    signature: ["#0B1F1C", "#C9A24A", "#F2B35B", "#C2412D"],
-    motifs: ["arches", "girih"],
-    derived: ["#0F2A26", "#12352F", "#174039", "#071512", "#A9C3B9", "#6F8F84", ...SKIN],
+    signature: ["#B4532F", "#1E6B5C", "#C2566B", "#0E1A2B"],
+    motifs: ["arches", "house-circles", "ink-lines", "stars"],
+    derived: ["#16263D", "#1B1B1B", "#2E3A2A", "#33476A", "#3A2E39", "#4A5546", "#4F7A60", "#55524B", "#5A6F94", "#5E4E5C", "#5FB8AE", "#6E8A5A", "#7A5A44", "#7FA3A8", "#7FA88E", "#8A6A55", "#8FB8C9", "#9FDCCB", "#A9B4C6", "#B07A5B", "#C9D3E3", "#D98C6E", "#D9B08C", "#DDB58F", "#E0A458", "#E2B24C", "#E58E6B", "#E9C6A8", "#F2C7A5", "#F2D2B0", "#F3EEE3", "#F4F1EA", "#F7EEE8", "#FBF6EE", "#FFFDF8", ...SKIN],
   },
+
   "dafatir-alzaman": {
     nameAr: "دفتر الأفق",
     approvedOn: "2026-11-03",
     summaryAr: "دفتر مفتوح كعبه ساعة رملية، غروب مرسوم على صفحتيه، وشريط تاريخ أحمر.",
     emblem: "horizon-book",
-    intro: "horizon",
+    intro: "none",
     thumbnail: "horizon",
     fonts: { heading: "Amiri", body: "Tajawal", wordmark: "Amiri" },
     palette: [
@@ -71,7 +76,7 @@ export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
     approvedOn: "2026-11-03",
     summaryAr: "نظام كامل بالأبيض والأسود، والفسفوري للفكرة فقط: عدّاد الأفكار والورقة اللاصقة وبطاقة الكتاب.",
     emblem: "highlighter-z",
-    intro: "highlighter",
+    intro: "none",
     thumbnail: "highlighter",
     fonts: { heading: "Lalezar", body: "Tajawal", wordmark: "Lalezar" },
     palette: [

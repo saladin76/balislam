@@ -50,7 +50,7 @@ export const PracticeCount: React.FC<{ n: number; total?: number; t: number; sca
           <g key={k} transform={vertical ? `translate(0 ${i * gap - w / 2}) scale(${pop})` : `translate(${cx} 0) scale(${pop})`}>
             <path d={octagramPath(0, 0, 50)} fill={mix(darken(ID.night, 0.2), ID.copper, 0.25 + 0.75 * lit)} stroke={ID.copper} strokeWidth={4} />
             <path d={octagramPath(0, 0, 36)} fill="none" stroke={mix(ID.copper, lighten(ID.dawn, 0.2), lit)} strokeWidth={2} opacity={0.8} />
-            <text x={0} y={15} textAnchor="middle" fontFamily="'Aref Ruqaa', serif" fontWeight={700} fontSize={44} fill={lit > 0.5 ? ID.night : mix(ID.paper, ID.copper, 0.4)} opacity={0.35 + 0.65 * Math.max(lit, k <= n ? 1 : 0.3)}>
+            <text x={0} y={15} textAnchor="middle" fontFamily="'El Messiri', serif" fontWeight={700} fontSize={44} fill={lit > 0.5 ? ID.night : mix(ID.paper, ID.copper, 0.4)} opacity={0.35 + 0.65 * Math.max(lit, k <= n ? 1 : 0.3)}>
               {arabicDigit(k)}
             </text>
           </g>

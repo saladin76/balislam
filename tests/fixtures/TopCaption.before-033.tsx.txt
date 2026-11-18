@@ -51,7 +51,7 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
         justifyContent: "center",
         gap: portrait ? "4px 18px" : "0 16px",
         direction: "rtl",
-        fontFamily: "'Tajawal', 'IBM Plex Sans Arabic', sans-serif",
+        fontFamily: "'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif",
         fontWeight: 700,
         fontSize: size,
         lineHeight: 1.35,

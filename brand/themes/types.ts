@@ -41,6 +41,6 @@ export type Theme = {
     /** robe = ثوب طويل (الافتراضي)، modern = قميص وبنطال وشعر بلا غطاء رأس للرجال (زبدة الكتب) */
     outfit?: "robe" | "modern";
   };
-  /** زخرفة الخلفية؛ لكل قناة زخارفها: بالإسلام arches/girih، دفاتر الزمن stars/horizon/ink-lines، زبدة الكتب ruled */
-  motif: "ink-lines" | "house-circles" | "stars" | "arches" | "girih" | "horizon" | "ruled";
+  /** زخرفة الخلفية؛ لكل قناة زخارفها (brand/identity/approved.ts ← motifs)؛ «none» للقناة الجديدة قبل اعتماد هويتها */
+  motif: "ink-lines" | "house-circles" | "stars" | "arches" | "girih" | "horizon" | "ruled" | "none";
 };

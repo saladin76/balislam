@@ -19,6 +19,8 @@ const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number; rtl: bool
   const c = t.colors;
   const reveal = fade(frame, 0, 24);
   switch (t.motif) {
+    case "none":
+      return null;
     case "ink-lines": {
       const gap = 64;
       const lines = Math.ceil(h / gap);

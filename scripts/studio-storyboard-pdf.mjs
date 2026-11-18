@@ -22,7 +22,7 @@ const fontRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), ".."
 // palette colour readable on white paper); tests/studio-storyboard-pdf.test.ts locks the match. An unknown or
 // new channel gets a neutral face and grey, never another channel's identity.
 const channelFonts = {
- "balislam": {accent:"#0B1F1C", headingFamily:"Aref Ruqaa", bodyFamily:"Tajawal", heading:["ArefRuqaa-Bold.ttf","400 700"], body:["Tajawal-arabic-400.woff2","400"], bold:["Tajawal-arabic-700.woff2","700"], latin:"tajawal"},
+ "balislam": {accent:"#B4532F", headingFamily:"El Messiri", bodyFamily:"IBM Plex Sans Arabic", heading:["ElMessiri.ttf","400 700"], body:["IBMPlexSansArabic-Medium.ttf","400"], bold:["IBMPlexSansArabic-Bold.ttf","700"], latin:"plex"},
  "dafatir-alzaman": {accent:"#D7372B", headingFamily:"Amiri", bodyFamily:"Tajawal", heading:["Amiri-Bold.ttf","400 700"], body:["Tajawal-arabic-400.woff2","400"], bold:["Tajawal-arabic-700.woff2","700"], latin:"tajawal"},
  "zubdat-alkutub": {accent:"#111111", headingFamily:"Lalezar", bodyFamily:"Tajawal", heading:["Lalezar-arabic.woff2","400 700"], body:["Tajawal-arabic-400.woff2","400"], bold:["Tajawal-arabic-700.woff2","700"], latin:"tajawal"},
 };

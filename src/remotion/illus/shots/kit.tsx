@@ -1,6 +1,7 @@
 import React from "react";
 import { Easing, interpolate } from "remotion";
 import { Figure, LOOKS, poseAt, walkPose, type FigureLook, type Holding, type PoseName } from "../Figure";
+import { ID } from "../palette";
 import { normalizeArabic } from "../../../script/quranMeta";
 import type { WordTiming } from "../../scenes/timing";
 
@@ -102,7 +103,7 @@ export const Rolling: React.FC<{ frame: number; at: number; x: number; y: number
 };
 
 /** بخار يتصاعد (شاي، قهوة) */
-export const Steam: React.FC<{ frame: number; x: number; y: number; color?: string }> = ({ frame, x, y, color = "#F4EEE2" }) => (
+export const Steam: React.FC<{ frame: number; x: number; y: number; color?: string }> = ({ frame, x, y, color = ID.paper }) => (
   <g opacity={0.5} fill="none" stroke={color} strokeWidth={3} strokeLinecap="round">
     {[0, 1].map((k) => {
       const p = ((frame + k * 30) % 60) / 60;

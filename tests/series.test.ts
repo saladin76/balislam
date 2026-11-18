@@ -140,7 +140,7 @@ describe("الختم وحزمة النشر", () => {
   it("الختم يحمل الهوية المشتقة والقالب ورقم الحلقة، والحزمة تأخذ العنوان والوسوم وقائمة التشغيل", () => {
     const st = stampSeries(s, "balislam", 2, "2026-11-11T00:00:00Z");
     expect(st.number).toBe(2);
-    expect(st.identity.fonts.heading).toBe("Aref Ruqaa");
+    expect(st.identity.fonts.heading).toBe("El Messiri"); // «باء التشغيل» (D154)
     expect(st.template.tone).toBeUndefined();
     const pub = seriesPublish({ title: "لماذا نصوم؟", series: st }, String);
     expect(pub).toEqual({ title: "ليالي رمضان | الحلقة 2: لماذا نصوم؟", tags: ["رمضان"], playlist: "ليالي رمضان" });

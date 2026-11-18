@@ -23,6 +23,10 @@ const Part: React.FC<PartProps> = ({ id, d, x, y, s }) => {
   const t = `translate(${x} ${y}) scale(${k})`;
   const ink = d.accent, paper = d.paper, deep = d.ink;
   switch (id) {
+    // «باء التشغيل» (D154): مسار الباء ونقطتها كما في brand/logo/Logo.tsx (مربع 120 مصغّرًا إلى 100)
+    case "baa": return <g transform={t}><path d="M76.7 28.3V51.7Q76.7 63.3 65 63.3H35Q23.3 63.3 23.3 51.7V43.3" fill="none" stroke={ink} strokeWidth={10} strokeLinecap="round" strokeLinejoin="round" /><polygon points="45,71.7 45,86.7 58.3,79.2" fill={ink} /></g>;
+    case "play": return <g transform={t}><polygon points="34,24 34,76 78,50" fill={ink} /></g>;
+    case "tile": return <g transform={t}><rect x={12} y={12} width={76} height={76} rx={18} fill={ink} /><path d="M70 34V54Q70 62 62 62H38Q30 62 30 54V48" fill="none" stroke={paper} strokeWidth={7} strokeLinecap="round" strokeLinejoin="round" /></g>;
     case "arch": return <g transform={t}><path d="M18 96 V46 A32 32 0 0 1 82 46 V96" fill="none" stroke={ink} strokeWidth={8} /><path d="M18 96 V46 A32 32 0 0 1 82 46 V96 Z" fill={ink} opacity={0.18} /></g>;
     case "sun": return <g transform={t}><circle cx={50} cy={56} r={22} fill={ink} /><path d="M10 82 H90" stroke={ink} strokeWidth={6} /></g>;
     case "seal": return <g transform={t}><rect x={24} y={24} width={52} height={52} rx={6} fill={ink} /><rect x={34} y={34} width={32} height={32} rx={3} fill="none" stroke={paper} strokeWidth={4} /></g>;
