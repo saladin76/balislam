@@ -489,7 +489,9 @@ describe("خريطة الأداء الصوتي — v1.8 (سرد واحد بلا 
 describe("خريطة الأداء الصوتي — الإصدار الحالي v1.9 (الأمر 031، فوق v1.8 قسم واحد)", () => {
   type V18 = Map & { order: string; legend: { tones: Record<string, string> }; previous: { version: string; path: string }[];
     changelog: { from: string; to: string; kept: number[]; added: number[]; proposedMarks: number[] }[]; source: Record<string, { sha256: string }> };
-  const v18 = JSON.parse(read("tone-map.json")) as Omit<V18, "segments"> & { segments: (Seg & { proposed?: boolean })[]; changelog: V18["changelog"] };
+  // KI-088: the v1.9 lineage built on versions/v9.2 ends at v1.67 (archived by name); v1.68 syncs it to the live
+  // tashkeel by text (tests/ki-088-tone-map-sync.test.ts)
+  const v18 = JSON.parse(read("tone-map.v1.67.json")) as Omit<V18, "segments"> & { segments: (Seg & { proposed?: boolean })[]; changelog: V18["changelog"] };
   const v17 = JSON.parse(read("tone-map.v1.8.json")) as V18;
   const plan = JSON.parse(read("plan.json")) as { chapters: { scenes: { id: string; narration?: string; props?: Record<string, unknown> }[] }[] };
   const spoken = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration?.trim());

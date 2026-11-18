@@ -27,7 +27,7 @@ describe("KI-088: the tone map follows the current tashkeel, by text", () => {
     const r = analyzeToneMapSync(map.segments, tashkeel);
     expect(r.unmatched).toEqual([]);
     expect(r.rows).toHaveLength(map.segments.length);
-    expect(map.segments.length).toBe(84);
+    expect(map.segments.length).toBe(84); // owner-pin-ok: the archived v1.67 as the gate refused it, not live content
   });
 
   it("writing alone is not pronunciation: mark order, the article's sukun, «ءا» = «آ»", () => {
@@ -42,13 +42,13 @@ describe("KI-088: the tone map follows the current tashkeel, by text", () => {
     const r = syncToneMap(v167, tashkeel, { at: "2026-11-18T23:00:00.000Z", plan: read("plan.json"), script: read("script.md"), keepRecorded: true, dropScenes });
     const next = JSON.parse(r.raw);
     expect(() => validatePartsContext(next, plan, tashkeel)).not.toThrow();
-    expect(dropScenes).toEqual(["c1-s1"]); // the basmala scene left the plan on 16 Nov; its part cannot be voiced anyway
+    expect(dropScenes).toEqual(["c1-s1"]); // owner-pin-ok: the reproduction is fixed to the archived v1.67 and the 16 Nov plan // the basmala scene left the plan on 16 Nov; its part cannot be voiced anyway
     expect(next.previous.at(-1)).toEqual({ version: map.version, path: `tone-map.${map.version}.json` });
     for (const k of ["decisions", "sceneTones", "recitations", "direction", "legend", "order"]) expect(next[k], k).toEqual(map[k]);
     const old = new Map(map.segments.map((x: { id: string }) => [x.id, x]));
     for (const x of next.segments) for (const k of ["text", "marked", "emphasis", "tone", "pauses", "speed", "wpm", "feel", "transition", "audioPart"]) expect(x[k], `${x.id}.${k}`).toEqual((old.get(x.id) as Record<string, unknown>)[k]);
     expect(r.changedScenes).toEqual([]);
-    expect(next.tashkeelSyncs.at(-1).keptRecorded.segments.map((x: { id: string }) => x.id)).toEqual(["s099", "s102", "s125", "s147", "s162"]);
+    expect(next.tashkeelSyncs.at(-1).keptRecorded.segments.map((x: { id: string }) => x.id)).toEqual(["s099", "s102", "s125", "s147", "s162"]); // owner-pin-ok: the five words kept as recorded on 18 Nov, against the archived v1.67
   });
 
   it("the map on main (v1.68) passes the gate as is", () => {

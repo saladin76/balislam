@@ -267,7 +267,8 @@ describe("دفاتر الزمن: نسخة المحتوى V8 (v1.4) محفوظة 
 
 describe("دفاتر الزمن: نسخة المحتوى V9 الحالية (v1.5) صالحة للتوليد", () => {
   it("49 جزءًا لـ 84 مقطعًا في 48 مشهدًا منطوقًا (V9.2، الأمر 031)، ولا آية ولا بطاقة فصل", () => {
-    const map9 = JSON.parse(readFileSync(path.join(EP, "tone-map.json"), "utf8")) as ToneMap;
+    // KI-088: the map built on V9.2 is v1.67 (archived by name); v1.68 follows the live tashkeel (ki-088 test)
+    const map9 = JSON.parse(readFileSync(path.join(EP, "tone-map.v1.67.json"), "utf8")) as ToneMap;
     // D143: الخطة الحية يحرّرها المالك؛ الخريطة v1.9 بُنيت على V9.2 المحفوظة
     const plan9 = JSON.parse(readFileSync(path.join(EP, "versions/v9.2/plan.json"), "utf8")) as Plan;
     // التشكيل الذي بُنيت عليه الخريطة (V9.2) محفوظ باسمه: المالك يحرّر tashkeel.md الحي من الاستوديو (D132)
