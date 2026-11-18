@@ -147,7 +147,8 @@
             "sourceWord": "يحدثنا"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 6
         },
         {
           "id": "c1-s13",
@@ -628,6 +629,6 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-18T18:06:09.291Z",
+  "updatedAt": "2026-11-18T18:06:35.301Z",
   "intro": false
 }
