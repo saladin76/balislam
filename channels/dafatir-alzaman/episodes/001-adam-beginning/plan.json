@@ -94,7 +94,8 @@
             "verseFrom": "يحدثنا"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 12.5
         },
         {
           "id": "c1-s9",
@@ -146,7 +147,8 @@
             "sourceWord": "يحدثنا"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 6
         },
         {
           "id": "c1-s13",
@@ -176,7 +178,8 @@
             "verseFrom": "وبعد"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 7
         },
         {
           "id": "c1-s15",
@@ -255,7 +258,8 @@
             "verseY": "670"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 8
         },
         {
           "id": "c1-s21",
@@ -281,7 +285,8 @@
             "leadWord": "سبب"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 4
         },
         {
           "id": "c1-s23",
@@ -358,7 +363,8 @@
             "verseY": "780"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 4.5
         },
         {
           "id": "c1-s29",
@@ -480,7 +486,8 @@
             "safeWord": "بالأمن"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 10.5
         },
         {
           "id": "c1-s38",
@@ -622,6 +629,6 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-16T05:03:27.118Z",
+  "updatedAt": "2026-11-18T18:12:07.427Z",
   "intro": false
 }
