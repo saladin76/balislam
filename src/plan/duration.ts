@@ -42,7 +42,10 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
   if (scene.template === "verse-card" && rec && recitationSeconds(rec) > 0)
     return recitationSeconds(rec);
   // المدة اليدوية لباقي القوالب تُحترم، لكنها لا تقطع صوت الراوي.
+  // KI-087 (١٨ نوفمبر): في «خط الأفق» لا تقصر عمّا يحتاجه المشهد بتصميمه أيضًا — زمن قراءة الآية الصامتة وذيل سياسة
+  // الصمت — فمدة ١٢٫٥ ث على مشهد آيته تُقرأ في ١٧٫٨ كانت تُخرج الآية قبل قراءتها. المدة اليدوية تطيل ولا تقصّر.
   if (scene.durationSec && scene.durationSec > 0) {
+    if (scene.template === "horizon-shot" && voiced) return Math.max(scene.durationSec, sceneSeconds({ ...scene, durationSec: undefined }, media));
     const audio = voiced ? voiced.duration + 0.2 : 0;
     return Math.max(scene.durationSec, audio);
   }
@@ -94,7 +97,7 @@ export const sceneHoldFloor = (scene: PlanScene, media?: Pick<EpisodeMedia, "voi
   const voiced = clip && clip.text === scene.narration.trim() && clip.words?.length ? clip : undefined;
   if (!voiced || scene.template === "verse-card") return S;
   const end = Math.max(...voiced.words.map((w) => w.end));
-  if (scene.durationSec && scene.durationSec > 0) return Math.min(S, Math.max(end, scene.durationSec));
+  if (scene.durationSec && scene.durationSec > 0 && scene.template !== "horizon-shot") return Math.min(S, Math.max(end, scene.durationSec));
   if (scene.template === "horizon-shot") {
     const shot = String(scene.props.shot ?? "");
     const m = HZ_META[shot];
@@ -109,6 +112,8 @@ export const sceneHoldFloor = (scene: PlanScene, media?: Pick<EpisodeMedia, "voi
         return S;
       }
     }
+    // مدة المالك تُمسك كما هي فوق ما يحتاجه المشهد (KI-087)
+    if (scene.durationSec && scene.durationSec > 0) floor = Math.max(floor, scene.durationSec);
     return Math.min(S, floor);
   }
   const min = Math.max(templateById(scene.template)?.minSeconds ?? MIN_SECONDS, textSeconds(scene));
