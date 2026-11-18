@@ -13,7 +13,7 @@ const render = (options: Partial<React.ComponentProps<typeof StudioSidebar>> = {
 describe("تنقل الاستوديو", () => {
   it("keeps every unconditional destination visible and identifies the active page", () => {
     const html = render({ active: "settings" });
-    for (const text of ["غرفة العمليات والمراقبة", "حلقات القناة", "إدارة القنوات", "مكتبة الأصول والقوالب", "الهوية البصرية", "إعدادات القناة", "الاتصالات والمفاتيح"]) expect(html).toContain(text);
+    for (const text of ["غرفة العمليات", "حلقات القناة", "إدارة القنوات", "مكتبة القناة", "الهوية البصرية", "إعدادات القناة", "الاتصالات والمفاتيح"]) expect(html).toContain(text);
     expect(html).toMatch(/aria-current="page"[^>]*>.*?الاتصالات والمفاتيح/s);
     expect(html).toContain('aria-label="الأقسام الرئيسية للاستوديو"');
     expect(html).not.toContain('type="submit"');
@@ -28,7 +28,7 @@ describe("تنقل الاستوديو", () => {
     const html = render({ channelName: "دفاتر الزمن", episodeId: "001", episodeTitle: "بداية البشرية", identityDirty: true, voiceConnected: false });
     for (const label of ["دفاتر الزمن", "بداية البشرية", "تعديلات غير محفوظة", "تحتاج إعداد الاتصال"]) expect(html).toContain(label);
     expect(html).not.toContain("معتمد");
-    expect(SECTION_TITLES.ops).toBe("غرفة العمليات والمراقبة");
+    expect(SECTION_TITLES.ops).toBe("غرفة العمليات");
     expect(SECTION_TITLES.channels).toBe("إدارة القنوات");
     expect(SECTION_TITLES.review).toBe("المراجعة المتكاملة");
     expect(SECTION_TITLES.research).toBeDefined();

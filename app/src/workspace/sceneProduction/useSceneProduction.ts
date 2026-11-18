@@ -60,6 +60,15 @@ export const useSceneProduction = (props: SceneProductionProps) => {
   // التجهيز في الخلفية (يبدأ وحده بعد «اعتمد التجهيز»): يقول تحت المشهد غير الجاهز «يُجهَّز الآن» أو «في الدور»
   const [prepJob, setPrepJob] = useState<ScenePrepareRead["job"]>(null);
   const moreRef = useRef<HTMLDivElement>(null);
+  // «الشورتس» from the step ٢ pill: open «أدوات وتفاصيل» on the picker and bring it on screen
+  useEffect(() => {
+    if (!props.openShorts) return;
+    setShortsOpen(true);
+    const box = moreRef.current;
+    const details = box?.querySelector("details");
+    if (details) details.open = true;
+    box?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [props.openShorts]);
   // النسخة المجمعة: زر كل وصلة ينقل المشغّل إلى لحظتها
   const assemblyRef = useRef<HTMLVideoElement>(null);
 

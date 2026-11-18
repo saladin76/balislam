@@ -42,8 +42,9 @@ export const studioHash = (r: StudioRoute): string => {
 /**
  * Where the Studio lands when the page loads (owner decision 11 Nov, D85; replaces the boot half of audit item 18):
  * - a fresh open (new tab or window, `npm run app` again, a tab the browser restored, the address typed and
- *   autocompleted to an old link) lands on «الرئيسية» of the last channel chosen. The old hash and the step
- *   remembered locally are ignored, so the Studio never reopens deep inside an episode;
+ *   autocompleted to an old link) lands on «الرئيسية»: of the channel the link names, else the last channel
+ *   chosen (owner decision 18 Nov, D156: «رئيسية القناة اللي في الرابط»). The episode, the step and the scene in
+ *   the old hash are still ignored, so the Studio never reopens deep inside an episode;
  * - a reload of the page while working (F5, Cmd+R, Cmd+Shift+R) keeps the place in the address bar, so no
  *   work is lost;
  * - a link opened with `?link` (`/?link#/balislam/001/episode`: scripts, a deliberate deep link) keeps its
@@ -61,7 +62,8 @@ export const bootPlace = (b: BootInput): StudioRoute & { tab: StudioSection } =>
   const storedChannel = b.stored.channel && CHANNEL.test(b.stored.channel) ? b.stored.channel : undefined;
   const storedEpisode = b.stored.episode || undefined;
   const keep = b.navigation === "reload" || /(?:^\?|&)link(?:[=&]|$)/.test(b.search ?? "");
-  if (!keep) return { channel: storedChannel ?? r.channel, episode: storedEpisode, tab: "home" };
+  // The remembered episode belongs to the remembered channel: a link to another channel opens its home without it
+  if (!keep) return { channel: r.channel ?? storedChannel, episode: !r.channel || r.channel === storedChannel ? storedEpisode : undefined, tab: "home" };
   const storedTab = b.stored.tab && isTab(b.stored.tab) ? b.stored.tab : undefined;
   return { channel: r.channel ?? storedChannel, episode: r.episode ?? storedEpisode, tab: r.tab ?? storedTab ?? "home", ...(r.series ? { series: r.series } : {}), ...(r.scene ? { scene: r.scene } : {}) };
 };

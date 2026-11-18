@@ -74,6 +74,8 @@ export type SceneProductionProps = {
   /** Step ٢'s views in the header pill (direction D): the scenes one by one, or those needing a fix. */
   view?: "one" | "fix";
   onView?: (v: "one" | "fix") => void;
+  /** Goes up each time the owner asks for «الشورتس» in step ٢: opens «أدوات وتفاصيل» on the shorts picker (owner review, 18 Nov). */
+  openShorts?: number;
   /** A scene's board picture for the filmstrip (drawn lazily by the page). */
   thumb?: (sceneId: string) => React.ReactNode;
   /** Step ٣'s views: the seams of the assembled episode, or the final file (the recitations are their own panel). */

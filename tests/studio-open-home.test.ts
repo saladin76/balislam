@@ -20,10 +20,13 @@ describe("فتح جديد ← الرئيسية", () => {
     expect(b).toEqual({ channel: "zubdat-alkutub", episode: "001", tab: "home" });
     expect(studioHash(b)).toBe("#/zubdat-alkutub/home");
   });
-  it("the last channel chosen (bal-channel) wins over the channel in a restored hash", () => {
+  // D156 (owner, 18 Nov): «رئيسية القناة اللي في الرابط». Was D85: the last channel chosen won over the hash.
+  it("the channel the link names wins over the last channel chosen, on its home, without the other channel's episode", () => {
     const b = bootPlace({ hash: "#/balislam/002/storyboard", navigation: "open", stored: { channel: "dafatir-alzaman", episode: "003", tab: "review" } });
-    expect(b.tab).toBe("home");
-    expect(b.channel).toBe("dafatir-alzaman");
+    expect(b).toEqual({ channel: "balislam", episode: undefined, tab: "home" });
+    expect(studioHash(b)).toBe("#/balislam/home");
+    // a link without a channel keeps the last channel and its episode
+    expect(bootPlace({ hash: "", navigation: "open", stored: { channel: "dafatir-alzaman", episode: "003" } })).toEqual({ channel: "dafatir-alzaman", episode: "003", tab: "home" });
   });
   it("no stored channel: the hash names the channel; nothing at all: home with no channel", () => {
     expect(bootPlace({ hash: "#/balislam/001/episode", navigation: "open", stored: {} })).toEqual({ channel: "balislam", episode: undefined, tab: "home" });

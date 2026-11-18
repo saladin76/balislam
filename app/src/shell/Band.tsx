@@ -1,10 +1,15 @@
 import React, { useEffect, useRef, useState } from "react";
 import type { ChannelSummary } from "../api";
-import type { StudioSection } from "../ui/StudioSidebar";
+import { StudioIcon, type StudioSection } from "../ui/StudioSidebar";
 import { Icon } from "../ui/icons";
 import { Num, arDigits } from "../ui/format";
 
-export type ManageItem = { id: StudioSection; label: string; note?: string };
+/**
+ * note: a short line under the item. alert: it needs the owner (unsaved changes, voice not connected): only an
+ * alert lights the dot on the gear or the button (a description never does). quick: the item is also a button on
+ * the band itself, beside the channels (owner decision 18 Nov, D156); on a phone it heads the gear menu instead.
+ */
+export type ManageItem = { id: StudioSection; label: string; note?: string; alert?: boolean; quick?: "monitor" | "sliders" | "palette" };
 export type BandSteps = {
   /** The four steps from the ledger: done or not. */
   done: boolean[];
@@ -56,7 +61,8 @@ export const Band: React.FC<Props> = (p) => {
     return () => { document.removeEventListener("mousedown", close); document.removeEventListener("keydown", esc); };
   }, [open]);
   const waiting = p.steps ? p.steps.done.findIndex((d) => !d) : -1;
-  const attention = p.manage.some((m) => m.note);
+  const quick = p.manage.filter((m) => m.quick);
+  const attention = p.manage.some((m) => m.alert && !m.quick);
   return (
     <aside className="ms-band" aria-label="القناة وخطوات الحلقة">
       <button type="button" className="ms-mark" onClick={p.onHome} title="حلقات القناة" aria-label={`${p.channelName}: حلقات القناة`}>
@@ -106,6 +112,16 @@ export const Band: React.FC<Props> = (p) => {
           ))}
         </nav>
       ) : null}
+      {quick.length ? (
+        <nav className="ms-quick" aria-label="أقسام القناة">
+          {quick.map((m) => (
+            <button key={m.id} type="button" className="ms-quick-it" aria-current={p.active === m.id ? "page" : undefined} title={m.alert && m.note ? `${m.label}: ${m.note}` : m.label}
+              onClick={() => p.onManage(m.id)}>
+              <StudioIcon name={m.quick!} /><small>{m.label}</small>{m.alert ? <span className="dot" aria-label={m.note ?? "يحتاجك"} /> : null}
+            </button>
+          ))}
+        </nav>
+      ) : null}
       <div className="ms-gear-wrap" ref={box}>
         <button ref={gear} type="button" className="ms-gear" aria-haspopup="menu" aria-expanded={open} aria-label="إدارة الاستوديو" title="إدارة الاستوديو" onClick={() => setOpen((v) => !v)}>
           <Icon name="gear" />{attention ? <span className="dot" aria-hidden="true" /> : null}
@@ -124,8 +140,17 @@ export const Band: React.FC<Props> = (p) => {
                 ))}
               </div>
             ) : null}
+            {quick.length ? (
+              <div className="ms-menu-quick" role="group" aria-label="أقسام القناة">
+                {quick.map((m) => (
+                  <button key={m.id} role="menuitem" type="button" aria-current={p.active === m.id ? "page" : undefined} onClick={() => { setOpen(false); p.onManage(m.id); }}>
+                    <span>{m.label}</span>{m.note ? <small>{m.note}</small> : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <h2>إدارة الاستوديو</h2>
-            {p.manage.map((m) => (
+            {p.manage.filter((m) => !m.quick).map((m) => (
               <button key={m.id} role="menuitem" type="button" aria-current={p.active === m.id ? "page" : undefined}
                 onClick={() => { setOpen(false); p.onManage(m.id); }}>
                 <span>{m.label}</span>{m.note ? <small>{m.note}</small> : null}
