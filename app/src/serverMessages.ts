@@ -101,7 +101,9 @@ const PATTERNS: [RegExp, (m: RegExpMatchArray) => string][] = [
   [/Command failed: ffprobe[\s\S]*previews\/episode\.mp4[\s\S]*No such file or directory/, () => "لا نسخة مجمعة للحلقة على هذا الجهاز بعد؛ اجمع المشاهد المعتمدة أولًا في «٣ النسخة النهائية»."],
   [/Command failed: ffmpeg[\s\S]*(?:measured_I|-inf\b|Value -inf)/, () => "الملف صامت أو فارغ: لا صوت مسموع فيه. سجّل التلاوة من جديد وارفعها."],
   [/Command failed: ffprobe[\s\S]*No such file or directory/, () => "الملف المطلوب لم يُصنع بعد على هذا الجهاز؛ أنتجه أولًا ثم أعد المحاولة."],
-  [/Command failed: (?:ffmpeg|ffprobe)/, () => "تعذّرت معالجة الملف الصوتي أو المرئي: صيغته غير مدعومة أو هو تالف. ارفعه بصيغة أخرى (MP3 أو WAV أو M4A للصوت)."],
+  // 18 Nov: FFmpeg 8 dropped an option the Studio used; the owner saw «ارفعه بصيغة أخرى» though he had uploaded nothing.
+  [/Unrecognized option '[^']*'/, () => "أداة ffmpeg على هذا الجهاز لا تعرف خيارًا يستعمله الاستوديو (اختلاف إصدار). حدّث الاستوديو، ثم أعد المحاولة؛ ملفاتك سليمة."],
+  [/Command failed: (?:ffmpeg|ffprobe)/, () => "تعذّرت معالجة الصوت أو الفيديو بأداة ffmpeg على هذا الجهاز. إن كان ملفًا رفعته أنت فقد تكون صيغته غير مدعومة أو هو تالف: ارفعه بصيغة أخرى (MP3 أو WAV أو M4A للصوت)."],
   // D145: the assembly says which scenes are left (any order); the Studio names the ids «المشهد ٣».
   [/^All audiovisual scenes must be approved first; not approved yet: (.+)\.$/, (m) => `التجميع ينتظر اعتماد كل المشاهد؛ لم يُعتمد بعد: ${m[1]!.split(", ").join("، ")}.`],
   [/^Scene (\S+) has changed after audiovisual approval\.$/, (m) => `تغيّر المشهد ${m[1]} بعد اعتماده؛ يحتاج إنتاجًا واعتمادًا جديدين.`],

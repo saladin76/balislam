@@ -24,6 +24,7 @@ export { readSeamsRecord } from "./seamsRecord";
 import { resolveScriptPath } from "../script/episodes";
 import { putEpisodePreview } from "../render/episodePreviews";
 import { verifyVideoEvidence } from "./videoEvidence";
+import { filterScriptArgs, localFilterScriptForm, otherForm, refusedOption } from "../render/ffmpegFilterScript";
 import { approvedSceneCutsForAssembly, currentSceneCutsForPreFinal } from "./sceneService";
 
 const exec = promisify(execFile);
@@ -103,15 +104,19 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
   g.push(`${cuts.map((_, i) => `[a${i}]`).join("")}amix=inputs=${cuts.length}:normalize=0:dropout_transition=0,atrim=0:${f6(total)}[aout]`);
   await writeFile(script, g.join(";\n"), { flag: "wx", mode: 0o600 });
   const q = qualitySpec("preview");
-  await exec("ffmpeg", [
+  // FFmpeg 8 removed -filter_complex_script (owner's Mac, 18 Nov): the form follows the local FFmpeg (ffmpegFilterScript.ts)
+  const run = (form: Awaited<ReturnType<typeof localFilterScriptForm>>) => exec("ffmpeg", [
     "-nostdin", "-hide_banner", "-loglevel", "error",
     ...cuts.flatMap((c) => ["-i", c.file]),
-    "-filter_complex_script", script, "-map", "[vout]", "-map", "[aout]",
+    ...filterScriptArgs(script, form), "-map", "[vout]", "-map", "[aout]",
     "-c:v", "libx264", "-preset", q.x264Preset, "-crf", String(q.crf), "-pix_fmt", "yuv420p",
     "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
     "-c:a", "aac", "-b:a", q.audioBitrate, "-ar", "48000",
-    "-map_metadata", "-1", "-movflags", "+faststart", tempVideo,
+    "-map_metadata", "-1", "-movflags", "+faststart", "-y", tempVideo,
   ], { timeout: 3_600_000, maxBuffer: 8 * 1024 * 1024 });
+  const form = await localFilterScriptForm();
+  try { await run(form); }
+  catch (error) { if (!refusedOption(error)) throw error; await run(otherForm(form)); }
   await verifyVideoEvidence(tempVideo, base.width, base.height);
   const sceneSeconds = Object.fromEntries(cuts.map((c, i) => [c.sceneId, i + 1 < cuts.length ? starts[i + 1]! - starts[i]! : real[i]!]));
   return { fps, sceneSeconds, seams: seams.map((x, i) => ({ ...x, at: Math.round(starts[i + 1]! * 1000) / 1000 })),
