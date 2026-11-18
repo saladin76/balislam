@@ -18,7 +18,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { browserPlanRevision } from "../../src/plan/revision";
 import { findTraces } from "../../src/package/traces";
 import { CASES, selectedChannels, type ChannelCase } from "./channels";
-import { ffmpeg, fixturesDir, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
+import { ffmpeg, fixturesDir, generateVoiceConfirmed, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
 
 const EP = "001";
 const COUNT = 25;
@@ -168,7 +168,9 @@ for (const channel of selectedChannels()) {
       // ── Preparation, every scene, the recitation (بالإسلام), the assembly, the tiny Master ────────────────
       let s = await state("fresh");
       ok("approve preparation", await st.call("POST", `episodes/${EP}/approve-preparation`, { reviewed: true, scriptSha256: s.script.sha256, storyboardSha256: s.storyboard.sha256, note: "راجعته بنفسي" }));
-      const prep = await waitFor("scene drafts", () => st.call("GET", `episodes/${EP}/scene-prepare`), (x) => x.body.job && x.body.job.status !== "running", 1_500_000, 1000);
+      await waitFor("free drafts", () => st.call("GET", `episodes/${EP}/scene-prepare`), (x) => x.body.job && x.body.job.status !== "running", 1_500_000, 1000);
+      // D151: the narration needs paid voice, generated only by the owner's confirmed press (fake provider).
+      const { job: prep } = await generateVoiceConfirmed(st, EP);
       expect(prep.body.job, `drafts: ${JSON.stringify(prep.body).slice(0, 1500)}`).toMatchObject({ status: "done", failed: [] });
       for (const id of order) await produceAndApprove(id);
       if (c.verse?.mode === "recitation") {
