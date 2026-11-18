@@ -38,7 +38,7 @@ describe("M1: no tone for the episode is said before preparing", () => {
     expect(scenesWithoutTone(plan(), "calm")).toEqual([]);
     expect(planOrder(plan())).toEqual(["c1-s1", "c1-s2", "c1-s3"]);
   });
-  it("step ١ offers «لا نبرة للحلقة — اخترها هنا»; a finished run with errors offers «استأنف التجهيز»", () => {
+  it("step ١ offers «لا نبرة للحلقة — اخترها هنا»; a finished run with errors offers «استأنف إنتاج المسودات»", () => {
     const prep = src("app/src/workspace/PrepareAll.tsx");
     expect(prep).toContain("لا نبرة للحلقة");
     expect(prep).toContain("اخترها هنا");
@@ -82,7 +82,7 @@ describe("M3: failures expire when the scene succeeds or its inputs change", () 
     expect(v.skipped).toEqual([{ id: "c1-s3", reason: "voice" }]);
     expect(v.voice.error).toBe("حدّد نبرة المشهد ٢");
   });
-  it("the owner's «استأنف التجهيز» retries previous failures; an automatic start does not", () => {
+  it("the owner's «استأنف إنتاج المسودات» retries previous failures; an automatic start does not", () => {
     const api = src("app/server/api.ts");
     expect(api).toContain("opts.retryFailed ? [] : prepareJob(key)?.failed ?? []");
     expect(api).toContain("const job = await startPrepare({ retryFailed: true });");

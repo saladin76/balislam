@@ -85,7 +85,7 @@ const ArabicControls: React.FC<{ player: React.RefObject<PlayerRef | null>; fram
       <input className="ms-pc-seek" type="range" min={0} max={Math.max(0, frames - 1)} step={1} value={frame} aria-label="موضع التشغيل"
         aria-valuetext={`${clock(t)} من ${clock(d)}`} style={{ "--p": `${frames > 1 ? (100 * frame) / (frames - 1) : 0}%` } as React.CSSProperties}
         onChange={(e) => player.current?.seekTo(Number(e.target.value))} />
-      <button type="button" onClick={mute} aria-pressed={muted} aria-label={muted ? "أعد الصوت" : "اكتم الصوت"} title={muted ? "أعد الصوت" : "اكتم الصوت"}>{muted ? "بلا صوت" : "الصوت"}</button>
+      <button type="button" onClick={mute} aria-pressed={muted} aria-label={muted ? "أعد الصوت" : "اكتم الصوت"} title={muted ? "أعد الصوت" : "اكتم الصوت"}>{muted ? "شغّل الصوت" : "اكتم"}</button>
       <button type="button" onClick={full} aria-label="ملء الشاشة" title="ملء الشاشة">ملء الشاشة</button>
     </div>
   );

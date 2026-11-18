@@ -8,6 +8,7 @@ import { allToneIds } from "../voice/tones";
 import { findTraces } from "../package/traces";
 import { writeJsonAtomic } from "../io/atomicJson";
 import { withPlanWrite } from "../plan/planWriteLock";
+import { EPISODES, arabicCountAr } from "../i18n/count";
 import {
   GENERAL_SLUG, SLUG_RE, deriveSeriesIdentity, stampSeries, validateSeries, withGeneral,
   type SeriesConfig, type SeriesContext, type SeriesStamp,
@@ -100,7 +101,7 @@ export const deleteSeries = async (ch: string, id: string): Promise<void> => {
   const s = readSeriesFiles(ch).find((x) => x.id === id);
   if (!s) throw new SeriesError([`السلسلة «${id}» غير موجودة.`]);
   const eps = (await episodesBySeries(ch)).filter((e) => e.series === id);
-  if (eps.length) throw new SeriesError([`في «${s.name}» ${eps.length} حلقة؛ انقلها إلى سلسلة أخرى أولًا ثم احذفها.`]);
+  if (eps.length) throw new SeriesError([`في «${s.name}» ${arabicCountAr(eps.length, EPISODES)}؛ انقلها إلى سلسلة أخرى أولًا ثم احذفها.`]);
   const kids = readSeriesFiles(ch).filter((x) => x.parent === id);
   if (kids.length) throw new SeriesError([`تحت «${s.name}» ${kids.map((k) => `«${k.name}»`).join("، ")}؛ انقلها أولًا.`]);
   await rm(path.dirname(fileOf(ch, id)), { recursive: true, force: true });

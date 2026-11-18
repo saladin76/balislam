@@ -84,7 +84,7 @@ export const TemplatesGallery: React.FC<{ identity?: Identity; channel?: Channel
                   {meta ? <span className="chip">{familyNamesAr[meta.family]}</span> : null}
                 </div>
                 <span className="help">{arDigitsLib(def?.useAr ?? "")}</span>
-                <details className="tpl-code"><summary>تفاصيل للمطور</summary><code className="help" dir="ltr">[مشهد: {e.id}]</code></details>
+                <span className="help">في السكريبت: <code dir="ltr">[مشهد: {e.id}]</code></span>
               </div>
             </article>
           );

@@ -462,7 +462,7 @@ export const balApi = (): Plugin => ({
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
             const voiceClient = paid ? channelMod.runWithChannel(ch, () => elevenLabsFromEnv()) : null;
             // Audit item 5: an automatic start does not re-render a scene whose same inputs just failed.
-            // M3: the owner's own «استأنف التجهيز» retries them (the failure expires on that press).
+            // M3: the owner's own «استأنف إنتاج المسودات» retries them (the failure expires on that press).
             const previousFailures = opts.retryFailed ? [] : prepareJob(key)?.failed ?? [];
             return startPrepareJob(key, (onProgress, shouldStop) => channelMod.runWithChannel(ch, () =>
               prepareAllScenes(ep, { voiceClient, renderOnly: !paid, voiceScenes: opts.voiceScenes, onProgress, shouldStop, previousFailures })), busy);
@@ -489,7 +489,7 @@ export const balApi = (): Plugin => ({
             // KI-058: a repeated press (stale page, second tab, double click) writes nothing (D76) and STARTS nothing.
             // Before, it started a second «جهّز كل المشاهد» that chased every scene the owner re-opened afterwards
             // and then held the episode when «اصنع النسخة النهائية» came. The queue starts only with the approval itself;
-            // later the owner's own «جهّز كل المشاهد» / «استأنف التجهيز» starts it.
+            // later the owner's own «جهّز كل المشاهد» / «استأنف إنتاج المسودات» starts it.
             let already = false;
             try { already = isPreparationApproved(await inspectSceneProduction(ep)); } catch { /* approvePreparation says why */ }
             let read;
@@ -581,7 +581,7 @@ export const balApi = (): Plugin => ({
               const job = await startPrepare({ retryFailed: true, voiceScenes: plan.scenes });
               return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing(), voicePlan: plan });
             }
-            // «أنتج كل المشاهد الجاهزة» / «استأنف التجهيز»: free drafts only, whatever key is configured (D145; 15–16 Nov).
+            // «أنتج كل المشاهد الجاهزة» / «استأنف إنتاج المسودات»: free drafts only, whatever key is configured (D145; 15–16 Nov).
             const job = await startPrepare({ retryFailed: true });
             return send(res, 200, { job, voiceKey, needVoice: (await scenesNeedingVoice(ep)).length, toneMissing: await toneMissing(), voicePlan: await voicePlanRead() });
           }

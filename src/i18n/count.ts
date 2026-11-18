@@ -54,3 +54,8 @@ export const LETTERS: ArabicNounForms = { one: "حرف واحد", two: "حرفا
 export const SECONDS_AR: ArabicNounForms = { one: "ثانية واحدة", two: "ثانيتان", few: "ثوانٍ", many: "ثانية", hundred: "ثانية" };
 /** «كل سبت»: the weekly publishing day as the owner reads it. */
 export const everyWeekday = (day: string) => `كل ${day.replace(/^(يوم\s+)?(ال)?/, "")}`;
+
+// The channel library (owner review, 18 Nov: «٨ قالبًا»، «٠ مكانًا»)
+export const TEMPLATES: ArabicNounForms = { one: "قالب واحد", two: "قالبان", few: "قوالب", many: "قالبًا", hundred: "قالب" };
+export const PLACES: ArabicNounForms = { one: "مكان واحد", two: "مكانان", few: "أماكن", many: "مكانًا", hundred: "مكان" };
+export const ELEMENTS: ArabicNounForms = { one: "عنصر واحد", two: "عنصران", few: "عناصر", many: "عنصرًا", hundred: "عنصر" };

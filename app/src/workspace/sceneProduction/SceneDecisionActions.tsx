@@ -91,13 +91,17 @@ export const SceneDecisionActions: React.FC<{
   }
   const at = p.problem ? fmtTime(p.problem.at) : "";
   const problemReady = p.problem?.kind === "motion" ? Boolean(p.problemText.trim()) : Boolean(p.problem);
-  const review = p.stage === "review";
+  // Owner review, 18 Nov: «اعتمد المشهد» stayed open on a draft older than the scene's newer take («أنتج هذا المشهد»):
+  // the shown preview is no longer what the scene will be, so the approval waits for the new production.
+  const outdated = p.newerTake === "produce";
+  const review = p.stage === "review" && !outdated;
   const voiceLabel = p.voiceBusy ? "جارٍ توليد الصوت…" : p.voice === "ok" ? "أعد توليد الصوت" : "ولّد الصوت";
   const voiceOff = p.voiceBusy || p.pending || !p.canVoice || Boolean(p.preparing);
   const needVoice = p.voice === "missing" || p.voice === "stale";
   // سطر واحد بما ينتظره «اعتمد»، ثم ما يمنع غيره
   const reasons: React.ReactNode[] = [];
-  if (!review) reasons.push(
+  if (outdated && p.stage === "review") reasons.push("المعاينة المعروضة أقدم من صوت المشهد الحالي: «أنتج هذا المشهد» أولًا، ثم اعتمده.");
+  else if (!review) reasons.push(
     // QA 12 Nov: the note itself is shown once, above, with its badge («الحركة عند ٠:٠٠»), never its raw «[الحركة @0:00]» tag
     p.awaitingChange != null ? `بانتظار التعديل: إنتاجه بالمدخلات نفسها يعطي النسخة نفسها؛ يُنتج من جديد حين يتغيّر (نبرة، نص، لوحة) أو حين تُجاب ملاحظتك «أُصلحت».`
     : p.preparing === "now" ? "يُجهَّز هذا المشهد الآن بصوته وحركته؛ «اعتمد» يُفتح حين تكتمل معاينته."

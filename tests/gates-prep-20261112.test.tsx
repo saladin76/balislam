@@ -228,7 +228,7 @@ describe("balislam 9 / zubdat D-7 / dafatir M1–M3 · preparation says what it 
     const ui = src("app/src/workspace/PrepareAll.tsx");
     expect(ui).toContain("توقف توليد الصوت: {named(job.voice.error?.split(\"\\n\")[0])}");
     expect(ui).toContain("/نبرة/.test(job.voice.error");
-    expect(ui).toContain("انتهى التجهيز:");
+    expect(ui).toContain("انتهى إنتاج المسودات:");
     expect(ui).toContain(`className="prep-note is-summary"`);
     expect(src("app/src/shell/screens-s3.css")).toContain(".prep-note:not(.is-err):not(.is-summary)");
     expect(ui).toContain('"أوقف"');

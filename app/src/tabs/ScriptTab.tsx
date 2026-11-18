@@ -5,6 +5,7 @@ import { ReviewPanel } from "./ReviewPanel";
 import { Hint, More } from "../shell/Screen";
 import "../shell/screens-s12.css";
 import { countAr, ERRORS, ownerText, WARNINGS, WORDS } from "../ui/format";
+import { Markdown } from "../ui/Markdown";
 
 export type ScriptTabHandle = { goToLine: (line: number) => void; hasUnsavedResearch: () => boolean };
 
@@ -31,6 +32,8 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
   // ملف البحث / دراسة الكتاب: للتحضير والمراجعة، لا يُقرأ ولا يُنشر
   const [doc, setDoc] = useState<"script" | "research">(initialDoc);
   const [research, setResearch] = useState<{ text: string; saved: string; label: string; exists: boolean } | null>(null);
+  /** «قراءة / تحرير» (owner review, 18 Nov: the research showed as raw markdown): read formatted, edit the source. */
+  const [researchView, setResearchView] = useState<"read" | "edit">("read");
   useEffect(() => {
     setResearch(null);
     if (episodeId) api.research(episodeId).then((r) => setResearch({ text: r.text, saved: r.exists ? r.text : "", label: r.label, exists: r.exists })).catch(() => {});
@@ -158,7 +161,17 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
         {doc === "script" ? (
           <textarea id="script-editor" aria-label="نص السكريبت" ref={area} value={text} onChange={(e) => onChange(e.target.value)} spellCheck={false} dir="rtl" />
         ) : (
-          <textarea id="research-editor" aria-label={research?.label ?? "ملف البحث"} value={research?.text ?? ""} onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
+          <>
+            <div className="sb-layout research-view" role="group" aria-label="عرض ملف البحث">
+              <button type="button" aria-pressed={researchView === "read" && !researchDirty} onClick={() => setResearchView("read")} disabled={researchDirty} title={researchDirty ? "احفظ التعديلات أولًا" : undefined}>قراءة</button>
+              <button type="button" aria-pressed={researchView === "edit" || researchDirty} onClick={() => setResearchView("edit")}>تحرير</button>
+            </div>
+            {researchView === "read" && !researchDirty && research?.text ? (
+              <div className="research-read" dir="rtl"><Markdown text={research.text} onLink={() => {}} /></div>
+            ) : (
+              <textarea id="research-editor" aria-label={research?.label ?? "ملف البحث"} value={research?.text ?? ""} onChange={(e) => research && setResearch({ ...research, text: e.target.value })} spellCheck={false} dir="rtl" />
+            )}
+          </>
         )}
       </div>
       {doc === "script" ? (
@@ -169,7 +182,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
               {check.ok ? "صالح" : countAr(errors, ERRORS)}
               {warnings ? <span className="s12-soft"> — {countAr(warnings, WARNINGS)}</span> : null}
             </span>
-            <span className="s12-num">{countAr(check.stats.totalWords, WORDS)} — {fmtAr(check.stats.totalSeconds)}</span>
+            <span className="s12-num" title="تقدير من عدد الكلمات بسرعة الكلام المعتادة، بلا وقفات المشاهد ولا الآيات؛ مدة الخطة والصوت تظهر في «اللوحات والنص»">{countAr(check.stats.totalWords, WORDS)} — ≈ {fmtAr(check.stats.totalSeconds)} <span className="s12-soft">(من عدد الكلمات)</span></span>
           </header>
           {sortedIssues.length ? (
             <ul className="s12-issues">
@@ -188,7 +201,7 @@ export const ScriptTab = forwardRef<ScriptTabHandle, {
             {!check.stats.divisions ? (
             <section aria-label="الطول">
               <h3 className="s12-h">الطول</h3>
-              <p className="s12-soft">سرد واحد متصل: {countAr(check.stats.totalWords, WORDS)}، نحو {fmtAr(check.stats.totalSeconds)}.</p>
+              <p className="s12-soft">سرد واحد متصل: {countAr(check.stats.totalWords, WORDS)}، نحو {fmtAr(check.stats.totalSeconds)} تقديرًا من عدد الكلمات.</p>
             </section>
             ) : (
             <section aria-label="الفصول">

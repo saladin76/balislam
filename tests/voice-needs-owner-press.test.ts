@@ -7,7 +7,7 @@
  * start (the case that used to pay on its own). Stubs: the Remotion render behind shotsPreview (an ffmpeg clip) and
  * the ElevenLabs HTTP API (intercepted in globalThis.fetch, a real MP3; no network, no real service).
  * Audited paths, each proven to send zero voice requests without the press: the approval itself, a repeated
- * approval, «استأنف التجهيز» / «أنتج كل المشاهد الجاهزة», the episode tone, the pronunciation dictionary, the pace,
+ * approval, «استأنف إنتاج المسودات» / «أنتج كل المشاهد الجاهزة», the episode tone, the pronunciation dictionary, the pace,
  * «اصنع النسخة النهائية» (`bal make`), a stale or unconfirmed request, a Studio restart (prepare queue in memory;
  * paid jobs in the render-queue ledger are not resumed).
  */
@@ -188,7 +188,7 @@ describe("«اعتمد التجهيز» → no voice request until «ولّد ا
     expect(elevenCalls).toEqual([]);
   }, 180_000);
 
-  it("«استأنف التجهيز», «أنتج كل المشاهد الجاهزة», the episode tone, the pronunciation dictionary and the pace pay nothing", async () => {
+  it("«استأنف إنتاج المسودات», «أنتج كل المشاهد الجاهزة», the episode tone, the pronunciation dictionary and the pace pay nothing", async () => {
     for (const body of [undefined, { renderOnly: true }]) {
       expect((await call("POST", `episodes/${EP}/scene-prepare`, body)).status).toBe(200);
       expect((await settle()).body.job.voice).toMatchObject({ status: "none", needed: 0 });

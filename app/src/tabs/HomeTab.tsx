@@ -22,7 +22,7 @@ type Stage = { key: string; label: string; state: StageState; note: string };
 export const stagesOf = (e: Overview): Stage[] => {
   const stale = e.package.video && e.planUpdatedAt && e.package.updatedAt && e.planUpdatedAt > e.package.updatedAt;
   return [
-    { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? (e.length ? `صالح — ${duration(e.length.seconds)}` : "صالح") : countAr(e.check.errors, ERRORS) },
+    { key: "script", label: "السكريبت", state: e.check.ok ? "done" : "warn", note: e.check.ok ? (e.length ? `صالح — ${duration(e.length.seconds)} ${e.length.source === "voice" ? "مقيسة" : "مدة الخطة"}` : "صالح") : countAr(e.check.errors, ERRORS) },
     { key: "scenes", label: "المشاهد", state: !e.scenes ? "todo" : e.blocking ? "warn" : "done", note: !e.scenes ? "لم تُولَّد" : e.blocking ? `${num(e.blocking)} يمنع النسخة النهائية` : arabicCountAr(e.scenes, SCENES) },
     {
       key: "voice",
