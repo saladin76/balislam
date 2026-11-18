@@ -177,7 +177,8 @@
             "verseFrom": "وبعد"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 8
         },
         {
           "id": "c1-s15",
@@ -627,6 +628,6 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-18T18:05:16.382Z",
+  "updatedAt": "2026-11-18T18:06:09.291Z",
   "intro": false
 }
