@@ -359,7 +359,8 @@
             "verseY": "780"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 4.5
         },
         {
           "id": "c1-s29",
@@ -624,6 +625,6 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-18T18:02:40.050Z",
+  "updatedAt": "2026-11-18T18:03:53.111Z",
   "intro": false
 }
