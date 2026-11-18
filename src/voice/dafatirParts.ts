@@ -22,6 +22,7 @@ import { boundaryProblems, composeScene, renderBoundaries, type ComposedScene, t
 import { HZ_META, type HzExit } from "../remotion/dafatir/horizon/meta";
 import { normWord, stripTashkeel } from "./tashkeel";
 import { isSupersededVersion, isTone, TONE_PRESET_VERSION } from "./tones";
+import { analyzeToneMapSync, type SyncSegment } from "./toneMapSync";
 
 export const PARTS_CHANNEL = "dafatir-alzaman";
 export const PARTS_SAMPLE_RATE = 44100;
@@ -54,6 +55,16 @@ export const validatePartsContext = (map: ToneMap & { source?: { tashkeel?: { sh
   if (!m || Number(m[1]) < 1 || (Number(m[1]) === 1 && Number(m[2]) < 2)) throw new Error(`خريطة النبرة ${map.version || "بلا إصدار"} أقدم من v1.2؛ التوليد يتبع الخريطة المعتمدة v1.2 فما بعد.`);
   if (tashkeelText !== null && map.source?.tashkeel?.sha256 && map.source.tashkeel.sha256 !== sha256(tashkeelText))
     throw new Error("خريطة النبرة مبنية على تشكيل قديم (البصمة لا تطابق tashkeel.md)؛ حدّثها قبل التوليد.");
+  // KI-088: خريطة مُزامَنة تُفحص مقطعًا مقطعًا بالنطق، لا بالبصمة وحدها: كل مقطع = سطره في التشكيل (الكتابة وحدها لا تُعد)،
+  // إلا موضعًا كتبه المالك استثناءً «النطق المسجَّل باقٍ» في آخر مزامنة. لا Master من نطق يخالف التشكيل بلا قرار مكتوب.
+  const syncs = (map as { tashkeelSyncs?: { keptRecorded?: { segments?: { id: string }[] } }[] }).tashkeelSyncs;
+  if (tashkeelText !== null && syncs?.length) {
+    const kept = new Set((syncs.at(-1)?.keptRecorded?.segments ?? []).map((x) => x.id));
+    const drift = analyzeToneMapSync(map.segments as SyncSegment[], tashkeelText);
+    if (!drift.ok) throw new Error(`خريطة النبرة لا تطابق التشكيل بالنص: ${drift.unmatched.map((u) => u.id).join("، ")}؛ زامنها (bal tone-map-sync).`);
+    const bad = drift.rows.filter((r) => r.kind === "pronunciation" && !kept.has(r.id));
+    if (bad.length) throw new Error(`نطق ${bad.map((r) => `${r.id} (${r.scene})`).join("، ")} في خريطة النبرة يخالف التشكيل الحالي؛ زامنها (bal tone-map-sync) أو اكتبه استثناءً بقرار المالك.`);
+  }
   const jobs = partJobs(map);
   const scenes = plan.chapters.flatMap((c) => c.scenes);
   const byId = new Map(scenes.map((s) => [s.id, s]));
