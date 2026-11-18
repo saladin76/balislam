@@ -97,6 +97,8 @@ export const App: React.FC = () => {
   const { scheme, toggle: toggleScheme } = useColorScheme();
   /** Views inside a step (direction D, the floating pill): the scenes one by one or those needing a fix; step ٣'s three. */
   const [sceneView, setSceneView] = useState<"one" | "fix">("one");
+  /** Goes up on each «الشورتس» in step ٢ (the panel opens its shorts picker). */
+  const [shortsAsk, setShortsAsk] = useState(0);
   const [finalView, setFinalView] = useState<FinalView | null>(null);
   const [tab, setTab] = useState<Tab>(bootRoute.tab);
   /** The episode step that opened «الإعدادات» (audit item 14): the settings page offers to go back to it. */
@@ -149,6 +151,9 @@ export const App: React.FC = () => {
   episodeRef.current = epId;
   const [requestedSceneId, setRequestedSceneId] = useState<string | undefined>();
   const [viewSceneId, setViewSceneId] = useState<string | undefined>();
+  // Any request to open one scene (from «تغيّر بعد التجهيز», step ٣, the voice, the publish tab, a link) shows it
+  // scene by scene: the «تحتاج إصلاحًا» view kept on screen hid a scene not in that list (owner review, 18 Nov).
+  useEffect(() => { if (requestedSceneId || viewSceneId) setSceneView("one"); }, [requestedSceneId, viewSceneId]);
   /** The scene on screen in step ٢ (in the address bar, so a reload keeps it); the boot route's scene is used once. */
   const [shownScene, setShownScene] = useState<string | undefined>(bootRoute.scene);
   const bootScene = useRef<string | undefined>(bootRoute.scene);
@@ -455,15 +460,16 @@ export const App: React.FC = () => {
     setTab(next);
   };
   const manageItems: ManageItem[] = [
-    { id: "ops", label: SECTION_TITLES.ops, note: "القنوات الثلاث وبنك الأفكار" },
+    // غرفة العمليات وإعدادات القناة والهوية أزرار على الشريط نفسه بجوار القنوات (قرار المالك ١٨ نوفمبر، D156)
+    { id: "ops", label: SECTION_TITLES.ops, note: "القنوات الثلاث وبنك الأفكار", quick: "monitor" },
+    { id: "channel", label: SECTION_TITLES.channel, quick: "sliders" },
+    { id: "identity", label: SECTION_TITLES.identity, note: identDirty ? "تعديلات غير محفوظة" : undefined, alert: identDirty, quick: "palette" },
     { id: "channels", label: SECTION_TITLES.channels },
-    { id: "channel", label: SECTION_TITLES.channel },
-    { id: "identity", label: SECTION_TITLES.identity, note: identDirty ? "تعديلات غير محفوظة" : undefined },
     { id: "library", label: SECTION_TITLES.library },
     ...(hasLabs ? [{ id: "labs" as const, label: SECTION_TITLES.labs }] : []),
     ...(hasTechReviews ? [{ id: "treviews" as const, label: SECTION_TITLES.treviews }] : []),
     ...(hasGuide ? [{ id: "guide" as const, label: guideLabel }] : []),
-    { id: "settings", label: SECTION_TITLES.settings, note: keysOk.voice ? undefined : "الصوت غير متصل" },
+    { id: "settings", label: SECTION_TITLES.settings, note: keysOk.voice ? undefined : "الصوت غير متصل", alert: !keysOk.voice },
   ];
 
   if (!ident) return <div className="empty-state"><h2>جارٍ التحميل…</h2></div>;
@@ -486,7 +492,7 @@ export const App: React.FC = () => {
   const views: HeaderView[] = tab === "home" || tab === "library" || (tab === "guide" && hasGuide) ? [
     { id: "home", label: "الحلقات", sub: episodes ? arNum(episodes.length) : undefined, current: tab === "home", onSelect: () => void navigateManage("home") },
     { id: "library", label: "مكتبة القناة", current: tab === "library", onSelect: () => void navigateManage("library") },
-    ...(hasGuide ? [{ id: "guide", label: "مرجع القناة", current: tab === "guide", onSelect: () => void navigateManage("guide") }] : []),
+    ...(hasGuide ? [{ id: "guide", label: "مرجع الاستوديو", current: tab === "guide", onSelect: () => void navigateManage("guide") }] : []),
   ] : !inEpisode ? [] : here === 0 ? [
     { id: "storyboard", label: "اللوحات والنص", sub: plan ? arNum(plan.chapters.reduce((n, c) => n + c.scenes.length, 0)) : undefined, current: tab === "storyboard", onSelect: () => go("storyboard") },
     { id: "script", label: "السكريبت", sub: check ? countAr(check.stats.totalWords, WORDS) : undefined, current: tab === "script", onSelect: () => go("script") },
@@ -494,6 +500,8 @@ export const App: React.FC = () => {
     { id: "research", label: "البحث والمصادر", current: tab === "research", onSelect: () => go("research") },
   ] : here === 1 && done[0] ? [
     { id: "one", label: "مشهدًا مشهدًا", current: tab === "episode" && sceneView === "one", onSelect: () => { setSceneView("one"); go("episode"); } },
+    // «الشورتس»: the segments are picked at any time (D83), so step ٢ shows the way to them (owner review, 18 Nov)
+    { id: "shorts", label: "الشورتس", current: false, onSelect: () => { setSceneView("one"); go("episode"); setShortsAsk((n) => n + 1); } },
     { id: "voice", label: "متتابعة", sub: plan ? duration(episodeLength(plan, media, config.video.fps).seconds) : undefined, current: tab === "voice", onSelect: () => go("voice") },
     { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount || undefined, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
   ] : here === 2 && done[0] ? [
@@ -871,6 +879,7 @@ export const App: React.FC = () => {
             onOpenPreparation={() => setTab("storyboard")}
             view={sceneView}
             onView={setSceneView}
+            openShorts={shortsAsk}
             thumb={(id) => <SceneThumb sceneId={id} plan={plan} identity={ident.draft} channel={channel} media={media} />}
             onUpdated={() => setHomeKey(k => k + 1)}
             onState={(st) => setLedger({ key: `${channelId}/${epId}`, w: st })}

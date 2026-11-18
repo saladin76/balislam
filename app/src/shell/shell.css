@@ -181,6 +181,14 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .ms-ch i { position: absolute; inset: auto 6px 5px 6px; height: 2.5px; border-radius: 2px; background: var(--acc); }
 .ms-ch[aria-pressed="true"] { color: var(--band-ink); border-color: var(--band-ink); }
 .ms-ch:hover { color: var(--band-ink); }
+/* أقسام القناة على الشريط (D156): غرفة العمليات، إعدادات القناة، الهوية؛ أيقونة واسم قصير، والنقطة لما يحتاج صاحب القناة وحده */
+.ms-quick { display: flex; flex-direction: column; gap: 6px; align-items: stretch; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--band-line); width: 100%; }
+.ms-quick-it { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 6px 2px; border-radius: 10px; color: var(--band-mute); position: relative; text-align: center; }
+.ms-quick-it small { font-size: var(--t-11, 11px); line-height: 1.25; }
+.ms-quick-it:hover, .ms-quick-it:focus-visible { color: var(--band-ink); background: var(--band-line); }
+.ms-quick-it[aria-current="page"] { color: var(--band-ink); background: var(--band-line); }
+.ms-quick-it .dot { position: absolute; top: 4px; inset-inline-end: 10px; width: 7px; height: 7px; border-radius: 50%; background: var(--acc); }
+.ms-menu-quick { display: none; }
 .ms-gear-wrap { position: relative; margin-top: 12px; }
 .ms-gear { all: unset; box-sizing: border-box; cursor: pointer; width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; color: var(--band-mute); }
 .ms-gear:hover, .ms-gear[aria-expanded="true"] { color: var(--band-ink); background: #ffffff12; }
@@ -572,7 +580,8 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
   .ms-mark { font-size: var(--t-20); display: flex; gap: 5px; padding: 0; }
   .ms-mark span::after { inset: 56% -2px 8% -2px !important; }
   [data-channel] .ms-mark::after { display: none; }
-  .ms-band-ep, .ms-band-sp, .ms-chs, .ms-counter, .ms-stp small, .ms-stp .sub { display: none; }
+  .ms-band-ep, .ms-band-sp, .ms-chs, .ms-quick, .ms-counter, .ms-stp small, .ms-stp .sub { display: none; }
+  .ms-menu-quick { display: block; }
   .ms-steps { flex-direction: row; margin: 0 auto 0 0; width: auto; gap: 2px; }
   .ms-stp { width: 40px; padding: 0; }
   .ms-stp .n { font-size: var(--t-24); width: 34px; height: 34px; border-radius: 9px; }

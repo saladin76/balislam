@@ -3,9 +3,9 @@ import React from "react";
 export type StudioSection = "home" | "ops" | "channels" | "review" | "research" | "episode" | "script" | "tashkeel" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs" | "treviews" | "series";
 
 export const SECTION_TITLES: Record<StudioSection, string> = {
-  home: "حلقات القناة", ops: "غرفة العمليات والمراقبة", channels: "إدارة القنوات", review: "المراجعة المتكاملة", research: "البحث والتحضير", script: "السكريبت", tashkeel: "النص المشكول",
+  home: "حلقات القناة", ops: "غرفة العمليات", channels: "إدارة القنوات", review: "المراجعة المتكاملة", research: "البحث والتحضير", script: "السكريبت", tashkeel: "النص المشكول",
   storyboard: "الستوري بورد", voice: "صوت الحلقة", episode: "محرر المشاهد", publish: "النشر والتسليم",
-  identity: "الهوية البصرية", library: "مكتبة الأصول والقوالب", channel: "إعدادات القناة",
+  identity: "الهوية البصرية", library: "مكتبة القناة", channel: "إعدادات القناة",
   settings: "الاتصالات والمفاتيح", guide: "مرجع الاستوديو", labs: "مختبرات الإنتاج", treviews: "المراجعات الفنية", series: "السلسلة",
 };
 
