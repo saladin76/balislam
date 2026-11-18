@@ -94,7 +94,8 @@
             "verseFrom": "يحدثنا"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 13
         },
         {
           "id": "c1-s9",
@@ -622,6 +623,6 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-18T17:56:21.847Z",
+  "updatedAt": "2026-11-18T17:56:23.244Z",
   "intro": false
 }
