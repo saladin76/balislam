@@ -1,5 +1,6 @@
 import { SocialKit } from "./SocialKit";
 import { ShortsPicker } from "./ShortsPicker";
+import { shortFileNumber, sortShortFiles } from "../../../src/plan/shorts";
 import { DriveHandoffCard, driveOwnsPrimary, driveView } from "./DriveHandoff";
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { api, type DriveHandoffRead, type SceneProductionRead, type EpisodeStatus, type LongJob, type PackageInfo } from "../api";
@@ -13,7 +14,7 @@ import { OwnerText } from "../ui/OwnerText";
 
 /** بنود قائمة النشر (تُحفظ حالتها في status.json للحلقة). */
 const CHECKLIST: { id: string; group: string; text: string }[] = [
-  { id: "watched", group: "قبل الرفع", text: "شاهدت الحلقة كاملة والشورتس الستة إلى آخر ثانية" },
+  { id: "watched", group: "قبل الرفع", text: "شاهدت الحلقة كاملة وكل شورت إلى آخر ثانية" },
   { id: "review", group: "قبل الرفع", text: "المراجع الشرعي وافق على كل آية وحديث" },
   { id: "pronunciation", group: "قبل الرفع", text: "لا أخطاء نطق (وإن وُجدت: قاموس النطق ثم إعادة المشهد فقط)" },
   { id: "upload", group: "يوتيوب ستوديو", text: "رفعت الفيديو والصورة المصغّرة" },
@@ -22,7 +23,7 @@ const CHECKLIST: { id: string; group: string; text: string }[] = [
   { id: "synthetic", group: "يوتيوب ستوديو", text: "فعّلت «محتوى معدّل أو اصطناعي»: نعم (الصوت مستنسخ)" },
   { id: "endscreen", group: "يوتيوب ستوديو", text: "أضفت عناصر شاشة النهاية في أماكنها" },
   { id: "schedule", group: "يوتيوب ستوديو", text: "جدولت النشر في الموعد" },
-  { id: "shorts", group: "الشورتس", text: "جدولت الشورتس الستة: واحد يوميًا" },
+  { id: "shorts", group: "الشورتس", text: "جدولت الشورتس كلها: واحد يوميًا أو كما في التقويم" },
   { id: "shortsLink", group: "الشورتس", text: "ربطت كل شورت بالحلقة الكاملة" },
 ];
 
@@ -196,7 +197,8 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const yt = useMemo(() => parseYoutube(pkg?.youtube ?? ""), [pkg?.youtube]);
   const files = pkg?.files ?? [];
   const video = files.find((f) => f.name.endsWith("-episode.mp4"));
-  const shorts = files.filter((f) => /-short-\d\.mp4$/.test(f.name));
+  // بلا حد لعددها (D152): كل `-short-<n>.mp4` مرتبة بأرقامها (2 قبل 10)
+  const shorts = sortShortFiles(files);
   const thumbs = files.filter((f) => f.name.endsWith(".png"));
   const render = pkg?.render ?? null;
   const isMaster = Boolean(render?.quality === "master" && render.voiced);
@@ -325,6 +327,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
               <div className="s45-shorts">
                 {shorts.map((s) => (
                   <figure key={`${s.name}-${s.mtime}`}>
+                    <figcaption>الشورت {num(shortFileNumber(s.name) ?? 0)}</figcaption>
                     <video src={fresh(api.packageUrl(episodeId, s.name), s.mtime)} controls preload="none" />
                     <a className="btn ghost small" href={api.packageUrl(episodeId, s.name, true)}>تنزيل ({sizeLabel(s.size)})</a>
                   </figure>

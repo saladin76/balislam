@@ -819,7 +819,6 @@ export const balApi = (): Plugin => ({
                 suggested: sh.suggestedShorts(plan),
                 scenes: sh.shortsScenes(plan, (s: unknown) => sceneSeconds(s, media)),
                 divisions: plan.chapters.length,
-                max: sh.SHORTS_MAX,
                 titleMax: sh.SHORT_TITLE_MAX,
               };
             };

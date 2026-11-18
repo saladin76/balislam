@@ -94,7 +94,9 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
     const out = i === cuts.length - 1 ? "vout" : `x${i}`;
     const d = seams[i - 1]!.dissolveFrames;
     g.push(d > 0 ? `[${cur}][v${i}]xfade=transition=fade:duration=${f6(d / fps)}:offset=${f6(starts[i]!)}[${out}]`
-      : `[${cur}][v${i}]concat=n=2:v=1:a=0[${out}]`);
+      // concat outputs AV_TIME_BASE (1/1000000), but xfade needs both inputs on the scenes' 1/fps time base: a hard
+      // cut followed by a dissolve failed with «First input link main timebase … do not match» (#154 e2e, KI-082).
+      : `[${cur}][v${i}]concat=n=2:v=1:a=0,settb=1/${fps}[${out}]`);
     cur = out;
   }
   if (cuts.length === 1) g.push(`[v0]null[vout]`);

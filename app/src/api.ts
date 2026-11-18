@@ -52,7 +52,7 @@ export type Overview = {
   scenes: number;
   voice: { done: number; total: number };
   blocking: number;
-  package: { video: boolean; shorts: number; thumbnails: number; updatedAt: number | null };
+  package: { video: boolean; shorts: number; planned?: number; thumbnails: number; updatedAt: number | null };
   planUpdatedAt: number | null;
   /** One episode length everywhere (D52): the plan's duration, "voice" once measured from the narration. */
   length?: { seconds: number; source: "voice" | "plan" } | null;
@@ -269,7 +269,7 @@ export type DriveHandoffRead = {
 };
 
 /** GET /api/episodes/:id/shorts */
-export type ShortsRead = { saved: PlanShort[] | null; suggested: PlanShort[]; scenes: ShortsScene[]; divisions: number; max: number; titleMax: number };
+export type ShortsRead = { saved: PlanShort[] | null; suggested: PlanShort[]; scenes: ShortsScene[]; divisions: number; titleMax: number };
 
 export const api = {
   /** One scene = one combined audiovisual review; no Quran provider selection. */

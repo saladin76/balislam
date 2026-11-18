@@ -36,6 +36,7 @@ export const countAr = (n: number, f: ArabicNounForms, zero?: string): string =>
 
 export const SCENES: ArabicNounForms = { one: "مشهد واحد", two: "مشهدان", few: "مشاهد", many: "مشهدًا", hundred: "مشهد" };
 export const AYAT: ArabicNounForms = { one: "آية واحدة", two: "آيتان", few: "آيات", many: "آية", hundred: "آية" };
+export const SHORTS: ArabicNounForms = { one: "شورت واحد", two: "شورتان", few: "شورتس", many: "شورتًا", hundred: "شورت" };
 export const EPISODES: ArabicNounForms = { one: "حلقة واحدة", two: "حلقتان", few: "حلقات", many: "حلقة", hundred: "حلقة" };
 export const CITATIONS: ArabicNounForms = { one: "استشهاد واحد", two: "استشهادان", few: "استشهادات", many: "استشهادًا", hundred: "استشهاد" };
 export const ERRORS: ArabicNounForms = { one: "خطأ واحد", two: "خطآن", few: "أخطاء", many: "خطأً", hundred: "خطأ" };
