@@ -5,6 +5,7 @@ import { withServerFields } from "./planMerge";
 import { PLAN_SERVER_FIELDS_EVENT, type PlanServerFieldsDetail } from "./planServerFields";
 import { browserPlanRevision } from "../../src/plan/revision";
 import { SECTION_TITLES, type StudioSection } from "./ui/StudioSidebar";
+import { useDockRoom } from "./shell/useDockRoom";
 import "./studio-shell.css";
 import "./shell/shell.css";
 import { TopBar, type HeaderView } from "./shell/TopBar";
@@ -96,6 +97,8 @@ export const App: React.FC = () => {
   useStudioFonts();
   const { scheme, toggle: toggleScheme } = useColorScheme();
   /** Views inside a step (direction D, the floating pill): the scenes one by one or those needing a fix; step ٣'s three. */
+  // the page keeps room under its last line for the fixed bars at its foot (owner review, 18 Nov)
+  useDockRoom();
   const [sceneView, setSceneView] = useState<"one" | "fix">("one");
   /** Goes up on each «الشورتس» in step ٢ (the panel opens its shorts picker). */
   const [shortsAsk, setShortsAsk] = useState(0);

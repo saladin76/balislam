@@ -102,6 +102,10 @@ export const StoryboardPanel: React.FC<{
   afterPreparationScriptOnly?: boolean;
   onOpenScene?: (id: string) => void;
 }> = ({ episodeId, plan, identity, channel, media, onEditScene, onReload, refreshKey, afterPreparation, afterPreparationScriptOnly, onOpenScene }) => {
+  // «قائمة / شبكة» (owner review, 18 Nov: 163 boards were a ~35,000 px page): the grid puts boards side by side,
+  // each with its own text under it, so nothing is hidden; the choice stays on this device.
+  const [layout, setLayout] = useState<"list" | "grid">(() => { try { return localStorage.getItem("bal-sb-layout") === "grid" ? "grid" : "list"; } catch { return "list"; } });
+  useEffect(() => { try { localStorage.setItem("bal-sb-layout", layout); } catch { /* not critical */ } }, [layout]);
   const [viewing, setViewing] = useState<number | null>(null);
   const [citations, setCitations] = useState<ReviewItem[] | null>(null);
   useEffect(() => {
@@ -267,13 +271,17 @@ export const StoryboardPanel: React.FC<{
       {/* 11 Nov: what changed after «اعتمد التجهيز», informative; each scene opens in step ٢ (no re-approval here) */}
       {(afterPreparation?.length || afterPreparationScriptOnly) && onOpenScene ? <AfterPreparationList scenes={afterPreparation ?? []} scriptOnly={afterPreparationScriptOnly} name={(id) => sceneName(order, id)} onOpenScene={onOpenScene} /> : null}
 
+      <div className="sb-layout" role="group" aria-label="عرض اللوحات">
+        <button type="button" aria-pressed={layout === "list"} onClick={() => setLayout("list")}>قائمة</button>
+        <button type="button" aria-pressed={layout === "grid"} onClick={() => setLayout("grid")}>شبكة</button>
+      </div>
       {rows.map(({ ch, shots }) => (
         <section key={ch.number} className="sb-chapter s12-chapter">
           {/* سرد واحد بلا أقسام (D87): لا رأس «فصل» فوق اللوحات */}
           {showsDivision(plan.chapters, ch) ? <h3 className="s12-chapter-h">
             <span className="s12-num">{ar(ch.number)}</span> {ch.title}
           </h3> : null}
-          <div className="sb-grid s12-grid">
+          <div className={`sb-grid s12-grid${layout === "grid" ? " is-grid" : ""}`}>
             {shots.map(({ s, d, from }) => {
               const m = motionOf(s);
               const state = st?.scenes[s.id];

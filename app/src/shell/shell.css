@@ -139,7 +139,8 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
   .shell-v3 .work.script-grid .editor textarea { flex: 1 1 0; min-height: 0; height: auto; }
 }
 /* Room under the content for the dock, only on a screen that has one (step ٢ adds its filmstrip's own room, screens-s3.css) */
-.shell-v3 .studio-main:has(.ms-dock)::after { content: ""; display: block; flex: none; height: 120px; }
+/* Room under the last line for the fixed bars at the foot (the dock, the reel): measured by useDockRoom, 120 px until then */
+.shell-v3 .studio-main:has(.ms-dock)::after, .shell-v3 .studio-main:has(.s3-reel)::after { content: ""; display: block; flex: none; height: max(120px, var(--dock-room, 120px)); }
 
 /* ── The channel band (start edge): channel, the four steps, switcher, admin ── */
 .ms-band {
@@ -209,7 +210,9 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 
 /* ── The header: who (episode), the pill of views, me (save state, theme) ── */
 .ms-hdr {
-  position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); align-items: center; gap: 12px;
+  /* The side with the work session, sync and save never shrinks under its content (it ran over the views, owner
+     review 18 Nov): the views give way instead and scroll inside their pill; the episode name ellipsizes. */
+  position: sticky; top: 0; z-index: 15; display: grid; grid-template-columns: minmax(150px, 1fr) minmax(0, auto) minmax(max-content, 1fr); align-items: center; gap: 12px;
   padding: 14px 28px 10px; background: var(--hdr-bg, linear-gradient(var(--paper) 70%, transparent));
 }
 .ms-who { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--ink-2); }
@@ -231,7 +234,10 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .ms-pill button[aria-current="page"] { background: var(--ink); color: var(--paper); }
 .ms-pill button[aria-current="page"] small { color: var(--paper); opacity: .7; }
 .ms-pill .bd { min-width: 18px; height: 18px; border-radius: 9px; background: var(--warn-soft); color: var(--warn); font-size: var(--t-12); display: grid; place-items: center; padding: 0 5px; line-height: 1; }
-.ms-me { justify-self: end; display: flex; align-items: center; gap: 4px; color: var(--ink-2); }
+.ms-me { justify-self: end; display: flex; align-items: center; gap: 4px; color: var(--ink-2); white-space: nowrap; }
+@media (max-width: 1600px) { .ms-work-more { display: none; } }
+/* A narrower screen: the views' counts step aside (as on the phone) so every view stays in sight */
+@media (max-width: 1240px) { .ms-pill button small { display: none; } .ms-pill button { padding: 0 11px; } .ms-hdr { padding-inline: 18px; gap: 8px; } }
 .ms-save { font-size: var(--t-12); color: var(--mute); padding: 0 8px; white-space: nowrap; display: inline-flex; align-items: center; gap: 6px; }
 .ms-save::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--ok); }
 .ms-save.is-dirty::before { background: var(--warn); }
