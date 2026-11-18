@@ -283,7 +283,8 @@
             "leadWord": "سبب"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "durationSec": 4
         },
         {
           "id": "c1-s23",
@@ -626,6 +627,6 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-18T18:04:56.459Z",
+  "updatedAt": "2026-11-18T18:05:16.382Z",
   "intro": false
 }
