@@ -10,6 +10,12 @@ import { OwnerText } from "./OwnerText";
  */
 export const WORK_SESSION_LABELS: Record<number, string> = { 1: "ساعة", 2: "ساعتان", 3: "٣ ساعات" };
 export const WORK_SESSION_START_LABEL = "ابدأ جلسة عمل — عالج ملاحظاتي تلقائيًا";
+/** The header line in two parts (owner review, 18 Nov): the part after « — » steps aside on a narrower screen
+ * (shell.css .ms-work-more), so the button never runs over the views in the middle; its name stays whole. */
+export const LabelParts: React.FC<{ text: string }> = ({ text }) => {
+  const i = text.indexOf(" — ");
+  return i < 0 ? <>{text}</> : <><span>{text.slice(0, i)}</span><span className="ms-work-more">{text.slice(i)}</span></>;
+};
 export const WORK_SESSION_FIRST_REVIEW_HINT = "أول مراجعة تبدأ خلال ساعة على الأكثر، ثم كل ٥ دقائق";
 
 /** «HH:MM» بتوقيت جهاز المالك، بأرقام عربية. */
@@ -77,12 +83,12 @@ export const WorkSessionControl: React.FC = () => {
       {live ? (
         <span className="ms-work-live">
           <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} title={`${justStarted ? `${WORK_SESSION_FIRST_REVIEW_HINT}. ` : ""}${lastResolvedText(st!.lastResolved, true)}`}>
-            {workSessionLiveLabel(st!.session!.until)}
+            <LabelParts text={workSessionLiveLabel(st!.session!.until)} />
           </button>
           <button type="button" className="ms-work-stop" disabled={busy} onClick={() => void act(api.stopWorkSession)}>أوقف</button>
         </span>
       ) : (
-        <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)}>{WORK_SESSION_START_LABEL}</button>
+        <button type="button" aria-expanded={open} onClick={() => setOpen((o) => !o)} aria-label={WORK_SESSION_START_LABEL} title={WORK_SESSION_START_LABEL}><LabelParts text={WORK_SESSION_START_LABEL} /></button>
       )}
       {open ? (
         <div className="ms-sync-pop" role="dialog" aria-label="جلسة العمل">

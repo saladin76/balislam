@@ -98,6 +98,14 @@
 .shell-v3 .s12-chapter-h { margin: 10px 0 4px; display: flex; align-items: baseline; gap: 12px; font-family: var(--f-t); font-weight: var(--t-weight); font-size: var(--t-24); color: var(--ink); padding-top: var(--t-shift); }
 .shell-v3 .s12-chapter-h .s12-num { font-family: var(--f-t); font-size: var(--t-24); color: var(--ink); }
 .shell-v3 .sb-grid.s12-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 0; }
+/* «شبكة» (owner review, 18 Nov): boards side by side, the text under each; nothing hidden, about a quarter of the length */
+.shell-v3 .sb-layout { display: inline-flex; gap: 2px; padding: 3px; border-radius: 999px; background: var(--sf); box-shadow: 0 0 0 1px var(--line); margin: 6px 0 12px; }
+.shell-v3 .sb-layout button { all: unset; box-sizing: border-box; cursor: pointer; padding: 5px 14px; border-radius: 999px; font-size: var(--t-14); color: var(--ink-2); }
+.shell-v3 .sb-layout button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.shell-v3 .sb-grid.s12-grid.is-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 22px 18px; }
+.shell-v3 .is-grid .sb-shot.s12-shot { grid-template-columns: minmax(0, 1fr); gap: 8px; padding: 0; }
+.shell-v3 .is-grid .sb-shot.s12-shot + .sb-shot.s12-shot { border-top: 0; }
+.shell-v3 .is-grid .s12-shot .sb-said { font-size: var(--t-15, 15px); line-height: 1.75; }
 .shell-v3 .sb-shot.s12-shot { display: grid; grid-template-columns: 300px minmax(0, 1fr); gap: 26px; align-items: start; padding: 14px 0; background: none; border: 0; border-radius: 0; overflow: visible; cursor: pointer; }
 .shell-v3 .sb-shot.s12-shot + .sb-shot.s12-shot { border-top: 1px solid var(--quiet); }
 .shell-v3 .s12-shot .sb-frame { border-radius: 12px; background: #fff; box-shadow: 0 0 0 1px #16181d12, 0 12px 26px -20px #16181d55; outline: 0; }

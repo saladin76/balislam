@@ -147,7 +147,8 @@ describe("layers, links and tokens", () => {
   });
 
   it("the room under the content is only for a screen with a dock", () => {
-    expect(src("app/src/shell/shell.css")).toContain(".shell-v3 .studio-main:has(.ms-dock)::after {");
+    // KI-084: with the dock or the reel above it, sized from the measure (useDockRoom), never under 120 px
+    expect(src("app/src/shell/shell.css")).toContain(".shell-v3 .studio-main:has(.ms-dock)::after, .shell-v3 .studio-main:has(.s3-reel)::after {");
   });
 
   it("muted text reaches 4.5:1 on paper and quiet surfaces; the danger button in dark uses dark ink", () => {
