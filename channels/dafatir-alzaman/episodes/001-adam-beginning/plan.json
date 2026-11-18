@@ -179,7 +179,7 @@
           },
           "sfx": [],
           "edited": true,
-          "durationSec": 8
+          "durationSec": 7
         },
         {
           "id": "c1-s15",
@@ -629,6 +629,6 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-18T18:06:35.301Z",
+  "updatedAt": "2026-11-18T18:10:48.402Z",
   "intro": false
 }
