@@ -242,7 +242,7 @@ describe("«جهّز كل المشاهد»: drafts ahead of ordered approvals", 
     expect(free.body.job, JSON.stringify(free.body)).toMatchObject({ status: "done", voice: { status: "none", needed: 0 }, rendered: [], failed: [] });
     expect(free.body.job.skipped).toMatchObject([{ id: "c1-s2", reason: "voice" }, { id: "c1-s3", reason: "voice" }]);
     expect(elevenCalls).toEqual([]);
-    // «استأنف التجهيز» (a plain start) is free too, with a key: nothing paid without the owner's confirmed press.
+    // «استأنف إنتاج المسودات» (a plain start) is free too, with a key: nothing paid without the owner's confirmed press.
     expect((await prepareAll()).body.job).toMatchObject({ status: "done", voice: { status: "none", needed: 0 }, rendered: [] });
     // «ولّد الصوت الآن» needs its confirmation, from the Studio page, of the plan the owner read.
     const plan = (await call("GET", `episodes/${EP}/scene-prepare`)).body.voicePlan;

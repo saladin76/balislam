@@ -168,3 +168,5 @@
   .shell-v3 .bv-body { grid-template-columns: minmax(0, 1fr); }
   .shell-v3 .bv-time { display: none; }
 }
+/* «قراءة / تحرير» for the research file (owner review, 18 Nov) */
+.shell-v3 .research-read { padding: 8px 4px 24px; line-height: 1.9; font-size: var(--t-16, 16px); max-width: 860px; }

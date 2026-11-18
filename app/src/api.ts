@@ -346,7 +346,7 @@ export const api = {
   scenePrepare: (episode: string, channel: string) =>
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, undefined, channel).then(prepareRead),
   /**
-   * Free by default: «أنتج كل المشاهد الجاهزة» / «استأنف التجهيز» render the scenes whose takes exist; never any voice
+   * Free by default: «أنتج كل المشاهد الجاهزة» / «استأنف إنتاج المسودات» render the scenes whose takes exist; never any voice
    * (D145; owner decision 15–16 Nov). `voice`: «ولّد الصوت الآن» after the owner confirmed the plan he read — the only
    * start that may pay; a plan changed since is refused (409 VOICE_PLAN_CHANGED) with the new numbers.
    */

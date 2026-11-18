@@ -505,7 +505,7 @@ export const App: React.FC = () => {
     { id: "one", label: "مشهدًا مشهدًا", current: tab === "episode" && sceneView === "one", onSelect: () => { setSceneView("one"); go("episode"); } },
     // «الشورتس»: the segments are picked at any time (D83), so step ٢ shows the way to them (owner review, 18 Nov)
     { id: "shorts", label: "الشورتس", current: false, onSelect: () => { setSceneView("one"); go("episode"); setShortsAsk((n) => n + 1); } },
-    { id: "voice", label: "متتابعة", sub: plan ? duration(episodeLength(plan, media, config.video.fps).seconds) : undefined, current: tab === "voice", onSelect: () => go("voice") },
+    { id: "voice", label: "متتابعة", sub: plan ? (() => { const l = episodeLength(plan, media, config.video.fps); return `${l.source === "voice" ? "" : "≈ "}${duration(l.seconds)}`; })() : undefined, current: tab === "voice", onSelect: () => go("voice") },
     { id: "fix", label: "تحتاج إصلاحًا", badge: fixCount || undefined, current: tab === "episode" && sceneView === "fix", onSelect: () => { setSceneView("fix"); go("episode"); } },
   ] : here === 2 && done[0] ? [
     // D68: without recitations the same view holds only the watch-only pre-final preview, so it is named for it.

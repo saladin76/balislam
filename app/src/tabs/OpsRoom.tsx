@@ -123,7 +123,7 @@ export const OpsRoom: React.FC<{
         <div className="kpis">
           <div><b>{num(longThisWeek)} من {num(scheduledCount)}</b><span>حلقات الأسبوع</span></div>
           <div><b>{num(readyCount)}</b><span>فحوص فنية مكتملة</span></div>
-          <div><b>{num(all.length)}</b><span>حلقة في الإنتاج</span></div>
+          <div><b>{num(all.length)}</b><span>{all.length === 2 ? "حلقتان" : all.length >= 3 && all.length <= 10 ? "حلقات" : "حلقة"} في الإنتاج</span></div>
           <div><b>{num(ideasCount)}</b><span>فكرة في البنك</span></div>
         </div>
       </div>

@@ -9,7 +9,9 @@ import path from "node:path";
 import { projectRoot } from "../config/paths";
 
 /** shared: صفحة مشتركة بين القنوات من docs/studio/ (مثل studio-map.md، D103)، تُعرض في مرجع كل قناة بلا نسخة ثانية */
-export type GuideEntry = { file: string; title: string; summary?: string; shared?: boolean };
+/** audience «dev»: an engineering page (architecture, development, briefs, the studio map): the Studio folds it under
+ * «صفحات هندسية — للمطور وClaude», out of the owner's way but still there (owner review, 18 Nov). */
+export type GuideEntry = { file: string; title: string; summary?: string; shared?: boolean; audience?: "dev" };
 /** مجلد الصفحات المشتركة بين القنوات (D103) */
 export const sharedGuideDir = (root = projectRoot) => path.join(root, "docs", "studio");
 /** navLabel: اسم القسم في قائمة الاستوديو لهذه القناة (الافتراضي «دليل الاستوديو») */

@@ -171,8 +171,8 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
         </section>
 
         <section id="channel-rules" className="group channel-settings-section">
-          <h3>قواعد المحتوى <small>عرض الإعدادات الحالية دون تغيير طريقة الإنتاج</small></h3>
-          <label className="check"><input type="checkbox" checked={c.rules.quran} onChange={(e) => set({ rules: { ...c.rules, quran: e.target.checked } })} /><span>القناة تستشهد بالقرآن (بطاقات الآيات وجلب النصوص)</span></label>
+          <h3>قواعد المحتوى <small>ما تلتزم به القناة في كل حلقاتها؛ أي تعديل يُظهر زر الحفظ أعلى الصفحة</small></h3>
+          <label className="check"><input type="checkbox" checked={c.rules.quran} onChange={(e) => set({ rules: { ...c.rules, quran: e.target.checked } })} /><span>القناة تستشهد بالقرآن (بطاقات الآيات بنصها المكتوب في السكريبت)</span></label>
           <label className="check"><input type="checkbox" checked={c.rules.hadith} onChange={(e) => set({ rules: { ...c.rules, hadith: e.target.checked } })} /><span>القناة تستشهد بالحديث (المقبول: {c.rules.hadithGrades.join(" و")})</span></label>
           <label className="check"><input type="checkbox" checked={!c.rules.faces} onChange={(e) => set({ rules: { ...c.rules, faces: !e.target.checked } })} /><span>إخفاء ملامح وجوه الشخصيات</span></label>
           <label className="check"><input type="checkbox" checked={!c.rules.music} onChange={(e) => set({ rules: { ...c.rules, music: !e.target.checked } })} /><span>منع الموسيقى (السماح بالمؤثرات غير الموسيقية فقط)</span></label>

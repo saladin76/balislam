@@ -6,7 +6,7 @@ import { VoiceBox } from "../tabs/EpisodeTab";
 import { narrationReviewPlaylist } from "./reviewPlaylist";
 import { Hint, More, Stage } from "../shell/Screen";
 import "../shell/screens-s3.css";
-import { CLIPS, countAr } from "../../../src/i18n/count";
+import { CLIPS, SCENES, countAr } from "../../../src/i18n/count";
 import { isBasmalaOnly } from "../../../src/voice/basmala";
 
 /**
@@ -70,7 +70,12 @@ export const VoiceWorkspaceTab: React.FC<{
   };
   const clipUrl = (file: string) => `/api/episodes/${encodeURIComponent(episodeId)}/media/voice/${encodeURIComponent(file)}?channel=${encodeURIComponent(channelId)}`;
   return (
-    <Stage className="s3-voice" title="صوت الحلقة" meta={`${ar(ready)} من ${countAr(scenes.length, CLIPS)} بصوت مطابق`}>
+    <Stage className="s3-voice" title="صوت الحلقة" meta={(() => {
+        // «١٦٠ مقطعًا» beside «١٦٣ مشهدًا» (owner review, 18 Nov): a clip is a scene with narration; say how many have none
+        const all = plan.chapters.reduce((n, c) => n + c.scenes.length, 0);
+        const silent = all - scenes.length;
+        return `${ar(ready)} من ${countAr(scenes.length, CLIPS)} بصوت مطابق${silent > 0 ? ` — مقطع لكل مشهد فيه كلام؛ ${countAr(silent, SCENES)} بلا كلام` : ""}`;
+      })()}>
       <Hint>لا اعتماد منفصل للصوت: يُعتمد عند مراجعة المشهد بصوته وصورته.</Hint>
       <div className="s3-voice-play">
         <button type="button" className={`btn${playlist.length ? " primary" : ""}`} disabled={!playlist.length}

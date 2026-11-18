@@ -59,7 +59,7 @@ export const FramePlayer = React.forwardRef<HTMLVideoElement, {
         <Num className="clk">{`${clockAr(t)} / ${clockAr(d)}`}</Num>
       </div>
       <div className="s3-tools" dir="ltr">
-        <button type="button" onClick={mute} aria-pressed={muted} aria-label={muted ? "أعد الصوت" : "اكتم الصوت"} title={muted ? "أعد الصوت" : "اكتم الصوت"}>{muted ? "بلا صوت" : "الصوت"}</button>
+        <button type="button" onClick={mute} aria-pressed={muted} aria-label={muted ? "أعد الصوت" : "اكتم الصوت"} title={muted ? "أعد الصوت" : "اكتم الصوت"}>{muted ? "شغّل الصوت" : "اكتم"}</button>
         <button type="button" onClick={full} aria-label="ملء الشاشة" title="ملء الشاشة">ملء الشاشة</button>
       </div>
       <input className="s3-prog" type="range" min={0} max={d || 0} step={0.05} value={Math.min(t, d || 0)} aria-label="موضع التشغيل"

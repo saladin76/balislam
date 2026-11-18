@@ -19,7 +19,7 @@ export const GuideTab: React.FC<{ channel: string }> = ({ channel }) => {
     setIndex(undefined);
     api.guideIndex(channel).then((r) => {
       setIndex(r.index);
-      setFile(r.index?.entries[0]?.file ?? "");
+      setFile((r.index?.entries.find((e) => e.audience !== "dev") ?? r.index?.entries[0])?.file ?? "");
     }, (e: Error) => setErr(e.message));
   }, [channel]);
 
@@ -44,11 +44,21 @@ export const GuideTab: React.FC<{ channel: string }> = ({ channel }) => {
       <aside className="guide-toc">
         <div className="guide-title">{index.title}</div>
         <nav>
-          {index.entries.map((e) => (
+          {index.entries.filter((e) => e.audience !== "dev").map((e) => (
             <button key={e.file} className={e.file === file ? "active" : ""} onClick={() => setFile(e.file)} title={e.summary}>
               {ownerText(e.title)}
             </button>
           ))}
+          {index.entries.some((e) => e.audience === "dev") ? (
+            <details className="guide-dev" open={index.entries.some((e) => e.audience === "dev" && e.file === file)}>
+              <summary>صفحات هندسية — للمطور وClaude</summary>
+              {index.entries.filter((e) => e.audience === "dev").map((e) => (
+                <button key={e.file} className={e.file === file ? "active" : ""} onClick={() => setFile(e.file)} title={e.summary}>
+                  {ownerText(e.title)}
+                </button>
+              ))}
+            </details>
+          ) : null}
         </nav>
         <p className="muted guide-note">للقراءة فقط. المصدر: <code dir="ltr">docs/{index.channel}/</code> في المستودع، ويُحدَّث مع كل تغيير.</p>
       </aside>

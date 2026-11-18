@@ -580,6 +580,8 @@ button.ops-ch:hover { background: var(--accent-soft); }
 .guide-toc nav { display: flex; flex-direction: column; gap: 4px; }
 .guide-toc nav button { text-align: right; justify-content: flex-start; }
 .guide-toc nav button.active { outline: 2px solid currentColor; font-weight: 700; }
+.guide-toc .guide-dev { display: flex; flex-direction: column; gap: 4px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line); }
+.guide-toc .guide-dev summary { cursor: pointer; color: var(--mute, #666); font-size: 13px; margin-bottom: 4px; }
 .guide-note { font-size: 13px; }
 .guide-page { min-width: 0; max-width: 980px; line-height: 1.8; }
 .md h2, .md h3, .md h4, .md h5 { margin: 1.2em 0 0.4em; line-height: 1.4; }

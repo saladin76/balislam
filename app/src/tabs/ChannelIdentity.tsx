@@ -8,6 +8,7 @@ import { LogoMark } from "../../../brand/logo/Logo";
 import { approvedIdentity } from "../../../brand/identity/approved";
 import { channelLibrary } from "../../../src/channel/library";
 import { useStudioFonts } from "../ui/useStudioFonts";
+import { ELEMENTS, PLACES, TEMPLATES, countAr } from "../../../src/i18n/count";
 
 const SLOTS: ThemeId[] = ["paper", "family", "night", "warm"];
 const MOTIF_AR: Record<string, string> = { arches: "أقواس", girih: "نجمة ثمانية", stars: "نجوم", horizon: "خط الأفق", "ink-lines": "سطور حبر", ruled: "ورقة مسطّرة", "house-circles": "دوائر دافئة", none: "بلا زخرفة" };
@@ -97,9 +98,9 @@ export const ChannelIdentity: React.FC<{ c: ChannelConfig; identity?: Identity }
 
       <h4>مكتبة القناة <small className="help">ما يظهر لها في «المكتبة» ويُسمح به في حلقاتها</small></h4>
       <div className="idc-lib">
-        <span><b>{num(lib.templates.length)}</b> قالبًا</span>
-        <span><b>{num(lib.sets.length)}</b> مكانًا</span>
-        <span><b>{num(lib.elements.length)}</b> عنصرًا</span>
+        <span>{countAr(lib.templates.length, TEMPLATES, "بلا قوالب")}</span>
+        <span>{countAr(lib.sets.length, PLACES, "بلا أماكن مرسومة")}</span>
+        <span>{countAr(lib.elements.length, ELEMENTS, "بلا عناصر")}</span>
         <span>{lib.figures ? "شخصيات تاريخية بملامح" : "شخصيات بلا ملامح فقط"}</span>
         <span>{c.rules.quran ? "آيات" : "بلا آيات"} — {c.rules.hadith ? "أحاديث" : "بلا أحاديث"} — {c.rules.music ? "موسيقى" : "بلا موسيقى"}</span>
       </div>

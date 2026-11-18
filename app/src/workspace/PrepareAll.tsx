@@ -122,7 +122,7 @@ export const PrepareAll: React.FC<{
   className?: string;
   /** The queue as last read (step ٢ uses it to say «يُجهَّز الآن» under a scene that is not ready yet). */
   onJob?: (job: ScenePrepareRead["job"]) => void;
-  /** M1: set the episode's tone from the stopped line (the page saves its plan); then «استأنف التجهيز». */
+  /** M1: set the episode's tone from the stopped line (the page saves its plan); then «استأنف إنتاج المسودات». */
   onEpisodeTone?: (tone: string) => Promise<void>;
 }> = ({ episodeId, channelId, prepared, onOpenSettings, onChanged, order = [], className, onJob, onEpisodeTone }) => {
   const [info, setInfo] = useState<ScenePrepareRead | null>(null);
@@ -193,9 +193,9 @@ export const PrepareAll: React.FC<{
     ? noKey ? (job!.sceneId ? `يجهّز ${sceneName(order, job!.sceneId)}…` : "يجهّز…")
     : job!.phase === "voice" && job!.voice.status === "pending" && job!.voice.needed > 0 ? "يولّد الصوت…"
       : job!.sceneId ? `يجهّز ${sceneName(order, job!.sceneId)}…` : "يجهّز…"
-    : prepared && prepared.ready > 0 ? "استأنف التجهيز" : "ابدأ التجهيز";
+    : prepared && prepared.ready > 0 ? "استأنف إنتاج المسودات" : "ابدأ إنتاج المسودات";
   const failedBefore = job && !running ? of("failed-before") : [];
-  // M1/M3: a run that finished with a voice error or failed scenes offers «استأنف التجهيز» (it retries them);
+  // M1/M3: a run that finished with a voice error or failed scenes offers «استأنف إنتاج المسودات» (it retries them);
   // so does a run that waited for a voice key once the key is there.
   // The voice itself is offered only by «ولّد الصوت الآن» below (owner decision 15–16 Nov), never by this button.
   const finishedWithErrors = Boolean(job && job.status === "done" && (job.voice.status === "error" || job.failed.length > 0 || failedBefore.length > 0));
@@ -210,13 +210,13 @@ export const PrepareAll: React.FC<{
   const finished = Boolean(job && job.status === "done" && !allReady && !failed && job.voice.status !== "error");
   const made = job?.rendered.length ? `جُهّزت ${countAr(job.rendered.length, DRAFTS)}` : "لم تُجهَّز مسودة جديدة";
   const summary = finished ? [
-    dot(`انتهى التجهيز: ${made}`),
+    dot(`انتهى إنتاج المسودات: ${made}`),
     waitingVoice.length ? dot(`${noKey ? "لا يوجد مفتاح صوت فلم يُولَّد صوت؛ " : ""}ينتظر الصوت ${list(waitingVoice)}${of("sentences").length ? " (صوته جملةً جملة في «الجمل»)" : ""}`) : "",
     // D145: no longer produced (every ready scene is drafted, any order); an older job read may still carry it.
     afterGap.length ? `و${ar(afterGap.length)} ${afterGap.length === 1 ? "مشهد جاهز لم يُجهَّز بعد" : "مشاهد جاهزة لم تُجهَّز بعد"}؛ «أنتج كل المشاهد الجاهزة» يجهّزها.` : "",
     held.length ? dot(`${list(held)} ${held.length === 1 ? "ينتظر" : "تنتظر"} إصلاحًا: ${named(held[0]!.error?.split(" — ")[0])}`) : "",
   ].filter(Boolean).join(" ") : "";
-  const summaryShort = finished ? `انتهى التجهيز: ${made}${noKey && waitingVoice.length ? " — لا يوجد مفتاح صوت" : waitingVoice.length ? ` — ينتظر صوت ${list(waitingVoice)}` : held.length ? ` — ${list(held)} ${held.length === 1 ? "ينتظر" : "تنتظر"} إصلاحًا` : ""}` : "";
+  const summaryShort = finished ? `انتهى إنتاج المسودات: ${made}${noKey && waitingVoice.length ? " — لا يوجد مفتاح صوت" : waitingVoice.length ? ` — ينتظر صوت ${list(waitingVoice)}` : held.length ? ` — ${list(held)} ${held.length === 1 ? "ينتظر" : "تنتظر"} إصلاحًا` : ""}` : "";
   return (
     <div className={`prep${className ? ` ${className}` : ""}`} role="group" aria-label="تجهيز المشاهد">
       {prepared ? <span className="prep-count" role="status">جاهز {ar(prepared.ready)} من {ar(prepared.total)}{running ? ` — ${label}` : ""}</span> : null}
@@ -238,7 +238,7 @@ export const PrepareAll: React.FC<{
           أنتج كل المشاهد الجاهزة
         </button>
       ) : null}
-      {starting && !running ? <span className="prep-note" role="status">يبدأ التجهيز…</span> : null}
+      {starting && !running ? <span className="prep-note" role="status">يبدأ إنتاج المسودات…</span> : null}
       {!running && info?.voicePlan && info.voicePlan.scenes.length > 0 ? (
         <VoicePlanPanel plan={info.voicePlan} order={order} voiceKey={Boolean(info.voiceKey)} busy={starting} onOpenSettings={onOpenSettings}
           onGenerate={(fingerprint) => void start({ voice: { confirm: true, fingerprint } })} />
@@ -260,11 +260,11 @@ export const PrepareAll: React.FC<{
       ) : noKey ? (
         <span className="prep-note">لا يوجد مفتاح صوت: يُجهَّز كل مشهد صوته جاهز، وما ينقصه صوته ينتظر{waitingVoice.length ? ` (${ar(waitingVoice.length)} ينتظر الصوت)` : ""}{onOpenSettings ? <> — <button type="button" className="prep-link" onClick={onOpenSettings}>الاتصالات والمفاتيح</button></> : null}</span>
       ) : failedBefore.length ? (
-        <span className="prep-note" title={failedBefore.map((f) => `${sceneName(order, f.id)}: ${named(f.error)}`).join("\n")}>لم يُعَد {sceneName(order, failedBefore[0]!.id)}{failedBefore.length > 1 ? ` و${ar(failedBefore.length - 1)} غيره` : ""}: تعذّر بالمدخلات نفسها في المرة السابقة. «استأنف التجهيز» يعيد محاولته.</span>
+        <span className="prep-note" title={failedBefore.map((f) => `${sceneName(order, f.id)}: ${named(f.error)}`).join("\n")}>لم يُعَد {sceneName(order, failedBefore[0]!.id)}{failedBefore.length > 1 ? ` و${ar(failedBefore.length - 1)} غيره` : ""}: تعذّر بالمدخلات نفسها في المرة السابقة. «استأنف إنتاج المسودات» يعيد محاولته.</span>
       ) : job?.status === "stopped" ? (
-        <span className="prep-note">أُوقف التجهيز؛ المسودات الجاهزة محفوظة، و«استأنف التجهيز» يكمل من حيث توقف.</span>
+        <span className="prep-note">أُوقف إنتاج المسودات؛ المسودات الجاهزة محفوظة، و«استأنف إنتاج المسودات» يكمل من حيث توقف.</span>
       ) : job?.status === "error" ? (
-        <span className="prep-note is-err" role="alert">تعذّر التجهيز: {named(job.error)}</span>
+        <span className="prep-note is-err" role="alert">تعذّر إنتاج المسودات: {named(job.error)}</span>
       ) : null}
       {error ? <span className="prep-note is-err" role="alert"><OwnerText text={error} /></span> : null}
     </div>

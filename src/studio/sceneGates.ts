@@ -173,7 +173,7 @@ export const currentSceneCutsForPreFinal = async (
         recitationPending: Boolean(current.recitationPending[scene.id]) });
     }
     if (missing.length)
-      throw Error(`مشاهد بلا مسودة حالية: ${missing.slice(0, 12).join("، ")}${missing.length > 12 ? "…" : ""}؛ اضغط «ابدأ التجهيز» (أو «استأنف التجهيز») في «٢ المشاهد» أولًا.`);
+      throw Error(`مشاهد بلا مسودة حالية: ${missing.slice(0, 12).join("، ")}${missing.length > 12 ? "…" : ""}؛ اضغط «ابدأ إنتاج المسودات» (أو «استأنف إنتاج المسودات») في «٢ المشاهد» أولًا.`);
     return cuts;
   });
 };
