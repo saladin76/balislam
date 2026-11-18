@@ -54,15 +54,16 @@
   --dock: #16181D; --dock-ink: #E9EAEC; --dock-mute: #A3A7AF;
   --f-t: "Lalezar", "IBM Plex Sans Arabic", sans-serif; --t-weight: 400;
 }
+/* «بالإسلام»: «باء التشغيل»، ثيم «أقواس دافئة» (D154): حبر زيتوني، ورق كريمي، نحاس للتمييز، وذهب للتحديد */
 [data-channel="balislam"] {
-  --band: #0B1F1C; --band-ink: #F4EEE2; --band-mute: #9DB3AC; --band-line: #F4EEE21f;
-  --paper: #F4EEE2; --paper-rule: transparent; --sf: #FBF8F1;
-  --paper-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cg fill='none' stroke='%23C9A24A' stroke-opacity='.16' stroke-width='1'%3E%3Crect x='26' y='26' width='20' height='20'/%3E%3Crect x='26' y='26' width='20' height='20' transform='rotate(45 36 36)'/%3E%3C/g%3E%3C/svg%3E");
-  --ink: #0B1F1C; --ink-2: #33463F; --mute: #56625C; --line: #E2D8C5; --quiet: #EAE2D3; --line-strong: #CFC3AC;
-  --acc: #C9A24A; --acc-ink: #0B1F1C; --acc-soft: #F2DFB0; --acc-text: #7E6019;
-  --mark: #F2B35B; --note: #F7E7C6; --note-ink: #4A3A16;
-  --dock: #0B1F1C; --dock-ink: #F4EEE2; --dock-mute: #9DB3AC;
-  --f-t: "Aref Ruqaa", serif; --t-weight: 700; --t-shift: 4px;
+  --band: #2E3A2A; --band-ink: #FBF6EE; --band-mute: #B9C0AE; --band-line: #FBF6EE1f;
+  --paper: #EFE4D3; --paper-rule: transparent; --sf: #FBF6EE;
+  --paper-art: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='72' viewBox='0 0 72 72'%3E%3Cpath d='M20 60 V36 A16 16 0 0 1 52 36 V60' fill='none' stroke='%23B4532F' stroke-opacity='.13' stroke-width='1.2'/%3E%3C/svg%3E");
+  --ink: #2E3A2A; --ink-2: #4A5546; --mute: #565F4E; --line: #E0D3BE; --quiet: #E8DCC8; --line-strong: #CDBEA6;
+  --acc: #B4532F; --acc-ink: #FBF6EE; --acc-soft: #F2D2B0; --acc-text: #8E3E21;
+  --mark: #D9A441; --note: #F4E3C3; --note-ink: #4A3A16;
+  --dock: #2E3A2A; --dock-ink: #FBF6EE; --dock-mute: #B9C0AE;
+  --f-t: "El Messiri", serif; --t-weight: 700; --t-shift: 2px;
 }
 [data-channel="dafatir-alzaman"] {
   --band: #2B1A14; --band-ink: #F6EAD7; --band-mute: #B9A391; --band-line: #F6EAD71f;

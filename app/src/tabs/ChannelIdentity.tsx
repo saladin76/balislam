@@ -10,7 +10,7 @@ import { channelLibrary } from "../../../src/channel/library";
 import { useStudioFonts } from "../ui/useStudioFonts";
 
 const SLOTS: ThemeId[] = ["paper", "family", "night", "warm"];
-const MOTIF_AR: Record<string, string> = { arches: "أقواس", girih: "نجمة ثمانية", stars: "نجوم", horizon: "خط الأفق", "ink-lines": "سطور حبر", ruled: "ورقة مسطّرة", "house-circles": "دوائر دافئة" };
+const MOTIF_AR: Record<string, string> = { arches: "أقواس", girih: "نجمة ثمانية", stars: "نجوم", horizon: "خط الأفق", "ink-lines": "سطور حبر", ruled: "ورقة مسطّرة", "house-circles": "دوائر دافئة", none: "بلا زخرفة" };
 const dateAr = (iso: string) => new Date(iso).toLocaleDateString("ar-EG", { day: "numeric", month: "long", year: "numeric" });
 
 const ThemeChip: React.FC<{ id: ThemeId; domains: string[] }> = ({ id, domains }) => {

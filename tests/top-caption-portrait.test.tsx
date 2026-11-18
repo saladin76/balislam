@@ -37,7 +37,9 @@ describe("سطر الكلام العلوي في العمودي (033)", () => {
   it("اللوح في العمودي وحده، بحجم السطر لا بعرض الإطار، ومن ليل القناة", () => {
     const p = render(true);
     expect(p).toContain(`data-caption-plate="${CAPTION_PLATE_ALPHA}"`);
-    expect(p).toMatch(/background:rgba\(11, 31, 28, 0\.78\)/);
+    // ليل القناة من لوحة الرسوم نفسها (ID.night)، لا رقم ثابت: تغيّر مع عودة الهوية الأصلية (D154)
+    const [r, g, b] = [1, 3, 5].map((i) => parseInt(ID.night.slice(i, i + 2), 16));
+    expect(p).toContain(`background:rgba(${r}, ${g}, ${b}, 0.78)`);
     expect(render(false)).not.toContain("data-caption-plate");
   });
   it("الأفقي كما كان حرفًا (يطابق رسم المكوّن قبل 033)", async () => {

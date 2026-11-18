@@ -20,8 +20,8 @@ export type NewChannelOptions = {
   quran?: boolean;
 };
 
-/** زخرفة لا تخص أي قناة معتمدة (brand/identity/approved.ts ← motifs)، وتُطفأ في العرض حتى تُعتمد هوية */
-const NEUTRAL_MOTIF = "house-circles";
+/** بلا زخرفة حتى تُعتمد هوية: كل زخرفة مرسومة صارت لقناة معتمدة («دوائر دافئة» عادت لـ«بالإسلام»، D154) */
+const NEUTRAL_MOTIF = "none";
 const NEUTRAL_THEME_NAMES: Record<string, string> = { paper: "فاتح", family: "دافئ", night: "داكن", warm: "متوسط" };
 
 /** رمادي بنفس الإضاءة: يبقي تباين الألوان وعلاقاتها، ويمحو بصمة القناة المصدر */

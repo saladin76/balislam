@@ -233,7 +233,8 @@ describe("لون السلسلة الافتراضي مشتق من الهوية، 
     expect(z.accent).not.toBe("#E8F542");
     expect(["#111111", "#FFFFFF"]).toContain(z.accent);
     expect(deriveSeriesIdentity("zubdat-alkutub", { accent: { base: "#FF6B4A" } }).accent).toBe("#FF6B4A");
-    expect(deriveSeriesIdentity("balislam").accent).toBe("#F2B35B");
+    // «باء التشغيل» (D154): نحاس «أقواس دافئة»، الثيم الافتراضي للقناة
+    expect(deriveSeriesIdentity("balislam").accent).toBe("#B4532F");
     expect(deriveSeriesIdentity("dafatir-alzaman").accent).toBe("#E07A3F");
   });
 });

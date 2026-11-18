@@ -259,7 +259,7 @@ export const NoticeBoard: React.FC<{ x: number; y: number; glow?: number; mood: 
 };
 
 /** بطاقة كلمة منطوقة (تظهر وقت نطقها فقط) */
-export const WordPill: React.FC<{ x: number; y: number; text: string; color?: string; size?: number; t: number; font?: string }> = ({ x, y, text, color = ID.dawn, size = 46, t, font = "'Aref Ruqaa', serif" }) => {
+export const WordPill: React.FC<{ x: number; y: number; text: string; color?: string; size?: number; t: number; font?: string }> = ({ x, y, text, color = ID.dawn, size = 46, t, font = "'El Messiri', serif" }) => {
   if (t <= 0.001) return null;
   const w = text.length * size * 0.58 + 64;
   return (

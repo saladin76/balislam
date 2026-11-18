@@ -39,7 +39,7 @@
         ],
         "cap": "#EEEEEE"
       },
-      "motif": "house-circles"
+      "motif": "none"
     },
     "family": {
       "nameAr": "دافئ",
@@ -79,7 +79,7 @@
         ],
         "cap": "#EEEEEE"
       },
-      "motif": "house-circles"
+      "motif": "none"
     },
     "night": {
       "nameAr": "داكن",
@@ -119,7 +119,7 @@
         ],
         "cap": "#EEEEEE"
       },
-      "motif": "house-circles"
+      "motif": "none"
     },
     "warm": {
       "nameAr": "متوسط",
@@ -159,7 +159,7 @@
         ],
         "cap": "#EEEEEE"
       },
-      "motif": "house-circles"
+      "motif": "none"
     }
   },
   "palettes": {

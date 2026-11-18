@@ -18,7 +18,8 @@ describe("الهويات المعتمدة", () => {
       const text = JSON.stringify(identity).toUpperCase();
 
       it("الشعار والافتتاحية والصورة المصغّرة", () => {
-        expect(channel.logo).toEqual({ type: "emblem", emblem: a.emblem });
+        // «باء التشغيل» (بالإسلام، D154) شعار بنوعه لا شارة
+        expect(channel.logo).toEqual(a.emblem === "baa" ? { type: "baa" } : { type: "emblem", emblem: a.emblem });
         expect(channel.brand.intro).toBe(a.intro);
         expect(channel.brand.thumbnail).toBe(a.thumbnail);
       });

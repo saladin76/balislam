@@ -113,6 +113,8 @@ export type SeriesStamp = {
  */
 export const EMBLEM_PARTS: Record<string, { parts: { id: string; nameAr: string }[]; reservedAccents?: string[]; signalAccents?: string[]; card?: "dark" | "light" }> = {
   mihrab: { parts: [{ id: "arch", nameAr: "قوس المحراب" }, { id: "sun", nameAr: "نقطة الشمس" }, { id: "seal", nameAr: "الختم" }, { id: "star8", nameAr: "النجمة الثمانية" }] },
+  // «باء التشغيل» (بالإسلام، D154): الباء، ونقطتها زر التشغيل، ومربع الشعار، والقوس من زخرفة «أقواس دافئة»
+  baa: { parts: [{ id: "baa", nameAr: "الباء" }, { id: "play", nameAr: "زر التشغيل" }, { id: "tile", nameAr: "مربع الشعار" }, { id: "arch", nameAr: "القوس" }] },
   "horizon-book": { parts: [{ id: "book", nameAr: "الدفتر المفتوح" }, { id: "hourglass", nameAr: "الساعة الرملية" }, { id: "sun", nameAr: "شمس الغروب" }, { id: "ribbon", nameAr: "شريط التاريخ" }] },
   // الفسفوري للفكرة وحدها («idea-only»): لا يصير لون سلسلة ولا شارة
   "highlighter-z": { parts: [{ id: "card", nameAr: "بطاقة الكتاب" }, { id: "bar", nameAr: "ضربة القلم" }, { id: "sticky", nameAr: "الورقة اللاصقة" }, { id: "counter", nameAr: "عدّاد الأفكار" }], reservedAccents: ["#E8F542"], signalAccents: ["#FF6B4A"], card: "light" },

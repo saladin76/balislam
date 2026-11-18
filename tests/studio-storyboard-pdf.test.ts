@@ -109,7 +109,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
   it("uses each channel's approved identity fonts and palette accent, and a neutral face for unknown channels",()=>{
     const root=path.join(import.meta.dirname,"..","public","fonts");
     const mappings=[
-      {channel:"balislam",font:"ArefRuqaa-Bold.ttf",body:"Tajawal-arabic-400.woff2",accent:"#0B1F1C"},
+      {channel:"balislam",font:"ElMessiri.ttf",body:"IBMPlexSansArabic-Medium.ttf",accent:"#B4532F"}, // «باء التشغيل» (D154)
       {channel:"dafatir-alzaman",font:"Amiri-Bold.ttf",body:"Tajawal-arabic-400.woff2",accent:"#D7372B"},
       {channel:"zubdat-alkutub",font:"Lalezar-arabic.woff2",body:"Tajawal-arabic-400.woff2",accent:"#111111"},
     ];
@@ -270,7 +270,7 @@ describe("Arabic-safe shared storyboard PDF exporter",()=>{
       const css=pdfFontCss(channel);
       expect(css).toContain('font-family:"StudioLatin"');
       expect(css).toContain('--studio-body:"StudioBody","StudioLatin"');
-      const latin="Tajawal-latin-400.woff2";
+      const latin=channel==="balislam"?"IBMPlexSans.ttf":"Tajawal-latin-400.woff2"; // بالإسلام: IBM Plex مع الهوية الأصلية (D154)
       expect(css).toContain(readFileSync(path.join(root,latin)).toString("base64"));
       expect(css).toContain("font-display:block");
     }
