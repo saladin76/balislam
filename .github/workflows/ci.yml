@@ -49,6 +49,24 @@ jobs:
       BAL_E2E_CHANNELS: ${{ github.event_name == 'schedule' && 'all' || github.event.inputs.channels || 'balislam' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      # A PR that touches shared code is tested on all three channels (one channel's journey cannot see a break in
+      # another's: the scheduled run found «دفاتر الزمن» and «زبدة الكتب» red days after the change that did it).
+      # A PR that only changes one channel's content keeps the single-channel run.
+      - name: Channels for this run
+        if: github.event_name == 'pull_request'
+        env:
+          BASE: ${{ github.event.pull_request.base.sha }}
+        run: |
+          if git diff --name-only "$BASE"...HEAD | grep -qE '^(src|app|scripts|bin|brand|tests|\.github)/|^package(-lock)?\.json$|^vite|^tsconfig'; then
+            echo "BAL_E2E_CHANNELS=all" >> "$GITHUB_ENV"; echo "shared code changed: all channels"
+          else
+            # Content only: test the channels whose content changed (none of the three → the default).
+            CH=$(git diff --name-only "$BASE"...HEAD | sed -nE 's#^channels/(balislam|dafatir-alzaman|zubdat-alkutub)/.*#\1#p' | sort -u | paste -sd, -)
+            if [ -n "$CH" ]; then echo "BAL_E2E_CHANNELS=$CH" >> "$GITHUB_ENV"; fi
+            echo "content only: ${CH:-$BAL_E2E_CHANNELS}"
+          fi
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -78,7 +96,7 @@ jobs:
   # يراها كل مطوّر ووكيل في GitHub وفي «npx bal notes --open» أول كل جلسة. لا تغيّر محتوى ولا تمنع حفظًا.
   main-status:
     needs: [check, e2e]
-    if: always() && github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: always() && (github.event_name == 'push' || github.event_name == 'schedule') && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       issues: write
@@ -92,7 +110,7 @@ jobs:
           E2E: ${{ needs.e2e.result }}
           SHA: ${{ github.sha }}
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
-          TITLE: ${{ github.event.head_commit.message }}
+          TITLE: ${{ github.event.head_commit.message || 'التشغيل المجدول (القنوات الثلاث)' }}
         run: |
           set -u
           MARK="main أحمر (CI)"

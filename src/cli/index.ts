@@ -557,7 +557,10 @@ const notesCmd = program
     if (r.message) console.log(r.message);
     if (r.fetched === "missing") console.log("لا فرع studio-notes على GitHub بعد (لم تُرسل ملاحظة).");
     if (!r.notes.length) { console.log(opts.open ? "لا ملاحظات مفتوحة." : "لا ملاحظات."); return; }
-    console.log(r.notes.map(formatNote).join("\n\n"));
+    // ملاحظة مفتوحة وحلها جاهز في فرع لم يُدمج: تُذكر تحتها حتى لا يُكتب الإصلاح مرتين أو يُنسى (c1-s3، ١٥–١٧ نوفمبر)
+    const { pendingFixes, formatPendingFix } = await import("../studio/pendingFixes");
+    const waiting = opts.fetch === false ? new Map<string, string[]>() : pendingFixes(projectRoot, r.notes.filter((n) => n.status === "open").map((n) => n.id));
+    console.log(r.notes.map((n) => waiting.has(n.id) ? `${formatNote(n)}\n${formatPendingFix(waiting.get(n.id)!)}` : formatNote(n)).join("\n\n"));
     console.log(`\n${r.notes.length} ملاحظة. للرد: bal notes resolve <id> --answer "…"`);
   });
 notesCmd

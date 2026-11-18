@@ -64,6 +64,8 @@ for (const channel of selectedChannels()) {
     const draftSeconds = (id: string) => Number(probe(path.join(epDir, "previews", `scene-${id}-av.mp4`)).format.duration);
 
     beforeAll(async () => {
+      // One process runs every channel: start each with an empty voice log, or the last channel's requests count here.
+      fakeCalls.length = 0;
       st = await startStudio(channel);
       epDir = path.join(st.channelsDir, channel, "episodes", `${EP}-${c.slug}`);
     }, 300_000);
