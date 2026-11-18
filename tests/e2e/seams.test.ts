@@ -68,6 +68,8 @@ for (const channel of selectedChannels()) {
     };
 
     beforeAll(async () => {
+      // One process runs every channel: start each with an empty voice log, or the last channel's requests count here.
+      fakeCalls.length = 0;
       st = await startStudio(channel);
       epDir = path.join(st.channelsDir, channel, "episodes", `${EP}-${c.slug}`);
     }, 300_000);
