@@ -48,6 +48,39 @@ program
   });
 
 program
+  .command("tone-map-sync")
+  .description("دفاتر الزمن: يطابق مقاطع خريطة النبرة بسطور التشكيل الحالي بالنص (KI-088)؛ للعرض فقط إلا بـ --write")
+  .argument("<episode>", "رقم الحلقة (001) أو مسار السكريبت")
+  .option("--write", "اكتب الإصدار التالي من الخريطة (السابق يُحفظ باسمه). لا يولّد صوتًا ولا يحذف تسجيلًا")
+  .option("--keep-recorded", "لا يتغير نطق أي مقطع: المختلف عن التشكيل يبقى بنصه المسجَّل ويُكتب استثناءً بقرار المالك")
+  .action(async (episode: string, opts: { write?: boolean; keepRecorded?: boolean }) => {
+    const file = await resolveScriptPath(episode);
+    const dir = path.dirname(file);
+    const mapFile = path.join(dir, "tone-map.json");
+    const raw = await readFile(mapFile, "utf8");
+    const tashkeel = await readFile(path.join(dir, "tashkeel.md"), "utf8");
+    const { syncToneMap } = await import("../voice/toneMapSync");
+    const { archiveNameFor } = await import("../voice/toneMapOverride");
+    const planRaw = await readFile(path.join(dir, "plan.json"), "utf8");
+    const inPlan = new Set((JSON.parse(planRaw) as { chapters: { scenes: { id: string }[] }[] }).chapters.flatMap((ch) => ch.scenes.map((s) => s.id)));
+    const dropScenes = [...new Set((JSON.parse(raw) as { segments: { scene: string }[] }).segments.map((s) => s.scene).filter((s) => !inPlan.has(s)))];
+    if (dropScenes.length) console.log(`مقاطع لمشاهد ليست في الخطة تُرفع من الخريطة (تسجيلاتها باقية في ملفاتها): ${dropScenes.join("، ")}`);
+    const r = syncToneMap(raw, tashkeel, { at: new Date().toISOString(), script: await readFile(file, "utf8"), plan: planRaw, keepRecorded: opts.keepRecorded, dropScenes });
+    const c = (k: string) => r.report.rows.filter((x) => x.kind === k).length;
+    console.log(`خريطة النبرة ${r.from}: ${r.report.rows.length} مقطعًا طوبق بسطره في التشكيل بالنص — مطابق ${c("same")}، كتابة فقط ${c("ortho")}، نطق تغيّر ${c("pronunciation")}`);
+    for (const x of r.report.rows.filter((y) => y.kind === "pronunciation"))
+      console.log(`  ${x.id} (${x.scene}): ${x.changed.map((w) => `«${w.from}» ← «${w.to}»`).join("، ")}`);
+    if (opts.keepRecorded && r.report.rows.some((y) => y.kind === "pronunciation")) console.log("بقرار المالك: هذه المواضع تبقى بنطقها المسجَّل، ولا يتغير نص أي مقطع ولا تسجيل.");
+    if (r.changedScenes.length) console.log(`المشاهد التي يتغير نطق صوتها: ${r.changedScenes.join("، ")} — تسجيلاتها باقية، وتظهر «تحتاج صوتًا» حتى يولّدها المالك بضغطته.`);
+    if (!opts.write) { console.log("لم يُكتب شيء. للكتابة: --write"); return; }
+    const { writeFile } = await import("node:fs/promises");
+    await writeFile(path.join(dir, archiveNameFor(r.from)), raw);
+    const { writeJsonAtomic } = await import("../io/atomicJson");
+    await writeJsonAtomic(mapFile, JSON.parse(r.raw));
+    console.log(`كُتبت ${r.to}، والسابق محفوظ: ${archiveNameFor(r.from)}`);
+  });
+
+program
   .command("stills")
   .description("رندر لوحات الهوية (صورة لكل ثيم بكل مقاس) للتحقق البصري")
   .option("--theme <theme>", "ثيم واحد فقط: paper | family | night | warm")
