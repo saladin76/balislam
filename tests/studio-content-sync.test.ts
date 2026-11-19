@@ -245,3 +245,11 @@ describe("D101: استوديو واحد على المنفذ", () => {
     } finally { foreign.kill(); }
   }, 30_000);
 });
+
+// D157 (owner, 19 Nov): «تجميع commits الحفظ التلقائي» — one push after 90 s without a new edit, not 6 s
+import { CONTENT_SYNC_QUIET_MS } from "../app/server/contentSync";
+describe("D157: autosave pushes are grouped", () => {
+  it("waits 90 seconds of quiet by default (was 6), so a work session is a few commits", () => {
+    expect(CONTENT_SYNC_QUIET_MS).toBe(90_000);
+  });
+});

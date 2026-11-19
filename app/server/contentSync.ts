@@ -218,6 +218,13 @@ const activeMain = async (root: string) => {
 };
 
 /** الحلقة الخلفية: حالة واحدة لكل استوديو. */
+/**
+ * D157 (قرار المالك ١٩ نوفمبر: «تجميع commits الحفظ التلقائي»): يُدفع المحتوى بعد ٩٠ ثانية بلا تعديل جديد، لا ٦ ثوانٍ،
+ * فجلسة العمل تصير commits قليلة بدل عشرات «حفظ الاستوديو». الحفظ على الجهاز فوري كما هو؛ والذي لم يُدفع قبل إغلاق
+ * الاستوديو يُدفع عند تشغيله التالي (pendingContent يقرؤه من المجلد). التاريخ السابق على main لا يُعاد كتابته.
+ */
+export const CONTENT_SYNC_QUIET_MS = 90_000;
+
 export const createContentSync = (root: string, opts: {
   enabled?: boolean; remote?: string;
   quietMs?: number; tickMs?: number; receiveMs?: number;
@@ -227,7 +234,7 @@ export const createContentSync = (root: string, opts: {
   log?: (m: string) => void;
 } = {}) => {
   const enabled = opts.enabled ?? contentSyncEnabled();
-  const quietMs = opts.quietMs ?? 6_000;
+  const quietMs = opts.quietMs ?? CONTENT_SYNC_QUIET_MS;
   const receiveMs = opts.receiveMs ?? 3 * 60_000;
   const log = opts.log ?? ((m: string) => console.log(`[studio] ${m}`));
   const supervised = process.env.BAL_STUDIO_SUPERVISED === "1";
