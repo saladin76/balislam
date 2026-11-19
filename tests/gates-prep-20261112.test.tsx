@@ -85,6 +85,10 @@ describe("balislam 2 · end to end on a copy of an episode", () => {
       for (const f of ["channel.json", "identity.json", "identity.default.json", "pronunciation.json"])
         await copyFile(path.join(root, "channels", "balislam", f), path.join(tmp, "balislam", f));
       for (const f of ["script.md", "plan.json", "tashkeel.md"]) if (existsSync(path.join(from, f))) await copyFile(path.join(from, f), path.join(dir, f));
+      // KI-068 / KI-089: the live script is the owner's (shortened to ~5 min on 19 Nov while the designed plan waits to be
+      // rebuilt); the script the plan was built on is saved by name, so this test starts from a script and plan that agree
+      const built = path.join(from, "versions", "2026-11-19-before-5min", "script.md");
+      if (existsSync(built)) await copyFile(built, path.join(dir, "script.md"));
       const { runWithChannel } = await import("../src/channel");
       await runWithChannel("balislam", async () => {
         const { preparationBlockers, approvePreparation } = await import("../src/studio/preparation");
