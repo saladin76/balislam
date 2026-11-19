@@ -37,9 +37,12 @@ export const scenesNeedingVoice = async (episode: string): Promise<string[]> => 
   const dir = voiceDirFor(scriptPath);
   // Scenes voiced sentence by sentence (D50) are the owner's own work in «الجمل»; never regenerated whole here.
   const managed = await (await import("../voice/sentenceVoice")).sentenceManagedScenes(scriptPath);
+  // KI-089 (19 Nov, «بالإسلام 001» after the 5-minute script): a scene whose text is no longer the script's is never
+  // voiced — «ولّد الصوت الآن» would have paid for 129 sentences the script dropped. Same rule as productionBlocks.
+  const diverged = new Set((await (await import("../plan/scriptSync")).scriptTextDivergence(scriptPath, plan)).scenes);
   return plan.chapters.flatMap((c) => c.scenes).filter((s) => {
     const text = s.narration?.trim() ?? "";
-    if (!text || s.template === "verse-card" || managed.has(s.id)) return false;
+    if (!text || s.template === "verse-card" || managed.has(s.id) || diverged.has(s.id)) return false;
     const clip = voice[s.id];
     return !clip || clip.text !== text || path.basename(clip.file) !== clip.file || !existsSync(path.join(dir, clip.file));
   }).map((s) => s.id);
