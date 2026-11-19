@@ -6,7 +6,7 @@
   "themeId": "paper",
   "channel": "balislam",
   "lang": "ar",
-  "updatedAt": "2026-11-12T08:40:43.244Z",
+  "updatedAt": "2026-11-19T19:56:45.081Z",
   "chapters": [
     {
       "number": 1,
@@ -104,62 +104,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "فكيف يرى شخصان الشيء نفسه، ثم يختلفان في الحكم عليه إلى هذا الحد؟",
-          "line": 23,
-          "props": {
-            "place": "market",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "think,look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": "witnesses | شخصان"
-          },
-          "id": "c1-s6",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ربما رأى أحدهما جزءًا من الموقف لم ينتبه إليه الآخر.",
-          "line": 25,
-          "props": {
-            "place": "market",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s7",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وربما دخل كل واحد منهما إلى المشهد وهو يحمل تجربة سابقة، أو توقعًا، أو حكمًا جاهزًا.",
-          "line": 27,
-          "props": {
-            "place": "market",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "stand,think,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": "witnesses | منهما\nmemory | تجربة"
-          },
-          "id": "c1-s8",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "وقد يكون كلٌّ منهما صادقًا في وصف ما يعتقده.",
-          "line": 29,
+          "line": 23,
           "props": {
             "place": "market",
             "mood": "night",
@@ -177,7 +123,7 @@
         {
           "template": "alley-tale",
           "narration": "لكن صدق الاعتقاد لا يكفي وحده لإثبات صحته.",
-          "line": 31,
+          "line": 25,
           "props": {
             "place": "market",
             "mood": "night",
@@ -194,26 +140,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "فالحقيقة لا تتغير لمجرد أننا واثقون مما نقول.",
-          "line": 33,
-          "props": {
-            "place": "alley",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | فالحقيقة"
-          },
-          "id": "c1-s11",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "نحن لا ننظر إلى الأحداث بعيوننا وحدها.",
-          "line": 35,
+          "line": 27,
           "props": {
             "place": "market",
             "mood": "night",
@@ -232,7 +160,7 @@
         {
           "template": "alley-tale",
           "narration": "بل نتأثر بتجاربنا السابقة، ومخاوفنا، والأشخاص الذين نحبهم، والأفكار التي اعتدنا عليها.",
-          "line": 37,
+          "line": 29,
           "props": {
             "place": "market",
             "mood": "night",
@@ -251,7 +179,7 @@
         {
           "template": "alley-tale",
           "narration": "قد نصدق خبرًا بسرعة لأنه يؤكد رأيًا نحمله من قبل.",
-          "line": 39,
+          "line": 31,
           "props": {
             "place": "alley",
             "mood": "night",
@@ -269,7 +197,7 @@
         {
           "template": "alley-tale",
           "narration": "وقد نرفض نصيحة صحيحة، لا لضعف حجتها، بل لأنها جاءت من شخص لا نحبه.",
-          "line": 41,
+          "line": 33,
           "props": {
             "place": "market",
             "mood": "night",
@@ -287,27 +215,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "وقد نكون شديدي الانتباه إلى أخطاء الآخرين، بينما نعجز عن رؤية الخطأ نفسه في تصرفاتنا.",
-          "line": 43,
-          "props": {
-            "place": "market",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "people | الآخرين\nwrong | الخطأ",
-            "shot": "rooftop-look-inward"
-          },
-          "id": "c1-s16",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "وهنا يبدأ السؤال الحقيقي. ليس فقط: هل أنا مقتنع بما أقول؟",
-          "line": 45,
+          "line": 35,
           "props": {
             "place": "alley",
             "mood": "night",
@@ -325,7 +234,7 @@
         {
           "template": "alley-tale",
           "narration": "بل: على أي دليل بنيت اقتناعي؟",
-          "line": 47,
+          "line": 37,
           "props": {
             "place": "alley",
             "mood": "night",
@@ -342,45 +251,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "وهل رأيت الموقف كاملًا، أم الجزء الذي يوافقني منه؟",
-          "line": 49,
-          "props": {
-            "place": "alley",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "stand,look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s19",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "فليس كل ما نقتنع به حقًّا، وليس كل ما لا يعجبنا باطلًا.",
-          "line": 51,
-          "props": {
-            "place": "market",
-            "mood": "night",
-            "moodTo": "dusk",
-            "camera": "rise",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | باطلًا",
-            "shot": "rooftop-dawn-fog"
-          },
-          "id": "c1-s20",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "وتزداد المسألة صعوبة حين لا يظهر الخطأ في صورته الواضحة، بل يختبئ وراء اسم جميل، أو قيمة صحيحة.",
-          "line": 53,
+          "line": 39,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -397,26 +269,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "تأمل شخصًا يجرح الآخرين بكلماته.",
-          "line": 55,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "talk",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "harsh | يجرح\npeople | الآخرين"
-          },
-          "id": "c1-s22",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وحين يعترض أحدهم، يقول بثقة: أنا إنسان صريح، ولا أحب المجاملة.",
-          "line": 57,
+          "narration": "فقد يجرح أحدهم الناس بكلماته، ثم يقول: أنا إنسان صريح.",
+          "line": 41,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -427,50 +281,13 @@
             "cast": "companion",
             "cues": ""
           },
-          "id": "c1-s23",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s163",
+          "sfx": []
         },
         {
           "template": "alley-tale",
-          "narration": "الصراحة قيمة محمودة. لكن هل كل كلمة جارحة تصبح حقًّا لأن صاحبها سمّاها صراحة؟",
-          "line": 59,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s24",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وهل إهانة الإنسان هي الطريق الوحيد لقول الحقيقة؟",
-          "line": 61,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "think,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "harsh | إهانة\ntruth | الحقيقة"
-          },
-          "id": "c1-s25",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وقد يرى شخص صورة مبتورة من حدث، فيغضب وينشرها، ويقول إنه يريد نصرة المظلوم.",
-          "line": 63,
+          "narration": "وقد ينشر آخر خبرًا لم يتحقق منه، ويقول إنه يريد نصرة المظلوم.",
+          "line": 43,
           "props": {
             "place": "alley",
             "mood": "dusk",
@@ -481,68 +298,13 @@
             "cast": "",
             "cues": "spread | وينشرها"
           },
-          "id": "c1-s26",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ونصرة المظلوم حق. لكن هل يكون من نصرة المظلوم أن ننشر خبرًا لم نتحقق منه، وربما ظلمنا به شخصًا آخر؟",
-          "line": 65,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "hold,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "news | خبرًا"
-          },
-          "id": "c1-s27",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "المشكلة هنا ليست دائمًا في القيمة التي نرفعها.",
-          "line": 67,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s28",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل في الطريقة التي نستخدمها بها، وفيما إذا كانت أفعالنا تحقق معناها فعلًا.",
-          "line": 69,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "think,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s29",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s164",
+          "sfx": []
         },
         {
           "template": "alley-tale",
           "narration": "وقد قال الله تعالى:",
-          "line": 71,
+          "line": 45,
           "props": {
             "place": "alley",
             "mood": "dusk",
@@ -560,7 +322,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 73,
+          "line": 47,
           "ayahKey": "2:42",
           "props": {
             "text": "",
@@ -572,80 +334,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "إن خلط الحق بالباطل من أخطر ما يفسد الحكم على الأمور.",
-          "line": 75,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | بالباطل"
-          },
-          "id": "c1-s32",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لأن الإنسان قد يطمئن إلى الاسم الصحيح، ثم يغفل عن الفعل الذي اختبأ خلفه.",
-          "line": 77,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s33",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ولهذا لا يكفي أن نسأل: ماذا نسمي هذا التصرف؟",
-          "line": 79,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s34",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل ينبغي أن نسأل: ما حقيقته؟ وما دليله؟ وما أثره؟",
-          "line": 81,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "stand,look-up,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | حقيقته"
-          },
-          "id": "c1-s35",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "فليس الميزان هو الاسم الذي نعطيه لأفعالنا، بل حقيقتها حين تُوزن بالعدل.",
-          "line": 83,
+          "line": 49,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -662,26 +352,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "غير أن رؤية الخطأ في تصرفات الآخرين قد تكون أسهل بكثير من رؤيته في أنفسنا.",
-          "line": 85,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | الخطأ\npeople | الآخرين"
-          },
-          "id": "c1-s37",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "وأحيانًا لا يبدأ الاختبار الحقيقي إلا بعد أن تظهر لنا الحقيقة.",
-          "line": 87,
+          "line": 51,
           "props": {
             "place": "alley",
             "mood": "dusk",
@@ -699,7 +371,7 @@
         {
           "template": "alley-tale",
           "narration": "في بيت قريب من السوق، وجد شاب دفتره ممزقًا.",
-          "line": 89,
+          "line": 53,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -717,27 +389,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "نظر إلى الأوراق المتناثرة، ثم تذكر أن أخاه كان آخر من دخل الغرفة.",
-          "line": 91,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "sit-low,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-leaf"
-          },
-          "id": "c1-s40",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وفي لحظة غضب، اتهمه بأنه أفسد الدفتر.",
-          "line": 93,
+          "narration": "وفي لحظة غضب، اتهم أخاه بأنه أفسد الدفتر، وطلب منه ثلاث قطع نقدية تعويضًا.",
+          "line": 55,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -749,128 +402,13 @@
             "cues": "",
             "shot": "ep001-home-accuse"
           },
-          "id": "c1-s41",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "قال الأخ إنه لم يفعل.",
-          "line": 95,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-home-denies"
-          },
-          "id": "c1-s42",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لكن الشاب لم يكن مستعدًا لسماع تفسير آخر.",
-          "line": 97,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "cross",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-home-not-ready"
-          },
-          "id": "c1-s43",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "كان قد كوّن حكمه، وأصبح ينتظر من أخيه أن يعترف به.",
-          "line": 99,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "cross,stand",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-home-waits"
-          },
-          "id": "c1-s44",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل طلب منه ثلاث قطع نقدية تعويضًا عما ظن أنه أتلفه.",
-          "line": 101,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "talk,point",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-home-demand"
-          },
-          "id": "c1-s45",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "أعطاه أخوه المال، وانتهى الجدال.",
-          "line": 103,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "hold",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-home-gives"
-          },
-          "id": "c1-s46",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لكن الحقيقة لم تكن قد ظهرت بعد.",
-          "line": 105,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | الحقيقة",
-            "shot": "ep001-home-brother-leaves"
-          },
-          "id": "c1-s47",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s165",
+          "sfx": []
         },
         {
           "template": "alley-tale",
           "narration": "وبعد قليل، رأى الشاب القطة تعبث بأوراق الدفتر عند النافذة.",
-          "line": 107,
+          "line": 57,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -888,122 +426,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "كانت آثار مخالبها على الورق، ورآها تشد صفحة أخرى فتمزقها.",
-          "line": 109,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-cat-rip"
-          },
-          "id": "c1-s49",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "توقف. لقد اتهم أخاه، وأخذ منه المال، ولم يكن يملك دليلًا على اتهامه.",
-          "line": 111,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-stops"
-          },
-          "id": "c1-s50",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "في هذه اللحظة أصبح أمام اختبار مختلف تمامًا.",
-          "line": 113,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-test"
-          },
-          "id": "c1-s51",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لم يعد السؤال: من الذي أفسد الدفتر؟",
-          "line": 115,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-question-who"
-          },
-          "id": "c1-s52",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل: ماذا سيفعل الآن بعدما عرف أن حكمه كان متعجلًا؟",
-          "line": 117,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "think,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-question-now"
-          },
-          "id": "c1-s53",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "كان يستطيع أن يذهب إلى أخيه، ويعيد إليه القطع النقدية، ويعتذر.",
-          "line": 119,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-could"
-          },
-          "id": "c1-s54",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لكنه لم يفعل. وضع القطع الثلاث في ظرف صغير، وأجّل الاعتذار.",
-          "line": 121,
+          "narration": "لقد عرف الحقيقة. لكنه وضع القطع الثلاث في ظرف صغير، وأجّل الاعتذار.",
+          "line": 59,
           "props": {
             "place": "home",
             "mood": "dusk",
@@ -1015,89 +439,13 @@
             "cues": "",
             "shot": "ep001-home-envelope"
           },
-          "id": "c1-s55",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s166",
+          "sfx": []
         },
         {
           "template": "alley-tale",
-          "narration": "ربما قال لنفسه: سأفعل ذلك لاحقًا.",
-          "line": 123,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "turn-away",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-later"
-          },
-          "id": "c1-s56",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وربما خشي أن يسمع من أخيه سؤالًا واحدًا: لماذا لم تصدقني؟",
-          "line": 125,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "think,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-why"
-          },
-          "id": "c1-s57",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وهنا تظهر مشكلة أعمق من الخطأ في التقدير.",
-          "line": 127,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | الخطأ",
-            "shot": "courtyard-pause"
-          },
-          "id": "c1-s58",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "قد نرفض بعض الحقائق، لا لأن أدلتها غائبة، بل لأن قبولها يلزمنا بشيء لا نريده.",
-          "line": 129,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "look-up,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | الحقائق"
-          },
-          "id": "c1-s59",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "فالاعتراف بالحق قد يفرض علينا أن نتراجع عن كلام قلناه.",
-          "line": 131,
+          "narration": "فالاعتراف بالحق قد يفرض علينا أن نتراجع عن كلام قلناه، وأن نرد حقًّا أخذناه.",
+          "line": 61,
           "props": {
             "place": "alley",
             "mood": "dusk",
@@ -1108,32 +456,13 @@
             "cast": "",
             "cues": "door | فالاعتراف"
           },
-          "id": "c1-s60",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وقد يفرض علينا رد حق أخذناه.",
-          "line": 133,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s61",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s167",
+          "sfx": []
         },
         {
           "template": "alley-tale",
           "narration": "وقد يفرض علينا أن نقول لشخص ظلمناه: لقد أخطأت في حقك.",
-          "line": 135,
+          "line": 63,
           "props": {
             "place": "alley",
             "mood": "dusk",
@@ -1151,7 +480,7 @@
         {
           "template": "alley-tale",
           "narration": "إن معرفة الحقيقة شيء. والاستعداد للعمل بمقتضاها شيء آخر.",
-          "line": 137,
+          "line": 65,
           "props": {
             "place": "alley",
             "mood": "dusk",
@@ -1168,62 +497,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "وقد يكون الإنسان قادرًا على تمييز الخطأ بعقله، لكنه يعجز عن التراجع عنه بكبريائه.",
-          "line": 139,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "think,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | الخطأ"
-          },
-          "id": "c1-s64",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ولهذا فإن السؤال ليس: هل أستطيع رؤية الحق؟",
-          "line": 141,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s65",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل أيضًا: هل أنا مستعد لاتباعه إذا خالف ما أريد؟",
-          "line": 143,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "deep",
-            "camera": "rise",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s66",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "وهذا الفرق بين رؤية الحق واتباعه يجتمع في دعاء قصير، لكنه يحمل معنى عظيمًا.",
-          "line": 145,
+          "line": 67,
           "props": {
             "place": "alley",
             "mood": "deep",
@@ -1241,7 +516,7 @@
         {
           "template": "dua-board",
           "narration": "ومن الأدعية التي أوردها أهل العلم:",
-          "line": 147,
+          "line": 69,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية التي أوردها أهل العلم",
@@ -1257,7 +532,7 @@
         {
           "template": "dua-board",
           "narration": "«اللهم أرنا الحق حقًّا وارزقنا اتباعه، وأرنا الباطل باطلًا وارزقنا اجتنابه».",
-          "line": 150,
+          "line": 72,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية التي أوردها أهل العلم",
@@ -1272,24 +547,8 @@
         },
         {
           "template": "dua-board",
-          "narration": "تأمل هذا الدعاء. إنه لا يطلب أمرًا واحدًا، بل يجمع أربعة مطالب مترابطة.",
-          "line": 153,
-          "props": {
-            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
-            "source": "من الأدعية التي أوردها أهل العلم",
-            "asks": "أن نرى الحق حقًّا | أن نُرزق اتباعه | أن نرى الباطل باطلًا | أن نُرزق اجتنابه",
-            "heads": "البصيرة | العمل",
-            "shown": "source, dua",
-            "cues": "dock | تأمل\ngrid | يجمع\ncount | أربعة"
-          },
-          "id": "c1-s70",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "dua-board",
           "narration": "أن نرى الحق حقًّا. وأن نُرزق اتباعه. وأن نرى الباطل باطلًا. وأن نُرزق اجتنابه.",
-          "line": 156,
+          "line": 75,
           "props": {
             "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
             "source": "من الأدعية التي أوردها أهل العلم",
@@ -1303,761 +562,35 @@
           "edited": true
         },
         {
-          "template": "alley-tale",
-          "narration": "فقد يعرف الإنسان أن الاعتذار هو الصواب، ثم يعجز عن الاعتذار.",
-          "line": 159,
-          "props": {
-            "place": "market",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "apologize,stand",
-            "look": "hero",
-            "cast": "",
-            "cues": "apologize | الاعتذار\ntruth | الصواب",
-            "shot": "home-knows-cant"
-          },
-          "id": "c1-s72",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وقد يعرف أن خبرًا لم يثبت، ثم ينشره لأن الخبر يوافق غضبه.",
-          "line": 161,
-          "props": {
-            "place": "alley",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "hold,talk",
-            "look": "hero",
-            "cast": "",
-            "cues": "news | خبرًا\nspread | ينشره"
-          },
-          "id": "c1-s73",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وقد يرى عيبًا في نفسه، ثم ينشغل بتبريره بدلًا من إصلاحه.",
-          "line": 163,
-          "props": {
-            "place": "home",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "think,turn-away",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s74",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "فالمعرفة وحدها لا تكفي دائمًا.",
-          "line": 165,
-          "props": {
-            "place": "home",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s75",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "نحتاج إلى بصيرة تميز لنا الحق من الباطل.",
-          "line": 167,
-          "props": {
-            "place": "alley",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | بصيرة\nwrong | الباطل"
-          },
-          "id": "c1-s76",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ونحتاج أيضًا إلى عزيمة تجعلنا نتبع ما عرفناه، ولو خالف رغباتنا.",
-          "line": 169,
-          "props": {
-            "place": "alley",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,walk",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s77",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وتلك القطع النقدية الثلاث التي وضعها الشاب في الظرف تشرح هذا الفرق بوضوح.",
-          "line": 171,
-          "props": {
-            "place": "home",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "hold,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-envelope-explains"
-          },
-          "id": "c1-s78",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لقد عرف الآن أن عليه ردها. لكن المعرفة لم تجعل المال يعود إلى يد أخيه.",
-          "line": 173,
-          "props": {
-            "place": "home",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "hold,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-knows-must-return"
-          },
-          "id": "c1-s79",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "كان لا يزال عليه أن يتخذ القرار، ويتحمل مشقة تنفيذه.",
-          "line": 175,
-          "props": {
-            "place": "home",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "think,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "pain | مشقة"
-          },
-          "id": "c1-s80",
-          "sfx": [],
-          "edited": true
-        },
-        {
           "template": "dua-board",
-          "narration": "وهكذا يجمع الدعاء بين البصيرة والعمل.",
-          "line": 177,
-          "props": {
-            "dua": "اللهم أرنا الحق حقًّا | وارزقنا اتباعه، / وأرنا الباطل باطلًا | وارزقنا اجتنابه",
-            "source": "من الأدعية التي أوردها أهل العلم",
-            "asks": "أن نرى الحق حقًّا | أن نُرزق اتباعه | أن نرى الباطل باطلًا | أن نُرزق اجتنابه",
-            "heads": "البصيرة | العمل",
-            "shown": "source, dua, dock, grid, ask1, ask2, ask3, ask4",
-            "cues": "cam:all | وهكذا\nfocus:0 | وهكذا\nhead1 | البصيرة\nhead2 | والعمل"
-          },
-          "id": "c1-s81",
-          "sfx": [],
-          "edited": true
+          "narration": "فالمعرفة وحدها لا تكفي دائمًا. نحتاج إلى بصيرة تميز لنا الحق من الباطل، وإلى عزيمة تجعلنا نتبع ما عرفناه، ولو خالف رغباتنا.",
+          "line": 78,
+          "props": {},
+          "id": "c1-s168",
+          "sfx": []
         },
         {
           "template": "alley-tale",
-          "narration": "فليس المطلوب أن نرى الحق فحسب، بل أن نحبه ونتبعه.",
-          "line": 180,
+          "narration": "وفي الطريق إلى ذلك ثلاث ممارسات.",
+          "line": 81,
           "props": {
             "place": "alley",
-            "mood": "deep",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s82",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وليس المطلوب أن نعرف الباطل فحسب، بل أن نملك الإرادة لاجتنابه.",
-          "line": 182,
-          "props": {
-            "place": "alley",
-            "mood": "deep",
-            "moodTo": "predawn",
-            "camera": "track",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | الباطل"
-          },
-          "id": "c1-s83",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ومن البصيرة أيضًا أن نرى الأشياء على حقيقتها، فلا نرفع شيئًا فوق قدره، ولا نبخسه قيمته، ولا نجعل رغباتنا هي المعيار الذي نحكم به على كل شيء.",
-          "line": 184,
-          "props": {
-            "place": "market",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "look-up,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | البصيرة"
-          },
-          "id": "c1-s84",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "تأمل المال مثلًا. هو نعمة من الله، ووسيلة لقضاء الحاجات، وقد يكون بابًا واسعًا للخير.",
-          "line": 186,
-          "props": {
-            "place": "market",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s85",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لكن الإنسان قد يراه أكثر من ذلك.",
-          "line": 188,
-          "props": {
-            "place": "market",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s86",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "قد يجعله مقياسًا لقيمته، أو دليلًا على فضله على الآخرين.",
-          "line": 190,
-          "props": {
-            "place": "market",
-            "mood": "predawn",
+            "mood": "dawn",
             "moodTo": "",
             "camera": "track",
-            "poses": "proud",
-            "look": "hero",
-            "cast": "",
-            "cues": "measure | مقياسًا\npeople | الآخرين"
-          },
-          "id": "c1-s87",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "فيبدأ بالحكم على الناس بما يملكون، لا بما يفعلون.",
-          "line": 192,
-          "props": {
-            "place": "market",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "proud,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "people | الناس"
-          },
-          "id": "c1-s88",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ولا يحتاج الإنسان إلى احتقار المال حتى يضعه في موضعه الصحيح.",
-          "line": 194,
-          "props": {
-            "place": "market",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "think,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s89",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل يحتاج إلى أن يعرف قيمته، وحدود هذه القيمة.",
-          "line": 196,
-          "props": {
-            "place": "market",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "think,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s90",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وتأمل صانعًا أنهى كرسيًّا جميلًا في ورشته.",
-          "line": 198,
-          "props": {
-            "place": "home",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "stand",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-chair-finished"
-          },
-          "id": "c1-s91",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "كان الخشب متناسقًا، والطلاء متقنًا، والشكل يلفت النظر.",
-          "line": 200,
-          "props": {
-            "place": "home",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "stand,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-chair-beautiful"
-          },
-          "id": "c1-s92",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لكن حين وضع يده عليه، اهتز الكرسي.",
-          "line": 202,
-          "props": {
-            "place": "home",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-chair-rocks"
-          },
-          "id": "c1-s93",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "كان يستطيع أن يخفي العيب ويكتفي بمظهره الجميل.",
-          "line": 204,
-          "props": {
-            "place": "home",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-chair-could-hide"
-          },
-          "id": "c1-s94",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لكنه اختار أن يعترف بما يحتاج إلى إصلاح.",
-          "line": 206,
-          "props": {
-            "place": "home",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "nod",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-chair-admits"
-          },
-          "id": "c1-s95",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "فهل نقصت قيمة عمله لأنه رأى عيبه؟",
-          "line": 208,
-          "props": {
-            "place": "home",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-chair-value"
-          },
-          "id": "c1-s96",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل إن رؤية العيب على حقيقته هي أول خطوة إلى إصلاحه.",
-          "line": 210,
-          "props": {
-            "place": "home",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "look-up,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | حقيقته",
-            "shot": "ep001-chair-first-fix"
-          },
-          "id": "c1-s97",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وكذلك نحن. قد نرى في أنفسنا صفات حسنة، ثم نستخدمها لنتجاهل أخطاءنا.",
-          "line": 212,
-          "props": {
-            "place": "alley",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s98",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وقد نرى خطأً في إنسان، فننسى كل خير نعرفه عنه.",
-          "line": 214,
-          "props": {
-            "place": "alley",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "think",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | خطأً"
-          },
-          "id": "c1-s99",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وقد نحكم على نجاح شخص أو فشله من صورة واحدة، أو موقف واحد، أو خبر لم يكتمل.",
-          "line": 216,
-          "props": {
-            "place": "alley",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "hold,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "news | خبر"
-          },
-          "id": "c1-s100",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "والبصيرة ليست أن نرى ما نحب. بل أن نجتهد في رؤية الأشياء بما تستحقه من تقدير، بميزان العدل والحق.",
-          "line": 218,
-          "props": {
-            "place": "alley",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "look-up,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | والبصيرة\njust | العدل"
-          },
-          "id": "c1-s101",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "أن نعترف بفضل من نختلف معه.",
-          "line": 220,
-          "props": {
-            "place": "alley",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "talk,nod",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "debate | نختلف"
-          },
-          "id": "c1-s102",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وأن نرى عيوبنا دون أن نبحث دائمًا عمن نحمّله المسؤولية.",
-          "line": 222,
-          "props": {
-            "place": "alley",
-            "mood": "predawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "head-down,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s103",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وأن نفرق بين قيمة الشيء وبين الصورة التي صنعناها له في أذهاننا.",
-          "line": 224,
-          "props": {
-            "place": "alley",
-            "mood": "predawn",
-            "moodTo": "dusk",
-            "camera": "rise",
-            "poses": "stand,look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s104",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "أما ذلك الشاب، فلم يكن يحتاج الآن إلى دليل جديد.",
-          "line": 226,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-no-new-evidence"
-          },
-          "id": "c1-s105",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "كان يحتاج إلى أن يعامل أخاه بالعدل نفسه الذي كان يطالب به الآخرين.",
-          "line": 228,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "just | بالعدل\npeople | الآخرين",
-            "shot": "ep001-home-same-justice"
-          },
-          "id": "c1-s106",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "فالظرف لا يزال معه. والحق الذي عرفه ما زال ينتظر منه فعلًا.",
-          "line": 230,
-          "props": {
-            "place": "home",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "hold,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-home-envelope-still"
-          },
-          "id": "c1-s107",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وهنا نصل إلى السؤال العملي: كيف نحول حب الحق من فكرة جميلة نقولها، إلى تصرف نلتزمه حين يكون ذلك صعبًا؟",
-          "line": 232,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "walk,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s108",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "مر الشاب بالقرب من باب أخيه.",
-          "line": 234,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "walk",
+            "poses": "walk,stand",
             "look": "hero",
             "cast": "",
             "cues": "door | باب",
-            "shot": "ep001-door-pass"
+            "shot": "ep001-return-arrives"
           },
-          "id": "c1-s109",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "توقف قليلًا، ثم مضى.",
-          "line": 236,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand,walk",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-door-pause"
-          },
-          "id": "c1-s110",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لم يكن يجهل ما ينبغي عليه فعله. لكنه كان يؤجله.",
-          "line": 238,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "head-down,walk",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-door-postpones"
-          },
-          "id": "c1-s111",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وفي أثناء ذلك، كان عليه أن يتعلم ثلاث ممارسات قد تبدو بسيطة، لكنها تغير الطريقة التي نحكم بها على أنفسنا وعلى الناس.",
-          "line": 240,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "walk,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "people | الناس"
-          },
-          "id": "c1-s112",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s169",
+          "sfx": []
         },
         {
           "template": "alley-tale",
           "narration": "الأولى: التثبت قبل الحكم.",
-          "line": 242,
+          "line": 83,
           "props": {
             "place": "alley",
             "mood": "dusk",
@@ -2075,27 +608,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "في المقهى، وصلته رسالة على هاتفه.",
-          "line": 244,
-          "props": {
-            "place": "market",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-cafe-message"
-          },
-          "id": "c1-s114",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "صورة، وعبارة غاضبة، واتهام جاهز لشخص آخر.",
-          "line": 246,
+          "narration": "وصلت الشاب رسالة فيها صورة، وعبارة غاضبة، واتهام جاهز لشخص آخر. وكاد يرسلها إلى غيره.",
+          "line": 85,
           "props": {
             "place": "market",
             "mood": "dusk",
@@ -2107,52 +621,13 @@
             "cues": "",
             "shot": "ep001-cafe-cropped"
           },
-          "id": "c1-s115",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s170",
+          "sfx": []
         },
         {
           "template": "alley-tale",
-          "narration": "كان الخبر يوافق رأيًا يحمله من قبل.",
-          "line": 248,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "hold",
-            "look": "hero",
-            "cast": "",
-            "cues": "news | الخبر",
-            "shot": "ep001-cafe-agrees"
-          },
-          "id": "c1-s116",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وكاد يرسله إلى غيره. لكنه توقف هذه المرة.",
-          "line": 250,
-          "props": {
-            "place": "market",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "hold,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-cafe-almost-sends"
-          },
-          "id": "c1-s117",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "عاد إلى أصل الصورة، وراجع سياق الخبر، فاكتشف أن ما وصله لم يكن يعرض الموقف كاملًا.",
-          "line": 252,
+          "narration": "لكنه عاد إلى أصل الخبر، فاكتشف أن ما وصله لم يكن يعرض الموقف كاملًا.",
+          "line": 87,
           "props": {
             "place": "market",
             "mood": "dusk",
@@ -2164,33 +639,13 @@
             "cues": "news | الخبر\nverify | وراجع",
             "shot": "ep001-cafe-original"
           },
-          "id": "c1-s118",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لقد كان قريبًا من أن يكرر الخطأ نفسه، ولكن في حق إنسان آخر.",
-          "line": 254,
-          "props": {
-            "place": "market",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "think,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | الخطأ",
-            "shot": "ep001-cafe-context"
-          },
-          "id": "c1-s119",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s171",
+          "sfx": []
         },
         {
           "template": "alley-tale",
           "narration": "ولهذا نتذكر قول الله تعالى:",
-          "line": 256,
+          "line": 89,
           "props": {
             "place": "market",
             "mood": "dusk",
@@ -2208,7 +663,7 @@
         {
           "template": "verse-card",
           "narration": "",
-          "line": 258,
+          "line": 91,
           "ayahKey": "49:6",
           "props": {
             "text": "",
@@ -2220,44 +675,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "فلا يكفي أن يوافق الخبر ما نعتقده.",
-          "line": 260,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "news | الخبر"
-          },
-          "id": "c1-s122",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل يجب أن نتحقق مما يصح منه قبل أن نبني عليه حكمًا أو ننقله إلى الناس.",
-          "line": 262,
-          "props": {
-            "place": "alley",
-            "mood": "dusk",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "hold,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "verify | نتحقق\npeople | الناس"
-          },
-          "id": "c1-s123",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "الثانية: مراجعة النية.",
-          "line": 264,
+          "line": 93,
           "props": {
             "place": "home",
             "mood": "night",
@@ -2275,46 +694,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "في المساء، جلس الشاب وحده. كان الظرف أمامه.",
-          "line": 266,
-          "props": {
-            "place": "home",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "sit,sit-low",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-night-alone"
-          },
-          "id": "c1-s125",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وسأل نفسه سؤالًا لم يكن مريحًا.",
-          "line": 268,
-          "props": {
-            "place": "home",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "sit-low",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-night-question"
-          },
-          "id": "c1-s126",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "هل أريد أن أصل إلى الحق فعلًا؟",
-          "line": 270,
+          "narration": "هل أريد أن أصل إلى الحق فعلًا؟ أم أريد فقط ألا أبدو مخطئًا؟",
+          "line": 95,
           "props": {
             "place": "home",
             "mood": "night",
@@ -2326,109 +707,13 @@
             "cues": "",
             "shot": "ep001-night-q1"
           },
-          "id": "c1-s127",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "أم أريد فقط ألا أبدو مخطئًا أمام أخي؟",
-          "line": 272,
-          "props": {
-            "place": "home",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "sit,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | مخطئًا",
-            "shot": "ep001-night-q2"
-          },
-          "id": "c1-s128",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "هل أخشى أن أكون قد ظلمته؟",
-          "line": 274,
-          "props": {
-            "place": "home",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "sit-low",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-night-q3"
-          },
-          "id": "c1-s129",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "أم أخشى أن أعترف له بأنني ظلمته؟",
-          "line": 276,
-          "props": {
-            "place": "home",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "sit,head-down",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-night-q4"
-          },
-          "id": "c1-s130",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "أحيانًا لا تكون المعركة بين دليلين.",
-          "line": 278,
-          "props": {
-            "place": "home",
-            "mood": "night",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "sit,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "",
-            "shot": "ep001-night-battle"
-          },
-          "id": "c1-s131",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل بين ما نعرف أنه صواب، وما نريد أن نحافظ عليه من صورتنا أمام الآخرين.",
-          "line": 280,
-          "props": {
-            "place": "home",
-            "mood": "night",
-            "moodTo": "predawn",
-            "camera": "rise",
-            "poses": "think,look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": "people | الآخرين",
-            "shot": "ep001-night-image"
-          },
-          "id": "c1-s132",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s172",
+          "sfx": []
         },
         {
           "template": "alley-tale",
           "narration": "أما الثالثة، فهي الاستعداد لتصحيح الموقف.",
-          "line": 282,
+          "line": 97,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -2446,8 +731,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "وفي صباح اليوم التالي، عاد الشاب إلى باب أخيه.",
-          "line": 284,
+          "narration": "في صباح اليوم التالي، طرق الشاب باب أخيه، وأعاد إليه القطع النقدية الثلاث.",
+          "line": 99,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -2459,52 +744,13 @@
             "cues": "door | باب",
             "shot": "ep001-return-arrives"
           },
-          "id": "c1-s134",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "هذه المرة لم يكتفِ بالوقوف أمامه. طرق الباب.",
-          "line": 286,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "door | الباب",
-            "shot": "ep001-return-knocks"
-          },
-          "id": "c1-s135",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وحين خرج أخوه، أخرج الظرف، وأعاد إليه القطع النقدية الثلاث.",
-          "line": 288,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "hold",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-return-coins"
-          },
-          "id": "c1-s136",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s173",
+          "sfx": []
         },
         {
           "template": "alley-tale",
           "narration": "ثم قال له من غير تبرير طويل: لقد اتهمتك دون دليل، وأخذت منك ما ليس لي. أخطأت في حقك، وأعتذر.",
-          "line": 290,
+          "line": 101,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -2522,82 +768,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "لم يكن الاعتذار سهلًا. ولم يكن من الضروري أن تختفي آثار الخلاف في لحظة واحدة.",
-          "line": 292,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "apologize,stand",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "apologize | الاعتذار",
-            "shot": "ep001-return-not-easy"
-          },
-          "id": "c1-s138",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لكن شيئًا مهمًا قد تغير.",
-          "line": 294,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand,nod",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-return-changed"
-          },
-          "id": "c1-s139",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لم يعد الشاب يطلب من الحقيقة أن توافق موقفه.",
-          "line": 296,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": "truth | الحقيقة"
-          },
-          "id": "c1-s140",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل بدأ يصحح موقفه ليوافق ما عرفه من الحق.",
-          "line": 298,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "nod",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s141",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وجلس مع أخيه يستمع إليه.",
-          "line": 300,
+          "narration": "وجلس مع أخيه يستمع إليه، دون أن يقاطعه ليدافع عن نفسه.",
+          "line": 103,
           "props": {
             "place": "home",
             "mood": "dawn",
@@ -2609,109 +781,13 @@
             "cues": "listen | يستمع",
             "shot": "ep001-listen-sits"
           },
-          "id": "c1-s142",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s174",
+          "sfx": []
         },
         {
           "template": "alley-tale",
-          "narration": "هذه المرة لم يقاطعه ليشرح لماذا غضب.",
-          "line": 302,
-          "props": {
-            "place": "home",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "listen,nod",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-listen-no-interrupt"
-          },
-          "id": "c1-s143",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ولم ينشغل بإعداد رد يدافع به عن نفسه.",
-          "line": 304,
-          "props": {
-            "place": "home",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "listen",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-listen-no-reply"
-          },
-          "id": "c1-s144",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ترك لأخيه أن يقول ما شعر به حين اتُّهم ظلمًا.",
-          "line": 306,
-          "props": {
-            "place": "home",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "listen,head-down",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "wrong | ظلمًا",
-            "shot": "ep001-listen-feeling"
-          },
-          "id": "c1-s145",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "واستمع إلى حجته كاملة.",
-          "line": 308,
-          "props": {
-            "place": "home",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "listen,nod",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "listen | واستمع",
-            "shot": "ep001-listen-whole"
-          },
-          "id": "c1-s146",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "لم يكن ذلك ضعفًا. بل كان استعدادًا لأن يتعلم شيئًا لم يكن يعرفه، وأن يقبل ما كان يرفض سماعه.",
-          "line": 310,
-          "props": {
-            "place": "home",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "nod,look-up",
-            "look": "hero",
-            "cast": "companion",
-            "cues": "",
-            "shot": "ep001-listen-not-weakness"
-          },
-          "id": "c1-s147",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وتذكر ميزان السوق. لم يكن الميزان عادلًا لأن أحد الشاهدين قال إنه عادل.",
-          "line": 312,
+          "narration": "وتذكر ميزان السوق. لم يكن الميزان عادلًا لأن أحد الشاهدين قال إنه عادل، ولم يكن ظالمًا لأن الآخر غضب منه.",
+          "line": 105,
           "props": {
             "place": "market",
             "mood": "dawn",
@@ -2723,33 +799,13 @@
             "cues": "witnesses | الشاهدين\njust | عادلًا",
             "shot": "ep001-scale-recall-1"
           },
-          "id": "c1-s148",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ولم يكن ظالمًا لأن الآخر غضب منه.",
-          "line": 314,
-          "props": {
-            "place": "market",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "think",
-            "look": "hero",
-            "cast": "witnesses",
-            "cues": "",
-            "shot": "ep001-scale-recall-2"
-          },
-          "id": "c1-s149",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s175",
+          "sfx": []
         },
         {
           "template": "alley-tale",
           "narration": "إنما يُعرف الحكم الصحيح بالنظر في الحقيقة والدليل، لا بقوة الصوت ولا بشدة الاقتناع.",
-          "line": 316,
+          "line": 107,
           "props": {
             "place": "market",
             "mood": "dawn",
@@ -2767,80 +823,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "وهكذا في أحكامنا على الناس. لا يكفي أن نكون واثقين. ولا يكفي أن تكون نياتنا حسنة.",
-          "line": 318,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "people | الناس"
-          },
-          "id": "c1-s151",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل نحتاج إلى التثبت، والعدل، والاستعداد للتراجع حين يظهر خطؤنا.",
-          "line": 320,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "hold,think,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": "verify | التثبت\njust | والعدل"
-          },
-          "id": "c1-s152",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "ولا يعني هذا أن نشك في كل شيء، أو أن نساوي بين الحق والباطل.",
-          "line": 322,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": "wrong | والباطل"
-          },
-          "id": "c1-s153",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل أن نثبت على ما قام عليه الدليل، وأن نرجع إلى أهل العلم فيما نجهل، وألا نجعل كبرياءنا حاجزًا بيننا وبين الحقيقة.",
-          "line": 324,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "rise",
-            "poses": "hold,look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": "evidence | الدليل\ntruth | الحقيقة"
-          },
-          "id": "c1-s154",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "وفي المرة القادمة التي تختلف فيها مع أحد، حاول أن تستمع إلى حجته كاملة.",
-          "line": 326,
+          "line": 109,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -2857,26 +841,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "لا تنشغل طوال الوقت بإعداد ردك.",
-          "line": 328,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "listen",
-            "look": "hero",
-            "cast": "companion",
-            "cues": ""
-          },
-          "id": "c1-s156",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
           "narration": "ثم اسأل نفسك بصدق: لو ظهر أن الحق معه، هل سأكون مستعدًا لقبوله؟",
-          "line": 330,
+          "line": 111,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -2893,8 +859,8 @@
         },
         {
           "template": "alley-tale",
-          "narration": "فالغاية ليست أن نثبت دائمًا أننا على حق.",
-          "line": 332,
+          "narration": "فالغاية ليست أن نثبت دائمًا أننا على حق، بل أن نكون مع الحق.",
+          "line": 113,
           "props": {
             "place": "alley",
             "mood": "dawn",
@@ -2905,68 +871,13 @@
             "cast": "",
             "cues": ""
           },
-          "id": "c1-s158",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل أن نكون مع الحق، حتى حين يقتضي ذلك أن نعترف بأننا أخطأنا.",
-          "line": 334,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "drift",
-            "poses": "stand,think",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s159",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "وربما تكون العلامة الأصدق على حب الحق، ليست أنك لا تخطئ أبدًا.",
-          "line": 336,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "push",
-            "poses": "look-up",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s160",
-          "sfx": [],
-          "edited": true
-        },
-        {
-          "template": "alley-tale",
-          "narration": "بل أنك لا تصر على خطئك بعدما يتبين لك.",
-          "line": 338,
-          "props": {
-            "place": "alley",
-            "mood": "dawn",
-            "moodTo": "",
-            "camera": "track",
-            "poses": "stand,nod",
-            "look": "hero",
-            "cast": "",
-            "cues": ""
-          },
-          "id": "c1-s161",
-          "sfx": [],
-          "edited": true
+          "id": "c1-s176",
+          "sfx": []
         },
         {
           "template": "kinetic-text",
           "narration": "فكيف تعرف أنك على حق؟ ابدأ بأن تكون مستعدًا لمعرفة أنك لست كذلك.",
-          "line": 340,
+          "line": 115,
           "props": {
             "emphasis": "مستعدًا",
             "element": "",
@@ -2980,7 +891,7 @@
           "id": "c1-end",
           "template": "end-screen",
           "narration": "",
-          "line": 351,
+          "line": 126,
           "props": {
             "step": "في المرة القادمة التي تختلف فيها مع أحد، استمع إلى حجته كاملة، ثم اسأل نفسك: «لو ظهر أن الحق معه، هل سأكون مستعدًا لقبوله؟»",
             "prompt": "شاركنا رأيك في التعليقات"

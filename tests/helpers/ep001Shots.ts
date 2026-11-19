@@ -9,7 +9,9 @@ import { estimateTimings } from "../../src/remotion/scenes/timing";
 import { sceneFrames } from "../../src/plan/duration";
 
 export type PlanScene = { id: string; template: string; narration: string; props: Record<string, string> };
-export const PLAN_FILE = "channels/balislam/episodes/001-know-the-truth/plan.json";
+// The 163-scene design (command 032) these checks were written for; the live plan is the ~5-minute episode since
+// 19 Nov (owner decision), its own checks in tests/balislam-001-short-plan.test.ts
+export const PLAN_FILE = "channels/balislam/episodes/001-know-the-truth/versions/2026-11-19-before-5min/plan.json";
 export const planScenes = (): PlanScene[] =>
   (JSON.parse(fs.readFileSync(PLAN_FILE, "utf8")).chapters as { scenes: PlanScene[] }[]).flatMap((c) => c.scenes);
 export const shotScenes = () => planScenes().filter((s) => s.template === "alley-tale" && s.props.shot?.startsWith("ep001-"));
