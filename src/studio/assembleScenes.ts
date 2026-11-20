@@ -46,6 +46,19 @@ const probeSeconds = async (file: string) => {
   return Number(st.duration);
 };
 
+/** Seconds of air kept before the first word of an episode (KI-091). */
+export const HEAD_AIR = 0.4;
+/** Trim a joined head only when its silence is longer than this. */
+export const HEAD_TRIM_FROM = 0.6;
+/** How much of the head to trim, given the silence before the first word. */
+export const headTrimFor = (silence: number) => (silence > HEAD_TRIM_FROM ? Math.round((silence - HEAD_AIR) * 1000) / 1000 : 0);
+/** Silence at the very start of a file's sound (-45 dB, at least 0.3 s), in seconds; 0 when it starts speaking. */
+export const leadingSilence = async (file: string): Promise<number> => {
+  const r = await exec("ffmpeg", ["-hide_banner", "-nostats", "-t", "15", "-i", file, "-af", "silencedetect=n=-45dB:d=0.3", "-f", "null", "-"], { maxBuffer: 8 * 1024 * 1024 }).catch((e: { stderr?: string }) => ({ stderr: e.stderr ?? "" }));
+  const m = /silence_start: (-?[\d.]+)[\s\S]*?silence_end: ([\d.]+)/.exec(String(r.stderr));
+  return m && Number(m[1]) < 0.05 ? Number(m[2]) : 0;
+};
+
 export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: string, script: string) => {
   const evidence = await Promise.all(cuts.map(item => verifyVideoEvidence(item.file)));
   const base = evidence[0]!;
@@ -102,6 +115,13 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
   }
   if (cuts.length === 1) g.push(`[v0]null[vout]`);
   g.push(`${cuts.map((_, i) => `[a${i}]`).join("")}amix=inputs=${cuts.length}:normalize=0:dropout_transition=0,atrim=0:${f6(total)}[aout]`);
+  // KI-091 (D155): the episode starts speaking. «دفاتر الزمن 001» opened on 3.5 s of silence inside its first scene;
+  // whatever its cause, the joined head is trimmed (picture and sound together) to HEAD_AIR before the first word.
+  const head = list[0]?.narration?.trim() ? headTrimFor(await leadingSilence(cuts[0]!.file)) : 0;
+  if (head > 0) {
+    for (let k = 0; k < g.length; k++) g[k] = g[k]!.replace("[vout]", "[vjoin]").replace("[aout]", "[ajoin]");
+    g.push(`[vjoin]trim=start=${f6(head)},setpts=PTS-STARTPTS[vout]`, `[ajoin]atrim=start=${f6(head)},asetpts=PTS-STARTPTS[aout]`);
+  }
   await writeFile(script, g.join(";\n"), { flag: "wx", mode: 0o600 });
   const q = qualitySpec("preview");
   // FFmpeg 8 removed -filter_complex_script (owner's Mac, 18 Nov): the form follows the local FFmpeg (ffmpegFilterScript.ts)
@@ -118,8 +138,8 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
   try { await run(form); }
   catch (error) { if (!refusedOption(error)) throw error; await run(otherForm(form)); }
   await verifyVideoEvidence(tempVideo, base.width, base.height);
-  const sceneSeconds = Object.fromEntries(cuts.map((c, i) => [c.sceneId, i + 1 < cuts.length ? starts[i + 1]! - starts[i]! : real[i]!]));
-  return { fps, sceneSeconds, seams: seams.map((x, i) => ({ ...x, at: Math.round(starts[i + 1]! * 1000) / 1000 })),
+  const sceneSeconds = Object.fromEntries(cuts.map((c, i) => [c.sceneId, (i + 1 < cuts.length ? starts[i + 1]! - starts[i]! : real[i]!) - (i === 0 ? head : 0)]));
+  return { fps, sceneSeconds, headTrimmed: head, seams: seams.map((x, i) => ({ ...x, at: Math.round((starts[i + 1]! - head) * 1000) / 1000 })),
     loudness: { target: loud.target, gain: loud.gain } };
 };
 
