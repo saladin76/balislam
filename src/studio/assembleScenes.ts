@@ -127,7 +127,10 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
   // FFmpeg 8 removed -filter_complex_script (owner's Mac, 18 Nov): the form follows the local FFmpeg (ffmpegFilterScript.ts)
   const run = (form: Awaited<ReturnType<typeof localFilterScriptForm>>) => exec("ffmpeg", [
     "-nostdin", "-hide_banner", "-loglevel", "error",
-    ...cuts.flatMap((c) => ["-i", c.file]),
+    // KI-092: one decoder thread per scene. With FFmpeg's default (a thread per core), 47 cuts at 1080p took ~6 GB and
+    // macOS killed the join (SIGKILL, no message) on the owner's 8 GB Mac; measured on 24 cuts: 3.2 GB → 1.1 GB, same speed
+    // (the encoder keeps every core).
+    ...cuts.flatMap((c) => ["-threads", "1", "-i", c.file]),
     ...filterScriptArgs(script, form), "-map", "[vout]", "-map", "[aout]",
     "-c:v", "libx264", "-preset", q.x264Preset, "-crf", String(q.crf), "-pix_fmt", "yuv420p",
     "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
