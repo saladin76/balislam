@@ -24,10 +24,16 @@ export const DockText: React.FC<{
     if (!el) return;
     const check = () => setCut(el.scrollWidth > el.clientWidth + 1);
     check();
-    if (typeof ResizeObserver === "undefined") return;
-    const ro = new ResizeObserver(check);
-    ro.observe(el);
-    return () => ro.disconnect();
+    // Owner, 19 Nov: the line was cut («…وحركته و...») with no «التفاصيل». It was measured with the fallback face; the
+    // studio's face (El Messiri / IBM Plex) loads after and widens the text without resizing the box, so the
+    // ResizeObserver never fired. Measure again when the faces are ready and whenever one finishes loading.
+    const fonts = typeof document !== "undefined" ? (document as Document & { fonts?: FontFaceSet }).fonts : undefined;
+    let alive = true;
+    void fonts?.ready.then(() => { if (alive) check(); });
+    fonts?.addEventListener?.("loadingdone", check);
+    const ro = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(check);
+    ro?.observe(el);
+    return () => { alive = false; ro?.disconnect(); fonts?.removeEventListener?.("loadingdone", check); };
   }, [line]);
   useEffect(() => {
     if (!open) return;
