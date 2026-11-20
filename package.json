@@ -18,7 +18,8 @@
     "gate": "node scripts/gate.mjs",
     "e2e": "vitest run --config vitest.e2e.config.ts",
     "e2e:ui": "tsx tests/e2e/ui/studio-journey.mjs",
-    "prepare": "node scripts/install-hooks.mjs"
+    "prepare": "node scripts/install-hooks.mjs",
+    "sfx:master": "node scripts/sfx-master.mjs"
   },
   "repository": {
     "type": "git",
