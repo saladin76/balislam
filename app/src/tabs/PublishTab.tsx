@@ -356,7 +356,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
             <div className="s45-actions">
               {/* صور ثابتة فقط: لا صوت ولا فيديو ولا مساس بالنسخة النهائية واعتمادها */}
               <button type="button" className="btn ghost small" disabled={running} onClick={() => void start("thumbnails")}>{thumbs.length ? "أعد صنع الأغلفة" : "اصنع الأغلفة"}</button>
-              <span className="s45-note">من «حزمة الانتشار ← الأغلفة الثلاثة»: ١ عنوان، ٢ مشهد، ٣ سؤال.</span>
+              <span className="s45-note">من «حزمة الانتشار ← الأغلفة الثلاثة»: يُرسم ١ «عنوان» الآن؛ ٢ «مشهد» و٣ «سؤال» بعد اختيار المالك اتجاه القناة (KI-120).</span>
             </div>
           </More>
 
