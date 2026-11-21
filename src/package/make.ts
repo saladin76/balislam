@@ -53,6 +53,12 @@ export const makeEpisode = async (opts: MakeOptions) => {
   if (blocking.length && !opts.noVoice) throw new Error(`لا يمكن إخراج نسخة نهائية:\n${blocking.map((i) => `- ${i.sceneId}: ${i.message}`).join("\n")}`);
   for (const i of blocking) log(`   ⚠️ (${i.sceneId}): ${i.message}`);
 
+  // بطاقة الجودة (المرحلة A): لا نسخة نهائية وفي بطاقة الحلقة المجمّعة ✗ أو بند لم يُقس (src/studio/quality/measure.ts)
+  if (!opts.noVoice) {
+    const { assertQualityForFinal } = await import("../studio/quality/measure");
+    await assertQualityForFinal(ep, (m) => log(`   ${m}`));
+  }
+
   log("٤/٥ الصوت…");
   // Owner decision (15–16 Nov): the final file never pays for voice on its own. It is made from the voice the owner
   // already generated with his own press («ولّد الصوت الآن», a scene's «ولّد/أعد توليد الصوت», «الجمل»); a missing clip

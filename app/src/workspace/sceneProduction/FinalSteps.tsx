@@ -6,6 +6,7 @@
 import React from "react";
 import { api } from "../../api";
 import { MakeMaster } from "../MakeMaster";
+import { QualityCardView } from "../QualityCard";
 import { FramePlayer } from "../FramePlayer";
 import { sceneName, seamName } from "../sceneNames";
 import { OwnerText } from "../../ui/OwnerText";
@@ -58,9 +59,13 @@ export const FinalSeams: React.FC<Final> = ({ m, p }) => {
   const { episodeId, plan, thumb } = p;
   const ids = data!.scenes.map((x) => x.id);
   return (
-    <SeamReview episodeId={episodeId} data={data!} order={ids} plan={plan} thumb={thumb} at={Math.min(seamAt, Math.max(0, seamsAll.length - 1))} onAt={setSeamAt}
-      heard={seams} onHeard={(seam, v, how, playedSec) => void markSeam(seam, v, how ?? "confirmed", playedSec)} reviewed={reviewed} onReviewed={setReviewed} pending={pending} error={error}
-      onApprove={() => void act("approve-assembly", data!.assembly!.sha256)} onReassemble={() => void assembleScenes()} />
+    <>
+      <SeamReview episodeId={episodeId} data={data!} order={ids} plan={plan} thumb={thumb} at={Math.min(seamAt, Math.max(0, seamsAll.length - 1))} onAt={setSeamAt}
+        heard={seams} onHeard={(seam, v, how, playedSec) => void markSeam(seam, v, how ?? "confirmed", playedSec)} reviewed={reviewed} onReviewed={setReviewed} pending={pending} error={error}
+        onApprove={() => void act("approve-assembly", data!.assembly!.sha256)} onReassemble={() => void assembleScenes()} />
+      {/* بطاقة الجودة (المرحلة A) على الحلقة المجمّعة نفسها، قبل النسخة النهائية */}
+      {data!.assembly ? <QualityCardView episodeId={episodeId} target="assembly" /> : null}
+    </>
   );
 };
 
@@ -111,13 +116,14 @@ export const MasterBeforeSeams: React.FC<Final> = ({ m, p }) => {
 };
 
 export const SeamsApproved: React.FC<Final> = ({ p }) => {
-  const { onFinalView } = p;
+  const { onFinalView, episodeId } = p;
   return (
     <section className="scene-first-panel sp" aria-label="الوصلات">
       <div className="sp-row">
         <div><h3>اعتُمدت الوصلات كلها</h3><p className="sp-hint">سُمعت الحلقة المجمعة كاملة ١× وكل وصلة فيها. التالي: النسخة الأساسية 4K.</p></div>
         <div className="sp-actions"><button className="btn primary" type="button" onClick={() => onFinalView?.("master")}>إلى النسخة الأساسية</button></div>
       </div>
+      <QualityCardView episodeId={episodeId} target="assembly" />
     </section>
   );
 };
@@ -246,6 +252,8 @@ export const DecisionPanel: React.FC<Final> = ({ m, p }) => {
               <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-master", data.candidates.masterSha256!)}>اعتماد النسخة النهائية</button>
             </>) : <MakeMaster episodeId={episodeId} hasVoiceKeys={hasVoiceKeys} onDone={() => { void refresh(); onUpdated?.(); }} />}
           </div>
+          {/* بطاقة الجودة (المرحلة A): قبل الصنع على المجمّعة، وبعده على النسخة النهائية نفسها */}
+          <QualityCardView episodeId={episodeId} target={data.candidates.masterSha256 ? "master" : "assembly"} />
         </div>
       ) : data.master && !data.master.publishAllowed && !onOpenReview ? (
         <div className="sp-row">
@@ -259,6 +267,7 @@ export const DecisionPanel: React.FC<Final> = ({ m, p }) => {
             {confirm("أوافق على نشر هذا الملف")}
             <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("grant-publish", data.master!.sha256)}>إذن النشر</button>
           </div>
+          <QualityCardView episodeId={episodeId} target="master" />
         </div>
       ) : (
         <div className="sp-row"><div><h3>مأذون بنشر هذه النسخة</h3><p className="sp-hint">أي تعديل في أي مشهد يلغي الإذن تلقائيًا.</p></div></div>
