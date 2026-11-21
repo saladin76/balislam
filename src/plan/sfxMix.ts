@@ -1,7 +1,7 @@
 import type { Plan, PlanScene } from "./types";
 import type { EpisodeMedia } from "./media";
 import { sceneSeconds } from "./duration";
-import { intendedStillness, mergeSpans } from "../render/stillness";
+import { intendedStillness, mergeSpans } from "../render/stillnessSpans";
 import { AMBIENCE } from "../../brand/sfxMastering";
 
 /**
