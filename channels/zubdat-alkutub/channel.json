@@ -48,7 +48,7 @@
   "schedule": {
     "longDay": 3,
     "time": "19:00",
-    "shortsPerDay": 1
+    "shortsPerDay": 2
   },
   "brand": {
     "intro": "none",

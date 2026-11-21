@@ -74,7 +74,9 @@ export const handlePublishRoutes = async (ctx: RouteCtx): Promise<boolean> => {
     // chapter's real time from it as the owner picks scenes (src/package/chapters.ts).
     const sceneStarts = (await load("/src/package/chapters.ts")).sceneStartsFor(plan, media, info, real);
     return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, info, real, kit.long?.chapters),
-      chaptersEstimated: kit.long?.chapters?.length ? sceneStarts.estimated : timeline.estimated, chaptersSource: timeline.source, sceneStarts }), true;
+      chaptersEstimated: kit.long?.chapters?.length ? sceneStarts.estimated : timeline.estimated, chaptersSource: timeline.source, sceneStarts,
+      // صيغة عنوان القناة تُفحص في «حزمة الانتشار» (src/package/titleFormula.ts)
+      titleCtx: { channel: ch, book: ((await load("/src/script/parse.ts")).parseScript(await readFile(scriptPath, "utf8")).frontmatter ?? {}).book, series: plan.series?.name } }), true;
   }
 
 

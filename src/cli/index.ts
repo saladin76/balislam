@@ -856,6 +856,23 @@ program
   });
 
 program
+  .command("shorts-plan")
+  .description("جدول الشورتس اليومي للقناة (ريلزان يوميًا): الأحدث أولًا، بلا تكرار، ومصدران مختلفان في اليوم ما أمكن، والفجوات بعددها")
+  .option("--from <date>", "أول يوم (YYYY-MM-DD)؛ الافتراضي اليوم")
+  .option("--days <n>", "عدد الأيام", "14")
+  .action(async (opts: { from?: string; days: string }) => {
+    const { planShorts, scheduleMarkdown } = await import("../package/shortsSchedule");
+    const { channelShorts } = await import("../package/shortsScheduleFiles");
+    const from = opts.from ?? new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) throw new Error("التاريخ بصيغة YYYY-MM-DD.");
+    const c = await channelShorts();
+    // ما حُدد في التقويم قبل أول يوم يُعدّ منشورًا فلا يعود
+    const published = Object.entries(c.calendar).filter(([d]) => d < from).flatMap(([, v]) => (v.shorts ?? []).map((s) => `${s.ep}#${s.n}`));
+    const plan = planShorts({ from, days: Math.max(1, Math.min(90, Number(opts.days) || 14)), perDay: c.perDay, items: c.items, published, calendar: c.calendar });
+    console.log(scheduleMarkdown(c.name, plan, c.perDay));
+  });
+
+program
   .command("thumbnails")
   .description("الأغلفة الثلاثة وحدها (عنوان، مشهد، سؤال) من publish.json: بلا فيديو ولا صوت ولا مساس بالنسخة النهائية")
   .argument("<episode>", "رقم الحلقة")
