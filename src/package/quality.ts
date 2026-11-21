@@ -5,6 +5,10 @@
 import { normalizeArabic } from "../script/quranMeta";
 import type { PublishKit } from "./social";
 import { thumbnailIssues, type ThumbScene } from "./thumbnails";
+import { resolveChapters, type SceneStarts } from "./chapters";
+
+/** العنوان ≤ ٦٠ حرفًا (قرار المالك ٢١ نوفمبر): ما بعدها يُقص في نتائج البحث والاقتراحات وعلى الهاتف. */
+export const TITLE_MAX = 60;
 
 export type KitIssue = { level: "error" | "warning"; where: string; message: string; suggestion?: string };
 
@@ -52,8 +56,8 @@ export const repeatedSentences = (t: string) => {
   return out;
 };
 
-/** ctx (اختياري): عنوان الحلقة ومشاهدها، لفحص الأغلفة الثلاثة كاملًا (المشهد موجود وليس آية). */
-export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: ThumbScene[] } = {}): KitIssue[] => {
+/** ctx (اختياري): عنوان الحلقة ومشاهدها لفحص الأغلفة الثلاثة كاملًا، وبداية كل مشهد في الملف المنشور لفحص فصول يوتيوب. */
+export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: ThumbScene[]; starts?: SceneStarts } = {}): KitIssue[] => {
   const out: KitIssue[] = [];
   const err = (where: string, message: string, suggestion?: string) => out.push({ level: "error", where, message, suggestion });
   const warn = (where: string, message: string, suggestion?: string) => out.push({ level: "warning", where, message, suggestion });
@@ -88,7 +92,15 @@ export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: Thumb
   };
 
   const L = kit.long;
-  L.titles.forEach((t, i) => title(i === 0 ? "يوتيوب: العنوان" : `يوتيوب: العنوان البديل ${i}`, t.text, ""));
+  L.titles.forEach((t, i) => {
+    const where = i === 0 ? "يوتيوب: العنوان" : `يوتيوب: العنوان البديل ${i}`;
+    title(where, t.text, "");
+    const len = Array.from(t.text.trim()).length;
+    if (len > TITLE_MAX) err(where, `${len} حرفًا؛ الحد ${TITLE_MAX} (ما بعده يُقص في البحث وعلى الهاتف).`);
+  });
+  // فصول يوتيوب من حدود المشاهد الحقيقية (حين يختارها المالك؛ يلزمها توقيت المشاهد)
+  if (L.chapters?.length && ctx.starts)
+    for (const i of resolveChapters(L.chapters, ctx.starts).issues) (i.level === "error" ? err : warn)("يوتيوب: الفصول", i.message);
   const tt = L.titles.map((t) => n(t.text)).filter(Boolean);
   if (new Set(tt).size < tt.length) err("يوتيوب: العناوين", "عنوانان متطابقان؛ كل بديل يجب أن يكون زاوية مختلفة.");
   text("يوتيوب: الوصف", L.description);

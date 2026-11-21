@@ -70,8 +70,11 @@ export const handlePublishRoutes = async (ctx: RouteCtx): Promise<boolean> => {
     // Real timings (assembled cuts, Master length) when they exist; else the plan's — marked for the Studio only (D36).
     const real = await (await load("/src/package/realTimings.ts")).realEpisodeTimings(scriptPath, plan);
     const timeline = (await load("/src/package/chapterTimes.ts")).chapterTimeline(plan, media, info, real);
-    return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, info, real),
-      chaptersEstimated: timeline.estimated, chaptersSource: timeline.source }), true;
+    // Where every scene starts in the published file (assembled cuts, else the plan): the chapters editor shows each
+    // chapter's real time from it as the owner picks scenes (src/package/chapters.ts).
+    const sceneStarts = (await load("/src/package/chapters.ts")).sceneStartsFor(plan, media, info, real);
+    return send(res, 200, { kit, keywords: social.kitKeywords(plan), chapters: social.chaptersText(plan, media, info, real, kit.long?.chapters),
+      chaptersEstimated: kit.long?.chapters?.length ? sceneStarts.estimated : timeline.estimated, chaptersSource: timeline.source, sceneStarts }), true;
   }
 
 

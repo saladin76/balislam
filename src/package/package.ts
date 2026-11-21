@@ -21,6 +21,7 @@ import { qualitySpec, renderInfoFile, type Quality, type RenderInfo } from "../r
 import { unlink } from "node:fs/promises";
 import type { Plan } from "../plan/types";
 import type { PublishKit } from "./social";
+import { sceneStartsFor } from "./chapters";
 import { THUMB_KIND_LABEL, conceptOrder, isSacredScene, thumbnailIssues } from "./thumbnails";
 
 export type PackageOptions = {
@@ -92,7 +93,10 @@ export const packageEpisode = async (opts: PackageOptions) => {
   // disk is not trusted here because this run may replace it (D36).
   const { realEpisodeTimings } = await import("./realTimings");
   const real = { sceneSeconds: (await realEpisodeTimings(scriptPath, plan)).sceneSeconds };
-  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, channel, real));
+  // فصول يوتيوب التي اختارها المالك (publish.json ← long.chapters): من حدود المشاهد الحقيقية في الملف المجمَّع
+  const kitPath = path.join(path.dirname(scriptPath), "publish.json");
+  const marks = existsSync(kitPath) ? ((JSON.parse(await readFile(kitPath, "utf8")) as PublishKit).long.chapters ?? undefined) : undefined;
+  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, channel, real, marks));
   await writeFile(path.join(dir, "publish-checklist.md"), publishChecklist(plan, hasVoice, channel));
   await writeFile(path.join(dir, `${id}-episode.${lang}.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
   if (stage === "shorts") {
@@ -115,9 +119,9 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) : generatePublishKit(plan, script, media, channel);
     if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n");
     // جودة النشر: لا عنوان عام ولا جملة مكررة ولا نص مبتور ولا وسم مكرر (قبل أي رندر مكلف)
-    const kq = kitIssues(kit, thumbCtx(plan));
+    const kq = kitIssues(kit, { ...thumbCtx(plan), starts: sceneStartsFor(plan, media, channelInfo(channel), real) });
     if (kq.some((i) => i.level === "error")) throw new Error(kitBlockMessage(kq));
-    await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()), real)));
+    await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()), real, kit.long.chapters)));
     files.push("social.md");
   }
 

@@ -3,6 +3,7 @@ import { parseScript } from "../script/parse";
 import { parseAyahRef, surahNameFor } from "../script/quranMeta";
 import { langPack } from "../i18n/packs";
 import { chapterTimeline, type RealTimings } from "./chapterTimes";
+import { resolveChapters, sceneStartsFor, type ChapterMark } from "./chapters";
 import { shortSegments } from "../plan/shorts";
 import type { EpisodeMedia } from "../plan/media";
 import type { Plan } from "../plan/types";
@@ -56,11 +57,15 @@ export const sourcesBlock = (plan: Plan, script: string, media: EpisodeMedia, ch
 };
 
 /** نص الوصف والعناوين لليوتيوب: الحلقة والشورتس، بالفصول والمصادر والإفصاح. */
-export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, channel: ChannelConfig = defaultChannel, real?: RealTimings): string => {
+export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, channel: ChannelConfig = defaultChannel, real?: RealTimings, marks?: ChapterMark[]): string => {
   const parsed = parseScript(script);
   const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
-  const starts = chapterTimeline(plan, media, channelInfo(channel), real).starts;
-  // فصول الوصف من الأقسام المعنونة وحدها، ولا فصول لنص متصل أو قسم بلا عنوان (لا سطر «0:00» فارغ)
+  // فصول اختارها المالك (ولو لنص متصل) من حدود المشاهد الحقيقية؛ وإلا الأقسام المعنونة وحدها، ولا فصول لنص متصل
+  // أو قسم بلا عنوان (لا سطر «0:00» فارغ)، ولا فصول لن يعرضها يوتيوب
+  const chosen = marks?.length ? resolveChapters(marks, sceneStartsFor(plan, media, channelInfo(channel), real)) : null;
+  const starts = chosen
+    ? (chosen.issues.some((i) => i.level === "error") ? [] : chosen.times.map((x, i) => ({ number: i + 1, title: x.mark.title.trim(), start: x.start })))
+    : chapterTimeline(plan, media, channelInfo(channel), real).starts;
   const titled = starts.every((s) => s.title.trim()) ? starts : [];
   const hook = plan.chapters[0]?.scenes.find((s) => s.narration)?.narration ?? "";
   const step = parsed.practicalStep?.text ?? "";

@@ -5,6 +5,8 @@ import { kitIssues } from "../../../src/package/quality";
 import { CHAPTERS_TOKEN, checkCaption, checkDescription, checkTitle, resolveDescription, RULES, type Check, type PublishKit, type ShortKit } from "../../../src/package/social";
 import { OwnerText } from "../ui/OwnerText";
 import { ThumbnailConcepts } from "./PublishThumbnails";
+import { ChapterMarks } from "./PublishChapters";
+import { chapterMarksText, type SceneStarts } from "../../../src/package/chapters";
 
 const copy = (text: string, done: (m: string) => void) => {
   navigator.clipboard.writeText(text).then(() => done("نُسخ")).catch(() => done("تعذّر النسخ"));
@@ -46,7 +48,8 @@ const parseTags = (s: string) => s.split(/[\s,،]+/).map((x) => x.trim()).filter
 export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, chapters: string) => void }> = ({ episodeId, onKit }) => {
   const [kit, setKit] = useState<PublishKit | null>(null);
   const [keywords, setKeywords] = useState<string[]>([]);
-  const [chapters, setChapters] = useState("");
+  const [serverChapters, setChapters] = useState("");
+  const [sceneStarts, setSceneStarts] = useState<SceneStarts | undefined>(undefined);
   // Studio-only: are the chapter times estimates (no assembled cuts yet)? Never written into published text.
   const [estimated, setEstimated] = useState(false);
   const [view, setView] = useState<"long" | number>("long");
@@ -55,15 +58,17 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
-    api.kit(episodeId).then((r) => { setKit(r.kit); setKeywords(r.keywords); setChapters(r.chapters); setEstimated(Boolean(r.chaptersEstimated)); onKit?.(r.kit, r.chapters); }).catch((e) => setErr((e as Error).message));
+    api.kit(episodeId).then((r) => { setKit(r.kit); setKeywords(r.keywords); setChapters(r.chapters); setSceneStarts(r.sceneStarts); setEstimated(Boolean(r.chaptersEstimated)); onKit?.(r.kit, r.chapters); }).catch((e) => setErr((e as Error).message));
   }, [episodeId]);
 
+  // فصول اختارها المالك تُحسب هنا مع كل تعديل (من حدود المشاهد التي أعادها الخادم)، وإلا فصول الخادم كما هي
+  const chapters = kit?.long.chapters?.length && sceneStarts ? chapterMarksText(kit.long.chapters, sceneStarts) : serverChapters;
   if (err) return <div className="render-box"><b>حزمة الانتشار</b><span className="help"><OwnerText text={err} /></span></div>;
   if (!kit) return <div className="render-box"><span className="help">جارٍ تجهيز حزمة الانتشار…</span></div>;
 
   const update = (next: PublishKit) => {
     setKit(next);
-    onKit?.(next, chapters);
+    onKit?.(next, next.long.chapters?.length && sceneStarts ? chapterMarksText(next.long.chapters, sceneStarts) : serverChapters);
     setState("dirty");
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
@@ -80,7 +85,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
   const setLong = (patch: Partial<PublishKit["long"]>) => update({ ...kit, long: { ...L, ...patch } });
   const setShort = (i: number, patch: Partial<ShortKit>) => update({ ...kit, shorts: kit.shorts.map((s, k) => (k === i ? { ...s, ...patch } : s)) });
   const sh = typeof view === "number" ? kit.shorts[view] : undefined;
-  const issues = kitIssues(kit);
+  const issues = kitIssues(kit, { starts: sceneStarts });
   const blocking = issues.filter((i) => i.level === "error").length;
   const source = kit.generatedBy === "claude" ? "كتبها Claude لهذه الحلقة" : kit.generatedBy === "edited" ? "معدّلة منك" : "نسخة آلية من السكريبت";
 
@@ -139,6 +144,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
               />
             ))}
             <Field label="الوصف" rows={12} value={L.description} onChange={(v) => setLong({ description: v })} copyText={resolveDescription(L.description, chapters)} checks={checkDescription(resolveDescription(L.description, chapters), keywords, L.hashtags)} hint={L.description.includes(CHAPTERS_TOKEN) ? `أول سطرين يظهران قبل «المزيد». ${CHAPTERS_TOKEN} يُستبدل بتوقيت الفصول عند النسخ${estimated ? " — التوقيتات الآن تقديرية من الخطة، وتُحسب من المشاهد المعتمدة بعد التجميع (هذه الملاحظة لا تظهر في النص المنشور)" : ""}` : "أول سطرين يظهران قبل «المزيد»."} />
+            <ChapterMarks episodeId={episodeId} value={L.chapters} starts={sceneStarts} onChange={(chapters) => setLong({ chapters })} />
             <Field label="الوسوم (Tags)" rows={2} value={L.tags.join(", ")} onChange={(v) => setLong({ tags: v.split(/[,،]\s*/).map((x) => x.trim()).filter(Boolean) })} hint={`${L.tags.join(",").length}/${RULES.youtube.tagsChars} حرف`} />
           </div>
           <div className="kit-col">
