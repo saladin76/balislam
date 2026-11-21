@@ -15,6 +15,7 @@ import { defaultChannel, type ChannelConfig } from "../channel/types";
  * وهذا الملف يولّد نسخة أولى آلية من السكريبت حين لا توجد.
  */
 import { traceCheck } from "./traces";
+import { THUMB_KIND_LABEL, conceptOrder, type ThumbnailConcept } from "./thumbnails";
 import { isGenericTitle, repeatedSentences, truncation } from "./quality";
 
 export type Platform = "youtube" | "youtubeShorts" | "instagram" | "facebook";
@@ -26,7 +27,10 @@ export type LongKit = {
   tags: string[];
   hashtags: string[];
   pinnedComment: string;
+  /** قديم: نصوص الصور قبل الأغلفة الثلاثة (تبقى للحلقات التي لم تُكتب أغلفتها) */
   thumbnailTexts: string[];
+  /** الأغلفة الثلاثة: عنوان، مشهد، سؤال (src/package/thumbnails.ts) */
+  thumbnails?: ThumbnailConcept[];
   /** كابشن منشور الحلقة على فيسبوك (فيديو طويل) */
   facebook: string;
   /** قائمة التشغيل من سلسلة الحلقة (plan.series) */
@@ -249,8 +253,9 @@ export const kitToMarkdown = (kit: PublishKit, title: string, chapters = ""): st
     "### تعليق مثبّت",
     b(L.pinnedComment),
     "",
-    "### نص الصورة المصغّرة",
-    ...L.thumbnailTexts.map((t) => `- ${t}`),
+    ...(L.thumbnails
+      ? ["### الأغلفة الثلاثة (Test & Compare)", ...conceptOrder(L.thumbnails).map((c, i) => `${i + 1}. ${THUMB_KIND_LABEL[c.kind]}: ${c.text.trim() || "(بلا كلمات)"}${c.kind === "scene" && c.sceneId ? ` — لقطة من ${c.sceneId}` : ""}`)]
+      : ["### نص الصورة المصغّرة", ...L.thumbnailTexts.map((t) => `- ${t}`)]),
     "",
     "### فيسبوك: منشور الحلقة",
     b(L.facebook),

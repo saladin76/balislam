@@ -484,7 +484,7 @@ export const api = {
   testService: (service: "elevenlabs" | "quran") => call<{ ok: boolean; message?: string; account?: { tier: string; character_count: number; character_limit: number }; voices?: { id: string; name: string; category: string }[]; voiceFound?: boolean; models?: { id: string; name: string; arabic: boolean }[]; training?: Record<string, string>; voiceCategory?: string; model?: string; sample?: string; env?: string }>("/api/settings/test", { method: "POST", json: { service } }),
   sfx: () => call<SfxItem[]>("/api/sfx"),
   sfxUrl: (id: string) => withChannel(`/api/sfx/${id}.mp3`),
-  startJob: (b: { kind: "make" | "package" | "shorts" | "sfx" | "storyboard-motion"; episode?: string; noVoice?: boolean }) => call<LongJob>("/api/jobs", { method: "POST", json: b }).then(ownerJob),
+  startJob: (b: { kind: "make" | "package" | "shorts" | "thumbnails" | "sfx" | "storyboard-motion"; episode?: string; noVoice?: boolean }) => call<LongJob>("/api/jobs", { method: "POST", json: b }).then(ownerJob),
   /** إلغاء مهمة منتظرة أو جارية (رندر أو صناعة) */
   cancelJob: (id: string) => call<{ ok: boolean }>(`/api/jobs/${encodeURIComponent(id)}/cancel`, { method: "POST" }),
   storyboard: (id: string) => call<StoryboardInfo>(`/api/episodes/${id}/storyboard`),

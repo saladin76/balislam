@@ -19,6 +19,9 @@ import { buildYoutubeText, publishChecklist } from "./youtube";
 import { loadChannel, loadChannelIdentity } from "../channel";
 import { qualitySpec, renderInfoFile, type Quality, type RenderInfo } from "../render/quality";
 import { unlink } from "node:fs/promises";
+import type { Plan } from "../plan/types";
+import type { PublishKit } from "./social";
+import { THUMB_KIND_LABEL, conceptOrder, isSacredScene, thumbnailIssues } from "./thumbnails";
 
 export type PackageOptions = {
   episode: string;
@@ -112,7 +115,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) : generatePublishKit(plan, script, media, channel);
     if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n");
     // جودة النشر: لا عنوان عام ولا جملة مكررة ولا نص مبتور ولا وسم مكرر (قبل أي رندر مكلف)
-    const kq = kitIssues(kit);
+    const kq = kitIssues(kit, thumbCtx(plan));
     if (kq.some((i) => i.level === "error")) throw new Error(kitBlockMessage(kq));
     await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()), real)));
     files.push("social.md");
@@ -127,14 +130,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
   // اسم السلسلة على الشاشة (بطاقتها وشارة المصغّرة) ونصوص نشرها
   if (plan.series) assertNoTraces([{ name: "السلسلة", text: [plan.series.name, plan.series.template.publish?.titlePattern ?? "", plan.series.template.publish?.playlist ?? "", ...(plan.series.template.publish?.tags ?? [])].join("\n") }]);
 
-  // الصور المصغّرة: العنوان والعنوانان البديلان (مع النسخة الأساسية فقط)
-  const fm = (parseScript(script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };
-  const element = fm.thumbnail_element ?? plan.chapters.flatMap((c) => c.scenes).find((s) => s.props.element)?.props.element;
-  const titles = [plan.title, ...(fm.alt_titles ?? [])].slice(0, 3);
-  for (const [i, title] of stage === "episode" ? titles.entries() : []) {
-    log(`الصورة المصغّرة ${i + 1}…`);
-    files.push(path.basename(await renderThumbnail({ themeId: plan.themeId, title, element, book: fm.book, lang, series: plan.series }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
-  }
+  // الأغلفة الثلاثة (عنوان، مشهد، سؤال) مع النسخة الأساسية فقط؛ الحلقة القديمة بلا أغلفة: العنوان والبديلان كما كان
+  if (stage === "episode") files.push(...await renderThumbnailSet({ scriptPath, script, plan, dir, id, lang, onProgress: log }));
 
   if (!opts.skipVideo) {
     let last = -1;
@@ -213,4 +210,83 @@ const writeHandoffSet = async (dir: string, id: string, files: string[]) => {
   const set = { version: 1, master, masterSha256: await sha(master),
     files: Object.fromEntries(await Promise.all(names.map(async (n) => [n, await sha(n)] as const))) };
   await writeFile(handoffSetFileFor(dir, id), JSON.stringify(set, null, 2) + "\n");
+};
+
+/** سياق فحص الأغلفة من الخطة: عنوان الحلقة ومشاهدها (المشهد موجود وليس آية). */
+export const thumbCtx = (plan: Plan) => ({
+  title: plan.title,
+  scenes: plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, sacred: isSacredScene(s) })),
+});
+
+/**
+ * يرسم الأغلفة في out/package: `<id>-thumbnail-1.png` عنوان، و`-2` مشهد، و`-3` سؤال (الترتيب ثابت لكل فكرة).
+ * يحذف أي غلاف قديم قبلها فلا يبقى ملف من فكرة سابقة. يرفض قبل أي رسم إن كانت الأغلفة لا تحقق قواعدها.
+ */
+export const renderThumbnailSet = async (o: { scriptPath: string; script: string; plan: Plan; dir: string; id: string; lang: string; onProgress?: (m: string) => void }): Promise<string[]> => {
+  const log = o.onProgress ?? (() => {});
+  const { plan, dir, id } = o;
+  const fm = (parseScript(o.script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };
+  const element = fm.thumbnail_element ?? plan.chapters.flatMap((c) => c.scenes).find((s) => s.props.element)?.props.element;
+  const kitFile = path.join(path.dirname(o.scriptPath), "publish.json");
+  const kit = existsSync(kitFile) ? (JSON.parse(await readFile(kitFile, "utf8")) as PublishKit) : null;
+  const concepts = kit?.long.thumbnails;
+  if (concepts) {
+    const bad = thumbnailIssues(concepts, { titles: [plan.title, ...kit!.long.titles.map((t) => t.text)], scenes: thumbCtx(plan).scenes }).filter((i) => i.level === "error");
+    if (bad.length) throw new Error(`الأغلفة الثلاثة لا تحقق قواعدها (عدّلها من «٤ النشر ← الأغلفة الثلاثة»): ${bad.map((i) => `${i.where}: ${i.message}`).join(" | ")}`);
+  }
+  for (const f of await readdir(dir)) if (new RegExp(`^${id}-thumbnail-\\d+\\.png$`).test(f)) await unlink(path.join(dir, f));
+  const base = { themeId: plan.themeId, element, book: fm.book, lang: o.lang, series: plan.series };
+  const out: string[] = [];
+  if (!concepts) {
+    const titles = [plan.title, ...(fm.alt_titles ?? [])].slice(0, 3);
+    for (const [i, title] of titles.entries()) {
+      log(`الصورة المصغّرة ${i + 1}…`);
+      out.push(path.basename(await renderThumbnail({ ...base, title }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
+    }
+    return out;
+  }
+  const { sceneFrameDataUri } = await import("./thumbnailFrame");
+  for (const [i, c] of conceptOrder(concepts).entries()) {
+    log(`الغلاف ${i + 1} من 3 (${THUMB_KIND_LABEL[c.kind]})…`);
+    let frame: string | undefined;
+    if (c.kind === "scene" && c.sceneId) {
+      const f = await sceneFrameDataUri(o.scriptPath, c.sceneId, c.atSeconds);
+      if (f) { frame = f.uri; log(`   لقطة من ${c.sceneId} عند ${f.at.toFixed(1)} ث`); }
+      else log(`   ⚠️ لا فيديو للمشهد ${c.sceneId} بعد: الغلاف بعنصر الحلقة بدل اللقطة. أنتج المشهد ثم أعد صنع الأغلفة.`);
+    }
+    out.push(path.basename(await renderThumbnail({ ...base, title: plan.title, concept: { kind: c.kind, text: c.text.trim(), ...(frame ? { frame } : {}) } }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
+  }
+  return out;
+};
+
+/**
+ * «اصنع الأغلفة» وحدها (`bal thumbnails`): بلا فيديو ولا صوت ولا مساس بـMaster. إن كان Master الحالي هو الذي صُنعت معه
+ * مجموعة التسليم، تُربط الأغلفة الجديدة بها (بصمة كل صورة)، فيسلّمها Drive مع Master نفسه؛ وإلا تبقى المجموعة كما هي.
+ */
+export const makeThumbnails = async (episode: string, onProgress?: (m: string) => void) => {
+  const scriptPath = await resolveScriptPath(episode);
+  const script = await readFile(scriptPath, "utf8");
+  const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
+  const dir = path.join(await outDirFor(episode), "package");
+  await mkdir(dir, { recursive: true });
+  const id = plan.episode || episode;
+  const lang = plan.lang ?? loadChannel().language;
+  const names = await renderThumbnailSet({ scriptPath, script, plan, dir, id, lang, onProgress });
+  await rebindThumbnails(dir, id, names);
+  return { dir, files: names };
+};
+
+/** يحدّث بصمات الأغلفة في `<id>-handoff-set.json` إن كانت المجموعة لـMaster الموجود الآن بعينه. */
+export const rebindThumbnails = async (dir: string, id: string, names: string[]) => {
+  const setFile = handoffSetFileFor(dir, id);
+  const master = path.join(dir, `${id}-episode.mp4`);
+  if (!existsSync(setFile) || !existsSync(master)) return false;
+  const { createHash } = await import("node:crypto");
+  const sha = async (f: string) => createHash("sha256").update(await readFile(f)).digest("hex");
+  const set = JSON.parse(await readFile(setFile, "utf8")) as { masterSha256?: string; files?: Record<string, string> };
+  if (set.masterSha256 !== (await sha(master))) return false;
+  const files = Object.fromEntries(Object.entries(set.files ?? {}).filter(([n]) => !/-thumbnail-\d+\.png$/.test(n)));
+  for (const n of names) files[n] = await sha(path.join(dir, n));
+  await writeFile(setFile, JSON.stringify({ ...set, files }, null, 2) + "\n");
+  return true;
 };

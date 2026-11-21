@@ -9,7 +9,7 @@ import { ownerText } from "../../src/i18n/sceneNames.ts";
  */
 export type LongJob = {
   id: string;
-  kind: "make" | "package" | "shorts" | "sfx" | "render" | "storyboard-motion";
+  kind: "make" | "package" | "shorts" | "thumbnails" | "sfx" | "render" | "storyboard-motion";
   channel: string;
   episode?: string;
   title: string;

@@ -12,6 +12,9 @@ import { arDigits, duration, num } from "../ui/format";
 import { FramePlayer } from "../workspace/SceneProductionPanel";
 import { OwnerText } from "../ui/OwnerText";
 
+/** ملفات الأغلفة الثلاثة بترتيبها الثابت (src/package/thumbnails.ts). */
+const THUMB_LABEL_BY_FILE = ["غلاف «عنوان»", "غلاف «مشهد»", "غلاف «سؤال»"];
+
 /** بنود قائمة النشر (تُحفظ حالتها في status.json للحلقة). */
 const CHECKLIST: { id: string; group: string; text: string }[] = [
   { id: "watched", group: "قبل الرفع", text: "شاهدت الحلقة كاملة وكل شورت إلى آخر ثانية" },
@@ -171,7 +174,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
     return () => clearInterval(t);
   }, [driveRunning, episodeId]);
 
-  const start = async (kind: "make" | "package" | "shorts", noVoice = false) => {
+  const start = async (kind: "make" | "package" | "shorts" | "thumbnails", noVoice = false) => {
     setErr("");
     try {
       await api.startJob({ kind, episode: episodeId, noVoice });
@@ -343,13 +346,18 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
                   <figure key={t.name}>
                     <img src={fresh(api.packageUrl(episodeId, t.name), t.mtime)} alt={`الصورة المصغّرة ${num(i + 1)}`} loading="lazy" />
                     <figcaption>
-                      <span>{yt.titles[i] ?? t.name}</span>
+                      <span>{(L?.thumbnails ? THUMB_LABEL_BY_FILE[i] : yt.titles[i]) ?? t.name}</span>
                       <a className="btn ghost small" href={api.packageUrl(episodeId, t.name, true)}>تنزيل</a>
                     </figcaption>
                   </figure>
                 ))}
               </div>
-            ) : <p className="s45-note">تُصنع مع ملفات النشر.</p>}
+            ) : <p className="s45-note">تُصنع مع النسخة النهائية، أو وحدها من هنا.</p>}
+            <div className="s45-actions">
+              {/* صور ثابتة فقط: لا صوت ولا فيديو ولا مساس بالنسخة النهائية واعتمادها */}
+              <button type="button" className="btn ghost small" disabled={running} onClick={() => void start("thumbnails")}>{thumbs.length ? "أعد صنع الأغلفة" : "اصنع الأغلفة"}</button>
+              <span className="s45-note">من «حزمة الانتشار ← الأغلفة الثلاثة»: ١ عنوان، ٢ مشهد، ٣ سؤال.</span>
+            </div>
           </More>
 
           <More label="حزمة الانتشار لكل منصة">

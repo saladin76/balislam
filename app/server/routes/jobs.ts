@@ -2,7 +2,7 @@ import { busy, busyRefusal, longJobs, renderJobs, studioPool, startJob } from ".
 import { EP } from "../routeContext.ts";
 import type { RouteCtx } from "../routeContext.ts";
 
-/** المهام الطويلة: البدء (make/package/shorts/storyboard-motion/sfx) والإلغاء والقائمة، عبر طابور الرندر الواحد. */
+/** المهام الطويلة: البدء (make/package/shorts/thumbnails/storyboard-motion/sfx) والإلغاء والقائمة، عبر طابور الرندر الواحد. */
 export const handleJobRoutes = async (ctx: RouteCtx): Promise<boolean> => {
   const { req, res, parts, ch, send, readBody } = ctx;
 
@@ -24,6 +24,13 @@ export const handleJobRoutes = async (ctx: RouteCtx): Promise<boolean> => {
         const args = b.kind === "make" ? ["make", b.episode, ...(b.noVoice ? ["--no-voice"] : [])] : b.kind === "shorts" ? ["package", b.episode, "--shorts"] : ["package", b.episode];
         const title = b.kind === "make" ? `صناعة الحلقة ${b.episode}${b.noVoice ? " (معاينة بلا صوت)" : " (أعلى جودة)"}` : b.kind === "shorts" ? `الشورتس والريلز للحلقة ${b.episode} (أعلى جودة)` : `تغليف الحلقة ${b.episode}`;
         const job = startJob(ctx, { kind: b.kind, channel: ch, episode: b.episode, title }, args);
+        return send(res, 200, job), true;
+      }
+      // «اصنع الأغلفة» (الخطوة ٤): صور ثابتة فقط، بلا صوت ولا فيديو، بضغطة المالك
+      if (b.kind === "thumbnails") {
+        if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
+        if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyRefusal(`${ch}/${b.episode}`) }), true;
+        const job = startJob(ctx, { kind: "thumbnails", channel: ch, episode: b.episode, title: `الأغلفة الثلاثة للحلقة ${b.episode}` }, ["thumbnails", b.episode]);
         return send(res, 200, job), true;
       }
       if (b.kind === "storyboard-motion") {
