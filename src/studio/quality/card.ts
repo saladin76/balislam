@@ -102,15 +102,14 @@ const sceneText = (s: PlanScene) => bare([s.narration, ...Object.values(s.props 
  */
 export const hookIn = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">): { ok: boolean; text?: string; at?: number } => {
   let t = 0;
+  // أول سؤال في الحلقة كلها: داخل النافذة ينجح، وبعدها يُذكر موضعه ليُعرف كم يُقدَّم
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
-    if (t >= HOOK_WINDOW_SEC) break;
     const text = s.narration ?? "";
     const d = sceneSeconds(s, media);
     let pos = 0;
     for (const sentence of text.split(/(?<=[؟?.!۔])\s+/)) {
-      const at = t + (text.length ? (pos / text.length) * d : 0);
-      if (at >= HOOK_WINDOW_SEC) break;
-      if (/[؟?]/.test(sentence)) return { ok: true, text: sentence.trim(), at: Math.round(at * 10) / 10 };
+      const at = Math.round((t + (text.length ? (pos / text.length) * d : 0)) * 10) / 10;
+      if (/[؟?]/.test(sentence)) return { ok: at < HOOK_WINDOW_SEC, text: sentence.trim(), at };
       pos += sentence.length + 1;
     }
     t += d;
@@ -125,7 +124,9 @@ export const scriptItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "re
   const ref = all.some((s) => REFERRAL.test(sceneText(s)));
   return [
     { id: "hook", label: "خطاف في أول ١٥ ثانية", need: "سؤال للمشاهد في أول ١٥ ث", status: hook.ok ? "pass" : "fail",
-      ...(hook.ok ? { value: `«${hook.text!.slice(0, 60)}»` } : { reason: "لا سؤال للمشاهد في أول ١٥ ثانية من الكلام (قرار المالك ٢: سؤال في البداية)." }) },
+      ...(hook.ok ? { value: `«${hook.text!.slice(0, 60)}»` }
+        : { ...(hook.text ? { value: `أول سؤال عند نحو ${ar(hook.at!, 0)} ث` } : {}),
+            reason: `لا سؤال للمشاهد في أول ١٥ ثانية من الكلام (قرار المالك ٢: سؤال في البداية)${hook.text ? `؛ أول سؤال «${hook.text.slice(0, 60)}» يأتي بعدها: قدّمه أو أضف سؤالًا قبله` : ""}.` }) },
     later("arabic", "فحص العربي", "بلا أخطاء", "فحص العربي (المهمة ٦)"),
     { id: "citations", label: "الاستشهادات موثقة", need: "كل استشهاد موثّق في سجل التوثيق",
       ...(!citations || !citations.total ? { status: "warn", reason: "لا سجل توثيق لهذه الحلقة على هذا الجهاز." }
@@ -163,3 +164,15 @@ export const buildCard = (input: {
 /** رسالة الرفض للمالك: ما يمنع، بندًا بندًا */
 export const cardRefusal = (card: QualityCard, action: "final" | "publish") =>
   `${action === "final" ? "لا تُصنع النسخة النهائية" : "لا يُمنح إذن النشر"} قبل أن تكون بطاقة الجودة بلا ✗ (${card.target === "assembly" ? "الحلقة المجمّعة" : "النسخة النهائية"}):\n${card.blockers.map((b) => `- ${b}`).join("\n")}`;
+
+const SIGN: Record<ItemStatus, string> = { pass: "✓", fail: "✗", unmeasured: "…", warn: "!", later: "—" };
+/** البطاقة نصًا (للطرفية، `bal quality`): كل بند بعلامته وقيمته والمطلوب وسببه، ثم الحكم */
+export const cardText = (card: QualityCard): string => {
+  const lines = [`بطاقة الجودة — ${card.target === "assembly" ? "الحلقة المجمّعة" : "النسخة النهائية"}${card.measuredAt ? ` (قيست ${card.measuredAt})` : " (لم تُقس بعد)"}`];
+  for (const s of card.sections) {
+    lines.push("", s.label);
+    for (const i of s.items) lines.push(`  ${SIGN[i.status]} ${i.label}${i.value ? `: ${i.value}` : ""} — المطلوب ${i.need}${i.reason ? `\n      ${i.reason}` : ""}`);
+  }
+  lines.push("", card.blocks ? `تمنع (${card.blockers.length}):\n${card.blockers.map((b) => `  - ${b}`).join("\n")}` : "لا ✗: لا تمنع شيئًا.");
+  return lines.join("\n");
+};

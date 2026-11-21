@@ -895,6 +895,25 @@ program
     console.log(`\nتم. الملفات في ${path.relative(projectRoot, r.dir)}. راجع publish-checklist.md قبل النشر.`);
   });
 
+program
+  .command("quality")
+  .description("بطاقة الجودة لحلقة (D162): الحلقة المجمّعة، أو النسخة النهائية إن وُجدت؛ قراءة فقط إلا مع --measure")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--measure", "يقيس الملف الحالي أولًا (دقائق للحلقة الكاملة؛ لا يغيّر الملف ولا يصرف شيئًا)")
+  .option("--target <target>", "assembly (المجمّعة) أو master (النسخة النهائية)")
+  .action(async (episode: string, opts: { measure?: boolean; target?: string }) => {
+    if (opts.target && opts.target !== "assembly" && opts.target !== "master") throw new Error("--target: assembly أو master");
+    const Q = await import("../studio/quality/measure");
+    const { cardText } = await import("../studio/quality/card");
+    const first = await Q.qualityCard(episode, opts.target as "assembly" | "master" | undefined);
+    if (opts.measure) {
+      if (!first.exists) throw new Error(first.target === "assembly" ? "لا توجد حلقة مجمّعة بعد: «دمج المشاهد للمراجعة» في الخطوة ٣ أولًا." : "لا توجد نسخة نهائية بعد.");
+      console.log("جارٍ القياس… (دقائق)");
+      await Q.measureTarget(episode, first.target);
+    }
+    console.log(cardText(opts.measure ? await Q.qualityCard(episode, first.target) : first));
+  });
+
 const channelCmd = program.command("channel").description("إدارة القنوات (كل قناة: هوية ومجالات وحلقات خاصة، والمحرك مشترك)");
 
 channelCmd

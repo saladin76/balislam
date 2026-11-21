@@ -160,3 +160,14 @@ describe("بطاقة الجودة: القياس على ملفات حقيقية �
     });
   }, 120_000);
 });
+
+describe("bal quality (البطاقة نصًا)", () => {
+  it("كل بند بعلامته والمطلوب، ثم ما يمنع", async () => {
+    const { cardText } = await import("../src/studio/quality/card");
+    const t = cardText(buildCard({ target: "assembly", plan: planOf(scene("a", "جملة.")), measured: null }));
+    expect(t).toContain("بطاقة الجودة — الحلقة المجمّعة (لم تُقس بعد)");
+    expect(t).toMatch(/… علو الحلقة — المطلوب/);
+    expect(t).toMatch(/✗ خطاف في أول ١٥ ثانية/);
+    expect(t).toMatch(/تمنع \(\d+\):/);
+  });
+});
