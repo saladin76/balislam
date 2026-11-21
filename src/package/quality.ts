@@ -4,6 +4,7 @@
  */
 import { normalizeArabic } from "../script/quranMeta";
 import type { PublishKit } from "./social";
+import { thumbnailIssues, type ThumbScene } from "./thumbnails";
 
 export type KitIssue = { level: "error" | "warning"; where: string; message: string; suggestion?: string };
 
@@ -51,7 +52,8 @@ export const repeatedSentences = (t: string) => {
   return out;
 };
 
-export const kitIssues = (kit: PublishKit): KitIssue[] => {
+/** ctx (اختياري): عنوان الحلقة ومشاهدها، لفحص الأغلفة الثلاثة كاملًا (المشهد موجود وليس آية). */
+export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: ThumbScene[] } = {}): KitIssue[] => {
   const out: KitIssue[] = [];
   const err = (where: string, message: string, suggestion?: string) => out.push({ level: "error", where, message, suggestion });
   const warn = (where: string, message: string, suggestion?: string) => out.push({ level: "warning", where, message, suggestion });
@@ -108,6 +110,8 @@ export const kitIssues = (kit: PublishKit): KitIssue[] => {
     tags(`${w}: هاشتاجات إنستجرام`, s.instagram.hashtags);
     tags(`${w}: هاشتاجات يوتيوب`, s.youtube.hashtags);
   }
+  // الأغلفة الثلاثة (قرار المالك ٢١ نوفمبر): عنوان، مشهد، سؤال؛ ≤ ٣ كلمات، ولا تكرر العنوان
+  out.push(...thumbnailIssues(L.thumbnails, { titles: [...(ctx.title ? [ctx.title] : []), ...L.titles.map((t) => t.text)], scenes: ctx.scenes }));
   const caps = kit.shorts.map((s) => n(s.instagram.caption));
   if (caps.length > 1 && new Set(caps).size < caps.length) warn("الشورتس", "كابشن إنستجرام نفسه في أكثر من شورت.");
   return out;

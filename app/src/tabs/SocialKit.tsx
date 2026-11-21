@@ -4,6 +4,7 @@ import { PROBLEMS, WARNINGS, arDigits, countAr } from "../ui/format";
 import { kitIssues } from "../../../src/package/quality";
 import { CHAPTERS_TOKEN, checkCaption, checkDescription, checkTitle, resolveDescription, RULES, type Check, type PublishKit, type ShortKit } from "../../../src/package/social";
 import { OwnerText } from "../ui/OwnerText";
+import { ThumbnailConcepts } from "./PublishThumbnails";
 
 const copy = (text: string, done: (m: string) => void) => {
   navigator.clipboard.writeText(text).then(() => done("نُسخ")).catch(() => done("تعذّر النسخ"));
@@ -143,7 +144,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
           <div className="kit-col">
             <Field label="هاشتاجات الوصف" value={tagsText(L.hashtags)} onChange={(v) => setLong({ hashtags: parseTags(v) })} hint="أول 3 تظهر فوق العنوان" />
             <Field label="تعليق مثبّت" rows={4} value={L.pinnedComment} onChange={(v) => setLong({ pinnedComment: v })} hint="يفتح النقاش في أول ساعة" />
-            <Field label="نصوص الصورة المصغّرة" rows={3} value={L.thumbnailTexts.join("\n")} onChange={(v) => setLong({ thumbnailTexts: v.split("\n") })} hint="كلمتان إلى أربع، لا تكرر العنوان" />
+            <ThumbnailConcepts episodeId={episodeId} value={L.thumbnails} titles={L.titles.map((t) => t.text)} onChange={(thumbnails) => setLong({ thumbnails })} />
             <Field label="فيسبوك: منشور الحلقة" rows={8} value={L.facebook} onChange={(v) => setLong({ facebook: v })} checks={checkCaption(L.facebook, parseTags(L.facebook.match(/#\S+/g)?.join(" ") ?? ""), "facebook", keywords)} />
           </div>
         </div>

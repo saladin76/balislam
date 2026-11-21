@@ -856,6 +856,16 @@ program
   });
 
 program
+  .command("thumbnails")
+  .description("الأغلفة الثلاثة وحدها (عنوان، مشهد، سؤال) من publish.json: بلا فيديو ولا صوت ولا مساس بالنسخة النهائية")
+  .argument("<episode>", "رقم الحلقة")
+  .action(async (episode: string) => {
+    const { makeThumbnails } = await import("../package/package");
+    const r = await makeThumbnails(episode, (m) => console.log(m));
+    console.log(`جاهز في ${path.relative(projectRoot, r.dir)}:\n- ${r.files.join("\n- ")}`);
+  });
+
+program
   .command("make")
   .description("من السكريبت إلى ملفات النشر بأمر واحد: فحص ← آيات ← مشاهد ← صوت ← رندر ← تغليف")
   .argument("<episode>", "رقم الحلقة")
