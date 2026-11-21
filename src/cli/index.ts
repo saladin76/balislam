@@ -856,6 +856,30 @@ program
   });
 
 program
+  .command("retention")
+  .description("قارئ الاحتفاظ: من تصدير «Audience retention» في YouTube Studio إلى أكبر تسرب ومكانه في السكريبت (يقرأ ولا يكتب)")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<file>", "ملف التصدير (.zip من Studio أو CSV منه)")
+  .option("--duration <seconds>", "طول الحلقة المنشورة بالثواني (إن اختلف عن الملف المجمَّع)")
+  .action(async (episode: string, file: string, opts: { duration?: string }) => {
+    const { analyseRetention, retentionMarkdown } = await import("../analytics/retention");
+    const { readRetentionExport } = await import("../analytics/retentionFile");
+    const { sceneStartsFor } = await import("../package/chapters");
+    const { realEpisodeTimings } = await import("../package/realTimings");
+    const { loadPlan, regeneratePlan } = await import("../plan/io");
+    const { channelInfo, loadChannel } = await import("../channel");
+    const scriptPath = await resolveScriptPath(episode);
+    const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
+    const real = { sceneSeconds: (await realEpisodeTimings(scriptPath, plan)).sceneSeconds };
+    const at = sceneStartsFor(plan, undefined, channelInfo(loadChannel()), real);
+    const duration = opts.duration ? Number(opts.duration) : at.total;
+    if (!(duration > 0)) throw new Error("طول الحلقة غير معروف: مرّر --duration بالثواني.");
+    const pts = await readRetentionExport(path.resolve(file), duration);
+    const scenes = plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, start: at.starts[s.id] ?? 0, narration: s.narration }));
+    console.log(retentionMarkdown(plan.title, analyseRetention(pts, { duration, scenes, estimated: at.estimated })));
+  });
+
+program
   .command("shorts-plan")
   .description("جدول الشورتس اليومي للقناة (ريلزان يوميًا): الأحدث أولًا، بلا تكرار، ومصدران مختلفان في اليوم ما أمكن، والفجوات بعددها")
   .option("--from <date>", "أول يوم (YYYY-MM-DD)؛ الافتراضي اليوم")
