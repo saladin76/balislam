@@ -17,6 +17,8 @@ import { ownerJob, ownerMessage } from "./serverMessages";
 import { emitStudioError } from "./errorEvents";
 import { ownerText, planOrder } from "../../src/i18n/sceneNames";
 import type { PaceCommand, PaceStatus, RefreshResult } from "../../src/voice/paceApply";
+import type { QualityCard, CardTarget } from "../../src/studio/quality/card";
+export type QualityCardRead = QualityCard & { exists: boolean; measuring: boolean };
 import type { LexiconCommand, SentenceCommand, SentencesRead, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 
@@ -355,6 +357,9 @@ export const api = {
     call<ScenePrepareRead>(`/api/episodes/${episode}/scene-prepare`, {
       method: "POST", ...(opts.voice ? { json: { voice: opts.voice } } : opts.renderOnly ? { json: { renderOnly: true } } : {}),
     }, channel).then(prepareRead),
+  /** بطاقة الجودة (المرحلة A): القراءة، و«قِس الآن» في الخلفية */
+  qualityCard: (episode: string, target?: CardTarget) => call<QualityCardRead>(`/api/episodes/${episode}/quality-card${target ? `?target=${target}` : ""}`),
+  measureQuality: (episode: string, target: CardTarget) => call<{ ok: boolean; measuring: boolean }>(`/api/episodes/${episode}/quality-card/measure`, { method: "POST", json: { target } }),
   /** «سرعة الإلقاء» و«الفاصل بين الجمل»: الإعداد والمشاهد المتأثرة والمدة (قراءة)، والحفظ (pace.json وحده) */
   pace: (episode: string, channel: string | undefined) => call<PaceStatus>(`/api/episodes/${episode}/pace`, undefined, channel),
   setPace: (episode: string, channel: string | undefined, body: PaceCommand) =>

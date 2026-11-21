@@ -63,6 +63,8 @@ channels/*/episodes/*/previews/*.m4v
 channels/*/episodes/*/previews/*.MP4
 # وصل السرد في التجميع (src/studio/seamsRecord.ts): يخص ملف الفيديو المحلي وحده
 channels/*/episodes/*/previews/*.seams.json
+# بطاقة الجودة (src/studio/quality/measure.ts): قياس الملف المحلي وحده
+channels/*/episodes/*/previews/*.quality.json
 
 # صندوق ملاحظات المالك (docs/studio/notes-inbox.md): يكتبه الاستوديو محليًا ويُرفع وحده إلى الفرع studio-notes،
 # فلا يُتتبع على main (وإلا عطّل git pull والتحديث). ردود Claude في notes/resolved.json وهي متتبَّعة على main.

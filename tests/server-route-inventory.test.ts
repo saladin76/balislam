@@ -90,6 +90,12 @@ const INVENTORY: Record<string, string> = {
   "POST episodes/001/pace": "reached",
   "PUT episodes/001/pace": "reached",
   "GET episodes/abc/pace": "send 400",
+  // بطاقة الجودة (المرحلة A): القراءة و«قِس الآن»
+  "GET episodes/001/quality-card": "reached",
+  "POST episodes/001/quality-card": "send 405",
+  "POST episodes/001/quality-card/measure": "reached",
+  "GET episodes/001/quality-card/measure": "send 405",
+  "GET episodes/abc/quality-card": "send 400",
   "GET episodes/001/quran-text-only": "reached",
   "POST episodes/001/quran-text-only": "reached",
   "GET episodes/001/storyboard": "reached",

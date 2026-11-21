@@ -745,3 +745,23 @@ html.is-modal-open, html.is-modal-open body { overflow: hidden; }
 .error-notice-close:hover, .error-notice-close:focus-visible { background: var(--quiet, rgba(127,127,127,.12)); }
 .error-notice .owner-details { margin-top: 8px; }
 @media (max-width: 600px) { .error-notice { inset-inline: 16px; width: auto; bottom: 88px; } }
+
+/* بطاقة الجودة في الخطوة ٣ (المرحلة A) */
+.quality-card { margin-top: 14px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
+.quality-card[data-blocks="yes"] { border-color: var(--err); }
+.quality-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.quality-card-head h4 { margin: 0; font-size: var(--t-14); }
+.quality-verdict { font-size: var(--t-12); padding: 2px 8px; border-radius: 99px; }
+.quality-verdict.good { background: var(--ok-soft); color: var(--ok); }
+.quality-verdict.bad { background: var(--err-soft); color: var(--err); }
+.quality-section h5 { margin: 10px 0 4px; font-size: var(--t-12); color: var(--mute); font-weight: 500; }
+.quality-section ul { list-style: none; margin: 0; padding: 0; }
+.quality-item { display: grid; grid-template-columns: 1.4em minmax(8em, 1fr) auto; gap: 2px 8px; padding: 4px 0; border-top: 1px solid var(--line); font-size: var(--t-14); }
+.quality-mark { font-weight: 700; text-align: center; }
+.quality-item.pass .quality-mark { color: var(--ok); }
+.quality-item.fail .quality-mark, .quality-item.unmeasured .quality-mark { color: var(--err); }
+.quality-item.warn .quality-mark { color: var(--warn); }
+.quality-item.later { color: var(--mute); }
+.quality-value { font-variant-numeric: tabular-nums; }
+.quality-need, .quality-reason { grid-column: 2 / -1; font-size: var(--t-12); color: var(--mute); }
+.quality-item.fail .quality-reason { color: var(--err); }

@@ -46,6 +46,11 @@ export const decideSceneProduction = async (episode: string,
       (command.tone !== undefined && (typeof command.tone !== "string" || command.tone.length > 32 ||
         command.action !== "correct-scene")))
     throw Error("Malformed scene review command.");
+  // بطاقة الجودة (المرحلة A): لا إذن نشر وفي بطاقة النسخة النهائية ✗ أو بند لم يُقس
+  if (command.action === "grant-publish") {
+    const { assertQualityForPublish } = await import("./quality/measure");
+    await assertQualityForPublish(episode);
+  }
   let noteQueued = false;
   const view_ = await withState(episode, async (doc, current) => {
     const p = doc.state, at = new Date().toISOString();
