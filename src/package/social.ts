@@ -16,6 +16,7 @@ import { defaultChannel, type ChannelConfig } from "../channel/types";
  */
 import { traceCheck } from "./traces";
 import { THUMB_KIND_LABEL, conceptOrder, type ThumbnailConcept } from "./thumbnails";
+import { chapterMarksText, sceneStartsFor, type ChapterMark } from "./chapters";
 import { isGenericTitle, repeatedSentences, truncation } from "./quality";
 
 export type Platform = "youtube" | "youtubeShorts" | "instagram" | "facebook";
@@ -33,6 +34,8 @@ export type LongKit = {
   thumbnails?: ThumbnailConcept[];
   /** كابشن منشور الحلقة على فيسبوك (فيديو طويل) */
   facebook: string;
+  /** فصول يوتيوب: المشهد الذي يبدأ عنده كل فصل وعنوانه؛ الوقت من حدود المشاهد الحقيقية (src/package/chapters.ts) */
+  chapters?: ChapterMark[];
   /** قائمة التشغيل من سلسلة الحلقة (plan.series) */
   playlist?: string;
 };
@@ -46,13 +49,24 @@ export type ShortKit = {
 /** يُكتب في الوصف ويُستبدل بتوقيت الفصول الحقيقي (يتغير بعد تسجيل الصوت). */
 export const CHAPTERS_TOKEN = "{{الفصول}}";
 /** Chapter lines from the real assembled timings when available, else the plan; never past the end (D36). */
-export const chaptersText = (plan: Plan, media?: EpisodeMedia, channel?: ChannelInfo, real?: RealTimings) => {
+export const chaptersText = (plan: Plan, media?: EpisodeMedia, channel?: ChannelInfo, real?: RealTimings, marks?: ChapterMark[]) => {
+  // فصول اختارها المالك (ولو لنص متصل): من حدود المشاهد الحقيقية، ولا شيء إن كانت لن تظهر في يوتيوب
+  if (marks?.length) return chapterMarksText(marks, sceneStartsFor(plan, media, channel, real));
   const starts = chapterTimeline(plan, media, channel, real).starts;
   // نص متصل أو قسم بلا عنوان: لا «فصول الحلقة» (لا سطر وقت بلا عنوان)
   if (!starts.length || starts.some((s) => !s.title.trim())) return "";
   return ["فصول الحلقة:", ...starts.map((s) => `${clock(s.start)} ${s.title}`)].join("\n");
 };
-export const resolveDescription = (desc: string, chapters: string) => desc.replace(CHAPTERS_TOKEN, chapters);
+/**
+ * الوصف كما يُنشر: {{الفصول}} يُستبدل بالفصول. وصف بلا الرمز (حزمة قديمة لنص متصل) وفيه فصول: تُضاف بعد فقرته الأولى،
+ * فلا تضيع فصول اختارها المالك لأن الحزمة كُتبت قبلها. وبلا فصول لا يبقى سطر فارغ زائد.
+ */
+export const resolveDescription = (desc: string, chapters: string) => {
+  const out = desc.includes(CHAPTERS_TOKEN)
+    ? desc.replace(CHAPTERS_TOKEN, chapters)
+    : chapters ? desc.replace(/^([\s\S]*?)(\n\n|$)/, (_, first: string, sep: string) => `${first}\n\n${chapters}${sep}`) : desc;
+  return out.replace(/\n{3,}/g, "\n\n").trim();
+};
 
 export type PublishKit = { version: 1; generatedBy: "auto" | "claude" | "edited"; updatedAt: string; long: LongKit; shorts: ShortKit[] };
 
@@ -65,7 +79,8 @@ export type PublishKit = { version: 1; generatedBy: "auto" | "claude" | "edited"
  * - فيسبوك: كابشن قصير بسؤال يفتح التعليقات، و1–3 هاشتاجات متخصصة.
  */
 export const RULES = {
-  youtube: { titleMax: 100, titleVisible: 70, descFold: 150, hashtagsShown: 3, hashtagsMax: 15, tagsChars: 500 },
+  // العنوان ≤ ٦٠ حرفًا والموضوع في أول ٤٠ (قرار المالك ٢١ نوفمبر، المرحلة ٢ البند ٢)
+  youtube: { titleMax: 100, titleVisible: 60, subjectWithin: 40, descFold: 150, hashtagsShown: 3, hashtagsMax: 15, tagsChars: 500 },
   youtubeShorts: { titleMax: 100, titleVisible: 45, hashtagsMax: 5 },
   instagram: { captionMax: 2200, fold: 125, hashtagsMax: 5 },
   facebook: { fold: 125, hashtagsMax: 3 },
@@ -85,7 +100,7 @@ export const checkTitle = (title: string, platform: "youtube" | "youtubeShorts",
   const r = RULES[platform];
   return [
     { ok: len(title) > 0 && len(title) <= r.titleVisible, label: `الطول ${len(title)}/${r.titleVisible}` },
-    { ok: containsKeyword(title.slice(0, platform === "youtubeShorts" ? 40 : 60), keywords), label: "كلمة بحث في أوله" },
+    { ok: containsKeyword(Array.from(title).slice(0, platform === "youtubeShorts" ? 40 : RULES.youtube.subjectWithin).join(""), keywords), label: platform === "youtube" ? "الموضوع في أول ٤٠ حرفًا" : "كلمة بحث في أوله" },
     { ok: !/#/.test(title) || platform === "youtubeShorts", label: "بلا هاشتاج في العنوان" },
     { ok: !isGenericTitle(title), label: "عنوان يقول شيئًا وحده" },
     { ok: !truncation(title), label: "عنوان تام" },
@@ -112,7 +127,9 @@ export const checkCaption = (caption: string, hashtags: string[], platform: "ins
 };
 
 const STOP = new Set(
-  ["هذا", "هذه", "ذلك", "التي", "الذي", "الذين", "على", "إلى", "الى", "عن", "من", "في", "كان", "كانت", "يكون", "تكون", "ليس", "لكن", "حتى", "أننا", "أنه", "أنها", "أنك", "لأن", "عندما", "حين", "كل", "بعض", "أحيانًا", "دائمًا", "فقط", "أيضًا", "نحن", "أنت", "قد", "لقد", "بل", "ثم", "هناك", "هنا", "مما", "عما", "بين", "أمام", "فعلًا", "تمامًا", "نفسه", "نفسها", "شيء", "شيئًا", "يمكن", "ماذا", "لماذا", "كيف", "هل", "أم", "أو", "ولا", "وهذا", "وهنا", "تخيل", "تأمل", "الله", "اللهم", "أرنا", "ارزقنا", "وارزقنا", "تعرف", "نعرف", "يعرف", "نقول", "يقول"].map(normalizeArabic),
+  ["هذا", "هذه", "ذلك", "التي", "الذي", "الذين", "على", "إلى", "الى", "عن", "من", "في", "كان", "كانت", "يكون", "تكون", "ليس", "لكن", "حتى", "أننا", "أنه", "أنها", "أنك", "لأن", "عندما", "حين", "كل", "بعض", "أحيانًا", "دائمًا", "فقط", "أيضًا", "نحن", "أنت", "قد", "لقد", "بل", "ثم", "هناك", "هنا", "مما", "عما", "بين", "أمام", "فعلًا", "تمامًا", "نفسه", "نفسها", "شيء", "شيئًا", "يمكن", "ماذا", "لماذا", "كيف", "هل", "أم", "أو", "ولا", "وهذا", "وهنا", "تخيل", "تأمل", "الله", "اللهم", "أرنا", "ارزقنا", "وارزقنا", "تعرف", "نعرف", "يعرف", "نقول", "يقول",
+    // صيغ التوقير ليست كلمات بحث (حزمة «دفاتر الزمن 001» الآلية وسمت «#السلام» و«#عليه» من «عليه السلام»)
+    "عليه", "عليها", "عليهم", "السلام", "الصلاة", "وسلم", "صلى", "رضي", "عنه", "عنها", "عنهم", "تعالى", "سبحانه", "وتعالى", "رحمه"].map(normalizeArabic),
 );
 
 /** أكثر الكلمات تكرارًا في التعليق والعناوين (كلمات بحث مرشحة). */
@@ -171,7 +188,7 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
   const description = [
     clip(hook, 140),
     ...(inThis.length ? [`في هذه الحلقة: ${inThis.join("، ")}.`] : []),
-    // سرد واحد بلا أقسام (D87): لا قائمة فصول ولا توقيتاتها في الوصف
+    // سرد واحد بلا أقسام (D87): لا مكان فصول في الوصف؛ وإن اختار المالك فصولًا تُضاف بعد الفقرة الأولى (resolveDescription)
     ...(isSingleNarration(plan.chapters) ? [] : ["", CHAPTERS_TOKEN]),
     "",
     step ? `الخطوة العملية: ${step}` : "",

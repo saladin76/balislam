@@ -4,6 +4,7 @@ import type { ToneUpgradePlan, ToneUpgradeResult } from "../../src/voice/toneUpg
 import type { Identity } from "../../brand/identity/index";
 import type { EpisodeMedia } from "../../src/plan/media";
 import type { PlanIssue } from "../../src/plan/validate";
+import type { SceneStarts } from "../../src/package/chapters";
 import type { PublishKit } from "../../src/package/social";
 import type { ChannelConfig, ChannelDomain, ChannelInfo } from "../../src/channel/types";
 import type { DerivedSeriesIdentity, SeriesConfig } from "../../src/channel/series";
@@ -471,7 +472,7 @@ export const api = {
   restartStudio: () => call<{ ok: boolean; message: string }>("/api/sync/restart", { method: "POST", json: {} }),
   /** D95: «أبقِ نسختي» أو «خذ الجديد» لملف واحد تعارض فيه تعديل المالك مع التحديث */
   resolveUpdateConflict: (file: string, choice: "mine" | "new") => call<{ ok: boolean; message: string }>("/api/update/resolve", { method: "POST", json: { file, choice } }),
-  kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan" }>(`/api/episodes/${id}/kit`),
+  kit: (id: string) => call<{ kit: PublishKit; keywords: string[]; chapters: string; chaptersEstimated?: boolean; chaptersSource?: "assembly" | "master" | "plan"; sceneStarts?: SceneStarts }>(`/api/episodes/${id}/kit`),
   saveKit: (id: string, kit: PublishKit) => call(`/api/episodes/${id}/kit`, { method: "PUT", json: { kit } }),
   regenerateKit: (id: string) => call<{ kit: PublishKit; keywords: string[] }>(`/api/episodes/${id}/kit/regenerate`, { method: "POST", json: {} }),
   keys: () => call<{ keys: KeyState }>("/api/settings"),
