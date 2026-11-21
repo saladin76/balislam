@@ -119,7 +119,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) : generatePublishKit(plan, script, media, channel);
     if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n");
     // جودة النشر: لا عنوان عام ولا جملة مكررة ولا نص مبتور ولا وسم مكرر (قبل أي رندر مكلف)
-    const kq = kitIssues(kit, { ...thumbCtx(plan), starts: sceneStartsFor(plan, media, channelInfo(channel), real) });
+    const kq = kitIssues(kit, { ...thumbCtx(plan), starts: sceneStartsFor(plan, media, channelInfo(channel), real),
+      channel: channel.id, book: ((parseScript(script).frontmatter ?? {}) as { book?: string }).book, series: plan.series?.name });
     if (kq.some((i) => i.level === "error")) throw new Error(kitBlockMessage(kq));
     await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()), real, kit.long.chapters)));
     files.push("social.md");
