@@ -6,6 +6,7 @@ import { CHAPTERS_TOKEN, checkCaption, checkDescription, checkTitle, resolveDesc
 import { OwnerText } from "../ui/OwnerText";
 import { ThumbnailConcepts } from "./PublishThumbnails";
 import { ChapterMarks } from "./PublishChapters";
+import { isEpisodeUrl, isQuestionTitle, resolveEpisodeLink } from "../../../src/package/shortsLink";
 import { chapterMarksText, type SceneStarts } from "../../../src/package/chapters";
 
 const copy = (text: string, done: (m: string) => void) => {
@@ -144,6 +145,8 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
               />
             ))}
             <Field label="الوصف" rows={12} value={L.description} onChange={(v) => setLong({ description: v })} copyText={resolveDescription(L.description, chapters)} checks={checkDescription(resolveDescription(L.description, chapters), keywords, L.hashtags)} hint={L.description.includes(CHAPTERS_TOKEN) ? `أول سطرين يظهران قبل «المزيد». ${CHAPTERS_TOKEN} يُستبدل بتوقيت الفصول عند النسخ${estimated ? " — التوقيتات الآن تقديرية من الخطة، وتُحسب من المشاهد المعتمدة بعد التجميع (هذه الملاحظة لا تظهر في النص المنشور)" : ""}` : "أول سطرين يظهران قبل «المزيد»."} />
+            <Field label="رابط الحلقة على يوتيوب" dir="ltr" value={L.episodeUrl ?? ""} onChange={(v) => setLong({ episodeUrl: v.trim() || undefined })}
+              hint="بعد نشر الحلقة: يدخل وصف كل شورت (يوتيوب وفيسبوك)" checks={L.episodeUrl ? [{ ok: isEpisodeUrl(L.episodeUrl), label: "رابط فيديو يوتيوب" }] : undefined} />
             <ChapterMarks episodeId={episodeId} value={L.chapters} starts={sceneStarts} onChange={(chapters) => setLong({ chapters })} />
             <Field label="الوسوم (Tags)" rows={2} value={L.tags.join(", ")} onChange={(v) => setLong({ tags: v.split(/[,،]\s*/).map((x) => x.trim()).filter(Boolean) })} hint={`${L.tags.join(",").length}/${RULES.youtube.tagsChars} حرف`} />
           </div>
@@ -160,8 +163,9 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
           <div className="kit-grid three">
             <div className="kit-col">
               <h4>يوتيوب شورتس</h4>
-              <Field label="العنوان" value={sh.youtube.title} onChange={(v) => setShort(view as number, { youtube: { ...sh.youtube, title: v } })} checks={checkTitle(sh.youtube.title, "youtubeShorts", keywords)} />
-              <Field label="الوصف" rows={7} value={sh.youtube.description} onChange={(v) => setShort(view as number, { youtube: { ...sh.youtube, description: v } })} hint="ضع رابط الحلقة في «الفيديو المرتبط»" />
+              <Field label="العنوان" value={sh.youtube.title} onChange={(v) => setShort(view as number, { youtube: { ...sh.youtube, title: v } })} checks={[...checkTitle(sh.youtube.title, "youtubeShorts", keywords), { ok: isQuestionTitle(sh.youtube.title), label: "عنوان سؤال" }]} />
+              <Field label="الوصف" rows={7} value={sh.youtube.description} onChange={(v) => setShort(view as number, { youtube: { ...sh.youtube, description: v } })} copyText={resolveEpisodeLink(sh.youtube.description, L.episodeUrl)}
+                hint={isEpisodeUrl(L.episodeUrl) ? "«{{رابط_الحلقة}}» يُنسخ برابط الحلقة؛ واربطها أيضًا في «الفيديو المرتبط»" : "اربط الحلقة في «الفيديو المرتبط»؛ ورابطها يدخل هنا بعد كتابته في «الحلقة»"} />
             </div>
             <div className="kit-col">
               <h4>إنستجرام ريلز</h4>
@@ -182,7 +186,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
                 rows={6}
                 value={sh.facebook.caption}
                 onChange={(v) => setShort(view as number, { facebook: { ...sh.facebook, caption: v } })}
-                copyText={`${sh.facebook.caption}\n\n${sh.facebook.hashtags.join(" ")}`}
+                copyText={`${resolveEpisodeLink(sh.facebook.caption, L.episodeUrl)}\n\n${sh.facebook.hashtags.join(" ")}`}
                 checks={checkCaption(sh.facebook.caption, sh.facebook.hashtags, "facebook", keywords)}
               />
               <Field label="الهاشتاجات" value={tagsText(sh.facebook.hashtags)} onChange={(v) => setShort(view as number, { facebook: { ...sh.facebook, hashtags: parseTags(v) } })} hint="1–3" />

@@ -16,6 +16,7 @@ import { defaultChannel, type ChannelConfig } from "../channel/types";
  */
 import { traceCheck } from "./traces";
 import { THUMB_KIND_LABEL, conceptOrder, type ThumbnailConcept } from "./thumbnails";
+import { EPISODE_LINK_TOKEN, questionFrom, resolveEpisodeLink } from "./shortsLink";
 import { chapterMarksText, sceneStartsFor, type ChapterMark } from "./chapters";
 import { isGenericTitle, repeatedSentences, truncation } from "./quality";
 
@@ -34,6 +35,8 @@ export type LongKit = {
   thumbnails?: ThumbnailConcept[];
   /** كابشن منشور الحلقة على فيسبوك (فيديو طويل) */
   facebook: string;
+  /** رابط الحلقة على يوتيوب بعد نشرها: يدخل وصف كل شورت (src/package/shortsLink.ts) */
+  episodeUrl?: string;
   /** فصول يوتيوب: المشهد الذي يبدأ عنده كل فصل وعنوانه؛ الوقت من حدود المشاهد الحقيقية (src/package/chapters.ts) */
   chapters?: ChapterMark[];
   /** قائمة التشغيل من سلسلة الحلقة (plan.series) */
@@ -212,7 +215,8 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
     const kw = keywordsOf(`${c.title} ${text}`, [], 4);
     const tags = [...new Set([...kw.slice(0, 2), ...domainTags.slice(0, 1), channel.youtube.tags[0] ?? ""])].filter(Boolean);
     // العنوان: سؤال الفصل إن كان يقول شيئًا وحده (لا «لماذا؟»)، وإلا عنوان الفصل، وإلا أول جملة
-    const cands = [/[؟?]$/.test(c.title) ? c.title : "", q ?? "", c.title, first].filter((t) => t && !isGenericTitle(t));
+    // كل شورت بعنوان سؤال (المرحلة ٢ البند ٣): سؤال المقطع نفسه أولًا، ثم عنوان المالك أو أول جملة ليراجعها
+    const cands = [/[؟?]$/.test(c.title) ? c.title : "", questionFrom(text) ?? "", q ?? "", c.title, first].filter((t) => t && !isGenericTitle(t));
     const title = cands.find((t) => len(t) <= 60) ?? clip(cands[0] ?? `${c.title} | ${plan.title}`, 60);
     // القيمة بلا السؤال الذي يُختم به الكابشن (لا جملة مكررة)
     const value = ss.slice(1, 4).filter((x) => x !== q).slice(0, 2).join(" ");
@@ -220,9 +224,9 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
     return {
       chapter: c.number,
       hook: clip(first, 90),
-      youtube: { title, description: `${clip(first, 140)}\n\nالحلقة كاملة على القناة.\n\n${tags.slice(0, 3).map(hashtag).join(" ")}`, hashtags: tags.slice(0, 3).map(hashtag) },
+      youtube: { title, description: `${clip(first, 140)}\n\n${EPISODE_LINK_TOKEN}\n\n${tags.slice(0, 3).map(hashtag).join(" ")}`, hashtags: tags.slice(0, 3).map(hashtag) },
       instagram: { caption: `${clip(first, 240)}\n\n${clip(value, 300)}\n\n${ask}\n\nاحفظه لترجع له، وأرسله لمن يحتاجه.`, hashtags: tags.slice(0, 5).map(hashtag) },
-      facebook: { caption: `${clip(first, 240)}\n\n${ask}`, hashtags: tags.slice(0, 2).map(hashtag) },
+      facebook: { caption: `${clip(first, 240)}\n\n${ask}\n\n${EPISODE_LINK_TOKEN}`, hashtags: tags.slice(0, 2).map(hashtag) },
     };
   });
 
@@ -286,13 +290,13 @@ export const kitToMarkdown = (kit: PublishKit, title: string, chapters = ""): st
       "",
       "### يوتيوب شورتس",
       `**العنوان:** ${s.youtube.title}`,
-      b(s.youtube.description),
+      b(resolveEpisodeLink(s.youtube.description, L.episodeUrl)),
       "",
       "### إنستجرام ريلز",
       b(`${s.instagram.caption}\n\n${s.instagram.hashtags.join(" ")}`),
       "",
       "### فيسبوك ريلز",
-      b(`${s.facebook.caption}\n\n${s.facebook.hashtags.join(" ")}`),
+      b(`${resolveEpisodeLink(s.facebook.caption, L.episodeUrl)}\n\n${s.facebook.hashtags.join(" ")}`),
       "",
     );
   }
