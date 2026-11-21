@@ -33,7 +33,9 @@ export const alive = (pid) => { try { process.kill(pid, 0); return true; } catch
 export const freePort = async (port, root, { strict = true, log = console.log, error = console.error } = {}) => {
   if (await portFree(port)) return true;
   const pids = listeners(port);
-  const ours = pids.filter((p) => cwdOf(p) === root);
+  // cwdOf يعيد المسار الحقيقي؛ فيُقارن بالمسار الحقيقي للمجلد (KI-094: /var ← /private/var على الماك)
+  const real = (() => { try { return realpathSync(root); } catch { return root; } })();
+  const ours = pids.filter((p) => cwdOf(p) === real);
   if (!pids.length || ours.length < pids.length) {
     if (strict) {
       error(`\n✗ المنفذ ${port} مشغول ببرنامج آخر غير الاستوديو${pids.length ? ` (رقم العملية ${pids.join("، ")})` : ""}.`);
