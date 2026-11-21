@@ -232,6 +232,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       browserExecutable: browserExecutable(),
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
+    // المرحلة A (المهمة ٣): ما يُنشر (الحلقة والشورتس) بعلو −14 LUFS بقياسين وكسب خطي (src/studio/quality/normalize.ts)
+    if (opts.quality === "master" && !opts.scenePreview) {
+      const { normalizeProgramLoudness } = await import("../studio/quality/normalize");
+      const r = await normalizeProgramLoudness(tempOutput, q.audioBitrate);
+      if (r.type !== "silent") log(100, `علو الصوت: ${r.before.toFixed(1)} ← ${r.after?.toFixed(1)} LUFS`);
+    }
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
     if (opts.quality === "master") {
       const { requireScenesReadyForMaster } = await import("../studio/sceneService");

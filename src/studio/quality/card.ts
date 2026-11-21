@@ -55,7 +55,7 @@ export const audioItems = (m: FileMeasurements | null): CardItem[] => {
   const loudOk = Math.abs(integrated - LOUDNESS_TARGET) <= LOUDNESS_TOLERANCE;
   return [
     { id: "loudness", label: "علو الحلقة", need: loudNeed, value: `${ar(integrated)} LUFS`, status: loudOk ? "pass" : "fail",
-      ...(loudOk ? {} : { reason: integrated < LOUDNESS_TARGET ? "الحلقة أخفض من علو يوتيوب؛ ستُسمع أضعف من غيرها." : "الحلقة أعلى من علو يوتيوب؛ سيخفضها يوتيوب وقد تتشوه الذروات." }) },
+      ...(loudOk ? {} : { reason: `${integrated < LOUDNESS_TARGET ? "الحلقة أخفض من علو يوتيوب؛ ستُسمع أضعف من غيرها." : "الحلقة أعلى من علو يوتيوب؛ سيخفضها يوتيوب وقد تتشوه الذروات."} الدمج والنسخة النهائية يضبطانه على −14 تلقائيًا: أعد صنع الملف (ملف صُنع قبل ذلك).` }) },
     { id: "true-peak", label: "الذروة", need: peakNeed, value: `${ar(truePeak)} dBTP`, status: truePeak <= TRUE_PEAK_MAX ? "pass" : "fail",
       ...(truePeak <= TRUE_PEAK_MAX ? {} : { reason: "ذروة الصوت قريبة من الحد فقد تُسمع مقطوعة بعد ضغط يوتيوب." }) },
     { id: "head-silence", label: "سكوت البداية", need: headNeed, value: `${ar(m.headSilence, 2)} ث`, status: m.headSilence <= HEAD_SILENCE_MAX ? "pass" : "fail",
