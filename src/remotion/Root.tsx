@@ -25,6 +25,7 @@ import { PermanentCh2, PermanentStyles, permanentCh2Frames, permanentStylesFrame
 import { TransitionLab, TransitionLabBaseline, transitionLabFrames } from "./lab/TransitionLab";
 import { LIGHT_CASES, LIGHT_CASES_009, LightTimingOff, LightTimingOn, lightLab, lightLab009 } from "./lab/LightLab";
 import { AlleyTale } from "./scenes/AlleyTale";
+import { TemplateLabs } from "./scenes/labs";
 import samplePlan from "../../tests/fixtures/plan.json";
 import { ChannelIntro, type IntroKind } from "./scenes/ChannelIntro";
 import { HorizonAudioReel, HorizonTest, HZ_FPS, HZ_TOTAL, horizonAudioMetadata } from "./dafatir/horizon/HorizonTest";
@@ -73,6 +74,8 @@ const orientations = ["landscape", "portrait"] as const;
 /** كل التكوينات المسجلة في Remotion: لوحات الهوية، القوالب، الحلقة والشورت، الصورة المصغّرة، والافتتاحية. */
 export const RemotionRoot: React.FC = () => (
   <>
+    {/* نماذج القوالب الجديدة للمالك (لا تُنشر): src/remotion/scenes/labs.tsx */}
+    <TemplateLabs />
     {/* دفاتر الزمن 001: اختبار «خط الأفق» — مشاهد غير قرآنية، معاينة صامتة لا تُنشر */}
     <Composition id="dafatir-001-horizon-test" component={HorizonTest} durationInFrames={HZ_TOTAL} fps={HZ_FPS} width={1920} height={1080} />
     {/* دفاتر الزمن 001: اللقطات الست بصوت الراوي والتلاوة — تُرندر على جهاز الإنتاج فقط (npx bal horizon-audio) */}
