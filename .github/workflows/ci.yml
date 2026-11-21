@@ -49,6 +49,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       channels: ${{ steps.plan.outputs.channels }}
+      ui: ${{ steps.plan.outputs.ui }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,17 +67,21 @@ jobs:
             if [ -z "$INPUT" ] || [ "$INPUT" = "all" ]; then OUT=$ALL; else OUT=$(list "$INPUT"); fi
           elif [ "$EVENT" = "pull_request" ]; then
             CHANGED=$(git diff --name-only "$BASE"...HEAD)
-            if printf '%s\n' "$CHANGED" | grep -qE '^(src|app|scripts|bin|brand|tests|\.github)/|^package(-lock)?\.json$|^vite|^tsconfig'; then OUT=$ALL
+            # A PR of Markdown only (docs, logs, known issues) renders nothing: no journey. check (types, tests, the
+            # documentation gate) still runs on every PR, and main still runs the journeys after every merge.
+            if [ -n "$CHANGED" ] && ! printf '%s\n' "$CHANGED" | grep -qvE '\.md$'; then OUT='[]'; UI=false
+            elif printf '%s\n' "$CHANGED" | grep -qE '^(src|app|scripts|bin|brand|tests|\.github)/|^package(-lock)?\.json$|^vite|^tsconfig'; then OUT=$ALL
             else
               CH=$(printf '%s\n' "$CHANGED" | sed -nE 's#^channels/(balislam|dafatir-alzaman|zubdat-alkutub)/.*#\1#p' | sort -u | paste -sd, -)
               OUT=$(list "${CH:-balislam}")
             fi
           else OUT='["balislam"]'
           fi
-          echo "channels=$OUT" >> "$GITHUB_OUTPUT"; echo "e2e channels: $OUT"
+          echo "channels=$OUT" >> "$GITHUB_OUTPUT"; echo "ui=${UI:-true}" >> "$GITHUB_OUTPUT"; echo "e2e channels: $OUT · ui: ${UI:-true}"
 
   e2e:
     needs: [check, e2e-plan]
+    if: needs.e2e-plan.outputs.channels != '[]'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     strategy:
@@ -101,7 +106,8 @@ jobs:
 
   # The Studio page journey (Playwright) covers the three channels in one run (its dock parity, D150): once, beside the e2e jobs.
   e2e-ui:
-    needs: check
+    needs: [check, e2e-plan]
+    if: needs.e2e-plan.outputs.ui != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 75
     steps:
