@@ -6,6 +6,8 @@ import { normalizeArabic } from "../script/quranMeta";
 import type { PublishKit } from "./social";
 import { thumbnailIssues, type ThumbScene } from "./thumbnails";
 import { resolveChapters, type SceneStarts } from "./chapters";
+import { isDuaTitle, isEpisodeUrl, isQuestionTitle } from "./shortsLink";
+import { formulaProblem, TITLE_FORMULAS } from "./titleFormula";
 
 /** العنوان ≤ ٦٠ حرفًا (قرار المالك ٢١ نوفمبر): ما بعدها يُقص في نتائج البحث والاقتراحات وعلى الهاتف. */
 export const TITLE_MAX = 60;
@@ -57,7 +59,7 @@ export const repeatedSentences = (t: string) => {
 };
 
 /** ctx (اختياري): عنوان الحلقة ومشاهدها لفحص الأغلفة الثلاثة كاملًا، وبداية كل مشهد في الملف المنشور لفحص فصول يوتيوب. */
-export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: ThumbScene[]; starts?: SceneStarts } = {}): KitIssue[] => {
+export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: ThumbScene[]; starts?: SceneStarts; channel?: string; book?: string; series?: string } = {}): KitIssue[] => {
   const out: KitIssue[] = [];
   const err = (where: string, message: string, suggestion?: string) => out.push({ level: "error", where, message, suggestion });
   const warn = (where: string, message: string, suggestion?: string) => out.push({ level: "warning", where, message, suggestion });
@@ -97,7 +99,13 @@ export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: Thumb
     title(where, t.text, "");
     const len = Array.from(t.text.trim()).length;
     if (len > TITLE_MAX) err(where, `${len} حرفًا؛ الحد ${TITLE_MAX} (ما بعده يُقص في البحث وعلى الهاتف).`);
+    // صيغة عنوان القناة (src/package/titleFormula.ts): تنبيه، فللمالك أن يخالفها لحلقة بعينها
+    const fp = formulaProblem(ctx.channel, t.text, { book: ctx.book, series: ctx.series });
+    if (fp) warn(where, `${fp} الصيغة: ${TITLE_FORMULAS[ctx.channel!]!.pattern} (مثل «${TITLE_FORMULAS[ctx.channel!]!.example}»).`);
   });
+  // رابط الحلقة في وصف كل شورت
+  if (L.episodeUrl?.trim() && !isEpisodeUrl(L.episodeUrl)) err("رابط الحلقة", `«${L.episodeUrl}» ليس رابط فيديو يوتيوب (youtube.com/watch?v=… أو youtu.be/…).`);
+  else if (kit.shorts.length && !L.episodeUrl?.trim()) warn("رابط الحلقة", "بعد نشر الحلقة ضع رابطها في الحزمة، فيدخل وصف كل شورت.");
   // فصول يوتيوب من حدود المشاهد الحقيقية (حين يختارها المالك؛ يلزمها توقيت المشاهد)
   if (L.chapters?.length && ctx.starts)
     for (const i of resolveChapters(L.chapters, ctx.starts).issues) (i.level === "error" ? err : warn)("يوتيوب: الفصول", i.message);
@@ -116,6 +124,11 @@ export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: Thumb
     const k = n(s.youtube.title);
     if (k && shortTitles.has(k)) err(`${w}: العنوان`, `العنوان نفسه في الشورت ${shortTitles.get(k)}؛ كل شورت يحتاج عنوانه.`);
     shortTitles.set(k, s.chapter);
+    // كل شورت بعنوان سؤال (المرحلة ٢ البند ٣): تنبيه لا يمنع صنع الحلقة، وبند في بطاقة الجودة (src/package/qualityCard.ts)
+    if (s.youtube.title.trim() && !isQuestionTitle(s.youtube.title))
+      warn(`${w}: العنوان`, isDuaTitle(s.youtube.title)
+        ? `«${s.youtube.title}» دعاء لا يُحوَّل إلى سؤال؛ اختر للشورت عنوانًا سؤالًا عن معناه، أو مقطعًا آخر.`
+        : `ليس سؤالًا؛ عنوان كل شورت سؤال ينتهي بـ«؟».`, s.hook && isQuestionTitle(s.hook) ? s.hook : undefined);
     text(`${w}: وصف يوتيوب`, s.youtube.description);
     text(`${w}: إنستجرام`, s.instagram.caption);
     text(`${w}: فيسبوك`, s.facebook.caption);
