@@ -19,12 +19,12 @@ const videoHash = (file: string) => execFileSync("ffmpeg", ["-nostdin", "-loglev
 const make = (file: string, volume: string, silent = false) => ff([
   "-f", "lavfi", "-i", "testsrc2=s=320x180:r=30:d=6",
   "-f", "lavfi", "-i", silent ? "anullsrc=r=48000:cl=stereo:d=6" : "sine=frequency=330:sample_rate=48000:duration=6",
-  "-f", "lavfi", "-i", "anoisesrc=d=6:c=pink:r=48000:a=0.02",
+  "-f", "lavfi", "-i", "anoisesrc=d=6:c=pink:r=48000:a=0.02:seed=1",
   "-filter_complex", silent ? "[1:a]anull[a]" : `[1:a]volume='if(lt(mod(t,1),0.6),1,0.05)':eval=frame[v];[v][2:a]amix=inputs=2:normalize=0,volume=${volume}[a]`,
   "-map", "0:v", "-map", "[a]", "-c:v", "libx264", "-preset", "ultrafast", "-pix_fmt", "yuv420p", "-c:a", "aac", "-b:a", "192k", "-shortest", file]);
 
 describe("علو الحلقة −14 LUFS (المهمة ٣)", () => {
-  it("حلقة خافتة جدًا (≈ −32) وحلقة عالية (≈ −8): كلتاهما −14 ±1 وذروتهما ≤ −1 dBTP، والصورة نفسها بايتًا بايتًا", async () => {
+  it("حلقة خافتة جدًا وحلقة عالية: كلتاهما −14 ±1 وذروتهما ≤ −1 dBTP، والصورة نفسها بايتًا بايتًا", async () => {
     for (const [name, vol] of [["quiet", "0.05"], ["loud", "1.6"]] as const) {
       const f = path.join(dir, `${name}.mp4`);
       make(f, vol);
