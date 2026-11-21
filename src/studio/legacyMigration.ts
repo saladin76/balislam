@@ -20,7 +20,7 @@
 import { createHash } from "node:crypto";
 import { spawnSync } from "node:child_process";
 import { constants } from "node:fs";
-import { copyFile, lstat, mkdir, readFile, readdir, rename, rm, writeFile } from "node:fs/promises";
+import { copyFile, lstat, mkdir, readFile, readdir, realpath, rename, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -104,7 +104,9 @@ export const findLegacyRecords = async (channelsDir: string): Promise<{ found: L
         if (!info) continue;
         if (!info.isFile() || info.isSymbolicLink()) { skipped.push({ channel, episode, name, reason: "not-a-file" }); continue; }
         tracked ??= trackedFiles(channelsDir);
-        if (tracked.has(file) || tracked.has(path.resolve(file))) { skipped.push({ channel, episode, name, reason: "tracked" }); continue; }
+        // git يعيد مسار المستودع الحقيقي؛ فيُقارن بالمسار الحقيقي للملف (KI-094: /var ← /private/var على الماك)
+        const real = await realpath(file).catch(() => file);
+        if (tracked.has(file) || tracked.has(path.resolve(file)) || tracked.has(real)) { skipped.push({ channel, episode, name, reason: "tracked" }); continue; }
         found.push({ channel, episode, name, file, bytes: info.size, sha256: await sha256(file) });
       }
     }
