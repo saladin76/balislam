@@ -58,7 +58,7 @@ export const archiveStations = (tl: Timeline): StationKey[] => {
   ];
 };
 
-const mixHex = (a: string, b: string, p: number) => {
+export const mixHex = (a: string, b: string, p: number) => {
   const h = (s: string, i: number) => parseInt(s.slice(1 + 2 * i, 3 + 2 * i), 16);
   return `rgb(${[0, 1, 2].map((i) => Math.round(h(a, i) + (h(b, i) - h(a, i)) * p)).join(",")})`;
 };
@@ -82,7 +82,7 @@ export const cameraPose = (s: Station) => {
 const PX = 1.5; // دقة خامة الورقة: بكسل لكل بكسل طاولة (حدة كافية لـ4K عن قرب)
 
 let grainCache: HTMLCanvasElement | null = null;
-const grain = () => {
+export const grain = () => {
   if (grainCache) return grainCache;
   const n = 512;
   const f = textureField("paper", n, n, 31);
@@ -100,7 +100,7 @@ const grain = () => {
   return (grainCache = cv);
 };
 
-const woodTexture = () => {
+export const woodTexture = () => {
   const [w, h] = [1024, 512];
   const f = textureField("wood", w, h, 19);
   const cv = document.createElement("canvas");
@@ -123,11 +123,11 @@ const woodTexture = () => {
   return tex;
 };
 
-type Word = { w: string; s: number; e: number };
+export type Word = { w: string; s: number; e: number };
 
 /** سطر يُكتب بالحبر من اليمين: كل كلمة تظهر بنسبة نطقها، الطرية أغمق ثم تجف */
-const inkLine = (ctx: CanvasRenderingContext2D, words: Word[], right: number, y: number, size: number, t: number, center?: number) => {
-  ctx.font = `700 ${size}px Amiri`;
+export const inkLine = (ctx: CanvasRenderingContext2D, words: Word[], right: number, y: number, size: number, t: number, center?: number, family = "Amiri", weight = 700, ink: [string, string] = [K.ink, K.inkWet]) => {
+  ctx.font = `${weight} ${size}px ${family}`;
   ctx.direction = "rtl";
   ctx.textAlign = "right";
   ctx.textBaseline = "alphabetic";
@@ -142,7 +142,7 @@ const inkLine = (ctx: CanvasRenderingContext2D, words: Word[], right: number, y:
       ctx.beginPath();
       ctx.rect(x - wd * write - 4, y - size * 1.3, wd * write + 8, size * 1.9);
       ctx.clip();
-      ctx.fillStyle = mixHex(K.ink, K.inkWet, wet);
+      ctx.fillStyle = mixHex(ink[0], ink[1], wet);
       ctx.fillText(w.w, x, y);
       ctx.restore();
     }
@@ -340,7 +340,7 @@ const Paper3D: React.FC<{ d: Doc3; t: number; tl: Timeline; ready: boolean }> = 
 };
 
 /** حين يجهز الخط تُعاد كتابة الأوراق، فيُرسم المشهد مرة أخرى (الرسم في ThreeCanvas لا يتكرر من نفسه) */
-const RedrawWhenReady: React.FC<{ ready: boolean }> = ({ ready }) => {
+export const RedrawWhenReady: React.FC<{ ready: boolean }> = ({ ready }) => {
   const advance = useThree((st) => st.advance);
   useEffect(() => {
     if (ready) advance(performance.now());
@@ -434,12 +434,12 @@ const Props: React.FC = () => {
 
 /** الكتابة على خامة الورقة (Canvas) تحتاج خط أميري محمّلًا فعلًا لهذه الأوزان والحروف قبل الرسم:
  * يؤخر الرندر حتى يُحمّل، فلا تُرسم الكلمات أبدًا بخط بديل */
-const useCanvasFont = (brandReady: boolean) => {
+export const useCanvasFont = (brandReady: boolean, extra: string[] = []) => {
   const [handle] = useState(() => delayRender("خط أميري للورق"));
   const [ok, setOk] = useState(false);
   useEffect(() => {
     if (!brandReady) return;
-    Promise.all(["700 70px Amiri", "700 112px Amiri", "400 22px Amiri"].map((f) => document.fonts.load(f, "سنة مئة ١٤٥ بغداد")))
+    Promise.all(["700 70px Amiri", "700 112px Amiri", "400 22px Amiri", ...extra].map((f) => document.fonts.load(f, "سنة مئة ١٤٥ بغداد")))
       .then(() => setOk(true))
       .catch(() => continueRender(handle));
   }, [brandReady, handle]);

@@ -2,6 +2,8 @@ import React from "react";
 import { Composition } from "remotion";
 import { GlobeLab, GLOBE_LAB_FPS, globeLabFrames } from "../dafatir/geo/GlobeLab";
 import { ArchiveLab, ARCHIVE_LAB_FPS, archiveLabFrames } from "../dafatir/archive/ArchiveLab";
+import { RahhalaLab, RAHHALA_FPS, rahhalaFrames } from "../dafatir/directions/Rahhala";
+import { AstrolabeLab, ASTRO_FPS, astroFrames } from "../dafatir/directions/Astrolabe";
 
 /**
  * تكوينات مختبرات القوالب (المرحلة ٣، تيرمينال C): نماذج يراها المالك قبل أي قالب كامل، ولا تُنشر.
@@ -13,5 +15,8 @@ export const TemplateLabs: React.FC = () => (
     <Composition id="dafatir-lab-globe" component={GlobeLab} durationInFrames={globeLabFrames()} fps={GLOBE_LAB_FPS} width={1920} height={1080} />
     {/* دفاتر الزمن: قالب «اللوح – خزانة الأرشيف» (D185)، صامت لا يُنشر */}
     <Composition id="dafatir-lab-archive" component={ArchiveLab} durationInFrames={archiveLabFrames()} fps={ARCHIVE_LAB_FPS} width={1920} height={1080} />
+    {/* دفاتر الزمن: اتجاهات المقارنة (مراجع المنسّق ٢١ نوفمبر)، لا قوالب قبل اختيار المالك */}
+    <Composition id="dafatir-dir-rahhala" component={RahhalaLab} durationInFrames={rahhalaFrames()} fps={RAHHALA_FPS} width={1920} height={1080} />
+    <Composition id="dafatir-dir-astrolabe" component={AstrolabeLab} durationInFrames={astroFrames()} fps={ASTRO_FPS} width={1920} height={1080} />
   </>
 );
