@@ -141,9 +141,13 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
   try { await run(form); }
   catch (error) { if (!refusedOption(error)) throw error; await run(otherForm(form)); }
   await verifyVideoEvidence(tempVideo, base.width, base.height);
+  // المرحلة A (المهمة ٣): الحلقة كلها بعلو −14 LUFS بقياسين وكسب خطي واحد (src/studio/quality/normalize.ts)
+  const { normalizeProgramLoudness } = await import("./quality/normalize");
+  const program = await normalizeProgramLoudness(tempVideo, q.audioBitrate);
+  await verifyVideoEvidence(tempVideo, base.width, base.height);
   const sceneSeconds = Object.fromEntries(cuts.map((c, i) => [c.sceneId, (i + 1 < cuts.length ? starts[i + 1]! - starts[i]! : real[i]!) - (i === 0 ? head : 0)]));
   return { fps, sceneSeconds, headTrimmed: head, seams: seams.map((x, i) => ({ ...x, at: Math.round((starts[i + 1]! - head) * 1000) / 1000 })),
-    loudness: { target: loud.target, gain: loud.gain } };
+    loudness: { target: loud.target, gain: loud.gain }, program };
 };
 
 const writeSeamsRecord = async (scriptPath: string, published: string, joined: Awaited<ReturnType<typeof joinSceneCuts>>, slot = "episode") => {
