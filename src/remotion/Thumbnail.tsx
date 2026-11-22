@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, Img } from "remotion";
 import { useTheme } from "../../brand/identity/index";
 import { fontFamilies } from "../../brand/fonts";
 import { Element } from "../../brand/elements/Element";
@@ -15,10 +15,11 @@ import type { SeriesStamp } from "../channel/series";
 import { SeriesBadge } from "./series/SeriesArt";
 
 /**
- * غلاف من الأغلفة الثلاثة (src/package/thumbnails.ts). يُرسم «عنوان» وحده بأسلوب مصغّرة القناة المعتمد وكلمته؛
- * «مشهد» و«سؤال» موقوفان حتى يختار المالك اتجاه القناة البصري (KI-120)، فلا تصميم لهما هنا.
+ * غلاف من الأغلفة الثلاثة (src/package/thumbnails.ts). «عنوان» بأسلوب مصغّرة القناة المعتمد وكلمته في كل القنوات.
+ * «مشهد» و«سؤال» لهما تصميم بأسلوب «دفتر الأفق» وحده (D196، اتجاه دفاتر الزمن معتمد)؛ وفي الأساليب الأخرى موقوفان
+ * (KI-120) حتى يُعتمد اتجاه قناتها. «مشهد» لقطة حقيقية من فيديو المشهد المعتمد (image: data URI من thumbnailFrame.ts).
  */
-export type ThumbConceptProp = { kind: "title"; text: string };
+export type ThumbConceptProp = { kind: "title"; text: string } | { kind: "scene"; text: string; image?: string } | { kind: "question"; text: string };
 export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string; concept?: ThumbConceptProp; /** اسم الكتاب (book في رأس السكريبت): شارة التنبيه في مصغّرة زبدة الكتب */ book?: string; identity?: Identity; channel?: ChannelInfo; lang?: string;
   /** سلسلة الحلقة (plan.series): شارتها بأسلوب القناة فوق المصغّرة نفسها؛ غيابها = مصغّرة القناة كما هي */
   series?: Pick<SeriesStamp, "identity" | "name" | "number" | "kind" | "template"> };
@@ -38,8 +39,10 @@ const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "la
   const style = useChannel().brand?.thumbnail ?? "circle";
   // الأغلفة الثلاثة: «عنوان» بأسلوب مصغّرة القناة المعتمد وكلمته؛ «سؤال» و«مشهد» موقوفان (KI-120)
   const signature = (p: Inner) => (style === "mihrab" ? <MihrabThumb {...p} /> : style === "horizon" ? <HorizonThumb {...p} /> : style === "highlighter" ? <HighlighterThumb {...p} /> : <CircleThumb {...p} />);
-  if (concept && concept.kind !== "title") throw new Error(`غلاف «${concept.kind}» موقوف حتى يختار المالك اتجاه القناة (KI-120).`);
+  if (concept && concept.kind !== "title" && style !== "horizon") throw new Error(`غلاف «${concept.kind}» موقوف حتى يختار المالك اتجاه القناة (KI-120).`);
   const body = !concept ? signature(props)
+    : concept.kind === "scene" ? <HorizonSceneThumb {...props} words={concept.text} image={concept.image} />
+    : concept.kind === "question" ? <HorizonQuestionThumb {...props} words={concept.text} />
     : signature({ ...props, title: concept.text, highlight: concept.text.split(/\s+/).filter(Boolean).slice(-1).join(" ") });
   if (!series || series.template?.thumbnail?.layout === "channel" || series.identity.thumbnail.badge === "none") return body;
   return <AbsoluteFill>{body}<SeriesBadge d={series.identity} name={series.name} number={series.kind === "series" ? series.number : undefined} /></AbsoluteFill>;
@@ -174,6 +177,86 @@ const HorizonThumb: React.FC<Inner> = ({ title, highlight, element }) => {
         {year ? <span style={{ alignSelf: "flex-start", fontFamily: fontFamilies.mono, fontSize: 34, color: "#F3E9DA", background: "#D7372B", padding: "2px 16px", direction: "ltr" }}>{year}</span> : null}
         <div style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: size, lineHeight: 1.3, color: "#F3E9DA", display: "flex", flexWrap: "wrap", gap: "0 22px", textShadow: "0 6px 26px rgba(18,12,30,0.75)" }}>
           {groups.map((g, i) => (g.on ? <span key={i} style={{ color: "#F3C98B" }}>{g.words.join(" ")}</span> : <React.Fragment key={i}>{g.words.map((w, j) => <span key={j}>{w}</span>)}</React.Fragment>))}
+        </div>
+      </div>
+      <div style={{ position: "absolute", bottom: 26, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 12 }}>
+        <ChannelLogo theme={t} size={64} tile={false} />
+        <span style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: 34, color: "#2B1E14" }}><ChannelName /></span>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * دفاتر الزمن «دفتر الأفق» — غلاف «مشهد» (D196): لقطة حقيقية من المشهد المعتمد ملصقة في الدفتر بإطار ورق وحبر،
+ * يتدلى عليها شريط التاريخ الأحمر، فوق أفق الغروب والخريطة العتيقة؛ وكلماته (إن وُجدت) بالأميري على السماء.
+ * بلا تدرّج خلف الكلمات ولا ظل نص مموّه ولا وهج (KI-120): الظل تحت الصورة صلب كورقة ملصقة.
+ */
+/** نسبة أسفل لقطة المشهد التي يشغلها شريط الترجمة في فيديو المشهد (CaptionBar)؛ لا تظهر على الغلاف */
+export const SCENE_CAPTION_BAND = 0.24;
+const HorizonSceneThumb: React.FC<Inner & { words: string; image?: string }> = ({ words, image, element }) => {
+  const t = useTheme("night");
+  const el = element && hasElement(element) ? element : "scroll";
+  const w = words.trim();
+  return (
+    <AbsoluteFill style={{ direction: useLang().dir, overflow: "hidden", background: "linear-gradient(180deg, #120C1E 0%, #2A1E3F 30%, #6B3552 56%, #C8603A 72%, #E07A3F 76%, #EADBC0 76%, #E3D2B3 100%)" }}>
+      <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
+        {Array.from({ length: 50 }, (_, i) => <circle key={i} cx={(Math.sin(i * 91.7) * 0.5 + 0.5) * 1280} cy={(Math.sin(i * 37.3) * 0.5 + 0.5) * 220} r={1.5} fill="#F3E9DA" opacity={0.5} />)}
+        <path d="M0 547 H1280" stroke="#2B1E14" strokeWidth={5} />
+        {Array.from({ length: 11 }, (_, i) => <path key={i} d={`M${i * 120 + 60} 547 V${i % 4 === 0 ? 575 : 562}`} stroke="#2B1E14" strokeWidth={4} />)}
+        <path d="M60 668 C170 610 280 690 420 636" fill="none" stroke="#7E2A22" strokeWidth={5} strokeDasharray="14 12" />
+        <circle cx={420} cy={636} r={12} fill="#7E2A22" />
+      </svg>
+      {/* الصورة الملصقة في الدفتر: ورق حولها وخط حبر، وظل صلب لا مموّه */}
+      <div data-testid="thumb-scene-photo" style={{ position: "absolute", left: 52, top: 58, width: 790, height: 462, padding: 14, background: "#EADBC0", border: "4px solid #2B1E14", transform: "rotate(-1.6deg)", boxShadow: "12px 14px 0 rgba(18,12,30,0.45)" }}>
+        {/* فيديو المشهد المعتمد فيه شريط الترجمة محروقًا أسفله: تُعرض اللقطة بلا أسفلها (SCENE_CAPTION_BAND) وتُوسَّط أفقيًا */}
+        {image ? <div style={{ position: "relative", width: "100%", height: "100%", overflow: "hidden", border: "2px solid #2B1E14" }}>
+            <Img src={image} style={{ position: "absolute", top: 0, left: "50%", height: `${100 / (1 - SCENE_CAPTION_BAND)}%`, width: "auto", transform: "translateX(-50%)", display: "block" }} />
+          </div>
+          : <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center", background: "#E3D2B3" }}><Element id={el} theme={t} size={260} /></div>}
+      </div>
+      {/* شريط التاريخ الأحمر يتدلى على زاوية الصورة */}
+      <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
+        <path d="M770 40 H818 V150 L794 132 L770 150 Z" fill="#D7372B" stroke="#7E2A22" strokeWidth={3} />
+      </svg>
+      {w ? (
+        <div style={{ position: "absolute", insetInlineStart: 40, top: 70, width: 380, height: 440, display: "flex", alignItems: "center" }}>
+          <div style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: titleSize(w, 96), lineHeight: 1.25, color: "#F3E9DA" }}>{w}</div>
+        </div>
+      ) : null}
+      <div style={{ position: "absolute", bottom: 26, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 12 }}>
+        <ChannelLogo theme={t} size={64} tile={false} />
+        <span style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: 34, color: "#2B1E14" }}><ChannelName /></span>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * دفاتر الزمن «دفتر الأفق» — غلاف «سؤال» (D196): الصفحة هي البطل لا السماء — أفق منخفض الارتفاع في الأعلى، وتحته صفحة
+ * الدفتر المسطّرة، والسؤال مكتوب عليها بالحبر الكبير، و«؟» بلون شريط التاريخ الأحمر الذي يتدلى من حافة الصفحة؛
+ * والساعة الرملية صغيرة على خط الأفق. تخطيط مختلف عن غلاف «عنوان» (العنوان على السماء والعنصر في الشمس).
+ */
+const HorizonQuestionThumb: React.FC<Inner & { words: string }> = ({ words, element }) => {
+  const t = useTheme("night");
+  const el = element && hasElement(element) ? element : "scroll";
+  const q = words.trim().replace(/[؟?]\s*$/, "");
+  return (
+    <AbsoluteFill style={{ direction: useLang().dir, overflow: "hidden", background: "linear-gradient(180deg, #2A1E3F 0%, #6B3552 18%, #C8603A 30%, #E07A3F 33%, #EADBC0 33%, #E3D2B3 100%)" }}>
+      <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
+        <defs><clipPath id="thq-sky"><rect x={0} y={0} width={1280} height={238} /></clipPath></defs>
+        <circle cx={1010} cy={238} r={92} fill="#F3C98B" clipPath="url(#thq-sky)" />
+        <path d="M0 238 H1280" stroke="#2B1E14" strokeWidth={5} />
+        {Array.from({ length: 11 }, (_, i) => <path key={i} d={`M${i * 120 + 60} 238 V${i % 4 === 0 ? 264 : 252}`} stroke="#2B1E14" strokeWidth={4} />)}
+        {Array.from({ length: 6 }, (_, i) => <path key={`r${i}`} d={`M70 ${330 + i * 66} H1210`} stroke="#2B1E14" strokeOpacity={0.12} strokeWidth={2} />)}
+        <path d="M1110 238 H1170 V400 L1140 374 L1110 400 Z" fill="#D7372B" stroke="#7E2A22" strokeWidth={3} />
+      </svg>
+      <div style={{ position: "absolute", left: 930, top: 118, width: 140, height: 140, display: "grid", placeItems: "center" }}>
+        <Element id={el} theme={t} size={130} />
+      </div>
+      <div data-testid="thumb-question" style={{ position: "absolute", left: 70, right: 200, top: 270, height: 330, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: titleSize(q, 150), lineHeight: 1.2, color: "#2B1E14", textAlign: "center" }}>
+          {q}<span style={{ color: "#D7372B" }}>؟</span>
         </div>
       </div>
       <div style={{ position: "absolute", bottom: 26, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 12 }}>

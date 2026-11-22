@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { arDigits } from "../ui/format";
 import {
-  THUMB_KIND_LABEL, THUMB_KINDS, THUMB_MAX_WORDS, THUMB_ON_HOLD, conceptOrder, isSacredScene, suggestThumbnails, thumbnailIssues, thumbnailWords,
+  THUMB_KIND_LABEL, THUMB_KINDS, THUMB_MAX_WORDS, conceptOrder, thumbHoldFor, isSacredScene, suggestThumbnails, thumbnailIssues, thumbnailWords,
   type ThumbKind, type ThumbnailConcept,
 } from "../../../src/package/thumbnails";
 
@@ -28,11 +28,14 @@ export const ThumbnailConcepts: React.FC<{
 }> = ({ episodeId, value, titles, onChange }) => {
   const [scenes, setScenes] = useState<SceneOpt[] | null>(null);
   const [title, setTitle] = useState("");
+  // D196: أسلوب مصغّرة القناة المعتمد اتجاهه («دفتر الأفق») لا إيقاف لغلافيه
+  const [thumbStyle, setThumbStyle] = useState<string | undefined>(undefined);
   useEffect(() => {
     let live = true;
     api.episode(episodeId).then((d) => {
       if (!live) return;
       setTitle(d.plan.title);
+      setThumbStyle(d.channel?.brand?.thumbnail);
       setScenes(d.plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, narration: s.narration, sacred: isSacredScene(s) })));
     }).catch(() => live && setScenes([]));
     return () => { live = false; };
@@ -74,7 +77,7 @@ export const ThumbnailConcepts: React.FC<{
               <span className="spacer" />
               <span className="help" style={{ color: n > THUMB_MAX_WORDS ? "var(--err)" : undefined }}>{arDigits(n)}/{arDigits(THUMB_MAX_WORDS)} كلمات</span>
             </label>
-            {THUMB_ON_HOLD[c.kind] ? <span className="help" data-testid={`thumb-hold-${c.kind}`}>⏸ {THUMB_ON_HOLD[c.kind]}: اكتب كلماته الآن، ويُرسم بعد اختيار الاتجاه.</span> : null}
+            {thumbHoldFor(thumbStyle)[c.kind] ? <span className="help" data-testid={`thumb-hold-${c.kind}`}>⏸ {thumbHoldFor(thumbStyle)[c.kind]}: اكتب كلماته الآن، ويُرسم بعد اختيار الاتجاه.</span> : null}
             <input type="text" aria-label={`كلمات غلاف ${THUMB_KIND_LABEL[c.kind]}`} value={c.text} onChange={(e) => set(c.kind, { text: e.target.value })} />
             {c.kind === "scene" ? (
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>

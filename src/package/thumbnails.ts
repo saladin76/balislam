@@ -27,6 +27,15 @@ export const THUMB_ON_HOLD: Partial<Record<ThumbKind, string>> = {
   question: "موقوف حتى يختار المالك اتجاه القناة البصري (KI-120)",
 };
 
+/**
+ * رفع الإيقاف بالاتجاه المعتمد (D196، قرار المالك ٢٢ نوفمبر: «الأغلفة الثلاثة الآن، الاتجاه معتمد»): أسلوب «دفتر الأفق»
+ * لدفاتر الزمن له تصميم «مشهد» و«سؤال» يتبعه (src/remotion/Thumbnail.tsx)، فلا إيقاف له. الأساليب الأخرى موقوفة كما هي
+ * حتى يُعتمد اتجاه قناتها.
+ */
+export const THUMB_STYLES_RELEASED = ["horizon"] as const;
+export const thumbHoldFor = (style?: string): Partial<Record<ThumbKind, string>> =>
+  style && (THUMB_STYLES_RELEASED as readonly string[]).includes(style) ? {} : THUMB_ON_HOLD;
+
 /** أقصى عدد كلمات على الصورة (قرار المالك). */
 export const THUMB_MAX_WORDS = 3;
 
@@ -149,8 +158,9 @@ export const frameTimeFor = (durationSec: number, at?: number): number => {
 export const conceptOrder = (concepts: ThumbnailConcept[]) =>
   THUMB_KINDS.map((k) => concepts.find((c) => c.kind === k)).filter((c): c is ThumbnailConcept => Boolean(c));
 
-/** ما يُرسم الآن وما هو موقوف (KI-120)، بترتيب الملفات الثابت. */
-export const renderableConcepts = (concepts: ThumbnailConcept[]) => {
+/** ما يُرسم الآن وما هو موقوف (KI-120)، بترتيب الملفات الثابت؛ style أسلوب مصغّرة القناة (brand.thumbnail). */
+export const renderableConcepts = (concepts: ThumbnailConcept[], style?: string) => {
+  const hold = thumbHoldFor(style);
   const all = conceptOrder(concepts);
-  return { render: all.filter((c) => !THUMB_ON_HOLD[c.kind]), held: all.filter((c) => THUMB_ON_HOLD[c.kind]) };
+  return { render: all.filter((c) => !hold[c.kind]), held: all.filter((c) => hold[c.kind]) };
 };
