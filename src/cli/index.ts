@@ -931,6 +931,52 @@ program
   });
 
 program
+  .command("analytics-import")
+  .description("المراجعة الأسبوعية (D191): يستورد «جدول البيانات» من YouTube Studio (نسبة النقر ومتوسط المشاهدة) وتصدير «Audience retention» لحلقة منشورة إلى .studio/analytics على هذا الجهاز (لا يُرفع)")
+  .argument("<episode>", "رقم الحلقة")
+  .argument("<table>", "ملف «جدول البيانات» CSV من YouTube Studio (Advanced mode ← Export)")
+  .option("--retention <file>", "تصدير «Audience retention» (.zip أو CSV) للحلقة نفسها")
+  .action(async (episode: string, table: string, opts: { retention?: string }) => {
+    const { parseTableData } = await import("../studio/weekly");
+    const F = await import("../studio/nightlyFacts");
+    const { currentChannelId } = await import("../channel");
+    const { readFile, mkdir, writeFile } = await import("node:fs/promises");
+    const ch = currentChannelId();
+    const nums = parseTableData(await readFile(path.resolve(table), "utf8"));
+    await F.saveAnalytics({ version: 1, channel: ch, episode, importedAt: new Date().toISOString(), ...nums });
+    if (opts.retention) {
+      const { readRetentionExport } = await import("../analytics/retentionFile");
+      const pts = await readRetentionExport(path.resolve(opts.retention));
+      await mkdir(path.dirname(F.retentionFile(ch, episode)), { recursive: true });
+      await writeFile(F.retentionFile(ch, episode), ["elapsed seconds,retention (%)", ...pts.map((p) => `${p.t},${p.r}`)].join("\n") + "\n");
+    }
+    console.log(`استُورد ${episode} (${ch}): ${Object.keys(nums).join("، ")}${opts.retention ? "، والاحتفاظ" : ""}.`);
+  });
+
+program
+  .command("nightly")
+  .description("الطابور الليلي (D191): يعرض ما سيُعمل الليلة وما ينتظر المالك، من سجل «إنتاج المشاهد» وحده؛ لا يرندر شيئًا من هنا (التشغيل من الاستوديو)")
+  .action(async () => {
+    const { planNightly } = await import("../studio/nightly");
+    const { gatherNightFacts } = await import("../studio/nightlyFacts");
+    const p = planNightly(await gatherNightFacts());
+    console.log(["الليلة:", ...(p.tasks.length ? p.tasks.map((t) => `- ${t.channel} ${t.episode}: bal ${t.args.join(" ")} (${t.why})`) : ["- لا شيء معتمد ينتظر الرندر."]),
+      "", "ينتظرك:", ...(p.owner.length ? p.owner.map((x) => `- ${x.channel} ${x.episode}: ${x.text}`) : ["- لا شيء."])].join("\n"));
+  });
+
+program
+  .command("weekly")
+  .description("المراجعة الأسبوعية (D191): نسبة النقر ومتوسط المشاهدة وأكبر تسرب وتحسين واحد لكل قناة، من البيانات المستوردة على هذا الجهاز")
+  .action(async () => {
+    const W = await import("../studio/weekly");
+    const F = await import("../studio/nightlyFacts");
+    const week = W.isoWeek(new Date());
+    const md = W.weeklyMarkdown(week, (await F.gatherWeek()).map(W.reviewChannel));
+    await F.saveWeekly(week, md);
+    console.log(md);
+  });
+
+program
   .command("shorts-plan")
   .description("جدول الشورتس اليومي للقناة (ريلزان يوميًا): الأحدث أولًا، بلا تكرار، ومصدران مختلفان في اليوم ما أمكن، والفجوات بعددها")
   .option("--from <date>", "أول يوم (YYYY-MM-DD)؛ الافتراضي اليوم")
