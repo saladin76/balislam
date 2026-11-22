@@ -31,6 +31,8 @@ export const COMPOSITION_FIELDS: Record<string, CompositionFields> = {
   "ink-shot": { shot: [], layout: ["mode", "kind"] },
   // مكتب الرحّالة: كل لقطة (الإسطرلاب، الخريطة، المدينة، الوثيقة، المكتب) تكوين، والقطعة المخصوصة تكوين
   "rahhala-desk": { shot: [], layout: ["shot", "city"] },
+  // الحارة: كل لقطة تكوين، والمكان (سوق أو حارة) وعدد الشخصيات يغيّران التكوين
+  "alley-world": { shot: [], layout: ["shot", "setting", "figures"] },
 };
 
 /**
