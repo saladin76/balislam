@@ -6,8 +6,10 @@ import { describe, expect, it } from "vitest";
 describe("KI-092: the join opens every scene with one decoder thread", () => {
   it("passes -threads 1 before each scene input, so memory grows with the scenes, not scenes × cores", () => {
     const s = readFileSync(path.join(import.meta.dirname, "..", "src/studio/assembleScenes.ts"), "utf8");
-    expect(s).toContain('...cuts.flatMap((c) => ["-threads", "1", "-i", c.file])');
-    expect(s).not.toContain('...cuts.flatMap((c) => ["-i", c.file])');
+    // KI-123: every pass of the join goes through runJoinPass, which puts -threads 1 before each input
+    expect(s).toContain('...inputs.flatMap((file) => ["-threads", "1", "-i", file])');
+    expect(s).not.toContain('flatMap((c) => ["-i", c.file])');
+    expect(s).not.toContain('flatMap((file) => ["-i", file])');
   });
 });
 
@@ -17,6 +19,6 @@ describe("KI-122: the join's filter graph and encoder run on one thread", () => 
   it("passes -filter_complex_threads 1 and a one-thread x264 with a short look-ahead", () => {
     const s = readFileSync(path.join(import.meta.dirname, "..", "src/studio/assembleScenes.ts"), "utf8");
     expect(s).toContain('"-filter_complex_threads", "1",');
-    expect(s).toContain('"-threads", "1", "-x264-params", "threads=1:lookahead-threads=1:rc-lookahead=10",');
+    expect(s).toContain('["-threads", "1", "-x264-params", "threads=1:lookahead-threads=1:rc-lookahead=10"]');
   });
 });
