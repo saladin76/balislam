@@ -89,7 +89,9 @@ describe("الترجمة الهادئة (قرار المالك ٢٢ نوفمبر
     for (const v of ["pill", "paper", "cinema", "dusk"] as const) {
       const html = render(words[6]!.start + 6, v);
       expect(html, v).toContain("background:transparent");
-      expect(html, v).toMatch(/text-shadow:0 1px 2px rgba/);
+      expect(html, v).toMatch(/text-shadow:(0 1px 2px rgba|1\.5px 0px 0 rgba)/);
+      // تكملة D192 (خطاف «دفاتر الزمن 001»): النص الفاتح بحدّ داكن رفيع من ثمانية ظلال، فيُقرأ على ورق الدفتر الفاتح
+      if (v !== "paper") expect((html.match(/px 0 rgba\(0,0,0,0\.8\)/g) ?? []).length, v).toBeGreaterThanOrEqual(8);
       expect(html, v).not.toMatch(/border-radius/);
     }
   });
