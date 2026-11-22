@@ -13,16 +13,17 @@ const SENTENCES = ["كثيرٌ منّا يصلّي ولا يشعر،", "لأنّ
 export const ZSTARTS = [0, 5, 10];
 export const ZWORDS: { w: string; s: number; e: number }[] = (() => {
   const out: { w: string; s: number; e: number }[] = [];
-  let t = 0.6;
+  // إيقاع راوٍ هادئ، ووقفة قبل جملة الذكر
+  let t = 0.8;
   SENTENCES.forEach((sentence, i) => {
-    for (const w of sentence.split(" ")) { out.push({ w, s: t, e: t + 0.36 }); t += 0.42; }
-    t += i === 1 ? 0.5 : 0.35;
+    for (const w of sentence.split(" ")) { out.push({ w, s: t, e: t + 0.42 }); t += 0.5; }
+    t += i === 1 ? 1.4 : 0.6;
   });
   return out;
 })();
 export const zAt = (w: string) => ZWORDS.find((x) => x.w.replace(/[،.:]/g, "") === w)!.s;
 export const Z_STILL: Window[] = [[zAt("واللهُ") - 0.25, ZWORDS[ZWORDS.length - 1]!.e + 0.25]];
-export const Z_SEC = Math.ceil(ZWORDS[ZWORDS.length - 1]!.e + 1.5);
+export const Z_SEC = Math.ceil(ZWORDS[ZWORDS.length - 1]!.e + 2.0);
 export const zFrames = () => Z_SEC * ZDIR_FPS;
 export const IDEA = "الحضور";
 
