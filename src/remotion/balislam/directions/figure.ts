@@ -28,6 +28,10 @@ export const figureShapes = (v: FigureVariant) => {
     for (let k = 0; k < 8; k++) { const a = (k / 8) * Math.PI * 2, r = k % 2 ? 0.012 : 0.026; k ? h.lineTo(x + r * Math.cos(a), y + r * Math.sin(a)) : h.moveTo(x + r, y); }
     robe.holes.push(h);
   }
+  // نطاق الحزام: صف ثقوب بيضاوية، وخط ثقوب صغيرة في الوسط، وقوس عند الياقة (تخريم جلد خيال الظل)
+  for (let k = 0; k < 6; k++) { const h = new THREE.Path(); h.absellipse(-0.075 + k * 0.03, 0.42, 0.009, 0.014, 0, Math.PI * 2, true, 0); robe.holes.push(h); }
+  for (let k = 0; k < 5; k++) { const h = new THREE.Path(); h.absarc(0, 0.1 + k * 0.05, 0.006, 0, Math.PI * 2, true); if (Math.abs(0.1 + k * 0.05 - 0.18) > 0.03 && Math.abs(0.1 + k * 0.05 - 0.34) > 0.03) robe.holes.push(h); }
+  for (let k = 0; k < 7; k++) { const a = Math.PI * (0.15 + (k / 6) * 0.7), h = new THREE.Path(); h.absarc(0.06 * Math.cos(a), 0.6 - 0.035 * Math.sin(a), 0.006, 0, Math.PI * 2, true); robe.holes.push(h); }
   // دانتيل الحاشية: صف ثقوب صغيرة فوق الذيل
   for (let k = 0; k < 7; k++) {
     const x = -hem * 0.8 + (k / 6) * hem * 1.6, h = new THREE.Path();

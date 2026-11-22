@@ -79,12 +79,23 @@ describe("عدّة الثري دي: الخامات CC0 وحدها", () => {
 });
 
 describe("عدّة الثري دي: لا قوالب افتراضية", () => {
-  it("لا توهج ولا جسيمات ولا لمعة عدسة ولا ما بعد المعالجة في العدّة", () => {
+  it("لا توهج ولا جسيمات زخرفية ولا لمعة عدسة؛ وما بعد المعالجة عمق الميدان وحده في lens.tsx", () => {
     const dir = path.join(import.meta.dirname, "..", "src/remotion/three");
     for (const f of readdirSync(dir)) {
       const code = readFileSync(path.join(dir, f), "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
-      expect(code, f).not.toMatch(/postprocessing|EffectComposer|UnrealBloom|Bloom|Lensflare|<points|PointsMaterial|Sparkles|@react-three\/drei/i);
+      // عمق الميدان وحده مسموح (D189)، وفي lens.tsx وحده؛ التوهج والإشعاع ولمعة العدسة والجسيمات الزخرفية ممنوعة
+      expect(code, f).not.toMatch(/UnrealBloom|Bloom|Lensflare|<points|PointsMaterial|Sparkles|@react-three\/drei/i);
+      if (f !== "lens.tsx") expect(code, f).not.toMatch(/postprocessing|EffectComposer/i);
       expect(code, f).not.toMatch(/Math\.random|Date\.now|performance\.now/);
     }
+  });
+});
+
+describe("عدّة الثري دي: التأرجح بعد الحركة (D189)", () => {
+  it("صفر قبل التوقف، ثم يتأرجح ويخمد", async () => {
+    const { swing } = await import("../src/remotion/three");
+    expect(swing(1, 2, 0.3)).toBe(0);
+    expect(Math.abs(swing(2.15, 2, 0.3))).toBeGreaterThan(0.1);
+    expect(Math.abs(swing(4.5, 2, 0.3))).toBeLessThan(0.002);
   });
 });

@@ -60,6 +60,7 @@ export const ASSETS: readonly Asset[] = [
   { id: "zubdat-plaster-nor", file: "three/zubdat-alkutub/plaster-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/white_plaster_02", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
   { id: "zubdat-wood-diff", file: "three/zubdat-alkutub/wood-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dark_wood", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
   { id: "zubdat-wood-nor", file: "three/zubdat-alkutub/wood-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dark_wood", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
+  { id: "dafatir-age-diff", file: "three/dafatir-alzaman/age-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/decrepit_wallpaper", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
 ];
 
 /** مسار الأصل لـ staticFile بمعرّفه (يرفض أصلًا غير مسجل) */

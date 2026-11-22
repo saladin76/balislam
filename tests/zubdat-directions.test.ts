@@ -18,11 +18,10 @@ describe("اتجاهات «زبدة الكتب» للمقارنة", () => {
     const bad = files.flatMap(({ f, code }) => [...code.matchAll(/#[0-9A-Fa-f]{6}\b/g)].map((m) => m[0].toUpperCase()).filter((c) => !ok.has(c)).map((c) => `${f}: ${c}`));
     expect(bad).toEqual([]);
   });
-  it("الفسفوري للفكرة وحدها: تظليل «الحضور» في الصفحة والترجمة، وبطاقة الفكرة، وسن القلم المميِّز — ولا غيرها", () => {
+  it("الفسفوري للفكرة وحدها في «غرفة القراءة» و«بولاق»، ولا فسفوري في عالم «الأفكار آلات» (D188)", () => {
     const count = (f: string) => (files.find((x) => x.f === f)!.code.match(/ZB\.fluo/g) ?? []).length;
     expect({ common: count("common.tsx"), machine: count("IdeaMachine.tsx"), bulaq: count("BulaqPress.tsx"), reading: count("ReadingRoom.tsx") })
-      .toEqual({ common: 2, machine: 1, bulaq: 0, reading: 1 });
-    expect(files.find((x) => x.f === "IdeaMachine.tsx")!.code).toMatch(/fillStyle = ZB\.fluo;[^\n]*\n[^\n]*fillText\(IDEA/);
+      .toEqual({ common: 2, machine: 0, bulaq: 0, reading: 1 });
     expect(ZB.fluo).toBe("#E8F542");
     expect(ZWORDS.some((w) => w.w.startsWith(IDEA))).toBe(true);
   });
@@ -36,5 +35,19 @@ describe("اتجاهات «زبدة الكتب» للمقارنة", () => {
   it("لا أدوات القوالب الشائعة ولا عشوائية", () => {
     const banned = [/boxShadow|textShadow|drop-shadow/, /backdrop-?[Ff]ilter/, /\bInter\b|Poppins/, /particle|sparkle|lens.?flare|glow|Bloom/i, /spring\(|bounce/i, /@remotion\/transitions/, /Math\.random|Date\.now/];
     expect(files.flatMap(({ f, code }) => banned.filter((re) => re.test(code.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""))).map((re) => `${f}: ${re}`))).toEqual([]);
+  });
+});
+
+describe("«الأفكار آلات» بأسلوب مخطوطة الجزري (D188، D190) ومعايير «الحِرفة» (D189)", () => {
+  it("ألوان المخطوطة المقيّدة لهذا العالم، والأسماء بالأحمر بخط النسخ، وأربع لقطات ٢–٦ ث بلا تكرار", async () => {
+    const { JAZARI, machineShots } = await import("../src/remotion/zubdat/directions/IdeaMachine");
+    const a = APPROVED_IDENTITIES["zubdat-alkutub"]!;
+    for (const hex of [JAZARI.red, JAZARI.green, JAZARI.gold, JAZARI.wood]) expect(a.restricted?.some((r) => r.hex === hex && r.useAr.includes("الأفكار آلات")), hex).toBe(true);
+    const code = files.find((x) => x.f === "IdeaMachine.tsx")!.code;
+    expect(code).toMatch(/fillStyle = J\.red;[^\n]*font = `bold \$\{big \? 150 : 100\}px Amiri`/);
+    const shots = machineShots();
+    expect(new Set(shots.map((x) => x.id)).size).toBe(shots.length);
+    expect(new Set(shots.map((x) => x.size)).size).toBe(4);
+    for (const x of shots) expect(x.b - x.a, x.id).toBeGreaterThanOrEqual(2);
   });
 });

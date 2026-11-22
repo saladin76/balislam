@@ -13,17 +13,18 @@ export const DIR_FPS = 30;
 export const DIR_WORDS: { w: string; s: number; e: number }[] = (() => {
   const text = ["وقف رجلان في السوق،", "كلٌّ منهما يقول: الحقُّ معي.", "واللهُ يعلمُ ما في القلوب."];
   const out: { w: string; s: number; e: number }[] = [];
-  let t = 0.6;
+  // إيقاع راوٍ هادئ: نصف ثانية للكلمة، ووقفة قبل جملة التأمل
+  let t = 0.8;
   text.forEach((sentence, i) => {
-    for (const w of sentence.split(" ")) { out.push({ w, s: t, e: t + 0.36 }); t += 0.42; }
-    t += i === 1 ? 0.5 : 0.35;
+    for (const w of sentence.split(" ")) { out.push({ w, s: t, e: t + 0.42 }); t += 0.5; }
+    t += i === 1 ? 1.4 : 0.6;
   });
   return out;
 })();
 export const wordAt = (w: string) => DIR_WORDS.find((x) => x.w.replace(/[،.:]/g, "") === w)!.s;
 /** الجملة الثالثة كلها (ذكر الله) سكون مقصود، من قبلها بربع ثانية إلى ما بعدها */
 export const DIR_STILL: Window[] = [[wordAt("واللهُ") - 0.25, DIR_WORDS[DIR_WORDS.length - 1]!.e + 0.25]];
-export const DIR_SEC = Math.ceil(DIR_WORDS[DIR_WORDS.length - 1]!.e + 1.5);
+export const DIR_SEC = Math.ceil(DIR_WORDS[DIR_WORDS.length - 1]!.e + 2.0);
 export const dirFrames = () => DIR_SEC * DIR_FPS;
 
 export const BAA = { copper: "#B4532F", emerald: "#1E6B5C", rose: "#C2566B", night: "#0E1A2B", gold: "#D9A441", paper: "#EFE4D3" } as const;
