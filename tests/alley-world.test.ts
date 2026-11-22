@@ -77,12 +77,25 @@ describe("قالب «الحارة» (D200)", () => {
     for (const f of ["drop-soft", "swipe-paper", "tick", "paper-crumple", "silence-room"]) expect(() => readFileSync(`public/three/sfx/${f}.mp3`)).not.toThrow();
   });
 
-  it("الترجمة سطر هادئ بظل فاتح خفيف بلا مستطيل، وألوان «باء التشغيل» وحدها، وبلا وجوه", () => {
-    expect(CODE).toMatch(/textShadow: CAPTION_SHADOW_LIGHT/);
+  it("الترجمة سطر هادئ بلا مستطيل، وألوان «باء التشغيل» وحدها، وبلا وجوه", () => {
+    expect(CODE).toMatch(/textShadow: CAPTION_TONES/);
     expect(CODE).not.toMatch(/background: "rgba|borderRadius/);
     const a = APPROVED_IDENTITIES["balislam"]!;
     const ok = new Set([...a.palette.map((p) => p.hex), ...a.signature, ...a.derived].map((x) => x.toUpperCase()));
     expect([...CODE.matchAll(/#[0-9A-Fa-f]{6}\b/g)].map((m) => m[0].toUpperCase()).filter((c) => !ok.has(c))).toEqual([]);
     expect(CODE.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "")).not.toMatch(/\b(eye|mouth|nose)s?\b/i);
+  });
+});
+
+describe("ترجمة «الحارة» حسب ما تحتها (طلب المالك ٢٢ نوفمبر)", () => {
+  it("كل لقطة تعلن نبرة الترجمة: حبر على الأرض الفاتحة، ونص فاتح بحد داكن على الجدار الأخضر", async () => {
+    const { CAPTION_TONES } = await import("../src/remotion/three/anchors");
+    for (const [id, s] of Object.entries(ALLEY_SHOTS)) expect(["ink", "light"], id).toContain(s.caption);
+    expect(ALLEY_SHOTS.lanterns.caption).toBe("light");
+    expect(ALLEY_SHOTS["alley-wide"].caption).toBe("light");
+    expect(ALLEY_SHOTS.market.caption).toBe("ink");
+    expect((CAPTION_TONES.light.textShadow.match(/px 0 rgba\(0,0,0,0\.8\)/g) ?? []).length).toBe(8);
+    expect(CODE).toMatch(/textShadow: CAPTION_TONES\[ALLEY_SHOTS\[shot\]\.caption\]\.textShadow/);
+    expect(CODE).not.toMatch(/mixBlendMode/);
   });
 });

@@ -15,8 +15,8 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { useBrandFonts } from "../../useBrandFonts";
-import { CAPTION_SHADOW_LIGHT, calmAt, ease, orbit, safeKeys, swing, useAssetTextures, type CamState, type V3, type Window } from "../../three";
-import { anchorAt, captionLine, effectiveTime, sceneWords, stillWindows, type TimedWord } from "../../three/anchors";
+import { calmAt, ease, orbit, safeKeys, swing, useAssetTextures, type CamState, type V3, type Window } from "../../three";
+import { CAPTION_TONES, anchorAt, captionLine, effectiveTime, sceneWords, stillWindows, type TimedWord } from "../../three/anchors";
 import type { SceneBase, StringFields } from "../../scenes/types";
 import { SceneShell } from "../../scenes/SceneShell";
 import { BAA } from "../directions/common";
@@ -35,7 +35,8 @@ const SETUPS: Record<AlleyShotId, [Setup, Setup]> = {
     { size: "medium", aperture: 0.012, from: { target: [-2.6, 1.4, -1.2], yaw: 14, pitch: 6, dist: 7.0, fov: 32 }, to: { target: [-2.2, 1.5, -1.2], yaw: 6, pitch: 5, dist: 6.2, fov: 32 } },
   ],
   "two-figures": [
-    { size: "close", aperture: 0.016, from: { target: [0, 1.75, 0], yaw: -10, pitch: 2, dist: 4.6, fov: 32 }, to: { target: [0, 1.75, 0], yaw: -2, pitch: 2, dist: 4.2, fov: 32 } },
+    // يبدأ من القوس الأمامي (المكان قبل الشخصيتين) ويدخل إليهما مع أول كلمة
+    { size: "close", aperture: 0.016, from: { target: [0, 2.0, -0.4], yaw: -16, pitch: 4, dist: 7.4, fov: 32 }, to: { target: [0, 1.75, 0], yaw: -2, pitch: 2, dist: 4.2, fov: 32 } },
     // حافة الورق المقصوص وانزياح حبره على الأولى، والثانية في العمق
     { size: "detail", aperture: 0.03, from: { target: [-1.75, 1.55, 0], yaw: 24, pitch: 4, dist: 2.4, fov: 30 }, to: { target: [-1.6, 1.6, 0], yaw: 16, pitch: 4, dist: 2.1, fov: 30 } },
   ],
@@ -129,9 +130,9 @@ export const AlleyWorld: React.FC<AlleyWorldProps> = (props) => {
           ...(e.id === "stalls" ? [<Sequence key="stalls-in" from={Math.round(e.a * fps)} durationInFrames={20}><Audio src={SFX("paper-crumple")} volume={0.25} /></Sequence>] : [])])}
       {line && (
         <AbsoluteFill style={{ pointerEvents: "none" }}>
-          {/* الترجمة سطر هادئ (جملة جملة) بحبر الليل وظل فاتح خفيف، بلا مستطيل (D187، D192) */}
+          {/* الترجمة سطر هادئ (جملة جملة) بلا مستطيل (D187، D192)، ولونها حسب ما تحتها في اللقطة: حبر على الأرض الفاتحة ونور على الجدار */}
           <div style={{ position: "absolute", bottom: props.orientation === "portrait" ? 460 : 56, left: 40, right: 40, display: "flex", justifyContent: "center" }}>
-            <div style={{ opacity: line.fade, color: BAA.night, textShadow: CAPTION_SHADOW_LIGHT, padding: "8px 28px", fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 52, direction: "rtl", textAlign: "center" }}>{line.text}</div>
+            <div style={{ opacity: line.fade, color: ALLEY_SHOTS[shot].caption === "ink" ? BAA.night : BAA.paper, textShadow: CAPTION_TONES[ALLEY_SHOTS[shot].caption].textShadow, padding: "8px 28px", fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 52, direction: "rtl", textAlign: "center" }}>{line.text}</div>
           </div>
         </AbsoluteFill>
       )}
