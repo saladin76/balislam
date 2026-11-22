@@ -5,7 +5,7 @@
 import { describe, expect, it } from "vitest";
 import path from "node:path";
 import { readFile } from "node:fs/promises";
-import { renderableConcepts, thumbHoldFor, type ThumbnailConcept } from "../src/package/thumbnails";
+import { renderableConcepts, thumbHoldFor, thumbnailIssues, type ThumbnailConcept } from "../src/package/thumbnails";
 import { packagingCard } from "../src/package/qualityCard";
 import type { PublishKit } from "../src/package/social";
 
@@ -32,15 +32,35 @@ describe("D196: «دفتر الأفق» يرسم الأغلفة الثلاثة،
     expect(item("mihrab").ok).toBe(false);
     expect(item(undefined).ok).toBe(false);
   });
+  it("v2 (ملاحظة المالك): الأغلفة الثلاثة من صور الحلقة، بلا سماء متدرجة ولا نجوم ولا ظل مموّه ولا وهج، وثلاثة تخطيطات مختلفة", async () => {
+    const code = await readFile(path.join(import.meta.dirname, "..", "src/remotion/Thumbnail.tsx"), "utf8");
+    const part = (name: string) => { const a = code.indexOf(`const ${name}`); return code.slice(a, code.indexOf("\n};", a)); };
+    const names = ["HorizonTitleFrameThumb", "HorizonSceneThumb", "HorizonQuestionThumb"];
+    for (const name of names) {
+      const c = part(name);
+      expect(c.length, name).toBeGreaterThan(200);
+      expect(c, name).not.toMatch(/linear-gradient|radial-gradient|textShadow|blur\(|drop-shadow|<circle/);
+      expect(c, name).toMatch(/<FramePhoto /);
+    }
+    // ثلاثة تخطيطات: صورة يسار وكلمات يمين / صورة كاملة وشريط أحمر / صورة أعلى وسؤال أسفل
+    expect(part("HorizonTitleFrameThumb")).toMatch(/width: 800, height: 720/);
+    expect(part("HorizonSceneThumb")).toMatch(/background: RED/);
+    expect(part("HorizonQuestionThumb")).toMatch(/height: 440/);
+  });
+  it("بؤرة اللقطة: تملأ الإطار ولا تُظهر شريط الترجمة المحروق، وتُفحص حدودها", async () => {
+    const { focusBox, SCENE_CAPTION_BAND } = await import("../src/remotion/Thumbnail");
+    const b = focusBox(1280, 560, { x: 0.8, y: 0.5, zoom: 1.6 });
+    expect(b.left).toBeLessThanOrEqual(0); expect(b.left + b.iw).toBeGreaterThanOrEqual(1280);
+    expect(b.top).toBeLessThanOrEqual(0); expect(b.top + b.ih * (1 - SCENE_CAPTION_BAND)).toBeGreaterThanOrEqual(560 - 1e-6);
+    const bad = thumbnailIssues([good[0]!, { ...good[1]!, focus: { x: 2, y: 0.5, zoom: 1 } }, good[2]!], { titles: [TITLE], scenes });
+    expect(bad.some((i) => i.level === "error" && /بؤرة/.test(i.message))).toBe(true);
+    const sacred = thumbnailIssues([{ ...good[0]!, sceneId: "c1-s2" }, good[1]!, good[2]!], { titles: [TITLE], scenes });
+    expect(sacred.some((i) => i.level === "error" && /آية/.test(i.message))).toBe(true);
+  });
   it("التصميمان بلا تدرّج خلف الكلمات ولا ظل نص مموّه ولا وهج، وغلاف المشهد يقص شريط الترجمة المحروق", async () => {
     const code = await readFile(path.join(import.meta.dirname, "..", "src/remotion/Thumbnail.tsx"), "utf8");
     const part = (name: string) => { const a = code.indexOf(`const ${name}`); return code.slice(a, code.indexOf("\n};", a)); };
-    for (const name of ["HorizonSceneThumb", "HorizonQuestionThumb"]) {
-      const c = part(name);
-      expect(c.length, name).toBeGreaterThan(200);
-      expect(c, name).not.toMatch(/textShadow|blur\(|drop-shadow|radial-gradient/);
-    }
-    expect(part("HorizonSceneThumb")).toMatch(/SCENE_CAPTION_BAND/);
+    expect(part("focusBox")).toMatch(/SCENE_CAPTION_BAND/);
     const { SCENE_CAPTION_BAND } = await import("../src/remotion/Thumbnail");
     expect(SCENE_CAPTION_BAND).toBeGreaterThan(0.2);
   });

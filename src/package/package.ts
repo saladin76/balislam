@@ -256,15 +256,16 @@ export const renderThumbnailSet = async (o: { scriptPath: string; script: string
   for (const c of render) {
     const n = conceptOrder(concepts).indexOf(c) + 1;
     const text = c.text.trim();
-    let concept: import("../remotion/Thumbnail").ThumbConceptProp = { kind: "title", text };
-    if (c.kind === "question") concept = { kind: "question", text };
-    if (c.kind === "scene") {
-      // اللقطة من فيديو المشهد الذي شاهده المالك واعتمده، لا رسم جديد؛ بلا فيديو للمشهد لا غلاف مشهد
-      const frame = c.sceneId ? await sceneFrameDataUri(o.scriptPath, c.sceneId, c.atSeconds) : null;
-      if (!frame) { log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: لا فيديو للمشهد ${c.sceneId ?? "—"} بعد؛ أنتجه في «٢ المشاهد» ثم اصنع الأغلفة. لم يُرسم.`); continue; }
-      concept = { kind: "scene", text, image: frame.uri };
-      log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]}: ${c.sceneId} عند ${frame.at} ث)…`);
-    } else log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]})…`);
+    let concept: import("../remotion/Thumbnail").ThumbConceptProp = { kind: c.kind === "question" ? "question" : "title", text };
+    // D196 v2: الأغلفة من صور الحلقة نفسها — اللقطة من فيديو المشهد الذي شاهده المالك واعتمده، لا رسم جديد؛
+    // «مشهد» بلا فيديو لا يُرسم، والعنوان والسؤال بلا لقطة يُرسمان بعنصرهما
+    if (c.sceneId) {
+      const frame = await sceneFrameDataUri(o.scriptPath, c.sceneId, c.atSeconds);
+      if (!frame && c.kind === "scene") { log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: لا فيديو للمشهد ${c.sceneId} بعد؛ أنتجه في «٢ المشاهد» ثم اصنع الأغلفة. لم يُرسم.`); continue; }
+      if (frame) concept = { kind: c.kind, text, image: frame.uri, ...(c.focus ? { focus: c.focus } : {}) };
+      log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]}${frame ? `: ${c.sceneId} عند ${frame.at} ث` : ""})…`);
+    } else if (c.kind === "scene") { log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: اختر مشهده أولًا. لم يُرسم.`); continue; }
+    else log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]})…`);
     out.push(path.basename(await renderThumbnail({ ...base, title: plan.title, concept }, path.join(dir, `${id}-thumbnail-${n}.png`))));
   }
   for (const c of held) log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: ${THUMB_ON_HOLD[c.kind]}؛ لم يُرسم.`);

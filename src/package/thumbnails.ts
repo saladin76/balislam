@@ -43,10 +43,12 @@ export type ThumbnailConcept = {
   kind: ThumbKind;
   /** الكلمات على الصورة: ثلاث على الأكثر */
   text: string;
-  /** غلاف «مشهد»: المشهد الذي تُؤخذ منه اللقطة */
+  /** المشهد الذي تُؤخذ منه اللقطة: لازم لغلاف «مشهد»، واختياري للعنوان والسؤال في «دفتر الأفق» (D196: الأغلفة من صور الحلقة) */
   sceneId?: string;
-  /** غلاف «مشهد»: لحظة اللقطة بالثواني من بداية المشهد؛ إن غابت تُختار آليًا (`frameTimeFor`) */
+  /** لحظة اللقطة بالثواني من بداية المشهد؛ إن غابت تُختار آليًا (`frameTimeFor`) */
   atSeconds?: number;
+  /** بؤرة العنصر في الإطار (٠–١) والتكبير عليه (١–٤)، فيملأ العنصر الغلاف */
+  focus?: { x: number; y: number; zoom: number; bottom?: number };
 };
 
 export type ThumbIssue = { level: "error" | "warning"; where: string; message: string; suggestion?: string };
@@ -106,9 +108,11 @@ export const thumbnailIssues = (concepts: ThumbnailConcept[] | undefined, ctx: T
       if (seen.has(k)) err(where, `النص نفسه في غلاف «${THUMB_KIND_LABEL[seen.get(k)!]}»؛ كل غلاف فكرة مختلفة.`);
       seen.set(k, c.kind);
     }
-    if (c.kind === "scene") {
-      if (!c.sceneId) err(where, "اختر المشهد الذي تُؤخذ منه اللقطة.");
-      else if (ctx.scenes) {
+    if (c.kind === "scene" && !c.sceneId) err(where, "اختر المشهد الذي تُؤخذ منه اللقطة.");
+    if (c.focus && !(c.focus.x >= 0 && c.focus.x <= 1 && c.focus.y >= 0 && c.focus.y <= 1 && c.focus.zoom >= 1 && c.focus.zoom <= 4 && (c.focus.bottom === undefined || (c.focus.bottom >= 0.5 && c.focus.bottom <= 1))))
+      err(where, "بؤرة اللقطة غير صالحة (المركز بين ٠ و١، والتكبير بين ١ و٤).");
+    if (c.sceneId) {
+      if (ctx.scenes) {
         const s = sceneById.get(c.sceneId);
         if (!s) err(where, `المشهد ${c.sceneId} ليس في خطة الحلقة.`);
         else if (s.sacred) err(where, `المشهد ${c.sceneId} مشهد آية أو بسملة أو دعاء؛ لا يُستعمل غلافًا.`);
