@@ -85,6 +85,15 @@ describe("الترجمة الهادئة (قرار المالك ٢٢ نوفمبر
     expect(render(words[5]!.start + 10)).toMatch(/opacity:1/);
   });
 
+  it("بلا مستطيل خلف الترجمة (قرار المالك ٢٢ نوفمبر): خلفية شفافة ونص بظل خفيف في الأشكال الأربعة", () => {
+    for (const v of ["pill", "paper", "cinema", "dusk"] as const) {
+      const html = render(words[6]!.start + 6, v);
+      expect(html, v).toContain("background:transparent");
+      expect(html, v).toMatch(/text-shadow:0 1px 2px rgba/);
+      expect(html, v).not.toMatch(/border-radius/);
+    }
+  });
+
   it("لا ترجمة قبل أول كلمة", () => {
     expect(render(5)).toBe("");
   });
