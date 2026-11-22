@@ -32,7 +32,7 @@ describe("اتجاهات «بالإسلام» للمقارنة", () => {
     expect(k.a).toBeCloseTo(DIR_STILL[0]![1], 6);
   });
   it("لا أدوات القوالب الشائعة ولا عشوائية ولا وجوه مرسومة", () => {
-    const banned = [/boxShadow|textShadow|drop-shadow/, /backdrop-?[Ff]ilter/, /\bInter\b|Poppins/, /particle|sparkle|lens.?flare|glow|Bloom/i, /spring\(|bounce/i, /@remotion\/transitions/, /Math\.random|Date\.now/, /\b(eye|mouth|nose)s?\b/i];
+    const banned = [/boxShadow|drop-shadow|textShadow: (?!CAPTION_SHADOW)/, /backdrop-?[Ff]ilter/, /\bInter\b|Poppins/, /particle|sparkle|lens.?flare|glow|Bloom/i, /spring\(|bounce/i, /@remotion\/transitions/, /Math\.random|Date\.now/, /\b(eye|mouth|nose)s?\b/i];
     expect(files.flatMap(({ f, code }) => banned.filter((re) => re.test(code.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""))).map((re) => `${f}: ${re}`))).toEqual([]);
   });
 });
@@ -54,5 +54,42 @@ describe("«خيال الظل» عالم بالإسلام (D190) بمعايير 
     expect(code).toContain("for (let k = 0; k < 8; k++) { const a = (k * Math.PI) / 4 + Math.PI / 8;");
     expect(code).not.toContain("lanternShape");
     expect(code).toContain("const bottom = -0.9");
+  });
+});
+
+describe("«حكايات الحارة» عالم بالإسلام بعد محاولة «خيال الظل» الأخيرة (قرار المالك ٢٢ نوفمبر) بمعايير «الحِرفة» (D189)", () => {
+  it("أربع لقطات بأحجام مختلفة ٢–٨ ث بلا تكرار، والأخيرة تبدأ قبل جملة الذكر وتمتد بعدها", async () => {
+    const { alleyShots } = await import("../src/remotion/balislam/directions/PrintedAlley");
+    const shots = alleyShots();
+    expect(new Set(shots.map((x) => x.size)).size).toBe(4);
+    expect(new Set(shots.map((x) => x.id)).size).toBe(shots.length);
+    for (const x of shots.slice(0, -1)) { expect(x.b - x.a, x.id).toBeGreaterThanOrEqual(2); expect(x.b - x.a, x.id).toBeLessThanOrEqual(8); }
+    const last = shots[shots.length - 1]!;
+    expect(last.a).toBeLessThanOrEqual(DIR_STILL[0]![0]);
+    expect(last.b).toBeGreaterThan(DIR_STILL[0]![1]);
+  });
+  it("ورق حقيقي بسُمك وحافة قص بيضاء وظل مُلقى وعمق ميدان، وصوت مع كل حركة، والترجمة بلا مستطيل", () => {
+    const code = readFileSync(`${DIR}/PrintedAlley.tsx`, "utf8");
+    for (const re of [/<extrudeGeometry args=\{\[shapes, \{ depth: 0\.014/, /attach="material-1" color="#FBF6EE"/, /castShadow receiveShadow/, /<DepthOfField /, /<BeamDust /, /SFX\("swipe-paper"\)/, /SFX\("drop-soft"\)/, /textShadow: CAPTION_SHADOW_LIGHT/]) expect(code, String(re)).toMatch(re);
+    expect(code).not.toMatch(/background: "rgba|DirFrame/);
+  });
+});
+
+describe("تصحيحات «الحارة» بعد الاعتماد (٢٢ نوفمبر)", () => {
+  it("الذراع بثلاثة مفاصل وتتابع الحركة: الكوع بعد الكتف والرسغ آخرًا، ثم تستقر على الإيماءة", async () => {
+    const { armPose, GESTURES } = await import("../src/remotion/balislam/directions/PrintedAlley");
+    const k = { a: 1, b: 1.5 };
+    const early = armPose(1.1, k, GESTURES.speak, 1);
+    expect(early.shoulder).toBeGreaterThan(0);
+    expect(early.elbow / GESTURES.speak.elbow).toBeLessThan(early.shoulder / GESTURES.speak.shoulder);
+    expect(early.wrist).toBeLessThan(early.elbow);
+    const end = armPose(6, k, GESTURES.self, 1);
+    expect(end.elbow).toBeCloseTo(GESTURES.self.elbow, 3);
+    expect(GESTURES.self.elbow).toBeLessThan(0); // الكف تعود إلى الصدر
+  });
+  it("الدكاكين لا تُرى قبل «السوق»، والطبقة الأمامية سلال وأكياس وقماش", () => {
+    const code = readFileSync(`${DIR}/PrintedAlley.tsx`, "utf8");
+    expect(code).toMatch(/visible=\{market > 0\}/);
+    for (const re of [/basket\(/, /sack\(/, /CLOTH_STACK/]) expect(code).toMatch(re);
   });
 });
