@@ -19,7 +19,8 @@ const scene = (id: string, narration: string, extra: Partial<PlanScene> = {}): P
 const planOf = (...scenes: PlanScene[]): Plan => ({ version: 1, episode: "001", title: "t", domain: "faith" as Plan["domain"], themeId: "x" as Plan["themeId"],
   updatedAt: "", channel: "balislam", chapters: [{ number: 1, title: "", scenes }] });
 const good: FileMeasurements = { loudness: { integrated: -14.3, truePeak: -1.5 }, headSilence: 0.2,
-  interactivity: { percent: 91, counted: 100, exempt: 10, still: [], ok: true }, video: { width: 3840, height: 2160 } };
+  interactivity: { percent: 91, counted: 100, exempt: 10, still: [], ok: true }, video: { width: 3840, height: 2160 },
+  mix: { lines: [], ambience: null, sfx: null, ok: true } };
 const stamp = { file: { size: 1, mtimeMs: 1 }, at: "2026-11-21T00:00:00Z" };
 const status = (c: ReturnType<typeof buildCard>, id: string) => c.sections.flatMap((s) => s.items).find((i) => i.id === id)!.status;
 
@@ -32,9 +33,11 @@ describe("بطاقة الجودة: البنود", () => {
     expect(bad[0]!.reason).toContain("أخفض");
   });
 
-  it("الخلط (الراوي فوق الجو ≥ ١٥ dB وفوق المؤثر ≥ ٦ dB) مؤجل للمهمة ٦ ولا يمنع", () => {
+  it("الخلط (الراوي فوق الجو ≥ ١٥ dB وفوق المؤثر ≥ ٦ dB): بلا مؤثر على الكلام ينجح، وقياس قديم بلا خلط «لم يُقس»", () => {
     const mix = audioItems(good).filter((i) => i.id.startsWith("narrator-"));
-    expect(mix.map((i) => [i.status, i.need])).toEqual([["later", "≥ ١٥ dB"], ["later", "≥ ٦ dB"]]);
+    expect(mix.map((i) => [i.status, i.need])).toEqual([["pass", "≥ ١٥ dB في كل جملة"], ["pass", "≥ ٦ dB في كل جملة"]]);
+    const { mix: _old, ...before } = good;
+    expect(audioItems(before).filter((i) => i.id.startsWith("narrator-")).map((i) => i.status)).toEqual(["unmeasured", "unmeasured"]);
   });
 
   it("4K للنسخة النهائية وحدها (أفقي وعمودي)، والمجمّعة 1080p لا تُحاسب عليه", () => {
