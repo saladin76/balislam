@@ -1105,3 +1105,7 @@
 
 - سطر الترجمة في `src/remotion/dafatir/world/DeskWorld.tsx` نص بظل خفيف (`CAPTION_SHADOW`) بلا خلفية.
 - **سور بغداد من طوب لبن لا مكعبات** (قرار المالك): السوران سميكان بمقطع مستطيل يدور (`LatheGeometry`) وعليهما شرفات (`CITY_WALLS`)، والأبواب والبيوت والقصر بالخامة نفسها؛ الخامة `dafatir-mudbrick-diff/nor` من Poly Haven (brown_brick_02، CC0، للقناة وحدها، بلا بيانات وصفية) مخففة التشبع لأن اللبن طين مجفف لا آجر محروق. الاختبار `tests/dafatir-world.test.ts`.
+
+## 2026-11-22 — ترجمة «خط الأفق» تتكيف مع ما خلفها (تكملة قرار الترجمة بلا مستطيل، التعريف: docs/balislam/06-decisions.md)
+
+- طلب المالك: حبر داكن على الورق والخلفيات الفاتحة، وأبيض على الداكنة. `src/remotion/scenes/HorizonShot.tsx` يطلب الشكل `adaptive`، و`src/remotion/scenes/SceneShell.tsx` يمزج طبقة الترجمة بالفرق؛ جُرّب على أفتح إطار في 001 (c1-s5) وأغمقه (c1-s37).
