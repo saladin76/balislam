@@ -24,15 +24,19 @@ const CameraSync: React.FC<{ cam: CamState }> = ({ cam }) => {
 
 const LightOf: React.FC<{ l: LitLight }> = ({ l }) =>
   l.kind === "ambient" ? <ambientLight color={l.color} intensity={l.intensity} />
-  : l.kind === "practical" ? <pointLight color={l.color} intensity={l.intensity} position={l.position} decay={2} distance={0} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0002} shadow-normalBias={0.03} shadow-camera-near={0.1} />
+  : l.kind === "practical" ? <pointLight color={l.color} intensity={l.intensity} position={l.position} decay={2} distance={0} castShadow shadow-mapSize={[2048, 2048]} shadow-bias={-0.0002} shadow-normalBias={0.03} shadow-camera-near={0.1} shadow-radius={10} shadow-blurSamples={16} />
   // المفتاح وحده يُلقي ظلًا حادًا؛ الملء والخلفي بلا ظل (ظلّان من كل جهة يفضحان المسرح)
   : <directionalLight color={l.color} intensity={l.intensity} position={l.position} castShadow={l.kind === "key"}
-      shadow-mapSize={[4096, 4096]} shadow-bias={-0.0002} shadow-normalBias={0.02} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={8} shadow-camera-bottom={-8} />;
+      shadow-mapSize={[4096, 4096]} shadow-bias={-0.0002} shadow-normalBias={0.02} shadow-radius={14} shadow-blurSamples={24} shadow-camera-left={-8} shadow-camera-right={8} shadow-camera-top={8} shadow-camera-bottom={-8} />;
 
-export type Stage3DProps = { width: number; height: number; cam: CamState; lights: LitLight[]; background: string; children?: React.ReactNode };
+export type Stage3DProps = { width: number; height: number; cam: CamState; lights: LitLight[]; background: string; children?: React.ReactNode;
+  /** «variance»: ظلال ناعمة الحواف (ضوء نافذة دافئ لا ظل أسود حاد، قرار المالك ٢٢ نوفمبر) */
+  shadows?: "soft" | "variance" };
 
-export const Stage3D: React.FC<Stage3DProps> = ({ width, height, cam, lights, background, children }) => (
-  <ThreeCanvas shadows="soft" width={width} height={height} camera={{ fov: cam.fov, near: 0.01, far: 200 }} gl={{ antialias: true }} style={{ background }}>
+export const Stage3D: React.FC<Stage3DProps> = ({ width, height, cam, lights, background, children, shadows = "soft" }) => (
+  <ThreeCanvas shadows={shadows} width={width} height={height} camera={{ fov: cam.fov, near: 0.01, far: 200 }} gl={{ antialias: true }} style={{ background }}>
+    {/* لون الخلفية في المشهد نفسه (لا في CSS فقط)، فيبقى حين ترسم العدسة الإطار */}
+    <color attach="background" args={[background]} />
     <CameraSync cam={cam} />
     {lights.map((l, i) => <LightOf key={i} l={l} />)}
     {children}

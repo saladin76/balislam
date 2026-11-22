@@ -1,39 +1,65 @@
 /**
- * «مكتب الرحّالة» — عالم «دفاتر الزمن» الواحد (توصية المنسّق بعد رفض المالك مستوى النماذج الأولى، ٢٢ نوفمبر):
- * الاتجاهات الثلاثة على مكتب واحد وتحت ضوء نافذة واحد. الإسطرلاب للتاريخ (٢–٤ ث)، والدفتر أساس الحكاية (خريطة
- * على طريقة مدرسة البلخي، الجنوب في الأعلى، يرسمها الحبر بنفسه ويُغسل لونها، بعنوان مذهّب وحاشية برقعة حمراء)،
- * والوثيقة والختم عند المصدر. خامات المكتب والجلد من Poly Haven (CC0، materials.ts). كل ما يُقرأ يُقرأ على هاتف ٦ بوصات.
- * الألوان من «دفتر الأفق» المعتمدة؛ اللازورد التاريخي ليس فيها (قرار هوية للمالك)، فالبحر بدرجتها البنفسجية الفاتحة.
+ * «مكتب الرحّالة» — عالم «دفاتر الزمن» (اعتمده المالك ٢٢ نوفمبر، D190) بمعايير «الحِرفة» (D189):
+ * خمس لقطات بقطع حقيقي، مددها ٢–٨ ث، بلا لقطة مكررة، وأحجامها متنوعة (تفاصيل، متوسطة، واسعة، قريبة، واسعة):
+ *  ١. الخطاف (تفاصيل): الإسطرلاب من فوق، والعنكبوت يدور حتى «١٤٥ هـ» المطعّمة بالفضة، وغبار في شعاع الشمس.
+ *  ٢. (متوسطة ← قريبة): الحبر يرسم دجلة ويتشرب في ألياف الرّق، والبحر لازوردي، والكاميرا تدفع نحو دائرة بغداد.
+ *  ٣. قطع بالشكل (واسعة): دائرة بغداد على الخريطة تصير المدينة المدوّرة نفسها (القطعة المخصوصة لهذه الحلقة)
+ *     بأسوارها وأبوابها الأربعة والقصر والقبة في قلبها، والكاميرا ترتفع فتكشفها على المكتب.
+ *  ٤. (قريبة): الوثيقة تسقط على المكتب وتستقر بوزنها، والسطر يُكتب بحبر يتشرب، والختم يُضغط بأثر ناقص كالحقيقي.
+ *  ٥. (واسعة، ملصق): المكتب كله، وشمعة ترتعش، والشمس تحركت ودفئت منذ البداية.
+ * الضوء من مصادر داخل المشهد (شمس النافذة تتحرك، والشمعة)، والظلال ناعمة دافئة، وعمق ميدان حقيقي لكل لقطة،
+ * وصوت مع كل حركة فوق صوت الغرفة (D158). الخامات CC0 (materials.ts)، والقِدم من بقع صورة حقيقية.
+ * الألوان من «دفتر الأفق» واللازورد للماء والخرائط وحدها (D188).
  */
 import React, { useMemo } from "react";
-import { useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { Stage3D, camAt, ease, lightsAt, useAssetTextures, type Cam, type Light } from "../../three";
+import { BeamDust, DepthOfField, Stage3D, ease, flicker, lightsAt, orbit, swing, useAssetTextures, type CamState, type Light, type V3 } from "../../three";
 
 export const WORLD_FPS = 30;
-const TEXT = "سنة مئة وخمس وأربعين للهجرة، بدأ أبو جعفر المنصور بناء بغداد على دجلة، وسمّاها مدينة السلام.";
+const SENTENCES = ["سنة مئة وخمس وأربعين للهجرة،", "وقف أبو جعفر المنصور على ضفة دجلة،", "فخطّ مدينةً مدوّرة، لها أربعة أبواب، وفي قلبها قصره،", "وسمّاها مدينة السلام."];
 export const WORLD_WORDS = (() => {
+  const out: { w: string; s: number; e: number; line: number }[] = [];
   let t = 0.5;
-  return TEXT.split(" ").map((w) => { const x = { w, s: t, e: t + 0.38 }; t += 0.44 + (/[،.]$/.test(w) ? 0.3 : 0); return x; });
+  SENTENCES.forEach((sentence, line) => {
+    for (const w of sentence.split(" ")) { out.push({ w, s: t, e: t + 0.38, line }); t += 0.44 + (/[،.]$/.test(w) ? 0.28 : 0); }
+    t += 0.2;
+  });
+  return out;
 })();
 export const wAt = (w: string) => WORLD_WORDS.find((x) => x.w.replace(/[،.]/g, "") === w)!.s;
-export const WORLD_SEC = Math.ceil(WORLD_WORDS[WORLD_WORDS.length - 1]!.e + 2.4);
+export const WORLD_SEC = Math.ceil(WORLD_WORDS[WORLD_WORDS.length - 1]!.e + 3.2);
 export const worldFrames = () => WORLD_SEC * WORLD_FPS;
 
-/** ألوان «دفتر الأفق» المعتمدة ودرجاتها */
+/** ألوان «دفتر الأفق» ودرجاتها، واللازورد للماء والخرائط وحدها (D188) */
 export const WORLD_COLORS = {
   parchment: "#F1E4CB", parchmentDeep: "#EADBC0", ink: "#4A2E1F", inkDark: "#2B1E14", vermilion: "#D7372B", gold: "#C8A15A",
-  goldLight: "#F3C98B", sea: "#A399B4", seaDeep: "#35284D", verdigris: "#7A7F4E", dusk: "#2A1E3F", silver: "#F3E9DA", brassDark: "#5A4632",
+  goldLight: "#F3C98B", lapis: "#26619C", seaDeep: "#35284D", verdigris: "#7A7F4E", dusk: "#2A1E3F", silver: "#F3E9DA", brassDark: "#5A4632",
+  wax: "#F8EEDB", flame: "#E07A3F",
 } as const;
 const K = WORLD_COLORS;
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
 const span = (t: number, a: number, d: number) => clamp01((t - a) / d);
 
-/** خط بالحبر يُرسم بنسبة p من طوله (الحبر يرسم نفسه) */
-const partial = (g: CanvasRenderingContext2D, pts: [number, number][], p: number) => {
-  if (p <= 0) return;
+// ——— الرّق: ألياف وبقع قِدم من صورة CC0 حقيقية وحواف أغمق ———
+const parchment = (g: CanvasRenderingContext2D, w: number, h: number, seed: number, age: CanvasImageSource | null) => {
+  g.fillStyle = K.parchment; g.fillRect(0, 0, w, h);
+  if (age) { g.save(); g.globalCompositeOperation = "multiply"; g.globalAlpha = 0.32; g.drawImage(age, (seed * 97) % 300, (seed * 53) % 300, 700, 700, 0, 0, w, h); g.restore(); }
+  g.save(); g.globalAlpha = 0.05; g.strokeStyle = K.ink;
+  for (let i = 0; i < 700; i++) {
+    const x = ((Math.sin(i * 12.9898 + seed) * 43758.5453) % 1 + 1) % 1 * w, y = ((Math.sin(i * 78.233 + seed) * 12543.13) % 1 + 1) % 1 * h;
+    g.beginPath(); g.moveTo(x, y); g.lineTo(x + 18 * Math.cos(i), y + 6 * Math.sin(i)); g.stroke();
+  }
+  const r = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.3, w / 2, h / 2, Math.max(w, h) * 0.75);
+  r.addColorStop(0, "rgba(0,0,0,0)"); r.addColorStop(1, "rgba(74,46,31,0.3)");
+  g.globalAlpha = 1; g.fillStyle = r; g.fillRect(0, 0, w, h);
+  g.restore();
+};
+
+/** مسار بنسبة p من طوله */
+const pathTo = (g: CanvasRenderingContext2D, pts: [number, number][], p: number) => {
   const segs = pts.slice(1).map((q, i) => Math.hypot(q[0] - pts[i]![0], q[1] - pts[i]![1]));
   let left = segs.reduce((a, b) => a + b, 0) * p;
   g.beginPath(); g.moveTo(...pts[0]!);
@@ -42,168 +68,179 @@ const partial = (g: CanvasRenderingContext2D, pts: [number, number][], p: number
     g.lineTo(pts[i - 1]![0] + (pts[i]![0] - pts[i - 1]![0]) * k, pts[i - 1]![1] + (pts[i]![1] - pts[i - 1]![1]) * k);
     left -= d;
   }
-  g.stroke();
 };
-
-/** غسيل لوني كالألوان المائية: طبقات شفافة متراكبة بحواف غير منتظمة، تنتشر بنسبة p */
+/** حبر يتشرب: الخط نفسه، وهالة مموّهة حوله تتسع مع الزمن (absorb ٠–١) كما يسري الحبر في الألياف */
+const ink = (g: CanvasRenderingContext2D, pts: [number, number][], p: number, width: number, color: string, absorb: number) => {
+  if (p <= 0) return;
+  g.save(); g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = color;
+  if (absorb > 0) { g.filter = `blur(${2 + absorb * 4}px)`; g.globalAlpha = 0.28 * absorb; g.lineWidth = width * (1.6 + absorb); pathTo(g, pts, p); g.stroke(); }
+  g.filter = "none"; g.globalAlpha = 0.95; g.lineWidth = width; pathTo(g, pts, p); g.stroke();
+  g.restore();
+};
+/** غسيل لوني بطبقات شفافة بحواف غير منتظمة */
 const wash = (g: CanvasRenderingContext2D, poly: [number, number][], color: string, p: number, seed: number) => {
   if (p <= 0) return;
   const cx = poly.reduce((a, q) => a + q[0], 0) / poly.length, cy = poly.reduce((a, q) => a + q[1], 0) / poly.length;
-  g.save(); g.fillStyle = color;
+  g.save(); g.fillStyle = color; g.filter = "blur(3px)";
   for (let k = 0; k < 5; k++) {
-    g.globalAlpha = 0.11 * p;
-    g.beginPath();
-    poly.forEach(([x, y], i) => {
-      const j = Math.sin(seed * 7 + i * 3.1 + k * 1.7) * 9, s = 0.55 + 0.45 * p;
-      const X = cx + (x - cx) * s + j, Y = cy + (y - cy) * s + Math.cos(seed + i * 2.3 + k) * 9;
-      i ? g.lineTo(X, Y) : g.moveTo(X, Y);
-    });
+    g.globalAlpha = 0.12 * p; g.beginPath();
+    poly.forEach(([x, y], i) => { const s = 0.55 + 0.45 * p, X = cx + (x - cx) * s + Math.sin(seed * 7 + i * 3.1 + k * 1.7) * 9, Y = cy + (y - cy) * s + Math.cos(seed + i * 2.3 + k) * 9; i ? g.lineTo(X, Y) : g.moveTo(X, Y); });
     g.closePath(); g.fill();
   }
   g.restore();
 };
 
-const fibre = (g: CanvasRenderingContext2D, w: number, h: number, seed: number) => {
-  g.fillStyle = K.parchment; g.fillRect(0, 0, w, h);
-  g.save(); g.globalAlpha = 0.06; g.strokeStyle = K.ink;
-  for (let i = 0; i < 900; i++) {
-    const x = ((Math.sin(i * 12.9898 + seed) * 43758.5453) % 1 + 1) % 1 * w, y = ((Math.sin(i * 78.233 + seed) * 12543.13) % 1 + 1) % 1 * h;
-    g.beginPath(); g.moveTo(x, y); g.lineTo(x + 18 * Math.cos(i), y + 6 * Math.sin(i)); g.stroke();
-  }
-  // حواف الرّق أغمق قليلًا من القدم
-  const r = g.createRadialGradient(w / 2, h / 2, Math.min(w, h) * 0.35, w / 2, h / 2, Math.max(w, h) * 0.75);
-  r.addColorStop(0, "rgba(0,0,0,0)"); r.addColorStop(1, "rgba(74,46,31,0.22)");
-  g.globalAlpha = 1; g.fillStyle = r; g.fillRect(0, 0, w, h);
-  g.restore();
-};
-
-const canvas = (w: number, h: number) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return [c, c.getContext("2d")!] as const; };
-const tex = (c: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
-
-/** صفحة الخريطة: الجنوب فوق. بحر فارس نصف دائرة، ودجلة والفرات خطان مستقيمان، والمدن دوائر */
-const drawMap = (g: CanvasRenderingContext2D, w: number, h: number, t: number) => {
-  fibre(g, w, h, 3);
-  // الإطار: خطان بالحبر وبينهما خط مذهّب
+// ——— صفحة الخريطة (الجنوب فوق) ———
+const MAP_W = 1536, MAP_H = 2048;
+/** دائرة بغداد على الخريطة (للقطع بالشكل إلى المدينة المدوّرة) */
+export const BAGHDAD_PX = { x: MAP_W / 2 + 290, y: 1600, r: 70 };
+const drawMap = (g: CanvasRenderingContext2D, t: number, age: CanvasImageSource | null) => {
+  const w = MAP_W, h = MAP_H;
+  parchment(g, w, h, 3, age);
   g.lineWidth = 6; g.strokeStyle = K.ink; g.strokeRect(70, 70, w - 140, h - 140);
   g.lineWidth = 14; g.strokeStyle = K.gold; g.strokeRect(96, 96, w - 192, h - 192);
   g.lineWidth = 3; g.strokeStyle = K.ink; g.strokeRect(118, 118, w - 236, h - 236);
-  // العنوان المذهّب في خرطوشة
   g.fillStyle = K.dusk; g.fillRect(w / 2 - 380, 150, 760, 170);
   g.strokeStyle = K.gold; g.lineWidth = 8; g.strokeRect(w / 2 - 368, 162, 736, 146);
   g.fillStyle = K.goldLight; g.font = "bold 112px Amiri"; g.textAlign = "center"; g.direction = "rtl"; g.fillText("صورة العراق", w / 2, 272);
-  // بحر فارس: نصف دائرة في الأعلى (الجنوب)
+  // البحر لازوردي (D188)
   const sea: [number, number][] = Array.from({ length: 33 }, (_, i) => [w / 2 + 520 * Math.cos(Math.PI * (i / 32)), 360 + 400 * Math.sin(Math.PI * (i / 32))]);
-  wash(g, [...sea, [w / 2 - 520, 360]], K.sea, 1, 1);
-  g.lineWidth = 7; g.strokeStyle = K.ink; partial(g, sea, 1);
-  g.fillStyle = K.seaDeep; g.font = "bold 104px Amiri"; g.fillText("بحر فارس", w / 2, 580);
-  // الفرات (يُرسم عند «بدأ») ودجلة (عند «دجلة»)، مستقيمان من الشمال (أسفل) إلى البحر
+  wash(g, [...sea, [w / 2 - 520, 360]], K.lapis, 1, 1); wash(g, [...sea, [w / 2 - 520, 360]], K.lapis, 1, 2);
+  ink(g, sea, 1, 7, K.ink, 1);
+  g.fillStyle = K.silver; g.font = "bold 104px Amiri"; g.fillText("بحر فارس", w / 2, 580);
   const euph: [number, number][] = [[w / 2 - 420, h - 200], [w / 2 - 150, 760]];
   const tigris: [number, number][] = [[w / 2 + 380, h - 200], [w / 2 + 120, 760]];
-  const pE = ease(span(t, wAt("بدأ") - 0.1, 1.2)), pT = ease(span(t, wAt("دجلة") - 0.5, 0.9));
-  // الأرض بين النهرين تُغسل بالزنجار مع رسم النهرين
-  wash(g, [[w / 2 - 400, h - 230], [w / 2 + 360, h - 230], [w / 2 + 130, 790], [w / 2 - 140, 790]], K.verdigris, ease(span(t, wAt("بدأ"), 2.6)), 4);
-  g.lineCap = "round"; g.strokeStyle = K.ink; g.lineWidth = 14; partial(g, euph, pE); partial(g, tigris, pT);
+  // الفرات مرسوم من قبل، ودجلة يرسمه الحبر الآن ويتشرب، ثم يُغسل باللازورد (ماء)
+  const pT = ease(span(t, wAt("وقف") - 0.1, wAt("دجلة") - wAt("وقف") + 0.3)), absorbT = span(t, wAt("دجلة") + 0.2, 1.6);
+  wash(g, [[w / 2 - 400, h - 230], [w / 2 + 360, h - 230], [w / 2 + 130, 790], [w / 2 - 140, 790]], K.verdigris, 1, 4);
+  ink(g, euph, 1, 14, K.ink, 1); ink(g, tigris, pT, 14, K.ink, absorbT);
+  g.save(); g.globalAlpha = 0.5; ink(g, euph, 1, 6, K.lapis, 0); if (absorbT > 0) { g.globalAlpha = 0.5 * absorbT; ink(g, tigris, 1, 6, K.lapis, 0); } g.restore();
   g.font = "bold 92px Amiri"; g.fillStyle = K.ink;
-  if (pE > 0.6) { g.save(); g.globalAlpha = span(pE, 0.6, 0.4); g.translate(w / 2 - 360, 1400); g.rotate(-1.33); g.fillText("الفرات", 0, 0); g.restore(); }
+  g.save(); g.translate(w / 2 - 360, 1400); g.rotate(-1.33); g.fillText("الفرات", 0, 0); g.restore();
   if (pT > 0.6) { g.save(); g.globalAlpha = span(pT, 0.6, 0.4); g.translate(w / 2 + 330, 1400); g.rotate(-1.805); g.fillText("دجلة", 0, 0); g.restore(); }
-  // البصرة والكوفة موجودتان، وبغداد تُرسم عند «بغداد» دائرةً تُملأ بالزنجفر بإطار ذهبي
-  const city = (x: number, y: number, name: string, p: number, main = false) => {
-    if (p <= 0) return;
-    g.save(); g.globalAlpha = Math.min(1, p * 1.5);
-    if (main) { g.fillStyle = K.vermilion; g.beginPath(); g.arc(x, y, 58 * ease(p), 0, Math.PI * 2); g.fill(); g.strokeStyle = K.gold; g.lineWidth = 12; g.beginPath(); g.arc(x, y, 70, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * p); g.stroke(); }
-    else { g.strokeStyle = K.ink; g.lineWidth = 8; g.beginPath(); g.arc(x, y, 34, 0, Math.PI * 2); g.stroke(); }
-    g.fillStyle = main ? K.vermilion : K.ink; g.font = `bold ${main ? 118 : 80}px Amiri`; g.fillText(name, x + (main ? 0 : 0), y + (main ? 190 : 120));
-    g.restore();
-  };
-  city(w / 2 - 40, 830, "البصرة", 1);
-  city(w / 2 - 330, 1700, "الكوفة", 1);
-  city(w / 2 + 290, 1600, "بغداد", ease(span(t, wAt("بغداد") - 0.1, 0.8)), true);
+  const city = (x: number, y: number, name: string) => { g.strokeStyle = K.ink; g.lineWidth = 8; g.beginPath(); g.arc(x, y, 34, 0, Math.PI * 2); g.stroke(); g.fillStyle = K.ink; g.font = "bold 80px Amiri"; g.fillText(name, x, y + 120); };
+  city(w / 2 - 40, 830, "البصرة"); city(w / 2 - 330, 1700, "الكوفة");
+  // بغداد: دائرة بالزنجفر بإطار ذهبي تُرسم مع «المنصور… دجلة»
+  const pB = ease(span(t, wAt("المنصور"), 1.1));
+  if (pB > 0) {
+    g.fillStyle = K.vermilion; g.globalAlpha = Math.min(1, pB * 1.4); g.beginPath(); g.arc(BAGHDAD_PX.x, BAGHDAD_PX.y, 58 * pB, 0, Math.PI * 2); g.fill();
+    g.strokeStyle = K.gold; g.lineWidth = 12; g.beginPath(); g.arc(BAGHDAD_PX.x, BAGHDAD_PX.y, BAGHDAD_PX.r, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * pB); g.stroke();
+    g.fillStyle = K.vermilion; g.font = "bold 118px Amiri"; g.fillText("بغداد", BAGHDAD_PX.x, BAGHDAD_PX.y + 190); g.globalAlpha = 1;
+  }
 };
 
-/** الصفحة اليسرى: متن مكتوب فعلًا ورأس مذهّب، فلا مساحة فارغة */
-const drawText = (g: CanvasRenderingContext2D, w: number, h: number, t: number) => {
-  fibre(g, w, h, 9);
-  g.lineWidth = 6; g.strokeStyle = K.ink; g.strokeRect(70, 70, w - 140, h - 140);
+/** الصفحة اليسرى: متن حقيقي وحاشية برقعة حمراء بجوار «ببغداد» */
+const drawText = (g: CanvasRenderingContext2D, age: CanvasImageSource | null) => {
+  const w = MAP_W;
+  parchment(g, w, MAP_H, 9, age);
+  g.lineWidth = 6; g.strokeStyle = K.ink; g.strokeRect(70, 70, w - 140, MAP_H - 140);
   g.fillStyle = K.gold; g.fillRect(150, 150, w - 300, 26); g.fillStyle = K.vermilion; g.fillRect(150, 186, w - 300, 8);
   g.direction = "rtl"; g.textAlign = "right"; g.fillStyle = K.vermilion; g.font = "bold 96px Amiri"; g.fillText("ذكر مدينة السلام", w - 170, 330);
   g.fillStyle = K.ink; g.font = "68px Amiri";
-  ["وكان المنصور قد خرج يرتاد موضعًا", "يبني فيه مدينته، فنزل على دجلة", "عند قرية تُعرف ببغداد، فاستطاب", "هواءها، وقال: هذا موضع معسكر", "صالح، وهذه دجلة ليس بيننا وبين", "الصين شيء، يأتينا فيها كل ما", "في البحر، وتأتينا الميرة من الجزيرة.", "", "فخطّها، وجعل لها أربعة أبواب."]
-    .forEach((l, i) => g.fillText(l, w - 170, 470 + i * 112));
-  g.fillStyle = K.ink; g.globalAlpha = 0.7; g.font = "56px 'Aref Ruqaa'"; g.fillText("— بتصرّف عن تاريخ الطبري", w - 170, 470 + 10 * 112); g.globalAlpha = 1;
-  // حاشية برقعة حمراء في الهامش الأيسر بجوار «ببغداد»، تُكتب مع «بغداد… دجلة» ويشير إليها خط
-  const pm = span(t, wAt("بغداد") - 0.1, 1.5);
-  if (pm > 0) {
-    g.save(); g.strokeStyle = K.vermilion; g.lineWidth = 5; partial(g, [[600, 700], [440, 760]], Math.min(1, pm * 3));
-    g.translate(420, 820); g.rotate(-0.2); g.fillStyle = K.vermilion; g.textAlign = "right"; g.font = "104px 'Aref Ruqaa'";
-    g.beginPath(); g.rect(-420, -110, 420 * Math.min(1, pm * 1.6), 380); g.clip();
-    g.fillText("بُنيت", 0, 0); g.fillText("سنة ١٤٥", 0, 130); g.fillText("على دجلة", 0, 260);
-    g.restore();
-  }
+  ["وكان المنصور قد خرج يرتاد موضعًا", "يبني فيه مدينته، فنزل على دجلة", "عند قرية تُعرف ببغداد، فاستطاب", "هواءها، وقال: هذا موضع معسكر", "صالح، وهذه دجلة ليس بيننا وبين", "الصين شيء، يأتينا فيها كل ما", "في البحر، وتأتينا الميرة من الجزيرة.", "", "فخطّها، وجعل لها أربعة أبواب."].forEach((l, i) => g.fillText(l, w - 170, 470 + i * 112));
+  g.globalAlpha = 0.7; g.font = "56px 'Aref Ruqaa'"; g.fillText("— بتصرّف عن تاريخ الطبري", w - 170, 470 + 10 * 112); g.globalAlpha = 1;
+  g.save(); g.strokeStyle = K.vermilion; g.lineWidth = 5; pathTo(g, [[600, 700], [440, 760]], 1); g.stroke();
+  g.translate(420, 820); g.rotate(-0.2); g.fillStyle = K.vermilion; g.textAlign = "right"; g.font = "104px 'Aref Ruqaa'";
+  g.fillText("بُنيت", 0, 0); g.fillText("سنة ١٤٥", 0, 130); g.fillText("على دجلة", 0, 260); g.restore();
 };
 
-/** وثيقة الأرشيف: سطور حقيقية، والسطر المنطوق يُكتب، والختم يُطبع عند «السلام» */
-const drawDoc = (g: CanvasRenderingContext2D, w: number, h: number, t: number) => {
-  fibre(g, w, h, 17);
+const canvasOf = (w: number, h: number) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return [c, c.getContext("2d")!] as const; };
+const texOf = (c: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+
+/** الوثيقة: سطور حقيقية، والسطر المنطوق يُكتب ويتشرب، والختم بأثر ناقص كالضغط الحقيقي */
+const drawDoc = (g: CanvasRenderingContext2D, w: number, h: number, t: number, age: CanvasImageSource | null) => {
+  parchment(g, w, h, 17, age);
   g.direction = "rtl"; g.textAlign = "right";
   g.fillStyle = K.ink; g.font = "bold 84px 'Aref Ruqaa'"; g.fillText("سِجلّ البناء", w - 110, 190);
-  g.fillStyle = K.ink; g.font = "60px Amiri";
-  ["أمر أمير المؤمنين أبو جعفر", "ببناء المدينة المدوّرة", "على الجانب الغربي من دجلة"].forEach((l, i) => g.fillText(l, w - 110, 330 + i * 92));
-  // السطر المنطوق يُكتب مع «وسمّاها مدينة السلام»
-  const p = span(t, wAt("وسمّاها") - 0.1, 1.2);
-  if (p > 0) { g.save(); g.beginPath(); g.rect(w - 110 - 1000 * p, 560, 1000 * p, 140); g.clip(); g.fillStyle = K.ink; g.font = "bold 86px Amiri"; g.fillText("وسمّاها مدينة السلام", w - 110, 660); g.restore(); }
-  // الختم: دائرتان ونص، أحمر بحواف غير منتظمة كطبعة حقيقية
-  const s = span(t, wAt("السلام") + 0.15, 0.08);
-  if (s > 0) {
-    g.save(); g.translate(w * 0.36, h * 0.72); g.rotate(-0.18); g.globalAlpha = 0.88 * s; g.strokeStyle = K.vermilion; g.fillStyle = K.vermilion;
-    g.lineWidth = 16; g.beginPath(); g.arc(0, 0, 230, 0, Math.PI * 2); g.stroke(); g.lineWidth = 6; g.beginPath(); g.arc(0, 0, 186, 0, Math.PI * 2); g.stroke();
-    g.textAlign = "center"; g.font = "bold 110px Amiri"; g.fillText("سنة", 0, -20); g.font = "bold 140px Amiri"; g.fillText("١٤٥", 0, 120);
+  g.font = "60px Amiri"; ["أمر أمير المؤمنين أبو جعفر", "ببناء المدينة المدوّرة", "على الجانب الغربي من دجلة"].forEach((l, i) => g.fillText(l, w - 110, 330 + i * 92));
+  const p = span(t, wAt("وسمّاها") - 0.1, 1.3), soak = span(t, wAt("وسمّاها") + 1.0, 1.5);
+  if (p > 0) {
+    g.save(); g.beginPath(); g.rect(w - 110 - 1000 * p, 560, 1000 * p, 140); g.clip();
+    if (soak > 0) { g.filter = `blur(${1.5 + soak * 2}px)`; g.globalAlpha = 0.25 * soak; g.fillStyle = K.ink; g.font = "bold 86px Amiri"; g.fillText("وسمّاها مدينة السلام", w - 110, 662); }
+    g.filter = "none"; g.globalAlpha = 1; g.fillStyle = K.ink; g.font = "bold 86px Amiri"; g.fillText("وسمّاها مدينة السلام", w - 110, 660);
     g.restore();
+  }
+  const s = span(t, wAt("السلام") + 0.15, 0.06);
+  if (s > 0) {
+    // الختم على قماش مستقل، ثم تُمحى منه نقاط حتمية (ضغط غير متساوٍ) وجانبه الأيسر أخف
+    const [sc, sg] = canvasOf(560, 560);
+    sg.translate(280, 280); sg.rotate(-0.18); sg.strokeStyle = K.vermilion; sg.fillStyle = K.vermilion;
+    sg.lineWidth = 16; sg.beginPath(); sg.arc(0, 0, 230, 0, Math.PI * 2); sg.stroke(); sg.lineWidth = 6; sg.beginPath(); sg.arc(0, 0, 186, 0, Math.PI * 2); sg.stroke();
+    sg.textAlign = "center"; sg.font = "bold 110px Amiri"; sg.fillText("سنة", 0, -20); sg.font = "bold 140px Amiri"; sg.fillText("١٤٥", 0, 120);
+    sg.setTransform(1, 0, 0, 1, 0, 0); sg.globalCompositeOperation = "destination-out";
+    for (let i = 0; i < 1400; i++) { const x = ((Math.sin(i * 91.7) * 4375.5) % 1 + 1) % 1 * 560, y = ((Math.sin(i * 17.3) * 1254.1) % 1 + 1) % 1 * 560; sg.globalAlpha = 0.5 + 0.5 * (1 - x / 560); sg.fillRect(x, y, 3 + (i % 4), 3 + (i % 3)); }
+    const fade = sg.createLinearGradient(0, 0, 560, 0); fade.addColorStop(0, "rgba(0,0,0,0.55)"); fade.addColorStop(0.6, "rgba(0,0,0,0)");
+    sg.globalAlpha = 1; sg.fillStyle = fade; sg.fillRect(0, 0, 560, 560);
+    g.globalAlpha = 0.9 * s; g.drawImage(sc, w * 0.36 - 280, h * 0.72 - 280); g.globalAlpha = 1;
   }
 };
 
-/** الإسطرلاب: نحاس محفور، والنقش مطعّم بالفضة بتباين واضح؛ السنون الهجرية على الحافة */
+/** الإسطرلاب: نحاس محفور مطعّم بالفضة، وأثر استعمال (خدوش وبقع اتساخ حول المحور) */
 const drawAstro = (g: CanvasRenderingContext2D, n: number, yearShown: number) => {
   const c = n / 2;
   const brass = g.createRadialGradient(c, c, 60, c, c, c);
   brass.addColorStop(0, K.goldLight); brass.addColorStop(0.7, K.gold); brass.addColorStop(1, K.brassDark);
   g.fillStyle = brass; g.beginPath(); g.arc(c, c, c - 4, 0, Math.PI * 2); g.fill();
-  // الحفر داكن، والفضة تملؤه (خط فضي على خط داكن أعرض)
+  g.save(); g.globalAlpha = 0.18; g.strokeStyle = K.brassDark; g.lineWidth = 1.5;
+  for (let i = 0; i < 160; i++) { const a = i * 2.399, r = 80 + ((i * 37) % 380), l = 10 + (i % 7) * 6; g.beginPath(); g.moveTo(c + r * Math.cos(a), c + r * Math.sin(a)); g.lineTo(c + r * Math.cos(a) + l * Math.cos(a * 3), c + r * Math.sin(a) + l * Math.sin(a * 3)); g.stroke(); }
+  const grime = g.createRadialGradient(c, c, 10, c, c, 160); grime.addColorStop(0, "rgba(43,30,20,0.35)"); grime.addColorStop(1, "rgba(43,30,20,0)");
+  g.globalAlpha = 1; g.fillStyle = grime; g.beginPath(); g.arc(c, c, 160, 0, Math.PI * 2); g.fill(); g.restore();
   const inlay = (draw: () => void, wDark: number, wSilver: number) => { g.strokeStyle = K.inkDark; g.lineWidth = wDark; draw(); g.strokeStyle = K.silver; g.lineWidth = wSilver; draw(); };
   inlay(() => { g.beginPath(); g.arc(c, c, c - 40, 0, Math.PI * 2); g.stroke(); }, 14, 7);
   inlay(() => { g.beginPath(); g.arc(c, c, c - 190, 0, Math.PI * 2); g.stroke(); }, 12, 6);
   for (let y = 100; y <= 200; y += 5) {
     const a = ((y - 100) / 100) * Math.PI * 1.6 - Math.PI * 0.8 - Math.PI / 2, long = y % 25 === 0;
     inlay(() => { g.beginPath(); g.moveTo(c + (c - 40) * Math.cos(a), c + (c - 40) * Math.sin(a)); g.lineTo(c + (c - (long ? 120 : 80)) * Math.cos(a), c + (c - (long ? 120 : 80)) * Math.sin(a)); g.stroke(); }, long ? 12 : 8, long ? 6 : 4);
-    if (long) {
-      g.save(); g.translate(c + (c - 158) * Math.cos(a), c + (c - 158) * Math.sin(a)); g.rotate(a + Math.PI / 2);
-      g.fillStyle = K.inkDark; g.font = "bold 78px Amiri"; g.textAlign = "center"; g.fillText(y.toLocaleString("ar-EG"), 3, 30);
-      g.fillStyle = K.silver; g.fillText(y.toLocaleString("ar-EG"), 0, 27); g.restore();
-    }
+    if (long) { g.save(); g.translate(c + (c - 158) * Math.cos(a), c + (c - 158) * Math.sin(a)); g.rotate(a + Math.PI / 2); g.font = "bold 78px Amiri"; g.textAlign = "center"; g.fillStyle = K.inkDark; g.fillText(y.toLocaleString("ar-EG"), 3, 30); g.fillStyle = K.silver; g.fillText(y.toLocaleString("ar-EG"), 0, 27); g.restore(); }
   }
-  // خطوط الأفق المطعّمة في الوسط
   for (let k = 1; k <= 4; k++) inlay(() => { g.beginPath(); g.ellipse(c, c + 40 * k, 90 * k, 60 * k, 0, Math.PI, Math.PI * 2); g.stroke(); }, 8, 4);
-  // السنة تُطعَّم بالفضة حين يقف المؤشر عليها
-  if (yearShown > 0) {
-    g.save(); g.globalAlpha = yearShown; g.textAlign = "center"; g.font = "bold 104px Amiri";
-    // بين الحلقة (نصف قطرها ١٢٨) وأرقام الحافة السفلى (١٠٠ و٢٠٠ عند ±٢٠٨، +٢٨٦)
-    g.fillStyle = K.inkDark; g.fillText("١٤٥ هـ", c + 3, c + 248); g.fillStyle = K.silver; g.fillText("١٤٥ هـ", c, c + 245); g.restore();
-  }
+  if (yearShown > 0) { g.save(); g.globalAlpha = yearShown; g.textAlign = "center"; g.font = "bold 104px Amiri"; g.fillStyle = K.inkDark; g.fillText("١٤٥ هـ", c + 3, c + 248); g.fillStyle = K.silver; g.fillText("١٤٥ هـ", c, c + 245); g.restore(); }
 };
 
 const useCanvasTex = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, deps: unknown[]) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  useMemo(() => { const [c, g] = canvas(w, h); draw(g); return tex(c); }, deps);
+  useMemo(() => { const [c, g] = canvasOf(w, h); draw(g); return texOf(c); }, deps);
 
-const Desk: React.FC<{ ts: THREE.Texture[] }> = ({ ts }) => {
-  const [diff, nor, rough] = ts;
-  return <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[14, 9]} /><meshStandardMaterial map={diff} normalMap={nor} roughnessMap={rough} color="#c9b49a" /></mesh>;
+// ——— المكان ———
+const ATLAS_AT: V3 = [-0.65, 0, 0.25];
+const DOC_AT: V3 = [2.05, 0, 0.55];
+const ASTRO_AT: V3 = [0.95, 0.06, -1.35];
+const CITY_AT: V3 = [-2.55, 0, 1.25];
+/** بغداد على الخريطة في إحداثيات العالم (صفحة اليمين ١٫٢٦×١٫٦٨) */
+export const BAGHDAD_WORLD: V3 = [ATLAS_AT[0] + 0.64 + (BAGHDAD_PX.x / MAP_W - 0.5) * 1.26, 0.046, ATLAS_AT[2] + (BAGHDAD_PX.y / MAP_H - 0.5) * 1.68];
+export const CITY_R = 0.62;
+
+/** المدينة المدوّرة (القطعة المخصوصة لهذه الحلقة): خندق لازوردي، وسوران، وأربعة أبواب على القطرين، والقصر والقبة في القلب */
+const RoundCity: React.FC<{ wood: THREE.Texture[]; rise: number }> = ({ wood, rise }) => {
+  const sand = <meshStandardMaterial color={K.gold} roughness={0.85} />;
+  const h = (x: number) => Math.max(0.001, x * rise);
+  return (
+    <group position={CITY_AT}>
+      <mesh position={[0, 0.03, 0]} receiveShadow castShadow><cylinderGeometry args={[CITY_R + 0.22, CITY_R + 0.25, 0.06, 96]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} color="#c9b49a" /></mesh>
+      <mesh position={[0, 0.062, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[CITY_R + 0.04, CITY_R + 0.12, 96]} /><meshStandardMaterial color={K.lapis} roughness={0.25} /></mesh>
+      {[{ r: CITY_R, hh: 0.11 }, { r: CITY_R * 0.78, hh: 0.15 }].map((x, i) => (
+        <mesh key={i} position={[0, 0.06 + h(x.hh) / 2, 0]} castShadow receiveShadow><cylinderGeometry args={[x.r, x.r, h(x.hh), 96, 1, true]} /><meshStandardMaterial color={K.gold} side={THREE.DoubleSide} roughness={0.85} /></mesh>
+      ))}
+      {[0, 1, 2, 3].map((k) => {
+        const a = Math.PI / 4 + (k * Math.PI) / 2;
+        return (
+          <group key={k} position={[CITY_R * Math.cos(a), 0.06, CITY_R * Math.sin(a)]} rotation={[0, -a, 0]}>
+            <mesh position={[0, h(0.18) / 2, 0]} castShadow><boxGeometry args={[0.09, h(0.18), 0.14]} />{sand}</mesh>
+            <mesh position={[0, h(0.18), 0]} castShadow><sphereGeometry args={[0.05 * rise + 0.001, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.5} /></mesh>
+          </group>
+        );
+      })}
+      {[0, 1].map((k) => <mesh key={k} position={[0, 0.063, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4 + (k * Math.PI) / 2]}><planeGeometry args={[CITY_R * 2, 0.03]} /><meshStandardMaterial color={K.brassDark} /></mesh>)}
+      <mesh position={[0, 0.06 + h(0.18) / 2, 0]} castShadow><boxGeometry args={[0.2, h(0.18), 0.2]} />{sand}</mesh>
+      <mesh position={[0, 0.06 + h(0.18), 0]} castShadow><sphereGeometry args={[0.1 * rise + 0.001, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.4} metalness={0.3} /></mesh>
+    </group>
+  );
 };
 
-/** كتاب مغلق بجلد حقيقي، وعلى غلافه جامة مزخرفة بارزة (bumpMap) ومذهّبة */
+/** كتاب بجلد حقيقي وجامة مذهّبة بارزة */
 const LeatherBook: React.FC<{ ts: THREE.Texture[] }> = ({ ts }) => {
   const emboss = useCanvasTex(512, 640, (g) => {
-    g.fillStyle = "#000"; g.fillRect(0, 0, 512, 640);
-    g.strokeStyle = "#fff"; g.lineWidth = 10; g.strokeRect(36, 36, 440, 568);
+    g.fillStyle = "#000"; g.fillRect(0, 0, 512, 640); g.strokeStyle = "#fff"; g.lineWidth = 10; g.strokeRect(36, 36, 440, 568);
     g.save(); g.translate(256, 320);
     for (let k = 0; k < 16; k++) { g.rotate(Math.PI / 8); g.beginPath(); g.moveTo(0, 30); g.quadraticCurveTo(40, 90, 0, 140); g.quadraticCurveTo(-40, 90, 0, 30); g.stroke(); }
     g.beginPath(); g.arc(0, 0, 150, 0, Math.PI * 2); g.stroke(); g.restore();
@@ -213,29 +250,41 @@ const LeatherBook: React.FC<{ ts: THREE.Texture[] }> = ({ ts }) => {
   return (
     <group position={[2.35, 0, -1.35]} rotation={[0, -0.35, 0]}>
       <mesh position={[0, 0.13, 0]} castShadow receiveShadow><boxGeometry args={[1.25, 0.26, 1.65]} /><meshStandardMaterial color={K.parchmentDeep} roughness={0.9} /></mesh>
-      <mesh position={[0, 0.27, 0]} castShadow>{<boxGeometry args={[1.3, 0.03, 1.7]} />}{cover}</mesh>
-      <mesh position={[0, -0.0, 0]}><boxGeometry args={[1.3, 0.03, 1.7]} />{cover}</mesh>
+      <mesh position={[0, 0.27, 0]} castShadow><boxGeometry args={[1.3, 0.03, 1.7]} />{cover}</mesh>
+      <mesh><boxGeometry args={[1.3, 0.03, 1.7]} />{cover}</mesh>
       <mesh position={[-0.66, 0.13, 0]}><boxGeometry args={[0.04, 0.3, 1.7]} />{cover}</mesh>
-      {/* الجامة المذهّبة */}
       <mesh position={[0, 0.288, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.3, 48]} /><meshStandardMaterial color={K.gold} metalness={0.7} roughness={0.35} bumpMap={emboss} bumpScale={3} transparent opacity={0.85} /></mesh>
     </group>
   );
 };
 
-/** محبرة خزف مزجّج، وقلم قصب مسند إليها */
+/** محبرة زجاج حقيقية (ينكسر فيها الضوء) فيها حبر داكن، وقلم قصب */
 const Inkwell: React.FC = () => (
-  <group position={[-2.55, 0, -1.2]}>
-    <mesh position={[0, 0.17, 0]} castShadow><cylinderGeometry args={[0.2, 0.27, 0.34, 48]} /><meshPhysicalMaterial color={K.dusk} roughness={0.15} clearcoat={1} clearcoatRoughness={0.08} /></mesh>
-    <mesh position={[0, 0.35, 0]}><torusGeometry args={[0.12, 0.035, 16, 48]} /><meshPhysicalMaterial color={K.dusk} roughness={0.15} clearcoat={1} /></mesh>
-    <mesh position={[0, 0.345, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.1, 32]} /><meshStandardMaterial color={K.inkDark} roughness={0.05} /></mesh>
-    <mesh position={[0.25, 0.45, 0.12]} rotation={[0.25, 0, -0.55]} castShadow><cylinderGeometry args={[0.02, 0.012, 1.05, 12]} /><meshStandardMaterial color={K.gold} roughness={0.7} /></mesh>
+  <group position={[-2.35, 0, -1.15]}>
+    <mesh position={[0, 0.17, 0]} castShadow><cylinderGeometry args={[0.2, 0.25, 0.34, 64]} /><meshPhysicalMaterial color={K.silver} transmission={0.92} thickness={0.35} ior={1.5} roughness={0.06} clearcoat={1} attenuationColor={K.verdigris} attenuationDistance={1.2} /></mesh>
+    <mesh position={[0, 0.12, 0]}><cylinderGeometry args={[0.17, 0.21, 0.2, 48]} /><meshStandardMaterial color={K.inkDark} roughness={0.05} /></mesh>
+    <mesh position={[0, 0.355, 0]}><torusGeometry args={[0.11, 0.03, 16, 48]} /><meshPhysicalMaterial color={K.silver} transmission={0.9} thickness={0.2} roughness={0.08} /></mesh>
+    <mesh position={[0.24, 0.45, 0.1]} rotation={[0.25, 0, -0.55]} castShadow><cylinderGeometry args={[0.02, 0.012, 1.05, 12]} /><meshStandardMaterial color={K.gold} roughness={0.7} /></mesh>
   </group>
 );
 
-/** إطار النافذة: لا تراه الكاميرا، ويلقي ظل أعمدته على المكتب */
+/** شمعة: شمع ولهب يرتعش */
+const CANDLE_AT: V3 = [-1.75, 0, -1.55];
+const Candle: React.FC<{ t: number }> = ({ t }) => {
+  const f = flicker(t, { depth: 0.22, rate: 7, seed: 41 });
+  return (
+    <group position={CANDLE_AT}>
+      <mesh position={[0, 0.03, 0]} castShadow><cylinderGeometry args={[0.16, 0.18, 0.06, 32]} /><meshStandardMaterial color={K.brassDark} metalness={0.7} roughness={0.35} /></mesh>
+      <mesh position={[0, 0.32, 0]} castShadow><cylinderGeometry args={[0.07, 0.075, 0.52, 32]} /><meshStandardMaterial color={K.wax} roughness={0.45} /></mesh>
+      <mesh position={[0, 0.66 + 0.01 * f, 0]} scale={[1, f, 1]}><coneGeometry args={[0.03, 0.12, 16]} /><meshBasicMaterial color={K.flame} toneMapped={false} /></mesh>
+      <mesh position={[0, 0.63, 0]} scale={[1, f, 1]}><sphereGeometry args={[0.022, 12, 8]} /><meshBasicMaterial color={K.goldLight} toneMapped={false} /></mesh>
+    </group>
+  );
+};
+
+/** إطار النافذة: لا تراه الكاميرا، ويلقي ظلًا ناعمًا */
 const WindowGobo: React.FC = () => {
-  // إطار نافذة بصليب واحد، بعيد عن المكتب فيقع ظله واسعًا على الحافة لا على الدفتر
-  const bars: [number, number, number, number][] = [[0, 2.3, 5, 0.6], [0, -2.3, 5, 0.6], [2.4, 0, 0.6, 5], [-2.4, 0, 0.6, 5]];
+  const bars: [number, number, number, number][] = [[0, 2.3, 5, 0.6], [0, -2.3, 5, 0.6], [2.4, 0, 0.6, 5], [-2.4, 0, 0.6, 5], [0, 0, 0.12, 4.4]];
   return (
     <group position={[-4.6, 4.8, -3.4]} rotation={[0, 0.9, 0.35]} scale={1.6}>
       {bars.map(([x, y, w, h], i) => <mesh key={i} position={[x, y, 0]} castShadow><boxGeometry args={[w, h, 0.05]} /><meshBasicMaterial colorWrite={false} depthWrite={false} /></mesh>)}
@@ -243,81 +292,131 @@ const WindowGobo: React.FC = () => {
   );
 };
 
-const LIGHTS: Light[] = [
-  { kind: "ambient", kelvin: 7500, intensity: 0.75, position: [0, 0, 0] },
-  // ضوء النافذة الواحد: دافئ مائل من الخلف اليسار
-  { kind: "key", kelvin: 4100, intensity: 3.1, position: [-7, 8, -5] },
-];
+// ——— اللقطات ———
+type ShotCam = { target: V3; yaw: number; pitch: number; dist: number; fov: number };
+export type Shot = { id: string; size: "detail" | "medium" | "close" | "wide"; a: number; b: number; from: ShotCam; to: ShotCam; aperture: number };
+export const worldShots = (): Shot[] => {
+  const t1 = wAt("وقف") - 0.25, t2 = wAt("فخطّ") - 0.15, t3 = wAt("وسمّاها") - 0.3, t4 = wAt("السلام") + 1.25, end = WORLD_SEC;
+  // قطع بالشكل: آخر لقطة الخريطة دائرة بغداد من فوق، وأول لقطة المدينة سورها من فوق بالحجم نفسه على الشاشة
+  const dMap = 0.42, dCity = dMap * (CITY_R / ((BAGHDAD_PX.r / MAP_W) * 1.26));
+  return [
+    { id: "astrolabe", size: "detail", a: 0, b: t1, aperture: 0.03, from: { target: ASTRO_AT, yaw: 20, pitch: 80, dist: 1.25, fov: 30 }, to: { target: ASTRO_AT, yaw: 4, pitch: 86, dist: 1.1, fov: 30 } },
+    { id: "map", size: "medium", a: t1, b: t2, aperture: 0.016, from: { target: [ATLAS_AT[0] + 0.8, 0, ATLAS_AT[2] + 0.1], yaw: -10, pitch: 62, dist: 2.7, fov: 32 }, to: { target: BAGHDAD_WORLD, yaw: 0, pitch: 89, dist: dMap, fov: 32 } },
+    { id: "city", size: "wide", a: t2, b: t3, aperture: 0.012, from: { target: [CITY_AT[0], 0.06, CITY_AT[2]], yaw: 0, pitch: 89, dist: dCity, fov: 32 }, to: { target: [CITY_AT[0] + 0.2, 0.08, CITY_AT[2] - 0.1], yaw: -35, pitch: 38, dist: 2.6, fov: 32 } },
+    { id: "document", size: "close", a: t3, b: t4, aperture: 0.02, from: { target: [DOC_AT[0], 0, DOC_AT[2]], yaw: 12, pitch: 66, dist: 2.0, fov: 32 }, to: { target: [DOC_AT[0] - 0.1, 0, DOC_AT[2] + 0.15], yaw: 4, pitch: 74, dist: 1.75, fov: 32 } },
+    { id: "desk", size: "wide", a: t4, b: end, aperture: 0.006, from: { target: [0, 0, 0.1], yaw: -2, pitch: 46, dist: 6.6, fov: 34 }, to: { target: [-0.2, 0, 0], yaw: -12, pitch: 50, dist: 7.4, fov: 34 } },
+  ];
+};
 
-const WIDE: Cam = { target: [0, 0, -0.1], yaw: -8, pitch: 52, dist: 7.6, fov: 34 };
-const ASTRO_AT: [number, number, number] = [0.95, 0.06, -1.35];
-const ATLAS_AT: [number, number, number] = [-0.65, 0, 0.25];
-const DOC_AT: [number, number, number] = [2.05, 0, 0.55];
+const camOfShot = (s: Shot, t: number): CamState & { focus: number } => {
+  const p = ease(span(t, s.a, s.b - s.a));
+  const L = (x: number, y: number) => x + (y - x) * p;
+  const c = { target: [L(s.from.target[0], s.to.target[0]), L(s.from.target[1], s.to.target[1]), L(s.from.target[2], s.to.target[2])] as V3, yaw: L(s.from.yaw, s.to.yaw), pitch: L(s.from.pitch, s.to.pitch), dist: L(s.from.dist, s.to.dist), fov: L(s.from.fov, s.to.fov) };
+  return { position: orbit(c), target: c.target, fov: c.fov, focus: c.dist };
+};
+
+/** الشمس تتحرك وتدفأ مع الحكاية (٤٦٠٠ ← ٣٦٠٠ كلفن)، والشمعة مصدر ثانٍ دافئ يرتعش */
+const lightsAtT = (t: number): Light[] => {
+  const p = t / WORLD_SEC;
+  return [
+    { kind: "ambient", kelvin: 3600, intensity: 0.6, position: [0, 0, 0] },
+    { kind: "key", kelvin: 4600 - 1000 * p, intensity: 2.6, position: [-7 + 2 * p, 8 - 1.2 * p, -5 + 1.5 * p] },
+    { kind: "practical", kelvin: 1900, intensity: 1.6, position: [CANDLE_AT[0], 0.75, CANDLE_AT[2]], flicker: { depth: 0.2, rate: 7, seed: 41 } },
+  ];
+};
+
+const SFX = (f: string) => staticFile(`three/sfx/${f}.mp3`);
 
 export const DeskWorldLab: React.FC = () => {
   const ready = useBrandFonts();
   const frame = useCurrentFrame();
   const { width, height, fps } = useVideoConfig();
   const t = frame / fps;
-  // الخامات تُحمّل هنا خارج لوحة Three، فينتظرها Remotion قبل التقاط الإطار (داخلها يُركَّب متأخرًا)
   const wood = useAssetTextures(["dafatir-walnut-diff", "dafatir-walnut-nor", "dafatir-walnut-rough"], [4, 2.6]);
   const leather = useAssetTextures(["dafatir-leather-diff", "dafatir-leather-nor"]);
-  const mapTex = useCanvasTex(1536, 2048, (g) => drawMap(g, 1536, 2048, t), [ready, frame]);
-  const textTex = useCanvasTex(1536, 2048, (g) => drawText(g, 1536, 2048, t), [ready, frame]);
-  const docTex = useCanvasTex(1200, 1560, (g) => drawDoc(g, 1200, 1560, t), [ready, frame]);
+  const age = useAssetTextures(["dafatir-age-diff"]);
+  const ageImg = (age?.[0]?.image as CanvasImageSource | undefined) ?? null;
+  const mapTex = useCanvasTex(MAP_W, MAP_H, (g) => drawMap(g, t, ageImg), [ready, frame, Boolean(ageImg)]);
+  const textTex = useCanvasTex(MAP_W, MAP_H, (g) => drawText(g, ageImg), [ready, Boolean(ageImg)]);
+  const docTex = useCanvasTex(1200, 1560, (g) => drawDoc(g, 1200, 1560, t, ageImg), [ready, frame, Boolean(ageImg)]);
   const yearShown = span(t, wAt("للهجرة") + 0.15, 0.35);
   const astroTex = useCanvasTex(1024, 1024, (g) => drawAstro(g, 1024, yearShown), [ready, Math.round(yearShown * 20)]);
-  // الشبكة (العنكبوت) تدور حتى يقف المؤشر على ١٤٥ مع «للهجرة»
-  const year = 100 + 45 * ease(span(t, wAt("سنة"), wAt("للهجرة") + 0.3 - wAt("سنة")));
+  const shots = worldShots();
+  const shot = shots.find((s) => t >= s.a && t < s.b) ?? shots[shots.length - 1]!;
+  const cam = camOfShot(shot, t);
+  const year = 100 + 45 * ease(span(t, 0.3, wAt("للهجرة")));
   const pointer = ((year - 100) / 100) * Math.PI * 1.6 - Math.PI * 0.8;
-  // الختم الخشبي ينزل عند «السلام» ويرتفع
+  // الوثيقة تسقط في أول لقطتها وتستقر بوزنها (ارتداد صغير يخمد)
+  const docDrop = shots[3]!.a + 0.15, land = docDrop + 0.35;
+  const docY = t < docDrop ? 0.45 : t < land ? 0.45 * (1 - ease((t - docDrop) / 0.35)) : Math.abs(swing(t, land, 0.025, 3.2, 7));
+  const docTilt = t < land ? 0.06 : swing(t, land, 0.05, 2.4, 6);
   const sd = span(t, wAt("السلام") - 0.05, 0.2), su = span(t, wAt("السلام") + 0.35, 0.4);
-  const stampY = 0.9 - 0.82 * ease(sd) * (1 - ease(su)) + 0.5 * ease(su);
-  // بعد الطبع يرتفع ويُزاح جانبًا كما ترفعه اليد، فتظهر الطبعة
-  const stampX = -0.2 - 0.75 * ease(su), stampZ = 0.3 - 0.55 * ease(su);
-  const cam = camAt(t, { target: ASTRO_AT, yaw: 10, pitch: 64, dist: 2.3, fov: 32 }, [
-    // الإسطرلاب ٢٫٧ ث للتاريخ، ثم الدفتر، ثم الوثيقة والختم، ثم المكتب كله
-    { a: wAt("بدأ") - 0.35, b: wAt("جعفر"), to: { target: [ATLAS_AT[0] + 0.55, 0, ATLAS_AT[2] - 0.1], yaw: -4, pitch: 70, dist: 3.0, fov: 32 } },
-    { a: wAt("بغداد") - 0.2, b: wAt("دجلة") + 0.2, to: { target: [ATLAS_AT[0] + 0.85, 0, ATLAS_AT[2] - 0.05], yaw: 6, pitch: 74, dist: 2.55, fov: 32 } },
-    { a: wAt("وسمّاها") - 0.35, b: wAt("مدينة"), to: { target: [DOC_AT[0], 0, DOC_AT[2]], yaw: 4, pitch: 70, dist: 2.3, fov: 32 } },
-    { a: wAt("السلام") + 0.9, b: wAt("السلام") + 2.3, to: WIDE },
-  ], { shake: { amp: 0.004, rate: 0.5, seed: 31 } });
-  // لا تُركَّب لوحة Three قبل الخامات: هي تنتظر أول رسم لها بنفسها، فيخرج كل إطار بمكتبه
-  if (!wood || !leather) return null;
+  const stamp: V3 = [-0.2 - 0.75 * ease(su), 0.9 - 0.82 * ease(sd) * (1 - ease(su)) + 0.5 * ease(su), 0.3 - 0.55 * ease(su)];
+  const rise = ease(span(t, shots[2]!.a + 0.4, 1.6));
+  if (!wood || !leather || !age) return null;
+  const tickTimes = Array.from({ length: 8 }, (_, i) => 0.35 + i * ((wAt("للهجرة") - 0.1) / 8));
   return (
-    <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, LIGHTS)} background={K.dusk}>
-      <Desk ts={wood} />
-      <LeatherBook ts={leather} />
-      <WindowGobo />
-      {/* جدار الغرفة خلف المكتب: غسق داكن، فلا فراغ خلف الحافة */}
-      <mesh position={[0, 3, -4.4]} receiveShadow><planeGeometry args={[24, 10]} /><meshStandardMaterial color={K.dusk} roughness={1} /></mesh>
-      <Inkwell />
-      {/* الدفتر المفتوح: صفحتان منحنيتان قليلًا عند الكعب */}
-      <group position={ATLAS_AT}>
-        <mesh position={[0, 0.02, 0]} receiveShadow castShadow><boxGeometry args={[2.62, 0.04, 1.86]} /><meshStandardMaterial color={K.brassDark} roughness={0.7} /></mesh>
-        <mesh position={[0.64, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[1.26, 1.68]} /><meshStandardMaterial map={mapTex} roughness={0.92} /></mesh>
-        <mesh position={[-0.64, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[1.26, 1.68]} /><meshStandardMaterial map={textTex} roughness={0.92} /></mesh>
-        <mesh position={[0, 0.05, 0]}><boxGeometry args={[0.03, 0.02, 1.7]} /><meshStandardMaterial color={K.inkDark} /></mesh>
-      </group>
-      {/* الوثيقة على المكتب، والختم الخشبي فوقها */}
-      <group position={DOC_AT} rotation={[0, -0.12, 0]}>
-        <mesh position={[0, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow castShadow><planeGeometry args={[1.15, 1.5]} /><meshStandardMaterial map={docTex} roughness={0.95} /></mesh>
-        <group position={[stampX, stampY, stampZ]}>
+    <>
+      <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, lightsAtT(t))} background={K.dusk} shadows="variance">
+        <DepthOfField focus={cam.focus} aperture={shot.aperture} />
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[14, 9]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} roughnessMap={wood[2]} color="#c9b49a" /></mesh>
+        <mesh position={[0, 3, -4.4]} receiveShadow><planeGeometry args={[24, 10]} /><meshStandardMaterial color={K.dusk} roughness={1} /></mesh>
+        <WindowGobo />
+        <BeamDust t={t} from={[-4.2, 4.4, -3.1]} to={[0.4, 0.2, -0.2]} radius={0.9} color={K.goldLight} count={110} seed={7} />
+        <LeatherBook ts={leather} />
+        <Inkwell />
+        <Candle t={t} />
+        <group position={ATLAS_AT}>
+          <mesh position={[0, 0.02, 0]} receiveShadow castShadow><boxGeometry args={[2.62, 0.04, 1.86]} /><meshStandardMaterial color={K.brassDark} roughness={0.7} /></mesh>
+          <mesh position={[0.64, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[1.26, 1.68]} /><meshStandardMaterial map={mapTex} roughness={0.92} /></mesh>
+          <mesh position={[-0.64, 0.045, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[1.26, 1.68]} /><meshStandardMaterial map={textTex} roughness={0.92} /></mesh>
+          <mesh position={[0, 0.05, 0]}><boxGeometry args={[0.03, 0.02, 1.7]} /><meshStandardMaterial color={K.inkDark} /></mesh>
+        </group>
+        <group position={[DOC_AT[0], docY, DOC_AT[2]]} rotation={[docTilt, -0.12, docTilt * 0.5]}>
+          <mesh position={[0, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow castShadow><planeGeometry args={[1.15, 1.5]} /><meshStandardMaterial map={docTex} roughness={0.95} side={THREE.DoubleSide} /></mesh>
+        </group>
+        <group position={[DOC_AT[0] + stamp[0], stamp[1], DOC_AT[2] + stamp[2]]}>
           <mesh castShadow><cylinderGeometry args={[0.24, 0.24, 0.12, 40]} /><meshStandardMaterial color={K.inkDark} roughness={0.6} /></mesh>
           <mesh position={[0, 0.2, 0]} castShadow><cylinderGeometry args={[0.06, 0.09, 0.32, 24]} /><meshStandardMaterial color={K.brassDark} roughness={0.5} /></mesh>
           <mesh position={[0, 0.4, 0]} castShadow><sphereGeometry args={[0.1, 24, 16]} /><meshStandardMaterial color={K.brassDark} roughness={0.5} /></mesh>
         </group>
-      </group>
-      {/* الإسطرلاب على المكتب: الأم والصفيحة، والعنكبوت والمؤشر يدوران */}
-      <group position={ASTRO_AT}>
-        <mesh position={[0, 0.03, 0]} castShadow receiveShadow><cylinderGeometry args={[0.62, 0.62, 0.06, 96]} /><meshStandardMaterial color={K.brassDark} metalness={0.8} roughness={0.35} /></mesh>
-        <mesh position={[0, 0.062, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.6, 96]} /><meshStandardMaterial map={astroTex} metalness={0.55} roughness={0.38} /></mesh>
-        <group position={[0, 0.075, 0]} rotation={[0, -pointer, 0]}>
-          <mesh position={[0, 0, -0.27]} castShadow><boxGeometry args={[0.035, 0.012, 0.56]} /><meshStandardMaterial color={K.silver} metalness={0.9} roughness={0.2} /></mesh>
-          <mesh castShadow rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.15, 0.012, 12, 64]} /><meshStandardMaterial color={K.gold} metalness={0.85} roughness={0.3} /></mesh>
+        <group position={ASTRO_AT}>
+          <mesh position={[0, 0.03, 0]} castShadow receiveShadow><cylinderGeometry args={[0.62, 0.62, 0.06, 96]} /><meshStandardMaterial color={K.brassDark} metalness={0.8} roughness={0.35} /></mesh>
+          <mesh position={[0, 0.062, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.6, 96]} /><meshStandardMaterial map={astroTex} metalness={0.55} roughness={0.38} /></mesh>
+          <group position={[0, 0.075, 0]} rotation={[0, -pointer, 0]}>
+            <mesh position={[0, 0, -0.27]} castShadow><boxGeometry args={[0.035, 0.012, 0.56]} /><meshStandardMaterial color={K.silver} metalness={0.9} roughness={0.2} /></mesh>
+            <mesh castShadow rotation={[-Math.PI / 2, 0, 0]}><torusGeometry args={[0.15, 0.012, 12, 64]} /><meshStandardMaterial color={K.gold} metalness={0.85} roughness={0.3} /></mesh>
+          </group>
+          <mesh position={[0, 0.09, 0]}><cylinderGeometry args={[0.04, 0.04, 0.04, 24]} /><meshStandardMaterial color={K.gold} metalness={0.9} roughness={0.25} /></mesh>
         </group>
-        <mesh position={[0, 0.09, 0]}><cylinderGeometry args={[0.04, 0.04, 0.04, 24]} /><meshStandardMaterial color={K.gold} metalness={0.9} roughness={0.25} /></mesh>
-      </group>
-    </Stage3D>
+        <RoundCity wood={wood} rise={rise} />
+      </Stage3D>
+      {/* صوت الغرفة، ومع كل حركة صوتها (D158): تكّات العنكبوت، والقلم، والمدينة، والوثيقة، والختم */}
+      <Audio src={SFX("silence-room")} volume={0.35} loop />
+      {tickTimes.map((x, i) => <Sequence key={i} from={Math.round(x * fps)} durationInFrames={20}><Audio src={SFX("tick")} volume={0.55} /></Sequence>)}
+      <Sequence from={Math.round((wAt("وقف") - 0.1) * fps)} durationInFrames={Math.round(2.2 * fps)}><Audio src={SFX("quill-write")} volume={0.7} /></Sequence>
+      <Sequence from={Math.round((shots[2]!.a + 0.4) * fps)} durationInFrames={Math.round(1.2 * fps)}><Audio src={SFX("drop-soft")} volume={0.5} /></Sequence>
+      <Sequence from={Math.round(land * fps)} durationInFrames={30}><Audio src={SFX("swipe-paper")} volume={0.6} /></Sequence>
+      <Sequence from={Math.round((wAt("وسمّاها") - 0.1) * fps)} durationInFrames={Math.round(1.4 * fps)}><Audio src={SFX("pen-write")} volume={0.6} /></Sequence>
+      <Sequence from={Math.round((wAt("السلام") + 0.15) * fps)} durationInFrames={30}><Audio src={SFX("stamp")} volume={0.8} /></Sequence>
+      <CalmCaption t={t} />
+    </>
+  );
+};
+
+/** الترجمة سطر هادئ بخط القناة بلا تلوين ولا قفز (D187) */
+const CalmCaption: React.FC<{ t: number }> = ({ t }) => {
+  const line = [...WORLD_WORDS].reverse().find((w) => w.s - 0.15 <= t)?.line;
+  if (line === undefined || t > WORLD_WORDS[WORLD_WORDS.length - 1]!.e + 1.2) return null;
+  const words = WORLD_WORDS.filter((w) => w.line === line);
+  const fade = clamp01((t - words[0]!.s + 0.15) / 0.13);
+  return (
+    <AbsoluteFill style={{ pointerEvents: "none" }}>
+      <div style={{ position: "absolute", bottom: 62, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
+        <div style={{ opacity: fade, background: "rgba(42,30,63,0.55)", color: K.parchment, padding: "8px 28px", borderRadius: 10, fontFamily: "Tajawal", fontWeight: 500, fontSize: 52, direction: "rtl" }}>
+          {words.map((w) => w.w).join(" ")}
+        </div>
+      </div>
+    </AbsoluteFill>
   );
 };

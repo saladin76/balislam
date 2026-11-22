@@ -6,6 +6,7 @@
 import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import { Stage3D, useGrainTexture } from "./Stage3D";
+import { BeamDust, DepthOfField } from "./lens";
 import { camAt, lightsAt, type Cam, type CamKey, type Light } from "./rig";
 import type { Window } from "./time";
 
@@ -32,7 +33,10 @@ export const KitLab: React.FC = () => {
   const cam = camAt(t, START, KIT_LAB_KEYS, { still: KIT_LAB_STILL, shake: { amp: 0.03, rate: 0.8, seed: 11 } });
   const rough = useGrainTexture(5, 0.5);
   return (
-    <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, LIGHTS, KIT_LAB_STILL)} background="#2a2a2a">
+    <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, LIGHTS, KIT_LAB_STILL)} background="#2a2a2a" shadows="variance">
+      {/* العدسة: التركيز على الكرة الأمامية، فالخلفية تذوب؛ وغبار في شعاع المفتاح */}
+      <DepthOfField focus={cam.position[2] - 1} aperture={0.012} />
+      <BeamDust t={t} from={[3.2, 4.8, 2.4]} to={[0.4, 0.3, 0.6]} radius={0.5} color="#f2e6c8" still={KIT_LAB_STILL} />
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} receiveShadow>
         <planeGeometry args={[12, 8]} />
         <meshStandardMaterial color="#8a8a8a" roughnessMap={rough} roughness={1} />
