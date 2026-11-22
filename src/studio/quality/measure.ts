@@ -16,11 +16,19 @@ import { assemblyFile, masterFile } from "../sceneLedgerStore";
 import { readSeamsRecord } from "../seamsRecord";
 import { verifyVideoEvidence } from "../videoEvidence";
 import { measureLoudness } from "./audio";
+import { checkMix, measureMixLevels } from "./mix";
+import config from "../../../config.json";
 import { assemblyStillness, measureInteractivity } from "./interactivity";
 import { buildCard, cardRefusal, type CardTarget, type FileMeasurements, type QualityCard } from "./card";
+import type { PublishKit } from "../../package/social";
+import { packagingCard, shortsCard } from "../../package/qualityCard";
+import { sceneStartsFor } from "../../package/chapters";
+import { isSacredSentence } from "../../plan/sceneCues";
+import type { Plan } from "../../plan/types";
+import type { EpisodeMedia } from "../../plan/media";
 
 /** يرتفع حين يتغير ما يُقاس أو طريقته، فيُعاد القياس */
-export const MEASURE_VERSION = 1;
+export const MEASURE_VERSION = 3;
 
 type Stored = FileMeasurements & { version: number; file: { size: number; mtimeMs: number }; at: string };
 
@@ -67,11 +75,16 @@ export const measureTarget = async (episode: string, target: CardTarget): Promis
     const [loudness, headSilence, interactivity, video] = await Promise.all([
       measureLoudness(file), leadingSilence(file), measureInteractivity(file, spans), verifyVideoEvidence(file),
     ]);
+    // فحص الخلط من ملفات الراوي والمؤثرات نفسها، بالعلو الذي يخرج به الرندر (ربح سرد المشهد كما في التجميع وMaster)
+    const { sfxDir } = await import("../../voice/sfx");
+    const { narrationLoudness } = await import("../narrationLoudness");
+    const mix = checkMix(plan, media, await measureMixLevels(scriptPath, plan, media, (file) => path.join(sfxDir, file)), {
+      narrationVolume: config.audio.narrationVolume, sfxVolume: config.audio.sfxVolume, narrationGain: (await narrationLoudness(scriptPath, plan, media)).gain });
     const after = await fileStamp(file);
     if (!after || after.size !== before.size || after.mtimeMs !== before.mtimeMs) throw Error("تغيّر الملف أثناء القياس؛ أعد القياس.");
     const stored: Stored = { version: MEASURE_VERSION, file: before, at: new Date().toISOString(), loudness, headSilence,
       interactivity: { percent: interactivity.percent, counted: interactivity.counted, exempt: interactivity.exempt, still: interactivity.still, ok: interactivity.ok },
-      video: { width: video.width, height: video.height } };
+      video: { width: video.width, height: video.height }, mix };
     const out = measurementFile(scriptPath, target);
     const tmp = `${out}.${randomUUID()}.tmp`;
     await writeFile(tmp, JSON.stringify(stored, null, 1) + "\n", { mode: 0o600 });
@@ -91,6 +104,16 @@ const citationCount = async (scriptPath: string) => {
   } catch { return undefined; }
 };
 
+/** بنود B (التغليف والشورتس) من publish.json والخطة؛ بلا حزمة نشر لا بنود (البطاقة تقول إنها لم تُكتب) */
+const readyItems = async (scriptPath: string, plan: Plan, media: Omit<EpisodeMedia, "base" | "mode">) => {
+  let kit: PublishKit;
+  try { kit = JSON.parse(await readFile(path.join(path.dirname(scriptPath), "publish.json"), "utf8")) as PublishKit; } catch { return undefined; }
+  const scenes = plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, sacred: s.template === "verse-card" || s.template === "dua-board" || isSacredSentence(s.narration) }));
+  try {
+    return { packaging: packagingCard(kit, { title: plan.title, scenes, starts: sceneStartsFor(plan, { ...media, base: "", mode: "static" } as EpisodeMedia) }), shorts: shortsCard(kit) };
+  } catch { return undefined; }
+};
+
 /** البطاقة الحالية: النهائية إن وُجدت، وإلا المجمّعة (target يفرض أحدهما) */
 export const qualityCard = async (episode: string, target?: CardTarget): Promise<QualityCard & { exists: boolean; measuring: boolean }> => {
   const scriptPath = await resolveScriptPath(episode);
@@ -99,7 +122,7 @@ export const qualityCard = async (episode: string, target?: CardTarget): Promise
   if (!plan) throw Error("لا توجد خطة للحلقة.");
   const media = await collectMedia(episode, plan);
   const measured = await readMeasurement(scriptPath, t);
-  const card = buildCard({ target: t, plan, media, measured, citations: await citationCount(scriptPath) });
+  const card = buildCard({ target: t, plan, media, measured, citations: await citationCount(scriptPath), ready: await readyItems(scriptPath, plan, media) });
   return { ...card, exists: Boolean(await fileStamp(targetFile(scriptPath, t))), measuring: await isMeasuring(episode, t) };
 };
 
@@ -125,5 +148,5 @@ export const assertQualityForFinal = async (episode: string, onProgress?: (m: st
 export const assertQualityForPublish = async (episode: string) => {
   if (!qualityGateOn()) return;
   const card = await qualityCard(episode, "master");
-  if (card.blocks) throw Error(cardRefusal(card, "publish"));
+  if (card.publishBlocks) throw Error(cardRefusal(card, "publish"));
 };

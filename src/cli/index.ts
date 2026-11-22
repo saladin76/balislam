@@ -48,6 +48,57 @@ program
   });
 
 program
+  .command("compile")
+  .description("الفيديو التجميعي: يوصل النسخ النهائية لحلقات بإذن نشر بترتيبها بلا إعادة ترميز، ويكتب الفصول؛ لا يرفع شيئًا")
+  .argument("<name>", "اسم التجميع (مثل 2026-11)")
+  .argument("[episodes...]", "أرقام الحلقات بالترتيب")
+  .requiredOption("--title <title>", "عنوان التجميع")
+  .option("--series <id>", "كل حلقات السلسلة بترتيب أرقامها بدل قائمة الحلقات")
+  .action(async (name: string, episodes: string[], opts: { title: string; series?: string }) => {
+    const { makeCompilation } = await import("../package/compilation");
+    let list = episodes;
+    if (opts.series) {
+      const { episodesBySeries } = await import("../channel/seriesStore");
+      list = (await episodesBySeries()).filter((e) => e.series === opts.series).sort((a, b) => (a.number ?? 1e9) - (b.number ?? 1e9) || a.id.localeCompare(b.id)).map((e) => e.id);
+      if (!list.length) throw Error(`لا حلقات في السلسلة «${opts.series}».`);
+    }
+    const r = await makeCompilation({ name, title: opts.title, episodes: list }, (m) => console.log(m));
+    console.log(`التجميع: ${path.relative(projectRoot, r.out)} (${Math.round(r.seconds / 60)} د). شاهده كاملًا قبل النشر اليدوي.\nالفصول للوصف:\n${r.chapters}`);
+  });
+
+program
+  .command("sfx-suggest")
+  .description("D158 الخطوة ٣: اقتراح المؤثرات بالقواعد الست (الانتقال، والمكان، والكلمة)؛ للعرض فقط إلا بـ --write")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--write", "أضف الاقتراحات إلى الخطة (لا يمس مؤثرات المالك)، واحذف المؤثرات التي لا ملف لها")
+  .action(async (episode: string, opts: { write?: boolean }) => {
+    const { existsSync } = await import("node:fs");
+    const { loadPlan, savePlan } = await import("../plan/io");
+    const { collectMedia } = await import("../plan/collect");
+    const { suggestSfx, missingSfx } = await import("../plan/sfxSuggest");
+    const { sfxLibrary } = await import("../../brand/sfx");
+    const plan = await loadPlan(episode);
+    if (!plan) throw Error("لا توجد خطة للحلقة.");
+    const media = await collectMedia(episode, plan);
+    const lib = new Set(sfxLibrary.map((d) => d.id).filter((id) => existsSync(path.join(process.cwd(), "assets", "sfx", `${id}.mp3`))));
+    const s = suggestSfx(plan, media, lib);
+    const missing = missingSfx(plan, lib);
+    const voiced = plan.chapters.flatMap((c) => c.scenes).filter((x) => media.voice[x.id]?.text === x.narration.trim()).length;
+    console.log(`اقتراحات المؤثرات: ${s.length} (توقيت ${voiced ? "من صوت الراوي" : "تقديري — ولّد الصوت أولًا لتوقيت دقيق"})`);
+    for (const x of s) console.log(`  ${x.scene.padEnd(8)} ${x.sfx.at.toFixed(2).padStart(6)} ث  ${x.sfx.id.padEnd(15)} ${x.why}`);
+    if (missing.length) console.log(`مؤثرات في الخطة بلا ملف (تُتجاهل في الرندر): ${missing.map((m) => `${m.scene}: ${m.id}`).join("، ")}`);
+    if (!opts.write) { console.log("لم يُكتب شيء. اسمعها بعد الإضافة في المعاينة؛ للإضافة: --write"); return; }
+    const byScene = new Map<string, typeof s>();
+    for (const x of s) byScene.set(x.scene, [...(byScene.get(x.scene) ?? []), x]);
+    for (const c of plan.chapters) for (const sc of c.scenes) {
+      sc.sfx = sc.sfx.filter((x) => lib.has(x.id));
+      if (!sc.sfx.length && byScene.has(sc.id)) sc.sfx = byScene.get(sc.id)!.map((x) => x.sfx);
+    }
+    await savePlan(episode, plan);
+    console.log(`كُتبت ${s.length} مؤثرًا في الخطة${missing.length ? `، وحُذف ${missing.length} بلا ملف` : ""}. حدّث معاينة المشاهد لتسمعها.`);
+  });
+
+program
   .command("tone-map-sync")
   .description("دفاتر الزمن: يطابق مقاطع خريطة النبرة بسطور التشكيل الحالي بالنص (KI-088)؛ للعرض فقط إلا بـ --write")
   .argument("<episode>", "رقم الحلقة (001) أو مسار السكريبت")
@@ -894,6 +945,23 @@ program
     const published = Object.entries(c.calendar).filter(([d]) => d < from).flatMap(([, v]) => (v.shorts ?? []).map((s) => `${s.ep}#${s.n}`));
     const plan = planShorts({ from, days: Math.max(1, Math.min(90, Number(opts.days) || 14)), perDay: c.perDay, items: c.items, published, calendar: c.calendar });
     console.log(scheduleMarkdown(c.name, plan, c.perDay));
+  });
+
+program
+  .command("episodes-plan")
+  .description("جدول الحلقات الطويلة بقاعدة السلاسل: حلقة أسبوعيًا (حتى ٣) في يوم القناة، كل حلقة من سلسلة مختلفة في الأسبوع، وما أذن المالك بنشره وحده")
+  .option("--from <date>", "أول يوم (YYYY-MM-DD)؛ الافتراضي اليوم")
+  .option("--weeks <n>", "عدد الأسابيع", "6")
+  .option("--per-week <n>", "حلقات الأسبوع (١ إلى ٣)", "1")
+  .action(async (opts: { from?: string; weeks: string; perWeek: string }) => {
+    const { planEpisodes, episodesMarkdown, sameSeriesWeeks } = await import("../package/episodeSchedule");
+    const { channelEpisodes } = await import("../package/shortsScheduleFiles");
+    const from = opts.from ?? new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) throw new Error("التاريخ بصيغة YYYY-MM-DD.");
+    const c = await channelEpisodes();
+    const perWeek = Math.max(1, Math.min(3, Number(opts.perWeek) || 1));
+    for (const x of sameSeriesWeeks(c.dated, c.longDay)) console.log(`⚠️ أسبوع ${x.week}: الحلقات ${x.episodes.join("، ")} من سلسلة واحدة (${x.series})؛ القاعدة سلسلة مختلفة لكل حلقة في الأسبوع.`);
+    console.log(episodesMarkdown(c.name, planEpisodes({ from, weeks: Math.max(1, Math.min(26, Number(opts.weeks) || 6)), perWeek, longDay: c.longDay, items: c.items, dated: c.dated }), perWeek));
   });
 
 program

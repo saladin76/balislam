@@ -90,8 +90,10 @@ describe("الفحص", () => {
 
 describe("بطاقة الجودة (إلى A)", () => {
   const ctx = { title: "خلق آدم عليه السلام وبداية البشرية", scenes: [{ id: "c1-s4", sacred: false }] };
-  it("كل البنود ✓ حين تكتمل", () => {
-    expect(packagingCard(kit({ episodeUrl: URL }), ctx)).toMatchObject({ ok: true, missing: [] });
+  it("كل البنود ✓ حين تكتمل، إلا الأغلفة ما دام «مشهد» و«سؤال» موقوفَين (KI-120)", () => {
+    const p = packagingCard(kit({ episodeUrl: URL }), ctx);
+    expect(p.items.filter((i) => !i.ok).map((i) => i.id)).toEqual(["thumbnails"]);
+    expect(p.items.find((i) => i.id === "thumbnails")!.detail).toMatch(/KI-120/);
     expect(shortsCard(kit({ episodeUrl: URL }))).toMatchObject({ ok: true, missing: [] });
   });
   it("ما ينقص يُسمّى بالعربية، بأسماء بنود ثابتة", () => {

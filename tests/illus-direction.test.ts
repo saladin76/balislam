@@ -13,6 +13,10 @@ describe("إشارات المشاهد المصوَّرة (القاعدة الث�
     expect(isSacredSentence("يقول الله تعالى:")).toBe(true);
     expect(isSacredSentence("«اللهم أرنا الحق حقًا وارزقنا اتباعه»")).toBe(true);
     expect(isSacredSentence("فالله تعالى يقول:")).toBe(true);
+    // KI-121: الضمير المتصل بـ«رب» وحرف العطف أو الجر لا يُخفيان ذكر الله
+    for (const t of ["امتثلت الملائكة أمر ربها وسجدوا.", "بل رجع إلى ربه.", "وسألت الملائكة ربها عن الحكمة", "فاستغفروا ربكم.", "وربك الأكرم.", "ودعوا لربهم."])
+      expect(isSacredSentence(t), t).toBe(true);
+    for (const t of ["يربي أولاده على الصدق.", "وقف التاجر في السوق.", "التربية تبدأ في البيت."]) expect(isSacredSentence(t), t).toBe(false);
     expect(cuesFor("أي نسأل الله أن يهدينا إلى معرفة الحقيقة.")).toEqual([]);
     expect(cuesFor("وأن نطلب الهداية من الله، وأن نرجع إلى الوحي.")).toEqual([]);
   });

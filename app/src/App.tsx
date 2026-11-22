@@ -139,6 +139,8 @@ export const App: React.FC = () => {
   channelRef.current = channelId;
   const [channel, setChannel] = useState<ChannelInfo>(channelInfo(defaultChannel));
   const [episodes, setEpisodes] = useState<EpisodeSummary[] | null>(null);
+  const episodesNow = useRef(episodes);
+  episodesNow.current = episodes;
   const [epId, setEpId] = useState<string>(bootRoute.episode ?? "");
   /** The series page on screen («#/<channel>/series/<id>»), and the channel's series (band, picker, new episode). */
   const [seriesId, setSeriesId] = useState<string>(bootRoute.series ?? "");
@@ -444,6 +446,12 @@ export const App: React.FC = () => {
         pendingOpen.current = r.episode ? { ep: r.episode, tab: want.tab } : null;
         if (!r.episode) setTab(want.tab);
         setChannelId(r.channel!);
+        return;
+      }
+      // A link to a folder that is not an episode (plan.json without a script, e.g. 000-trailer) stays on the open
+      // episode and says so, instead of asking the server for it (404s, a broken page).
+      if (r.episode && episodesNow.current?.length && !episodesNow.current.some((e) => e.id === r.episode)) {
+        say(`«${r.episode}» ليست حلقة في هذه القناة بعد (مجلد بلا سكريبت)؛ بقيت الحلقة المفتوحة.`, true);
         return;
       }
       if (r.episode) setEpId(r.episode);

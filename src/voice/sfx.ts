@@ -3,11 +3,14 @@ import { existsSync } from "node:fs";
 import { mkdir, writeFile } from "node:fs/promises";
 import { projectRoot } from "../config/paths";
 import { sfxLibrary } from "../../brand/sfx";
+import { VARIANT_RECIPES, variantFile } from "../plan/sfxVariants";
 import type { ElevenLabsClient } from "./elevenlabs";
 
 export const sfxDir = path.join(projectRoot, "assets", "sfx");
 export const sfxFile = (id: string) => path.join(sfxDir, `${id}.mp3`);
 export const availableSfx = () => sfxLibrary.filter((s) => existsSync(sfxFile(s.id))).map((s) => s.id);
+/** النسخ البديلة الموجودة لمؤثر (D158 الخطوة ٤، scripts/sfx-variants.mjs) */
+export const availableVariants = (id: string) => VARIANT_RECIPES.map((r) => r.suffix).filter((v) => existsSync(path.join(sfxDir, variantFile(id, v))));
 
 /**
  * يولّد المؤثرات من أوصافها في brand/sfx.ts. الآهات البشرية لا تُولَّد: تُسجَّل بصوت منشد بإذن مكتوب.

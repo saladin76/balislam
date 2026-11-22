@@ -17,6 +17,16 @@ import { findTraces } from "./traces";
 export const THUMB_KINDS = ["title", "scene", "question"] as const;
 export type ThumbKind = (typeof THUMB_KINDS)[number];
 export const THUMB_KIND_LABEL: Record<ThumbKind, string> = { title: "عنوان", scene: "مشهد", question: "سؤال" };
+/**
+ * KI-120: غلافا «مشهد» و«سؤال» موقوفان عن الرسم حتى يختار المالك اتجاه القناة البصري من اتجاهات C الثلاثة
+ * (قرار المالك ٢١ نوفمبر: لا قوالب افتراضية، ولا قالب قبل اتجاه يختاره المالك). نصوصهما تُكتب وتُفحص كما هي،
+ * ولا يُرسم إلا «عنوان» بأسلوب مصغّرة القناة المعتمد. يُرفع الإيقاف بتصميم يتبع الاتجاه المختار، لا قبله.
+ */
+export const THUMB_ON_HOLD: Partial<Record<ThumbKind, string>> = {
+  scene: "موقوف حتى يختار المالك اتجاه القناة البصري (KI-120)",
+  question: "موقوف حتى يختار المالك اتجاه القناة البصري (KI-120)",
+};
+
 /** أقصى عدد كلمات على الصورة (قرار المالك). */
 export const THUMB_MAX_WORDS = 3;
 
@@ -138,3 +148,9 @@ export const frameTimeFor = (durationSec: number, at?: number): number => {
 /** ملف الغلاف رقم n: الترتيب ثابت (١ عنوان، ٢ مشهد، ٣ سؤال)، فيبقى اسم كل ملف لفكرته في «Test & Compare». */
 export const conceptOrder = (concepts: ThumbnailConcept[]) =>
   THUMB_KINDS.map((k) => concepts.find((c) => c.kind === k)).filter((c): c is ThumbnailConcept => Boolean(c));
+
+/** ما يُرسم الآن وما هو موقوف (KI-120)، بترتيب الملفات الثابت. */
+export const renderableConcepts = (concepts: ThumbnailConcept[]) => {
+  const all = conceptOrder(concepts);
+  return { render: all.filter((c) => !THUMB_ON_HOLD[c.kind]), held: all.filter((c) => THUMB_ON_HOLD[c.kind]) };
+};

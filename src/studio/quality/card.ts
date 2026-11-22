@@ -14,6 +14,7 @@ import { sceneSeconds } from "../../plan/duration";
 import { normalizeArabic } from "../../script/quranMeta";
 import { measureDiversity } from "./diversity";
 import { INTERACTIVITY_MIN, type InteractivityReport } from "./interactivity";
+import { MIX_MIN, type MixReport } from "./mix";
 
 export const LOUDNESS_TARGET = -14;
 export const LOUDNESS_TOLERANCE = 1;
@@ -23,11 +24,12 @@ export const HEAD_SILENCE_MAX = 0.6;
 export const HOOK_WINDOW_SEC = 15;
 
 export type ItemStatus = "pass" | "fail" | "unmeasured" | "warn" | "later";
-export type CardItem = { id: string; label: string; status: ItemStatus; value?: string; need: string; reason?: string };
+/** stage "publish": يمنع إذن النشر وحده (التغليف والشورتس تُصنع من النسخة النهائية وبعد نشرها)، لا صنع النسخة النهائية */
+export type CardItem = { id: string; label: string; status: ItemStatus; value?: string; need: string; reason?: string; stage?: "publish" };
 export type CardSection = { id: "audio" | "picture" | "script" | "packaging" | "shorts"; label: string; items: CardItem[] };
 /** الملف الذي قيست عليه البطاقة: الحلقة المجمّعة (قبل النهائية) أو النسخة النهائية (قبل النشر) */
 export type CardTarget = "assembly" | "master";
-export type QualityCard = { target: CardTarget; file?: { size: number; mtimeMs: number }; measuredAt?: string; sections: CardSection[]; blocks: boolean; blockers: string[] };
+export type QualityCard = { target: CardTarget; file?: { size: number; mtimeMs: number }; measuredAt?: string; sections: CardSection[]; publishBlocks: boolean; publishBlockers: string[]; blocks: boolean; blockers: string[] };
 
 /** ما يقيسه measure.ts على الملف (null: لم يُقس بعد) */
 export type FileMeasurements = {
@@ -35,6 +37,8 @@ export type FileMeasurements = {
   headSilence: number;
   interactivity: Pick<InteractivityReport, "percent" | "counted" | "exempt" | "still" | "ok">;
   video: { width: number; height: number };
+  /** فحص الخلط سطرًا سطرًا (mix.ts)؛ غيابه في قياس قديم = لم يُقس */
+  mix?: MixReport;
 };
 
 const ar = (n: number, d = 1) => (Number.isFinite(n) ? n.toLocaleString("ar-EG", { maximumFractionDigits: d, minimumFractionDigits: 0 }) : "—∞");
@@ -46,10 +50,7 @@ export const audioItems = (m: FileMeasurements | null): CardItem[] => {
   const loudNeed = `${ar(LOUDNESS_TARGET)} LUFS ± ${ar(LOUDNESS_TOLERANCE)}`;
   const peakNeed = `≤ ${ar(TRUE_PEAK_MAX)} dBTP`;
   const headNeed = `≤ ${ar(HEAD_SILENCE_MAX)} ث`;
-  const mix = [
-    later("narrator-over-ambience", "الراوي أعلى من صوت المكان", "≥ ١٥ dB", "فحص الخلط سطرًا سطرًا (المهمة ٦)"),
-    later("narrator-over-sfx", "الراوي أعلى من المؤثر على الجملة", "≥ ٦ dB", "فحص الخلط سطرًا سطرًا (المهمة ٦)"),
-  ];
+  const mix = mixItems(m?.mix);
   if (!m) return [unmeasured("loudness", "علو الحلقة", loudNeed), unmeasured("true-peak", "الذروة", peakNeed), unmeasured("head-silence", "سكوت البداية", headNeed), ...mix];
   const { integrated, truePeak } = m.loudness;
   const loudOk = Math.abs(integrated - LOUDNESS_TARGET) <= LOUDNESS_TOLERANCE;
@@ -62,6 +63,24 @@ export const audioItems = (m: FileMeasurements | null): CardItem[] => {
       ...(m.headSilence <= HEAD_SILENCE_MAX ? {} : { reason: "الفيديو يبدأ بصمت؛ المشاهد يغادر قبل أول كلمة (D155)." }) },
     ...mix,
   ];
+};
+
+/** بندا الخلط: أقل فرق بين الراوي والمؤثر في جمل الحلقة، وأسوأ الجمل سببًا */
+export const mixItems = (r: MixReport | undefined): CardItem[] => {
+  const spec = [
+    { id: "narrator-over-ambience", label: "الراوي أعلى من صوت المكان", kind: "ambience" as const, min: MIX_MIN.ambience },
+    { id: "narrator-over-sfx", label: "الراوي أعلى من المؤثر على الجملة", kind: "sfx" as const, min: MIX_MIN.sfx },
+  ];
+  return spec.map(({ id, label, kind, min }): CardItem => {
+    const need = `≥ ${ar(min, 0)} dB في كل جملة`;
+    if (!r) return unmeasured(id, label, need);
+    const lines = r.lines.filter((l) => l.kind === kind);
+    if (!lines.length) return { id, label, need, status: "pass", value: kind === "ambience" ? "لا صوت مكان تحت الكلام" : "لا مؤثر على الكلام" };
+    const bad = lines.filter((l) => !l.ok).sort((a, b) => a.margin - b.margin);
+    const least = Math.min(...lines.map((l) => l.margin));
+    return { id, label, need, value: `أقل فرق ${ar(least)} dB في ${ar(lines.length, 0)} جملة`, status: bad.length ? "fail" : "pass",
+      ...(bad.length ? { reason: `المؤثر يغطي الراوي في ${ar(bad.length, 0)} جملة؛ اخفضه أو انقله بعيدًا عن الكلام: ${bad.slice(0, 4).map((l) => `${l.scene} «${l.sentence.slice(0, 30)}» ← ${l.sfx} (${ar(l.margin)} dB)`).join("، ")}${bad.length > 4 ? "، …" : ""}` } : {}) };
+  });
 };
 
 /** 4K: 3840×2160 للحلقة و2160×3840 للعمودي (القاعدة الرابعة) */
@@ -137,9 +156,19 @@ export const scriptItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "re
   ];
 };
 
-/** التغليف والشورتس من تيرمينال B: يُضاف مزوّدهما هنا حين يُسلَّم */
-export const packagingItems = (): CardItem[] => [later("packaging", "التغليف (العنوان والصورة المصغّرة والوصف)", "معايير B", "تيرمينال B (النمو)")];
-export const shortsItems = (): CardItem[] => [later("shorts", "الشورتس", "معايير B", "تيرمينال B (النمو)")];
+/** بنود التغليف والشورتس من B (`src/package/qualityCard.ts`) بصيغة البطاقة؛ كلها «للنشر» */
+export type ReadyItems = { items: { id: string; label: string; ok: boolean; detail?: string }[] };
+const fromReady = (r: ReadyItems | undefined, missing: CardItem): CardItem[] =>
+  !r ? [missing] : r.items.map((i) => ({
+    id: i.id, label: i.label, need: i.label, stage: "publish" as const,
+    // رابط الحلقة في وصف الشورت لا يوجد إلا بعد نشر الحلقة: تنبيه لا منع
+    status: i.ok ? "pass" as const : i.id === "shorts-link" ? "warn" as const : "fail" as const,
+    ...(i.detail ? { reason: i.detail } : {}),
+  }));
+export const packagingItems = (r?: ReadyItems): CardItem[] =>
+  fromReady(r, { id: "packaging", label: "حزمة النشر (publish.json)", need: "العناوين والأغلفة والوصف", status: "fail", stage: "publish", reason: "لا توجد حزمة نشر للحلقة بعد." });
+export const shortsItems = (r?: ReadyItems): CardItem[] =>
+  fromReady(r, { id: "shorts", label: "الشورتس", need: "شورتس بعناوين أسئلة", status: "fail", stage: "publish", reason: "لا توجد حزمة نشر للحلقة بعد." });
 
 /** يمنع ما فيه ✗ أو قياس لم يُجرَ؛ والتنبيه والمؤجل لا يمنعان */
 export const BLOCKING: ReadonlySet<ItemStatus> = new Set(["fail", "unmeasured"]);
@@ -148,22 +177,26 @@ export const buildCard = (input: {
   target: CardTarget; plan: Plan; media?: Pick<EpisodeMedia, "voice" | "recitations">;
   measured: (FileMeasurements & { file: { size: number; mtimeMs: number }; at: string }) | null;
   citations?: { total: number; open: number };
+  ready?: { packaging: ReadyItems; shorts: ReadyItems };
 }): QualityCard => {
   const m = input.measured;
   const sections: CardSection[] = [
     { id: "audio", label: "الصوت", items: audioItems(m) },
     { id: "picture", label: "الصورة", items: pictureItems(m, input.target, input.plan) },
     { id: "script", label: "السكريبت", items: scriptItems(input.plan, input.media, input.citations) },
-    { id: "packaging", label: "التغليف", items: packagingItems() },
-    { id: "shorts", label: "الشورتس", items: shortsItems() },
+    { id: "packaging", label: "التغليف", items: packagingItems(input.ready?.packaging) },
+    { id: "shorts", label: "الشورتس", items: shortsItems(input.ready?.shorts) },
   ];
-  const blockers = sections.flatMap((s) => s.items.filter((i) => BLOCKING.has(i.status)).map((i) => `${s.label} — ${i.label}: ${i.status === "unmeasured" ? "لم يُقس بعد" : i.reason ?? "✗"}`));
-  return { target: input.target, ...(m ? { file: m.file, measuredAt: m.at } : {}), sections, blocks: blockers.length > 0, blockers };
+  const line = (s: CardSection, i: CardItem) => `${s.label} — ${i.label}: ${i.status === "unmeasured" ? "لم يُقس بعد" : i.reason ?? "✗"}`;
+  const publishBlockers = sections.flatMap((s) => s.items.filter((i) => BLOCKING.has(i.status)).map((i) => line(s, i)));
+  // النسخة النهائية لا ينتظرها ما يُصنع منها أو بعد نشرها
+  const blockers = sections.flatMap((s) => s.items.filter((i) => BLOCKING.has(i.status) && i.stage !== "publish").map((i) => line(s, i)));
+  return { target: input.target, ...(m ? { file: m.file, measuredAt: m.at } : {}), sections, blocks: blockers.length > 0, blockers, publishBlocks: publishBlockers.length > 0, publishBlockers };
 };
 
 /** رسالة الرفض للمالك: ما يمنع، بندًا بندًا */
 export const cardRefusal = (card: QualityCard, action: "final" | "publish") =>
-  `${action === "final" ? "لا تُصنع النسخة النهائية" : "لا يُمنح إذن النشر"} قبل أن تكون بطاقة الجودة بلا ✗ (${card.target === "assembly" ? "الحلقة المجمّعة" : "النسخة النهائية"}):\n${card.blockers.map((b) => `- ${b}`).join("\n")}`;
+  `${action === "final" ? "لا تُصنع النسخة النهائية" : "لا يُمنح إذن النشر"} قبل أن تكون بطاقة الجودة بلا ✗ (${card.target === "assembly" ? "الحلقة المجمّعة" : "النسخة النهائية"}):\n${(action === "final" ? card.blockers : card.publishBlockers).map((b) => `- ${b}`).join("\n")}`;
 
 const SIGN: Record<ItemStatus, string> = { pass: "✓", fail: "✗", unmeasured: "…", warn: "!", later: "—" };
 /** البطاقة نصًا (للطرفية، `bal quality`): كل بند بعلامته وقيمته والمطلوب وسببه، ثم الحكم */

@@ -18,6 +18,8 @@ export type EpisodeMedia = {
   query?: string;
   voice: Record<string, VoiceClip>;
   sfx: string[];
+  /** D158 الخطوة ٤: لاحقات النسخ البديلة الموجودة لكل مؤثر مستعمل (src/plan/sfxVariants.ts) */
+  sfxVariants?: Record<string, string[]>;
   recitations: Record<string, Recitation>;
   /** صور اللوحات الوثائقية الموجودة في مجلد الحلقة images/ */
   images?: string[];

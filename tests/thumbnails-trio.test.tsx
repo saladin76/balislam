@@ -3,8 +3,6 @@
  * لا يقرأ هذا الاختبار حلقة حية ولا publish.json لمالك (KI-068): كل المدخلات مكتوبة هنا.
  */
 import { describe, expect, it } from "vitest";
-import React from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import os from "node:os";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
@@ -17,7 +15,8 @@ import { kitIssues } from "../src/package/quality";
 import { kitToMarkdown, type PublishKit } from "../src/package/social";
 import { frameArgs, sceneFrameDataUri } from "../src/package/thumbnailFrame";
 import { rebindThumbnails } from "../src/package/package";
-import { QuestionThumb, SceneThumb } from "../src/remotion/Thumbnail";
+import * as ThumbnailModule from "../src/remotion/Thumbnail";
+import { THUMB_ON_HOLD, renderableConcepts } from "../src/package/thumbnails";
 
 const TITLE = "خلق آدم عليه السلام وبداية البشرية";
 const scenes = [
@@ -160,16 +159,18 @@ describe("الأغلفة الثلاثة: التسليم إلى Drive", () => {
   });
 });
 
-describe("الأغلفة الثلاثة: الرسم", () => {
-  it("«سؤال»: السؤال وحده وعلامة الاستفهام، بلا العنوان", () => {
-    const html = renderToStaticMarkup(<QuestionThumb style="horizon" themeId="warm" text="متى كانت البداية؟" />);
-    expect(html).toContain("متى كانت");
-    expect(html).toContain("البداية؟");
-    expect(html).not.toContain(TITLE);
+describe("KI-120: «مشهد» و«سؤال» موقوفان حتى يختار المالك اتجاه القناة", () => {
+  it("يُرسم «عنوان» وحده برقم ملفه، والآخران موقوفان بسببهما", () => {
+    const r = renderableConcepts([good[2]!, good[1]!, good[0]!]);
+    expect(r.render.map((c) => c.kind)).toEqual(["title"]);
+    expect(r.held.map((c) => c.kind)).toEqual(["scene", "question"]);
+    expect(THUMB_ON_HOLD.scene).toMatch(/KI-120/);
   });
-  it("«مشهد»: اللقطة بملء الصورة وكلماته فوقها", () => {
-    const html = renderToStaticMarkup(<SceneThumb style="circle" themeId="warm" text="أبو البشر" frame="data:image/jpeg;base64,AAAA" />);
-    expect(html).toContain('src="data:image/jpeg;base64,AAAA"');
-    expect(html).toContain("البشر");
+  it("نصوص الموقوفَين تُكتب وتُفحص كما هي (لا تضيع)", () => {
+    expect(errors(edit((c) => (c[2]!.text = "متى كانت البداية")))[0]!.message).toMatch(/ينتهي بـ«؟»/);
+  });
+  it("لا تصميم لهما في المكوّن: لا تدرّج خلف الكلمات ولا «؟» زخرفية ولا وهج (قرار «لا قوالب افتراضية»)", () => {
+    expect("QuestionThumb" in ThumbnailModule).toBe(false);
+    expect("SceneThumb" in ThumbnailModule).toBe(false);
   });
 });
