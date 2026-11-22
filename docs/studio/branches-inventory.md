@@ -165,3 +165,33 @@
 | `previews/balislam/001-know-the-truth/sb032-09-recall-portrait` | 2026-11-12 (`5e0a2b59`) | - | - | — |
 | `previews/balislam/001-know-the-truth/sb032-10-ending-landscape` | 2026-11-12 (`3fd3ffa8`) | - | - | — |
 | `previews/dafatir-alzaman/001-adam-beginning/episode` | 2026-11-12 (`7541eabe`) | - | - | — |
+
+## حذف ٢٢ نوفمبر ٢٠٢٦ (D191): المدموجة وحدها (22)
+
+بقرار المالك «احذف الفروع المدموجة فقط، واترك backup/* وpreviews/*». كل فرع هنا لا commit فيه خارج `main` لحظة الحذف. **الاستعادة:** `gh api -X POST repos/saladin76/balislam/git/refs -f ref=refs/heads/<الفرع> -f sha=<SHA الكامل>` (الكامل في سجل git لكل PR مدموج).
+
+| الفرع | SHA |
+|---|---|
+| `chore/c-three-engine` | `0a28afd2` |
+| `ci/skip-journeys-for-docs` | `1b0e60ea` |
+| `feat/autosave-grouping` | `4d5beb61` |
+| `feat/balislam-001-short-plan` | `36e0c172` |
+| `feat/card-packaging-shorts` | `cdb61bce` |
+| `feat/compilation` | `ab02ec99` |
+| `feat/dafatir-directions` | `6f517701` |
+| `feat/episode-schedule` | `1e93f1f6` |
+| `feat/geo3d-globe-prototype` | `8de47bf3` |
+| `feat/mix-check-lines` | `034ad8b7` |
+| `feat/sfx-mastering` | `ae4db540` |
+| `feat/sfx-mixing` | `76c6d685` |
+| `feat/sfx-suggest` | `d2b6b1c6` |
+| `feat/sfx-variants` | `fe047f96` |
+| `feat/three-kit` | `57197c7d` |
+| `fix/d158-duplicate-heading` | `810e285c` |
+| `fix/dock-details-after-fonts` | `765da17a` |
+| `fix/episode-starts-speaking` | `39a88eb2` |
+| `fix/join-memory` | `ebe7a979` |
+| `fix/route-unknown-episode` | `c12911be` |
+| `fix/sacred-rabbuhu` | `ed6e5489` |
+| `fix/voice-skips-diverged-scenes` | `36efb9af` |
+

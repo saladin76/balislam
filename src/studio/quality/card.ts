@@ -13,6 +13,7 @@ import type { EpisodeMedia } from "../../plan/media";
 import { sceneSeconds } from "../../plan/duration";
 import { normalizeArabic } from "../../script/quranMeta";
 import { measureDiversity } from "./diversity";
+import { measureCraft } from "./craft";
 import { INTERACTIVITY_MIN, type InteractivityReport } from "./interactivity";
 import { MIX_MIN, type MixReport } from "./mix";
 
@@ -26,7 +27,7 @@ export const HOOK_WINDOW_SEC = 15;
 export type ItemStatus = "pass" | "fail" | "unmeasured" | "warn" | "later";
 /** stage "publish": يمنع إذن النشر وحده (التغليف والشورتس تُصنع من النسخة النهائية وبعد نشرها)، لا صنع النسخة النهائية */
 export type CardItem = { id: string; label: string; status: ItemStatus; value?: string; need: string; reason?: string; stage?: "publish" };
-export type CardSection = { id: "audio" | "picture" | "script" | "packaging" | "shorts"; label: string; items: CardItem[] };
+export type CardSection = { id: "audio" | "picture" | "craft" | "script" | "packaging" | "shorts"; label: string; items: CardItem[] };
 /** الملف الذي قيست عليه البطاقة: الحلقة المجمّعة (قبل النهائية) أو النسخة النهائية (قبل النشر) */
 export type CardTarget = "assembly" | "master";
 export type QualityCard = { target: CardTarget; file?: { size: number; mtimeMs: number }; measuredAt?: string; sections: CardSection[]; publishBlocks: boolean; publishBlockers: string[]; blocks: boolean; blockers: string[] };
@@ -108,6 +109,27 @@ export const pictureItems = (m: FileMeasurements | null, target: CardTarget, pla
   return [res, inter, diversity];
 };
 
+/**
+ * «الحِرفة» (قرار المالك ٢٢ نوفمبر): بنود تُقاس من الخطة، «للعلم» لا تمنع حتى يحدد المالك حدودها؛ وما تحقق فيه
+ * المعيار كله (كل مشهد متحرك، ولا لقطة مكررة) يظهر ✓.
+ */
+export const craftItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">): CardItem[] => {
+  const c = measureCraft(plan, media);
+  const pct = c.scenes ? Math.round((c.cameraMoving / c.scenes) * 100) : 100;
+  const note = "للعلم حتى يحدد المالك الحد (لا يمنع).";
+  return [
+    { id: "craft-camera", label: "مشاهد فيها حركة كاميرا", need: "حركة كاميرا مسبَّبة في كل مشهد", value: `${ar(pct, 0)}٪ (${ar(c.cameraMoving, 0)} من ${ar(c.scenes, 0)})`,
+      status: pct === 100 ? "pass" : "warn", ...(pct === 100 ? {} : { reason: note }) },
+    { id: "craft-sizes", label: "أحجام اللقطات في الدقيقة", need: "واسعة ومتوسطة وقريبة وتفاصيل",
+      ...(c.sizesPerMinute === null ? { status: "warn" as const, reason: "قوالب الحلقة لا تعلن حجم لقطاتها (props.shotSize) بعد." }
+        : { status: "warn" as const, value: `${ar(c.sizesPerMinute)} حجم في الدقيقة (${ar(c.sizesDeclared, 0)} مشهدًا معلنًا)`, reason: note }) },
+    { id: "craft-sfx", label: "مؤثرات متزامنة مع الحركة", need: "صوت مع كل حركة (D158)", value: `${ar(c.syncedSfx, 0)}`, status: "warn", reason: note },
+    { id: "craft-repeat", label: "عدم تكرار اللقطة", need: "لا لقطة مرتين في الحلقة", value: c.repeatedShots.length ? `${ar(c.repeatedShots.length, 0)} لقطة مكررة` : "لا تكرار",
+      status: c.repeatedShots.length ? "warn" : "pass",
+      ...(c.repeatedShots.length ? { reason: `${note} ${c.repeatedShots.slice(0, 3).map((x) => x.scenes.join(" = ")).join("، ")}${c.repeatedShots.length > 3 ? "، …" : ""}` } : {}) },
+  ];
+};
+
 const bare = (s: string) => normalizeArabic(s);
 const COMMENT_CTA = /تعليق|التعليقات|علق|شاركنا|اكتب لنا|اخبرنا/;
 const REFERRAL = /الحلقه (القادمه|التاليه|السابقه|الماضيه)|حلقات|السلسله/;
@@ -183,6 +205,7 @@ export const buildCard = (input: {
   const sections: CardSection[] = [
     { id: "audio", label: "الصوت", items: audioItems(m) },
     { id: "picture", label: "الصورة", items: pictureItems(m, input.target, input.plan) },
+    { id: "craft", label: "الحِرفة", items: craftItems(input.plan, input.media) },
     { id: "script", label: "السكريبت", items: scriptItems(input.plan, input.media, input.citations) },
     { id: "packaging", label: "التغليف", items: packagingItems(input.ready?.packaging) },
     { id: "shorts", label: "الشورتس", items: shortsItems(input.ready?.shorts) },
