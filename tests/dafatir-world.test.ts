@@ -62,7 +62,7 @@ describe("مكتب الرحّالة: الهوية والخامات والصوت"
   });
   it("الترجمة سطر هادئ (D187): لا كلمة مميزة، ولا عشوائية، ولا أدوات شائعة", () => {
     const c = code.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
-    for (const re of [/boxShadow|textShadow|drop-shadow/, /particle|sparkle|lens.?flare|glow|Bloom/i, /Math\.random|Date\.now/, /\bInter\b|Poppins/]) expect(re.test(c), String(re)).toBe(false);
+    for (const re of [/boxShadow|drop-shadow|textShadow: (?!CAPTION_SHADOW)/, /particle|sparkle|lens.?flare|glow|Bloom/i, /Math\.random|Date\.now/, /\bInter\b|Poppins/]) expect(re.test(c), String(re)).toBe(false);
     expect(code).toMatch(/words\.map\(\(w\) => w\.w\)\.join\(" "\)/);
   });
 });

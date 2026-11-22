@@ -15,7 +15,7 @@ import React, { useMemo } from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { BeamDust, DepthOfField, Stage3D, ease, flicker, lightsAt, orbit, swing, useAssetTextures, type CamState, type Light, type V3 } from "../../three";
+import { BeamDust, DepthOfField, Stage3D, ease, flicker, lightsAt, orbit, swing, useAssetTextures, type CamState, type Light, type V3 , CAPTION_SHADOW } from "../../three";
 
 export const WORLD_FPS = 30;
 const SENTENCES = ["سنة مئة وخمس وأربعين للهجرة،", "وقف أبو جعفر المنصور على ضفة دجلة،", "فخطّ مدينةً مدوّرة، لها أربعة أبواب، وفي قلبها قصره،", "وسمّاها مدينة السلام."];
@@ -412,7 +412,7 @@ const CalmCaption: React.FC<{ t: number }> = ({ t }) => {
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <div style={{ position: "absolute", bottom: 62, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-        <div style={{ opacity: fade, background: "rgba(42,30,63,0.55)", color: K.parchment, padding: "8px 28px", borderRadius: 10, fontFamily: "Tajawal", fontWeight: 500, fontSize: 52, direction: "rtl" }}>
+        <div style={{ opacity: fade, color: K.parchment, textShadow: CAPTION_SHADOW, padding: "8px 28px", fontFamily: "Tajawal", fontWeight: 500, fontSize: 52, direction: "rtl" }}>
           {words.map((w) => w.w).join(" ")}
         </div>
       </div>
