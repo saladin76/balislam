@@ -4,3 +4,4 @@ export * from "./imperfection";
 export * from "./rig";
 export * from "./materials";
 export { Stage3D, useGrainTexture, type Stage3DProps } from "./Stage3D";
+export { useAssetTextures } from "./useAssets";
