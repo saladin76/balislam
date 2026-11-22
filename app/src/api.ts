@@ -388,6 +388,12 @@ export const api = {
   guidePage: (channel: string, file: string) => call<{ text: string }>(`/api/guide/${encodeURIComponent(file)}`, undefined, channel),
   /** غرفة العمليات: كل القنوات */
   ops: () => call<OpsChannel[]>("/api/ops"),
+  // D191: الطابور الليلي والمراجعة الأسبوعية (ملفات محلية على جهاز المالك)
+  nightly: () => call<{ settings: { enabled: boolean; hour: number }; running: boolean; markdown: string | null }>("/api/nightly"),
+  saveNightly: (s: { enabled: boolean; hour: number }) => call<{ settings: { enabled: boolean; hour: number } }>("/api/nightly/settings", { method: "PUT", json: s }),
+  runNightly: () => call<{ started: boolean }>("/api/nightly/run", { method: "POST", json: {} }),
+  weekly: () => call<{ markdown: string | null }>("/api/weekly"),
+  buildWeekly: () => call<{ markdown: string }>("/api/weekly/build", { method: "POST", json: {} }),
   saveCalendar: (channel: string, calendar: Record<string, CalendarDay>) => call("/api/calendar", { method: "PUT", json: { calendar } }, channel),
   channelFor: (channel: string) => call<ChannelConfig>("/api/channel", undefined, channel),
   saveChannelFor: (channel: string, c: ChannelConfig) => call("/api/channel", { method: "PUT", json: { channel: c } }, channel),

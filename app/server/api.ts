@@ -15,6 +15,7 @@ import { PREPARE_RUNNING_MESSAGE, prepareJob, startPrepareJob, stopPrepareJob } 
 import { applyStudioSecurityHeaders, isTrustedLocalRequest, studioRequestRefusal } from "./security.ts";
 import { captureRouteError, handleErrorRoutes, isProgrammingError, testFault } from "./errors.ts";
 import { handlePronunciationRoutes } from "./pronunciationCheck.ts";
+import { startNightlyScheduler } from "./nightly.ts";
 import { redactSecrets, secretValues } from "../../src/studio/errorLog.ts";
 
 /**
@@ -160,6 +161,8 @@ export const balApi = (): Plugin => ({
       .then(([m, ch]) => m.migrateLegacyRecords({ channelsDir: ch.channelsDir() }))
       .then((r) => { if (r.moved.length || r.skipped.length) console.log(`[studio] ${r.moved.length ? "legacy records archived" : "legacy records left in place"}: ${r.moved.length} moved, ${r.skipped.length} left.`); })
       .catch((e) => console.error("[studio] legacy migration:", (e as Error).message));
+    // D191: الطابور الليلي (ما اعتمده المالك وحده، بلا صوت مدفوع ولا نشر) والمراجعة الأسبوعية، ما دام الاستوديو يعمل
+    void startNightlyScheduler(root, load).catch((e) => console.error("[studio] nightly scheduler:", (e as Error).message));
     // «كل الأماكن نسخة واحدة» (D101): حفظ محتوى المالك في main واستقبال التحديثات آليًا، على جهاز المالك وحده
     const contentSync = createContentSync(root, {
       canRestart: () => busy.size === 0 && ![...renderJobs.values(), ...longJobs.values()].some((j) => j.status === "running"),
