@@ -21,6 +21,7 @@ import { useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { sceneAdvanceFrames, seamAudio, seamPlan, seamVolumeAt, type SeamAudio } from "../../plan/seams";
 import { isAmbience, sceneSacredSpans, sfxGainAt, speechSpans } from "../../plan/sfxMix";
+import { sfxFileNames } from "../../plan/sfxVariants";
 
 export type EpisodeProps = {
   plan: Plan;
@@ -72,7 +73,9 @@ export const visualNarrationTimings = (scene: PlanScene, media: EpisodeMedia, ti
     ? toFrames(clip.words, config.video.fps) : undefined;
 };
 
-export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia; seam?: SeamAudio; gain?: number; next?: PlanScene; channel?: string }> = ({ scene, media, seam, gain, next, channel }) => {
+export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia; seam?: SeamAudio; gain?: number; next?: PlanScene; channel?: string;
+  /** D158 الخطوة ٤: ملف كل مؤثر («المشهد#الترتيب») بالتدوير على نسخه في الحلقة؛ غيابه = الأصل */
+  sfxNames?: Map<string, string> }> = ({ scene, media, seam, gain, next, channel, sfxNames }) => {
   const fps = config.video.fps;
   const clip = media.voice[scene.id];
   const rec = scene.ayahKey ? media.recitations[scene.ayahKey] : undefined;
@@ -92,13 +95,13 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia; seam?
         : null}
       {/* D158 الخطوة ٢: لا مؤثر في السكون المقصود، وصوت الجو ينخفض تحت الكلام (src/plan/sfxMix.ts) */}
       {(() => {
-        const live = scene.sfx.filter((x) => media.sfx.includes(x.id));
+        const live = scene.sfx.map((x, i) => ({ ...x, file: sfxNames?.get(`${scene.id}#${i}`) ?? `${x.id}.mp3` })).filter((x) => media.sfx.includes(x.id));
         if (!live.length) return null;
         const sacred = sceneSacredSpans(scene, next, media, channel);
         const speech = speechSpans(scene, media);
         return live.map((x, i) => (
           <Sequence key={`${x.id}-${i}`} from={Math.round(x.at * fps)} name={`مؤثر ${x.id}`}>
-            <Audio src={mediaSrc(media, `sfx/${x.id}.mp3`)}
+            <Audio src={mediaSrc(media, `sfx/${x.file}`)}
               volume={(f: number) => config.audio.sfxVolume * sfxGainAt(x.at + f / fps, sacred, speech, isAmbience(x.id))} />
           </Sequence>
         ));
@@ -153,6 +156,8 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
       {(() => { const list = scenesOf(props); const shown = list.map((x) => x.scene);
         const seams = seamPlan(shown, media, { channelId: plan.channel });
         const audio = seamAudio(shown, media, { channelId: plan.channel });
+        // ترتيب الظهور من الحلقة كلها (لا من الفصل المعروض): المؤثر نفسه يأخذ النسخة نفسها في الحلقة وفي شورتها
+        const sfxNames = sfxFileNames(props.plan, media.sfxVariants);
         return list.map(({ chapter, scene }, idx, all) => {
         // المشهد السابق في الفصل نفسه (للانتقال المتصل في السبورة؛ الشورت يبدأ بلا انتقال)
         const prev = idx > 0 && all[idx - 1]!.chapter.number === chapter.number ? all[idx - 1]!.scene : undefined;
@@ -188,7 +193,7 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
             ) : (
               body
             )}
-            <SceneAudio scene={scene} media={media} seam={audio[idx]} gain={props.narrationGain?.[scene.id]} next={list[idx + 1]?.scene} channel={props.plan.channel} />
+            <SceneAudio scene={scene} media={media} seam={audio[idx]} gain={props.narrationGain?.[scene.id]} next={list[idx + 1]?.scene} channel={props.plan.channel} sfxNames={sfxNames} />
             {props.draftMarks?.pendingRecitation.includes(scene.id) &&
               ((scene.template === "verse-card" && !isRecitedVerse(scene, media)) || media.voice[scene.id]?.basmala?.pending)
               ? <PendingRecitationTag /> : null}

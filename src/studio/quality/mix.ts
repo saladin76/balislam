@@ -14,6 +14,7 @@ import type { Plan, PlanScene } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 import { isAmbience, sceneSacredSpans, sfxGainAt, speechSpans } from "../../plan/sfxMix";
 import { splitWords } from "../../remotion/scenes/timing";
+import { sfxFileNames } from "../../plan/sfxVariants";
 
 export const MIX_MIN = { ambience: 15, sfx: 6 } as const;
 /** علو لحظي دون هذا صمت (البوابة المطلقة في EBU R128) */
@@ -21,6 +22,7 @@ const SILENT = -70;
 
 /** علو لحظي (LUFS) عند الثانية t من أول الملف */
 export type Frame = { t: number; m: number };
+/** sfx: بمفتاح اسم الملف الذي يُرندر (الأصل «id.mp3» أو نسخته «id--v2.mp3»، D158 الخطوة ٤) */
 export type MixLevels = { voice: Record<string, Frame[]>; sfx: Record<string, Frame[]> };
 export type MixLine = { scene: string; sentence: string; sfx: string; kind: "ambience" | "sfx"; narrator: number; peak: number; margin: number; need: number; ok: boolean };
 export type MixReport = { lines: MixLine[]; ambience: number | null; sfx: number | null; ok: boolean };
@@ -52,12 +54,14 @@ export const sentenceSpans = (scene: PlanScene, words: { start: number; end: num
   return out;
 };
 
-export const checkMix = (plan: Plan, media: Pick<EpisodeMedia, "voice" | "recitations" | "sfx">, levels: MixLevels,
+export const checkMix = (plan: Plan, media: Pick<EpisodeMedia, "voice" | "recitations" | "sfx" | "sfxVariants">, levels: MixLevels,
   opts: { narrationVolume: number; sfxVolume: number; narrationGain?: Record<string, number> }): MixReport => {
   const lines: MixLine[] = [];
   const all = plan.chapters.flatMap((c) => c.scenes);
+  const names = sfxFileNames(plan, media.sfxVariants);
   all.forEach((scene, idx) => {
-    const live = scene.sfx.filter((x) => media.sfx.includes(x.id) && levels.sfx[x.id]?.length);
+    const live = scene.sfx.map((x, i) => ({ ...x, file: names.get(`${scene.id}#${i}`) ?? `${x.id}.mp3` }))
+      .filter((x) => media.sfx.includes(x.id) && levels.sfx[x.file]?.length);
     const clip = media.voice[scene.id];
     const voice = levels.voice[scene.id];
     // بلا صوت راوٍ مطابق لا جملة يغطيها المؤثر
@@ -73,7 +77,7 @@ export const checkMix = (plan: Plan, media: Pick<EpisodeMedia, "voice" | "recita
       for (const x of live) {
         const amb = isAmbience(x.id);
         let peak = -Infinity;
-        for (const f of levels.sfx[x.id]!) {
+        for (const f of levels.sfx[x.file]!) {
           const t = x.at + f.t;
           if (!inside(t) || !Number.isFinite(f.m)) continue;
           // الخفض والسكون على وسط النافذة اللحظية
@@ -117,15 +121,20 @@ export const measureFrames = async (file: string, pad = 0): Promise<Frame[]> => 
 };
 
 /** يقيس ما يلزم الفحص: مقطع الراوي لكل مشهد عليه مؤثر، وكل مؤثر مستعمل */
-export const measureMixLevels = async (scriptPath: string, plan: Plan, media: Pick<EpisodeMedia, "voice" | "sfx">, sfxFile: (id: string) => string): Promise<MixLevels> => {
+export const measureMixLevels = async (scriptPath: string, plan: Plan, media: Pick<EpisodeMedia, "voice" | "sfx" | "sfxVariants">, sfxPath: (file: string) => string): Promise<MixLevels> => {
   const levels: MixLevels = { voice: {}, sfx: {} };
+  const names = sfxFileNames(plan, media.sfxVariants);
   const dir = path.join(path.dirname(scriptPath), "voice");
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
     const live = s.sfx.filter((x) => media.sfx.includes(x.id));
     const clip = media.voice[s.id];
     if (!live.length || !clip || clip.text !== s.narration.trim() || path.basename(clip.file) !== clip.file) continue;
     levels.voice[s.id] = await measureFrames(path.join(dir, clip.file));
-    for (const x of live) levels.sfx[x.id] ??= await measureFrames(sfxFile(x.id), 0.5);
+    for (const [i, x] of s.sfx.entries()) {
+      if (!media.sfx.includes(x.id)) continue;
+      const file = names.get(`${s.id}#${i}`) ?? `${x.id}.mp3`;
+      levels.sfx[file] ??= await measureFrames(sfxPath(file), 0.5);
+    }
   }
   return levels;
 };
