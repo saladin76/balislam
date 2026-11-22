@@ -30,3 +30,30 @@ export const channelShorts = async (channelId?: string): Promise<{ name: string;
   }
   return { name: ch.name, perDay: ch.schedule?.shortsPerDay ?? 2, items, calendar: (await json<Record<string, ManualDay>>(path.join(cp.dir, "calendar.json"))) ?? {} };
 };
+
+/**
+ * Every episode of the channel for the weekly planner (src/package/episodeSchedule.ts): its series (and number in it),
+ * its plan title, its date if published or scheduled (`status.json`), and `ready` = the owner granted publishing for its
+ * current Master. Reads only.
+ */
+export const channelEpisodes = async (channelId?: string) => {
+  const ch = loadChannel(channelId);
+  const cp = channelPaths(channelId);
+  const { episodeSeriesOf } = await import("../channel/seriesStore");
+  const { summarizeSceneProduction } = await import("../studio/sceneService");
+  const { loadPlan } = await import("../plan/io");
+  const items: import("./episodeSchedule").EpisodeItem[] = [];
+  const dated: import("./episodeSchedule").DatedEpisode[] = [];
+  for (const name of await listScriptEpisodeDirs(cp.episodes)) {
+    const dir = path.join(cp.episodes, name);
+    const id = name.slice(0, 3);
+    const link = episodeSeriesOf(dir);
+    const status = (await json<{ published?: { date?: string }; scheduled?: string }>(path.join(dir, "status.json"))) ?? {};
+    const date = status.published?.date ?? status.scheduled;
+    if (date) { dated.push({ id, series: link.series, date }); continue; }
+    const ready = await summarizeSceneProduction(id).then((s) => s.publishAllowed, () => false);
+    const title = (await loadPlan(id).catch(() => null))?.title;
+    items.push({ id, series: link.series, ...(link.stamp?.number ? { number: link.stamp.number } : {}), ...(title ? { title } : {}), ready });
+  }
+  return { name: ch.name, longDay: ch.schedule?.longDay ?? 6, items, dated };
+};

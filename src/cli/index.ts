@@ -948,6 +948,23 @@ program
   });
 
 program
+  .command("episodes-plan")
+  .description("جدول الحلقات الطويلة بقاعدة السلاسل: حلقة أسبوعيًا (حتى ٣) في يوم القناة، كل حلقة من سلسلة مختلفة في الأسبوع، وما أذن المالك بنشره وحده")
+  .option("--from <date>", "أول يوم (YYYY-MM-DD)؛ الافتراضي اليوم")
+  .option("--weeks <n>", "عدد الأسابيع", "6")
+  .option("--per-week <n>", "حلقات الأسبوع (١ إلى ٣)", "1")
+  .action(async (opts: { from?: string; weeks: string; perWeek: string }) => {
+    const { planEpisodes, episodesMarkdown, sameSeriesWeeks } = await import("../package/episodeSchedule");
+    const { channelEpisodes } = await import("../package/shortsScheduleFiles");
+    const from = opts.from ?? new Date().toISOString().slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(from)) throw new Error("التاريخ بصيغة YYYY-MM-DD.");
+    const c = await channelEpisodes();
+    const perWeek = Math.max(1, Math.min(3, Number(opts.perWeek) || 1));
+    for (const x of sameSeriesWeeks(c.dated, c.longDay)) console.log(`⚠️ أسبوع ${x.week}: الحلقات ${x.episodes.join("، ")} من سلسلة واحدة (${x.series})؛ القاعدة سلسلة مختلفة لكل حلقة في الأسبوع.`);
+    console.log(episodesMarkdown(c.name, planEpisodes({ from, weeks: Math.max(1, Math.min(26, Number(opts.weeks) || 6)), perWeek, longDay: c.longDay, items: c.items, dated: c.dated }), perWeek));
+  });
+
+program
   .command("thumbnails")
   .description("الأغلفة الثلاثة وحدها (عنوان، مشهد، سؤال) من publish.json: بلا فيديو ولا صوت ولا مساس بالنسخة النهائية")
   .argument("<episode>", "رقم الحلقة")
