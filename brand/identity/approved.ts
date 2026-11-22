@@ -25,6 +25,8 @@ export type ApprovedIdentity = {
   derived: string[];
   /** «idea-only»: لون التمييز للكلمة أو الفكرة المحورية فقط، لا لتلوين العناصر ولا للزينة (يُطبَّق في القوالب) */
   highlight?: "idea-only";
+  /** ألوان أضافها المالك لاستعمال واحد محدد (لا لـ identity.json العامة)، وهي في derived أيضًا */
+  restricted?: { hex: string; nameAr: string; useAr: string }[];
 };
 
 const SKIN = ["#E7C3A0", "#D2A782"];
@@ -69,7 +71,9 @@ export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
     ],
     signature: ["#2A1E3F", "#E07A3F", "#F1E4CB", "#4A2E1F", "#D7372B", "#F3C98B"],
     motifs: ["stars", "horizon", "ink-lines"],
-    derived: ["#1A1424", "#251C30", "#35284D", "#120C18", "#A399B4", "#BFB3C9", "#B4583A", "#2B1E14", "#5A4632", "#EADBC0", "#F4E9D4", "#F8EEDB", "#F3E9DA", "#7A7F4E", ...SKIN],
+    derived: ["#1A1424", "#251C30", "#35284D", "#120C18", "#A399B4", "#BFB3C9", "#B4583A", "#2B1E14", "#5A4632", "#EADBC0", "#F4E9D4", "#F8EEDB", "#F3E9DA", "#7A7F4E", "#26619C", ...SKIN],
+    // قرار المالك ٢٢ نوفمبر: اللازورد للماء والخرائط وحدها (بحار وأنهار «مكتب الرحّالة»)
+    restricted: [{ hex: "#26619C", nameAr: "لازورد", useAr: "الماء والخرائط فقط" }],
   },
   "zubdat-alkutub": {
     nameAr: "القلم المميِّز",
@@ -88,7 +92,14 @@ export const APPROVED_IDENTITIES: Record<string, ApprovedIdentity> = {
     signature: ["#E8F542", "#FF6B4A"],
     motifs: ["ruled"],
     highlight: "idea-only",
-    derived: ["#000000", "#1E1E1E", "#4A4A4A", "#6A6A6A", "#8A8172", "#BDBDBD", "#DCD6C8", "#F4F4F1", "#F1EDE4", "#EDE7DA", "#F8F4EC", ...SKIN],
+    derived: ["#000000", "#1E1E1E", "#4A4A4A", "#6A6A6A", "#8A8172", "#BDBDBD", "#DCD6C8", "#F4F4F1", "#F1EDE4", "#EDE7DA", "#F8F4EC", "#A8322A", "#2F6B4F", "#C9A24A", "#7A5230", ...SKIN],
+    // قرار المالك ٢٢ نوفمبر: عالم «الأفكار آلات» بألوان مخطوطة الجزري (بلا فسفوري فيه)
+    restricted: [
+      { hex: "#A8322A", nameAr: "أحمر المخطوطة", useAr: "عالم «الأفكار آلات»: أسماء الأجزاء بالحبر الأحمر" },
+      { hex: "#2F6B4F", nameAr: "أخضر المخطوطة", useAr: "عالم «الأفكار آلات»" },
+      { hex: "#C9A24A", nameAr: "ذهب المخطوطة", useAr: "عالم «الأفكار آلات»" },
+      { hex: "#7A5230", nameAr: "خشب الآلة", useAr: "عالم «الأفكار آلات»" },
+    ],
   },
 };
 
