@@ -10,7 +10,7 @@ vi.mock("remotion", async (orig) => {
 });
 
 const { activeWordIndex } = await import("../src/remotion/scenes/timing");
-const { CaptionBar } = await import("../src/remotion/scenes/CaptionBar");
+const { CaptionBar, captionLines, CAPTION_MAX_WORDS } = await import("../src/remotion/scenes/CaptionBar");
 const { masterTheme } = await import("../brand/themes");
 
 const w = (word: string, start: number, end: number) => ({ word, start, end });
@@ -55,28 +55,37 @@ describe("activeWordIndex", () => {
   });
 });
 
-describe("CaptionBar regression: word gaps do not snap back to the first chunk", () => {
-  // ١٢ كلمة بفجوة ٣ إطارات بين كل كلمتين؛ الدفعة الافتراضية أقل من ١٢ كلمة
-  const words = Array.from({ length: 12 }, (_, i) => w(`w${i}`, 10 + i * 10, 17 + i * 10));
-  const render = (frame: number, variant?: "pill" | "paper") => {
+describe("الترجمة الهادئة (قرار المالك ٢٢ نوفمبر): سطر ثابت بلا قفز ولا تلوين", () => {
+  // ١٢ كلمة بفجوة ٣ إطارات بين كل كلمتين، والجملة الأولى تنتهي بنقطة عند w4
+  const words = Array.from({ length: 12 }, (_, i) => w(i === 4 ? "w4." : `w${i}`, 10 + i * 10, 17 + i * 10));
+  const render = (frame: number, variant?: "pill" | "paper" | "cinema" | "dusk") => {
     currentFrame = frame;
     return renderToStaticMarkup(<CaptionBar theme={masterTheme} timings={words} portrait={false} variant={variant} />);
   };
 
-  for (const variant of ["pill", "paper"] as const) {
-    it(`${variant}: a gap between words keeps the current chunk on screen`, () => {
-      const lastWordFrame = render(words[11]!.start + 1, variant);
-      expect(lastWordFrame).toContain("w11");
-      expect(lastWordFrame).not.toContain(">w0<");
-      // الفجوة بين w10 وw11 (إطار 118): كان يعرض الدفعة الأولى (w0…)
-      const gap = render(words[10]!.end + 1, variant);
-      expect(gap).toContain("w10");
-      expect(gap).not.toContain(">w0<");
-      expect(gap).toBe(render(words[10]!.start + 1, variant));
+  it("الأسطر تُقطع بعد علامة الوقف أو عند الحد، متقاربة الطول، بلا كلمة يتيمة", () => {
+    expect(captionLines(words.map((x) => x.word), CAPTION_MAX_WORDS.landscape)).toEqual([[0, 1, 2, 3, 4], [5, 6, 7, 8, 9, 10, 11]]);
+    expect(captionLines(Array.from({ length: 11 }, (_, i) => `k${i}`), 10).map((l) => l.length)).toEqual([6, 5]);
+    expect(captionLines(["أ،", "ب", "ج."], 6)).toEqual([[0], [1, 2]]);
+  });
+
+  for (const variant of ["pill", "paper", "cinema", "dusk"] as const) {
+    it(`${variant}: السطر كله بلون واحد بلا كلمة مميزة، ولا يتغير داخل السطر ولا في الفجوات`, () => {
+      const a = render(words[6]!.start + 6, variant), b = render(words[9]!.end + 1, variant);
+      expect(a).toBe(b);
+      expect(a).toContain("w5 w6 w7 w8 w9 w10 w11");
+      expect(a).not.toContain("w4");
+      // لا span لكل كلمة، ولا خلفية للكلمة الجارية
+      expect(a).not.toMatch(/<span/);
     });
   }
 
-  it("still hides the bar before the first word", () => {
+  it("السطر الجديد يظهر بتلاشٍ قصير لا قفزًا", () => {
+    expect(render(words[5]!.start)).toMatch(/opacity:0\.25/);
+    expect(render(words[5]!.start + 10)).toMatch(/opacity:1/);
+  });
+
+  it("لا ترجمة قبل أول كلمة", () => {
     expect(render(5)).toBe("");
   });
 });
