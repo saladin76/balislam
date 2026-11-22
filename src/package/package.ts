@@ -22,7 +22,7 @@ import { unlink } from "node:fs/promises";
 import type { Plan } from "../plan/types";
 import type { PublishKit } from "./social";
 import { sceneStartsFor } from "./chapters";
-import { THUMB_KIND_LABEL, conceptOrder, isSacredScene, thumbnailIssues } from "./thumbnails";
+import { THUMB_KIND_LABEL, THUMB_ON_HOLD, conceptOrder, isSacredScene, renderableConcepts, thumbnailIssues } from "./thumbnails";
 
 export type PackageOptions = {
   episode: string;
@@ -250,17 +250,14 @@ export const renderThumbnailSet = async (o: { scriptPath: string; script: string
     }
     return out;
   }
-  const { sceneFrameDataUri } = await import("./thumbnailFrame");
-  for (const [i, c] of conceptOrder(concepts).entries()) {
-    log(`الغلاف ${i + 1} من 3 (${THUMB_KIND_LABEL[c.kind]})…`);
-    let frame: string | undefined;
-    if (c.kind === "scene" && c.sceneId) {
-      const f = await sceneFrameDataUri(o.scriptPath, c.sceneId, c.atSeconds);
-      if (f) { frame = f.uri; log(`   لقطة من ${c.sceneId} عند ${f.at.toFixed(1)} ث`); }
-      else log(`   ⚠️ لا فيديو للمشهد ${c.sceneId} بعد: الغلاف بعنصر الحلقة بدل اللقطة. أنتج المشهد ثم أعد صنع الأغلفة.`);
-    }
-    out.push(path.basename(await renderThumbnail({ ...base, title: plan.title, concept: { kind: c.kind, text: c.text.trim(), ...(frame ? { frame } : {}) } }, path.join(dir, `${id}-thumbnail-${i + 1}.png`))));
+  // KI-120: «مشهد» و«سؤال» موقوفان حتى يختار المالك اتجاه القناة؛ يُرسم «عنوان» وحده، والملف يبقى برقم فكرته
+  const { render, held } = renderableConcepts(concepts);
+  for (const c of render) {
+    const n = conceptOrder(concepts).indexOf(c) + 1;
+    log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]})…`);
+    out.push(path.basename(await renderThumbnail({ ...base, title: plan.title, concept: { kind: "title", text: c.text.trim() } }, path.join(dir, `${id}-thumbnail-${n}.png`))));
   }
+  for (const c of held) log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: ${THUMB_ON_HOLD[c.kind]}؛ لم يُرسم.`);
   return out;
 };
 

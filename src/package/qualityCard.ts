@@ -6,7 +6,7 @@
  * كل سطر يقرأ الفحص نفسه الذي يمنع الحزمة أو ينبّه في «حزمة الانتشار» (kitIssues وما يستدعيه).
  */
 import { kitIssues, TITLE_MAX } from "./quality";
-import { thumbnailIssues, type ThumbScene } from "./thumbnails";
+import { THUMB_ON_HOLD, thumbnailIssues, type ThumbScene } from "./thumbnails";
 import { resolveChapters, type SceneStarts } from "./chapters";
 import { isEpisodeUrl, isQuestionTitle } from "./shortsLink";
 import type { PublishKit } from "./social";
@@ -30,8 +30,10 @@ export const packagingCard = (kit: PublishKit, ctx: { title: string; scenes?: Th
   const ch = L.chapters?.length && ctx.starts ? resolveChapters(L.chapters, ctx.starts) : null;
   const kitErrors = kitIssues(kit, { title: ctx.title, scenes: ctx.scenes, starts: ctx.starts }).filter((i) => i.level === "error");
   return section([
-    { id: "thumbnails", label: "الأغلفة الثلاثة (عنوان، مشهد، سؤال)", ok: Boolean(L.thumbnails) && !thumbs.some((i) => i.level === "error"),
-      detail: !L.thumbnails ? "لم تُكتب" : thumbs.find((i) => i.level === "error")?.message },
+    // الثلاثة صورًا: ما دام «مشهد» و«سؤال» موقوفَين (KI-120) فالبند ناقص، فلا يُنشر بغلاف واحد
+    { id: "thumbnails", label: "الأغلفة الثلاثة (عنوان، مشهد، سؤال)",
+      ok: Boolean(L.thumbnails) && !thumbs.some((i) => i.level === "error") && Object.keys(THUMB_ON_HOLD).length === 0,
+      detail: !L.thumbnails ? "لم تُكتب" : thumbs.find((i) => i.level === "error")?.message ?? (Object.keys(THUMB_ON_HOLD).length ? "«مشهد» و«سؤال» بانتظار اتجاه القناة الذي يختاره المالك (KI-120)" : undefined) },
     { id: "titles", label: `العناوين ≤ ${TITLE_MAX} حرفًا`, ok: L.titles.length > 0 && long.length === 0, detail: long[0] ? `«${long[0].text}»` : L.titles.length ? undefined : "بلا عنوان" },
     { id: "chapters", label: "فصول يوتيوب من حدود المشاهد", ok: !L.chapters?.length || Boolean(ch && !ch.issues.some((i) => i.level === "error")),
       detail: L.chapters?.length && !ctx.starts ? "توقيت المشاهد غير معروف" : ch?.issues.find((i) => i.level === "error")?.message },

@@ -14,8 +14,11 @@ import type { ChannelInfo } from "../channel/types";
 import type { SeriesStamp } from "../channel/series";
 import { SeriesBadge } from "./series/SeriesArt";
 
-/** غلاف من الأغلفة الثلاثة (src/package/thumbnails.ts): الفكرة ونصها (≤ ٣ كلمات)، ولقطة المشهد صورةً (data URI). */
-export type ThumbConceptProp = { kind: "title" | "scene" | "question"; text: string; frame?: string };
+/**
+ * غلاف من الأغلفة الثلاثة (src/package/thumbnails.ts). يُرسم «عنوان» وحده بأسلوب مصغّرة القناة المعتمد وكلمته؛
+ * «مشهد» و«سؤال» موقوفان حتى يختار المالك اتجاه القناة البصري (KI-120)، فلا تصميم لهما هنا.
+ */
+export type ThumbConceptProp = { kind: "title"; text: string };
 export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string; concept?: ThumbConceptProp; /** اسم الكتاب (book في رأس السكريبت): شارة التنبيه في مصغّرة زبدة الكتب */ book?: string; identity?: Identity; channel?: ChannelInfo; lang?: string;
   /** سلسلة الحلقة (plan.series): شارتها بأسلوب القناة فوق المصغّرة نفسها؛ غيابها = مصغّرة القناة كما هي */
   series?: Pick<SeriesStamp, "identity" | "name" | "number" | "kind" | "template"> };
@@ -33,12 +36,11 @@ export const Thumbnail: React.FC<ThumbnailProps> = ({ identity, channel, lang, .
 const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "lang">> = ({ series, concept, ...props }) => {
   useBrandFonts();
   const style = useChannel().brand?.thumbnail ?? "circle";
-  // الأغلفة الثلاثة: «عنوان» بأسلوب مصغّرة القناة نفسه وكلمته، و«سؤال» و«مشهد» بلغة القناة نفسها (ألوانها وخطها وشعارها)
+  // الأغلفة الثلاثة: «عنوان» بأسلوب مصغّرة القناة المعتمد وكلمته؛ «سؤال» و«مشهد» موقوفان (KI-120)
   const signature = (p: Inner) => (style === "mihrab" ? <MihrabThumb {...p} /> : style === "horizon" ? <HorizonThumb {...p} /> : style === "highlighter" ? <HighlighterThumb {...p} /> : <CircleThumb {...p} />);
+  if (concept && concept.kind !== "title") throw new Error(`غلاف «${concept.kind}» موقوف حتى يختار المالك اتجاه القناة (KI-120).`);
   const body = !concept ? signature(props)
-    : concept.kind === "title" ? signature({ ...props, title: concept.text, highlight: concept.text.split(/\s+/).filter(Boolean).slice(-1).join(" ") })
-    : concept.kind === "question" ? <QuestionThumb style={style} themeId={props.themeId} text={concept.text} />
-    : <SceneThumb style={style} themeId={props.themeId} text={concept.text} frame={concept.frame} element={props.element} />;
+    : signature({ ...props, title: concept.text, highlight: concept.text.split(/\s+/).filter(Boolean).slice(-1).join(" ") });
   if (!series || series.template?.thumbnail?.layout === "channel" || series.identity.thumbnail.badge === "none") return body;
   return <AbsoluteFill>{body}<SeriesBadge d={series.identity} name={series.name} number={series.kind === "series" ? series.number : undefined} /></AbsoluteFill>;
 };
@@ -206,94 +208,6 @@ const HighlighterThumb: React.FC<Inner> = ({ title, highlight, book }) => {
           <div style={{ alignSelf: "flex-start", background: c.secondary, color: c.bg, fontFamily: fontFamilies.bold, fontSize: 54, lineHeight: 1.25, padding: "6px 26px 10px", borderRadius: 12 }}>{book}</div>
         ) : null}
       </div>
-    </AbsoluteFill>
-  );
-};
-
-// ———————— الأغلفة الثلاثة (قرار المالك ٢١ نوفمبر ٢٠٢٦): «سؤال» و«مشهد» بلغة كل قناة ————————
-
-type ThumbStyle = "circle" | "mihrab" | "horizon" | "highlighter" | string;
-/** لغة القناة في الغلاف: الخلفية، والحبر، ولون التمييز ونصه، وخط العنوان، ولون الشعار. لا تخرج عن هوية القناة. */
-const useSkin = (style: ThumbStyle, themeId: ThemeId) => {
-  const night = useTheme("night");
-  const paper = useTheme("paper");
-  const own = useTheme(themeId);
-  if (style === "mihrab") return { theme: night, bg: "radial-gradient(ellipse at 70% 40%, #14382F 0%, #0B1F1C 70%)", base: "#0B1F1C", ink: "#F4EEE2", accent: "#F2B35B", onAccent: "#0B1F1C", font: fontFamilies.ruqaa, nameFont: fontFamilies.ruqaa, block: false };
-  if (style === "horizon") return { theme: night, bg: "linear-gradient(180deg, #120C1E 0%, #2A1E3F 38%, #6B3552 70%, #C8603A 100%)", base: "#120C1E", ink: "#F3E9DA", accent: "#F3C98B", onAccent: "#120C1E", ribbon: "#D7372B", font: "'Amiri', serif", nameFont: "'Amiri', serif", block: false };
-  if (style === "highlighter") return { theme: paper, bg: paper.colors.bg, base: paper.colors.ink, ink: paper.colors.ink, accent: paper.colors.highlight, onAccent: paper.colors.onHighlight, font: fontFamilies.bold, nameFont: fontFamilies.bold, block: true };
-  const c = own.colors;
-  return { theme: own, bg: c.bg, base: c.ink, ink: c.ink, accent: c.primary, onAccent: own.id === "night" ? c.bg : c.surface, font: fontFamilies.heading, nameFont: fontFamilies.wordmark, block: true };
-};
-type Skin = ReturnType<typeof useSkin>;
-
-/** النص الكبير (≤ ٣ كلمات) وكلمته الأخيرة بلون التمييز: كتلة في «الدائرة» و«القلم المميِّز»، ولون في «المحراب» و«الأفق». */
-const ConceptWords: React.FC<{ skin: Skin; text: string; size: number; color?: string; shadow?: string; all?: boolean }> = ({ skin, text, size, color, shadow, all }) => {
-  const words = text.split(/\s+/).filter(Boolean);
-  const cut = all ? 0 : Math.max(words.length - 1, 0);
-  const plain = words.slice(0, cut).join(" ");
-  const hl = words.slice(cut).join(" ");
-  return (
-    <div style={{ fontFamily: skin.font, fontWeight: 700, fontSize: size, lineHeight: 1.25, color: color ?? skin.ink, display: "flex", flexWrap: "wrap", gap: "0 26px", textShadow: shadow, textWrap: "balance" }}>
-      {plain ? <span>{plain}</span> : null}
-      {hl ? (skin.block
-        ? <span style={{ background: skin.accent, color: skin.onAccent, padding: "0 20px", borderRadius: 14, textShadow: "none" }}>{hl}</span>
-        : <span style={{ color: skin.accent }}>{hl}</span>) : null}
-    </div>
-  );
-};
-
-const ConceptLogo: React.FC<{ skin: Skin; color: string }> = ({ skin, color }) => (
-  <div style={{ position: "absolute", bottom: 30, insetInlineStart: 50, display: "flex", alignItems: "center", gap: 12 }}>
-    <ChannelLogo theme={skin.theme} size={60} tile={skin.block} />
-    <span style={{ fontFamily: skin.nameFont, fontWeight: 700, fontSize: 34, color }}><ChannelName /></span>
-  </div>
-);
-
-const conceptSize = (text: string) => (text.length > 18 ? 132 : text.length > 11 ? 156 : 184);
-
-/** «سؤال»: السؤال وحده كبيرًا، وعلامة استفهام ضخمة بلون التمييز في الجهة الأخرى. بلا عنصر رمزي (الفكرة هي السؤال). */
-export const QuestionThumb: React.FC<{ style: ThumbStyle; themeId: ThemeId; text: string }> = ({ style, themeId, text }) => {
-  const skin = useSkin(style, themeId);
-  return (
-    <AbsoluteFill style={{ background: skin.bg, direction: useLang().dir, overflow: "hidden" }}>
-      {style === "highlighter" ? (
-        <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}>
-          {Array.from({ length: 11 }, (_, i) => <path key={i} d={`M0 ${(i + 1) * 64} H1280`} stroke={skin.ink} strokeOpacity={0.05} strokeWidth={2} />)}
-        </svg>
-      ) : null}
-      {style === "horizon" ? <div style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 150, background: "linear-gradient(180deg, #EADBC0 0%, #E3D2B3 100%)", borderTop: "5px solid #2B1E14" }} /> : null}
-      <div style={{ position: "absolute", insetInlineEnd: 40, top: -60, fontFamily: skin.font, fontWeight: 700, fontSize: 760, lineHeight: 1, color: skin.accent, opacity: skin.block ? 0.9 : 0.85 }}>؟</div>
-      <div style={{ position: "absolute", insetInlineStart: 70, top: 0, bottom: style === "horizon" ? 150 : 0, width: 760, display: "flex", flexDirection: "column", justifyContent: "center", gap: 20 }}>
-        {"ribbon" in skin && skin.ribbon ? <span style={{ alignSelf: "flex-start", width: 120, height: 14, background: skin.ribbon }} /> : null}
-        <ConceptWords skin={skin} text={text} size={conceptSize(text)} shadow={skin.block ? undefined : "0 6px 28px rgba(0,0,0,0.55)"} />
-      </div>
-      <ConceptLogo skin={skin} color={style === "horizon" ? "#2B1E14" : skin.ink} />
-    </AbsoluteFill>
-  );
-};
-
-/**
- * «مشهد»: لقطة حقيقية من مشهد معتمد بملء الصورة، وظلّ متدرّج من جهة النص بلون القناة، والكلمات (إن وُجدت) بخطها.
- * بلا لقطة (معاينة قبل صنع المشاهد) يظهر عنصر الحلقة على خلفية القناة، فلا تُخرج صورة فارغة.
- */
-export const SceneThumb: React.FC<{ style: ThumbStyle; themeId: ThemeId; text: string; frame?: string; element?: string }> = ({ style, themeId, text, frame, element }) => {
-  const skin = useSkin(style, themeId);
-  const dir = useLang().dir;
-  const el = element && hasElement(element) ? element : style === "horizon" ? "scroll" : "question-mark";
-  const scrim = `linear-gradient(${dir === "rtl" ? "270deg" : "90deg"}, ${skin.base}F2 0%, ${skin.base}B3 34%, ${skin.base}00 66%)`;
-  return (
-    <AbsoluteFill style={{ background: skin.bg, direction: dir, overflow: "hidden" }}>
-      {frame
-        ? <img src={frame} alt="" style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }} />
-        : <div style={{ position: "absolute", insetInlineEnd: 120, top: 150, width: 420, height: 420, display: "grid", placeItems: "center" }}><Element id={el} theme={skin.theme} size={400} /></div>}
-      {text.trim() ? <AbsoluteFill style={{ background: scrim }} /> : null}
-      <AbsoluteFill style={{ background: `linear-gradient(0deg, ${skin.base}CC 0%, ${skin.base}00 22%)` }} />
-      {text.trim() ? (
-        <div style={{ position: "absolute", insetInlineStart: 70, top: 0, bottom: 90, width: 640, display: "flex", flexDirection: "column", justifyContent: "center" }}>
-          <ConceptWords skin={skin} text={text} size={conceptSize(text) * 0.9} color={style === "highlighter" ? "#FFFFFF" : skin.ink} shadow="0 6px 30px rgba(0,0,0,0.7)" />
-        </div>
-      ) : null}
-      <ConceptLogo skin={skin} color={style === "highlighter" ? "#FFFFFF" : skin.ink} />
     </AbsoluteFill>
   );
 };
