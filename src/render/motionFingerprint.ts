@@ -6,7 +6,7 @@ import type { EpisodeMedia } from "../plan/media";
 const AUDIT_VERSION = 4;
 export const motionFingerprint = (
   plan: Plan,
-  media: Pick<EpisodeMedia, "voice" | "recitations" | "images" | "sfx">,
+  media: Pick<EpisodeMedia, "voice" | "recitations" | "images" | "sfx" | "sfxVariants">,
   identity: unknown,
   channel: unknown,
   orientation: "landscape" | "portrait" = "landscape",
@@ -23,6 +23,7 @@ export const motionFingerprint = (
     recitations: media.recitations,
     images: media.images ?? [],
     sfx: media.sfx,
+    ...(media.sfxVariants ? { sfxVariants: media.sfxVariants } : {}),
     assetState,
     rendererHash,
     identity,
@@ -50,6 +51,7 @@ export const currentMotionFingerprint = async (
   const sources: string[] = [
     ...Object.values(media.voice).map((v) => path.join(path.dirname(script), "voice", v.file)),
     ...media.sfx.map((id) => sfxFile(id)),
+    ...Object.entries(media.sfxVariants ?? {}).flatMap(([id, vs]) => vs.map((v) => sfxFile(`${id}--${v}`))),
     ...(media.images ?? []).map((f) => f.startsWith(LIB) ? path.join(libraryDirFor(script), f.slice(LIB.length)) : path.join(imagesDirFor(script), f)),
     ...Object.values(media.recitations).flatMap((rec) =>
       (rec.parts?.length ? rec.parts : [{ file: rec.file }]).map((part) => path.join(recitationsDirFor(script), part.file))),

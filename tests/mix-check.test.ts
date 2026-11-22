@@ -40,18 +40,18 @@ describe("فحص الخلط: الحساب", () => {
   it("مؤثر عالٍ على الجملة يفشل ويسمّي الجملة والمؤثر؛ ومنخفض ينجح", () => {
     const s = scene("c1-s1", "دخل التاجر السوق مبكرًا. وكانت الشمس حارة.", { sfx: [{ id: "stamp", at: 0.5 }] });
     const media = mediaOf([s], ["stamp"]);
-    const loud = checkMix(planOf(s), media, { voice: { "c1-s1": flat(-18, 4) }, sfx: { stamp: flat(-21, 0.6) } }, vol);
+    const loud = checkMix(planOf(s), media, { voice: { "c1-s1": flat(-18, 4) }, sfx: { "stamp.mp3": flat(-21, 0.6) } }, vol);
     expect(loud.lines).toHaveLength(1);
     expect(loud.lines[0]).toMatchObject({ scene: "c1-s1", sentence: "دخل التاجر السوق مبكرًا.", sfx: "stamp", kind: "sfx", margin: 3, need: 6, ok: false });
     expect(loud.ok).toBe(false);
-    const soft = checkMix(planOf(s), media, { voice: { "c1-s1": flat(-18, 4) }, sfx: { stamp: flat(-21, 0.6) } }, { ...vol, sfxVolume: 0.5 });
+    const soft = checkMix(planOf(s), media, { voice: { "c1-s1": flat(-18, 4) }, sfx: { "stamp.mp3": flat(-21, 0.6) } }, { ...vol, sfxVolume: 0.5 });
     expect(soft.lines[0]!.margin).toBeCloseTo(9, 1);
     expect(soft.ok).toBe(true);
   });
 
   it("صوت المكان يُقاس بعد خفضه تحت الكلام (SFX_MIX.duck)، وحده ١٥ dB", () => {
     const s = scene("c1-s2", "هبت الريح على القافلة طويلًا.", { sfx: [{ id: "wind", at: 0 }] });
-    const r = checkMix(planOf(s), mediaOf([s], ["wind"]), { voice: { "c1-s2": flat(-18, 3) }, sfx: { wind: flat(-26, 3) } }, vol);
+    const r = checkMix(planOf(s), mediaOf([s], ["wind"]), { voice: { "c1-s2": flat(-18, 3) }, sfx: { "wind.mp3": flat(-26, 3) } }, vol);
     // −26 + 20·log10(0.35) ≈ −35.1 ← الفرق ≈ 17.1
     expect(r.lines[0]).toMatchObject({ kind: "ambience", need: 15, ok: true });
     expect(r.lines[0]!.margin).toBeCloseTo(17.1, 1);
@@ -61,7 +61,7 @@ describe("فحص الخلط: الحساب", () => {
   it("ربح سرد المشهد يدخل في علو الراوي؛ والمؤثر بعد آخر جملة لا يُحسب", () => {
     const s = scene("c1-s3", "قلب الكاتب الصفحة.", { sfx: [{ id: "stamp", at: 0.2 }, { id: "page-turn", at: 4 }] });
     const media = mediaOf([s], ["stamp", "page-turn"]);
-    const lv = { voice: { "c1-s3": flat(-20, 2) }, sfx: { stamp: flat(-24, 0.5), "page-turn": flat(-10, 0.5) } };
+    const lv = { voice: { "c1-s3": flat(-20, 2) }, sfx: { "stamp.mp3": flat(-24, 0.5), "page-turn.mp3": flat(-10, 0.5) } };
     expect(checkMix(planOf(s), media, lv, vol).lines.map((l) => [l.sfx, l.margin])).toEqual([["stamp", 4]]);
     expect(checkMix(planOf(s), media, lv, { ...vol, narrationGain: { "c1-s3": 2 } }).lines[0]!.margin).toBeCloseTo(10, 1);
   });
@@ -71,7 +71,16 @@ describe("فحص الخلط: الحساب", () => {
     expect(checkMix(planOf(s), mediaOf([s], []), { voice: { "c1-s4": flat(-20, 1) }, sfx: {} }, vol).lines).toEqual([]);
     const t = scene("c1-s5", "كلام جديد.", { sfx: [{ id: "stamp", at: 0 }] });
     const stale = { ...mediaOf([t], ["stamp"]), voice: { "c1-s5": { file: "x.mp3", text: "كلام قديم.", words: words("كلام قديم.") } as never } };
-    expect(checkMix(planOf(t), stale, { voice: { "c1-s5": flat(-20, 1) }, sfx: { stamp: flat(-10, 1) } }, vol).lines).toEqual([]);
+    expect(checkMix(planOf(t), stale, { voice: { "c1-s5": flat(-20, 1) }, sfx: { "stamp.mp3": flat(-10, 1) } }, vol).lines).toEqual([]);
+  });
+});
+
+describe("فحص الخلط: النسخ البديلة (D158 الخطوة ٤)", () => {
+  it("يقيس الملف الذي يُرندر فعلًا: الظهور الثاني للمؤثر بنسخته v2", () => {
+    const a = scene("c1-s1", "دخل التاجر.", { sfx: [{ id: "stamp", at: 0.2 }] }), b = scene("c1-s2", "وخرج التاجر.", { sfx: [{ id: "stamp", at: 0.2 }] });
+    const media = { ...mediaOf([a, b], ["stamp"]), sfxVariants: { stamp: ["v2", "v3"] } };
+    const r = checkMix(planOf(a, b), media, { voice: { "c1-s1": flat(-18, 2), "c1-s2": flat(-18, 2) }, sfx: { "stamp.mp3": flat(-30, 0.5), "stamp--v2.mp3": flat(-21, 0.5) } }, vol);
+    expect(r.lines.map((l) => [l.scene, l.margin, l.ok])).toEqual([["c1-s1", 12, true], ["c1-s2", 3, false]]);
   });
 });
 
