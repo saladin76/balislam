@@ -120,3 +120,12 @@ describe("صورة الخطاف في «خط الأفق» (ملاحظة الما�
     expect(SLOT_BACK_SEC + turnAt + 0.8).toBeLessThanOrEqual(COLD_OPEN_TAIL_SEC + 1e-9);
   });
 });
+
+describe("ترجمة الخطاف متكيفة (طلب المالك: حبر داكن على الورق، أبيض على الداكن)", () => {
+  it("في الدفتر: أبيض بلا ظل وطبقتها ممزوجة بالفرق", () => {
+    const ep = readFileSync("src/remotion/scenes/Episode.tsx", "utf8");
+    expect(ep).toContain('<AbsoluteFill style={notebook ? { mixBlendMode: "difference" } : undefined}>');
+    expect(ep).toContain('variant={notebook ? "adaptive" : "pill"}');
+    expect(readFileSync("src/remotion/scenes/CaptionBar.tsx", "utf8")).toContain('variant === "adaptive" ? { color: "#FFFFFF", textShadow: "none" }');
+  });
+});

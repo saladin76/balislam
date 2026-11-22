@@ -72,11 +72,18 @@ export const scenesOf = (p: Pick<EpisodeProps, "plan" | "chapter">): { chapter: 
 
 export const mediaSrc = (media: EpisodeMedia, rel: string) => (media.mode === "static" ? staticFile(`${media.base}${rel}`) : `${media.base}${rel}${media.query ?? ""}`);
 
-/** ترجمة الخطاف: شريط الترجمة نفسه (D187، D192) على كلمات الخطاف وحدها؛ في «الدفتر» على الغسق «dusk» كما في SceneShell */
+/**
+ * ترجمة الخطاف: شريط الترجمة نفسه (D187، D192) على كلمات الخطاف وحدها. في «الدفتر» الترجمة المتكيفة (طلب المالك ٢٢ نوفمبر):
+ * أبيض بمزج «الفرق» على طبقتها، فتصير حبرًا داكنًا على ورق الخانة ونورًا على الليل.
+ */
 const ColdOpenCaption: React.FC<{ themeId: Plan["themeId"]; timings: ReturnType<typeof toFrames>; portrait: boolean }> = ({ themeId, timings, portrait }) => {
   const t = useTheme(themeId);
   const notebook = useChannel().frame === "notebook";
-  return timings.length ? <AbsoluteFill><CaptionBar theme={t} timings={timings} portrait={portrait} variant={notebook ? "dusk" : "pill"} /></AbsoluteFill> : null;
+  return timings.length ? (
+    <AbsoluteFill style={notebook ? { mixBlendMode: "difference" } : undefined}>
+      <CaptionBar theme={t} timings={timings} portrait={portrait} variant={notebook ? "adaptive" : "pill"} />
+    </AbsoluteFill>
+  ) : null;
 };
 
 /**
