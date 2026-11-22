@@ -7,7 +7,7 @@ import React from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { Stage3D, camAt, ease, lightsAt, safeKeys, type Cam, type Light } from "../../three";
+import { Stage3D, camAt, ease, lightsAt, safeKeys, useAssetTextures, type Cam, type Light } from "../../three";
 import { IDEA, PAGE_LINES, ZB, ZFrame, Z_STILL, usePageTexture, zAt } from "./common";
 
 const START: Cam = { target: [0.2, 0, 0], yaw: 12, pitch: 48, dist: 6.2, fov: 30 };
@@ -26,9 +26,14 @@ const Page: React.FC<{ side: 1 | -1; map: THREE.Texture | null }> = ({ side, map
     g.computeVertexNormals();
     return g;
   }, []);
+  // اليسرى: الشكل نفسه معكوسًا (فينحني نحو الكعب) والصورة معكوسة معه، فيُقرأ النص صحيحًا
+  const tex = React.useMemo(() => {
+    if (!map || side === 1) return map;
+    const t = map.clone(); t.wrapS = THREE.RepeatWrapping; t.repeat.set(-1, 1); t.offset.set(1, 0); t.needsUpdate = true; return t;
+  }, [map, side]);
   return (
-    <mesh geometry={geo} position={[side * 1.02, 0.03, 0]} rotation={[-Math.PI / 2, 0, side === 1 ? 0 : Math.PI]} receiveShadow castShadow>
-      <meshStandardMaterial color={map ? "#ffffff" : ZB.warm} map={map ?? undefined} roughness={0.95} side={THREE.DoubleSide} />
+    <mesh geometry={geo} position={[side * 1.02, 0.03, 0]} rotation={[-Math.PI / 2, 0, 0]} scale={[side, 1, 1]} receiveShadow castShadow>
+      <meshStandardMaterial color={tex ? "#ffffff" : ZB.warm} map={tex ?? undefined} roughness={0.95} side={THREE.DoubleSide} />
     </mesh>
   );
 };
@@ -42,18 +47,22 @@ export const ReadingRoomLab: React.FC = () => {
   const key = (a: number, d: number) => safeKeys([{ a, b: a + d, to: 1 }], still)[0]!;
   const hi = ease(Math.min(1, Math.max(0, (t - key(zAt(IDEA) - 0.05, 0.55).a) / 0.55)));
   const page = usePageTexture(ready, { lines: PAGE_LINES, hi, ruled: false });
+  // الصفحة اليمنى من الكتاب نفسه (ما قبل الفكرة)، فلا تبقى بيضاء
+  const before = usePageTexture(ready, { lines: ["الفصل الثالث", "", "يظن كثيرون أن الخشوع", "شعورٌ يهبط فجأة،", "فإن لم يهبط", "تركوا الصلاة لوقتها."], hi: 0, ruled: false });
+  const wood = useAssetTextures(["zubdat-wood-diff", "zubdat-wood-nor"], [3, 2]);
   const cam = camAt(t, START, [{ a: 0.4, b: zAt(IDEA) + 0.6, to: { ...START, yaw: 4, pitch: 58, dist: 4.4, target: [0.9, 0, -0.2] } }], { still });
   // القلم المميِّز: يتحرك فوق السطر مع التظليل ثم يرتفع
   const lift = key(zAt(IDEA) + 0.5, 0.5);
   const reach = key(zAt(IDEA) - 0.5, 0.45);
   const near = ease(Math.min(1, Math.max(0, (t - reach.a) / (reach.b - reach.a))));
   const pen = ease(Math.min(1, Math.max(0, (t - lift.a) / (lift.b - lift.a))));
+  if (!wood) return null;
   return (
     <>
       <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, LIGHTS, still)} background={ZB.ink}>
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow><planeGeometry args={[20, 14]} /><meshStandardMaterial color={ZB.dark} roughness={0.8} /></mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.02, 0]} receiveShadow><planeGeometry args={[20, 14]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} color={ZB.line} roughness={0.6} /></mesh>
         <mesh position={[0, -0.01, 0]} receiveShadow><boxGeometry args={[4.3, 0.04, 3.0]} /><meshStandardMaterial color={ZB.ink} roughness={0.6} /></mesh>
-        <Page side={-1} map={null} />
+        <Page side={-1} map={before} />
         <Page side={1} map={page} />
         {/* المصباح: قاعدة وذراع وقبعة */}
         <mesh position={[-2.6, 0.06, -1.1]} castShadow><cylinderGeometry args={[0.35, 0.4, 0.12, 32]} /><meshStandardMaterial color={ZB.dark} metalness={0.5} roughness={0.4} /></mesh>

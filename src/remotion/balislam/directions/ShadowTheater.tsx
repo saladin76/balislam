@@ -8,7 +8,7 @@ import React, { useMemo } from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { Stage3D, camAt, calmAt, ease, flicker, safeKeys, valueAt, type Cam } from "../../three";
+import { Stage3D, camAt, calmAt, ease, flicker, safeKeys, useAssetTextures, type Cam } from "../../three";
 import { BAA, DIR_STILL, DirFrame, wordAt } from "./common";
 import { figureShapes, type FigureVariant } from "./figure";
 
@@ -42,7 +42,7 @@ const Puppet: React.FC<{ v: FigureVariant; color: string; x: number; flip: boole
   const mat = (c: THREE.Color, o = 0.94) => <meshBasicMaterial color={c} transparent opacity={o} side={THREE.DoubleSide} />;
   const part = (shape: THREE.Shape, c: THREE.Color, z: number, o?: number) => <mesh position={[0, 0, z]}><shapeGeometry args={[shape, 24]} />{mat(c, o)}</mesh>;
   return (
-    <group position={[x, 0.35, 0.02]} scale={[flip ? -3.1 : 3.1, 3.1, 1]} rotation={[0, 0, sway]}>
+    <group position={[x, 0.35, 0.02]} scale={[flip ? -3.5 : 3.5, 3.5, 1]} rotation={[0, 0, sway]}>
       {/* حافة الجلد الداكنة ثم الجلد الملوّن */}
       {/* حافة الجلد الداكنة: الشكل نفسه أكبر قليلًا خلفه، فلا يظهر منه إلا خيط */}
       <group scale={[1.03, 1.012, 1]} position={[0, -0.004, -0.004]}>{part(s.robe, edge, 0, 1)}{part(s.head, edge, 0, 1)}{part(s.cap, edge, 0, 1)}</group>
@@ -77,6 +77,31 @@ const Arch: React.FC<{ drop: number; light: number }> = ({ drop, light }) => {
   );
 };
 
+/** قطعة ديكور من جلد مصبوغ ملتصقة بالستارة (دكان بمظلة، فانوس معلّق) */
+const Leather: React.FC<{ shape: THREE.Shape | THREE.Shape[]; color: string; light: number; pos: [number, number]; scale?: number }> = ({ shape, color, light, pos, scale = 1 }) => (
+  <group position={[pos[0], pos[1], 0.008]} scale={scale}>
+    <mesh position={[0.02, -0.015, -0.002]}><shapeGeometry args={[shape, 24]} /><meshBasicMaterial color="#1B1B1B" /></mesh>
+    <mesh><shapeGeometry args={[shape, 24]} /><meshBasicMaterial color={lit(color, light)} transparent opacity={0.94} side={THREE.DoubleSide} /></mesh>
+  </group>
+);
+/** الدكان: طاولة بثلاث نوافذ مثقوبة، وعمودان، ومظلة بحافة مسنّنة — أشكال منفصلة لا مسار يقطع نفسه */
+const stallShapes = () => {
+  const rect = (x0: number, y0: number, x1: number, y1: number) => { const s = new THREE.Shape(); s.moveTo(x0, y0); s.lineTo(x1, y0); s.lineTo(x1, y1); s.lineTo(x0, y1); s.lineTo(x0, y0); return s; };
+  const counter = rect(-0.9, 0, 0.9, 0.7);
+  for (const x of [-0.45, 0, 0.45]) { const h = new THREE.Path(); h.absarc(x, 0.35, 0.12, 0, Math.PI * 2, true); counter.holes.push(h); }
+  const awning = new THREE.Shape();
+  awning.moveTo(-1.05, 1.9); awning.lineTo(1.05, 1.9);
+  for (let k = 0; k <= 6; k++) awning.lineTo(1.05 - (k * 2.1) / 6, k % 2 ? 1.32 : 1.48);
+  awning.lineTo(-1.05, 1.9);
+  return [counter, rect(-0.8, 0.7, -0.7, 1.5), rect(0.7, 0.7, 0.8, 1.5), awning];
+};
+const lanternShape = () => {
+  const s = new THREE.Shape();
+  s.moveTo(0, 0); s.lineTo(0.22, 0.25); s.lineTo(0.22, 0.75); s.lineTo(0.1, 0.95); s.lineTo(0.03, 0.95); s.lineTo(0.03, 1.6); s.lineTo(-0.03, 1.6); s.lineTo(-0.03, 0.95); s.lineTo(-0.1, 0.95); s.lineTo(-0.22, 0.75); s.lineTo(-0.22, 0.25); s.lineTo(0, 0);
+  for (let k = 0; k < 3; k++) { const h = new THREE.Path(); h.absellipse(0, 0.35 + k * 0.17, 0.09, 0.06, 0, Math.PI * 2, true, 0); s.holes.push(h); }
+  return s;
+};
+
 export const ShadowTheaterLab: React.FC = () => {
   useBrandFonts();
   const frame = useCurrentFrame();
@@ -84,6 +109,9 @@ export const ShadowTheaterLab: React.FC = () => {
   const t = frame / fps;
   const still = DIR_STILL;
   const screen = useScreenTexture();
+  const cotton = useAssetTextures(["balislam-cotton-diff"], [4, 2.4]);
+  const wood = useAssetTextures(["balislam-wood-diff"], [1, 3]);
+  const stall = useMemo(stallShapes, []), lantern = useMemo(lanternShape, []);
   const light = flicker(t, LAMP, still);
   // مفاتيح الكلام (تتأخر عن نافذة السكون إن وقعت فيها)
   const p = (w: string, d = 0.7) => { const k = safeKeys([{ a: wordAt(w) - 0.1, b: wordAt(w) - 0.1 + d, to: 1 }], still)[0]!; return ease((t - k.a) / (k.b - k.a)); };
@@ -91,14 +119,22 @@ export const ShadowTheaterLab: React.FC = () => {
   const cam = camAt(t, START, [{ a: wordAt("السوق") - 0.2, b: wordAt("السوق") + 1.4, to: { ...START, dist: 11, yaw: -2 } },
     { a: wordAt("يقول") - 0.1, b: wordAt("معي") + 0.3, to: { ...START, dist: 10.2, yaw: 4, target: [0.4, 1.95, 0] } }], { still, shake: { amp: 0.02, rate: 0.6, seed: 4 } });
   const breath = (seed: number) => 0.015 * Math.sin(t * 2.1 + seed) * calmAt(t, still);
+  if (!cotton || !wood) return null;
   return (
     <>
       <Stage3D width={width} height={height} cam={cam} lights={[]} background={BAA.night}>
+        {/* نسج القطن الحقيقي (CC0) مضروبًا في نور السراج */}
+        <mesh position={[0, 2.6, -0.005]}><planeGeometry args={[SCREEN.w, SCREEN.h]} /><meshBasicMaterial map={cotton[0]} transparent blending={THREE.MultiplyBlending} premultipliedAlpha depthWrite={false} /></mesh>
         {/* الستارة وإطارها الخشبي */}
         <mesh position={[0, 2.6, -0.01]}><planeGeometry args={[SCREEN.w, SCREEN.h]} /><meshBasicMaterial map={screen} color={new THREE.Color(1, 1, 1).multiplyScalar(0.7 + 0.3 * light)} /></mesh>
         {[[-SCREEN.w / 2 - 0.12, 2.6, 0.24, SCREEN.h + 0.5], [SCREEN.w / 2 + 0.12, 2.6, 0.24, SCREEN.h + 0.5], [0, 2.6 + SCREEN.h / 2 + 0.12, SCREEN.w + 0.48, 0.24], [0, 2.6 - SCREEN.h / 2 - 0.12, SCREEN.w + 0.48, 0.24]].map(([x, y, w, h], i) => (
-          <mesh key={i} position={[x!, y!, 0.03]}><planeGeometry args={[w!, h!]} /><meshBasicMaterial color="#1B1B1B" /></mesh>
+          <mesh key={i} position={[x!, y!, 0.03]}><planeGeometry args={[w!, h!]} /><meshBasicMaterial map={wood[0]} color="#7A5A44" /></mesh>
         ))}
+        {/* ديكور الجلد على الستارة: دكانان وفانوس معلّق، فلا تبقى الستارة فارغة */}
+        <Leather shape={stall} color={BAA.copper} light={light} pos={[-3.2, 0.35]} scale={1.05} />
+        <Leather shape={stall} color={BAA.emerald} light={light} pos={[3.25, 0.35]} scale={0.95} />
+        <Leather shape={lantern} color={BAA.gold} light={light} pos={[1.6, 3.55]} scale={0.9} />
+        <Leather shape={lantern} color={BAA.gold} light={light} pos={[-1.7, 3.75]} scale={0.75} />
         <Arch drop={market} light={light} />
         <Puppet v={{ robe: 1, cap: "turban", stoop: 0 }} color={BAA.copper} x={-4.6 + enter * 3.0} flip={false} arm={say1 * 1.15} sway={breath(0) - say1 * 0.04} light={light} />
         <Puppet v={{ robe: 1.12, cap: "kufiya", stoop: 0 }} color={BAA.rose} x={4.6 - enter * 3.0} flip arm={say2 * 1.0} sway={breath(2) + say2 * 0.05} light={light} />

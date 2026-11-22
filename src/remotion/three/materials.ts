@@ -50,8 +50,16 @@ export const ASSETS: readonly Asset[] = [
   { id: "dafatir-walnut-rough", file: "three/dafatir-alzaman/walnut-rough.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/american_walnut_veneer", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
   { id: "dafatir-leather-diff", file: "three/dafatir-alzaman/leather-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/brown_leather", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
   { id: "dafatir-leather-nor", file: "three/dafatir-alzaman/leather-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/brown_leather", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
-  { id: "balisla-cotton-diff", file: "three/balislam/cotton-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/cotton_jersey", license: "CC0", checked: "2026-11-22", channel: "balislam" },
-  { id: "balisla-cotton-nor", file: "three/balislam/cotton-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/cotton_jersey", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+  { id: "balislam-cotton-diff", file: "three/balislam/cotton-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/cotton_jersey", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+  { id: "balislam-cotton-nor", file: "three/balislam/cotton-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/cotton_jersey", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+  { id: "balislam-plaster-diff", file: "three/balislam/plaster-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/beige_wall_001", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+  { id: "balislam-plaster-nor", file: "three/balislam/plaster-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/beige_wall_001", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+  { id: "balislam-wood-diff", file: "three/balislam/wood-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/wood_table_001", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+  { id: "balislam-wood-nor", file: "three/balislam/wood-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/wood_table_001", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+  { id: "zubdat-plaster-diff", file: "three/zubdat-alkutub/plaster-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/white_plaster_02", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
+  { id: "zubdat-plaster-nor", file: "three/zubdat-alkutub/plaster-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/white_plaster_02", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
+  { id: "zubdat-wood-diff", file: "three/zubdat-alkutub/wood-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dark_wood", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
+  { id: "zubdat-wood-nor", file: "three/zubdat-alkutub/wood-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dark_wood", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
 ];
 
 /** مسار الأصل لـ staticFile بمعرّفه (يرفض أصلًا غير مسجل) */

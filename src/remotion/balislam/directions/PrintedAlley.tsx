@@ -12,7 +12,7 @@ import { Stage3D, camAt, ease, grain, lightsAt, safeKeys, type Cam, type Light }
 import { BAA, DIR_STILL, DirFrame, wordAt } from "./common";
 import { figureShapes } from "./figure";
 
-const START: Cam = { target: [0, 2.2, 0], yaw: -8, pitch: 2, dist: 11, fov: 34 };
+const START: Cam = { target: [0, 1.75, 0], yaw: -8, pitch: 2, dist: 11, fov: 34 };
 const LIGHTS: Light[] = [
   { kind: "ambient", kelvin: 5600, intensity: 1.6, position: [0, 0, 0] },
   { kind: "key", kelvin: 5000, intensity: 1.1, position: [3, 6, 8] },
@@ -63,6 +63,30 @@ const stall = (x: number) => {
   return [s, awning, pole1, pole2];
 };
 
+/** بيوت بعيدة بنوافذ مربعة (تُرى من الأقواس)، وحبل فوانيس فوق الحارة */
+const farHouses = () => {
+  const out: THREE.Shape[] = [];
+  [[-7, 3.2, 2.4], [-4.4, 4.1, 2.2], [-2, 3.5, 2.6], [0.6, 4.4, 2.2], [3.1, 3.7, 2.5], [5.7, 4.2, 2.6]].forEach(([x, h, w]) => {
+    const s = new THREE.Shape(); s.moveTo(x! - w! / 2, 0); s.lineTo(x! + w! / 2, 0); s.lineTo(x! + w! / 2, h!); s.lineTo(x! - w! / 2, h!); s.lineTo(x! - w! / 2, 0);
+    for (let r = 0; r < 2; r++) for (let c = 0; c < 2; c++) { const p = new THREE.Path(); const wx = x! - 0.5 + c * 1.0, wy = h! - 1.1 - r * 1.0; p.moveTo(wx - 0.22, wy - 0.3); p.lineTo(wx + 0.22, wy - 0.3); p.lineTo(wx + 0.22, wy + 0.3); p.lineTo(wx - 0.22, wy + 0.3); p.lineTo(wx - 0.22, wy - 0.3); s.holes.push(p); }
+    out.push(s);
+  });
+  return out;
+};
+const lanterns = () => {
+  const out: THREE.Shape[] = [];
+  for (let k = 0; k < 7; k++) {
+    const x = -6 + k * 2, y = 5.0 - 0.35 * Math.cos(((k - 3) / 3) * Math.PI / 2);
+    const s = new THREE.Shape(); s.moveTo(x, y - 0.5); s.lineTo(x + 0.22, y - 0.25); s.lineTo(x + 0.22, y + 0.1); s.lineTo(x, y + 0.25); s.lineTo(x - 0.22, y + 0.1); s.lineTo(x - 0.22, y - 0.25); s.lineTo(x, y - 0.5);
+    out.push(s);
+  }
+  const rope = new THREE.Shape(); rope.moveTo(-7.5, 5.35);
+  for (let k = 0; k <= 30; k++) { const x = -7.5 + k * 0.5; rope.lineTo(x, 5.3 - 0.35 * Math.cos(((x / 6)) * Math.PI / 2)); }
+  for (let k = 30; k >= 0; k--) { const x = -7.5 + k * 0.5; rope.lineTo(x, 5.26 - 0.35 * Math.cos(((x / 6)) * Math.PI / 2)); }
+  out.push(rope);
+  return out;
+};
+
 const Person: React.FC<{ x: number; flip: boolean; ink: string; arm: number; tex: THREE.Texture; cap: "turban" | "kufiya" }> = ({ x, flip, ink, arm, tex, cap }) => {
   const s = useMemo(() => figureShapes({ robe: cap === "turban" ? 1 : 1.1, cap, stoop: 0 }), [cap]);
   return (
@@ -86,18 +110,21 @@ export const PrintedAlleyLab: React.FC = () => {
   const paperA = usePaper(3), paperB = usePaper(7), paperC = usePaper(11);
   const wall = useMemo(archRow, []);
   const stalls = useMemo(() => [...stall(-3.2), ...stall(3.4)], []);
+  const houses = useMemo(farHouses, []), lamps = useMemo(lanterns, []);
   const p = (w: string, d = 0.7) => { const k = safeKeys([{ a: wordAt(w) - 0.1, b: wordAt(w) - 0.1 + d, to: 1 }], still)[0]!; return ease((t - k.a) / (k.b - k.a)); };
   const enter = p("رجلان", 0.9), market = p("السوق", 0.7), say1 = p("يقول", 0.5), say2 = p("الحقُّ", 0.5);
   const cam = camAt(t, START, [
     { a: wordAt("السوق") - 0.2, b: wordAt("السوق") + 1.2, to: { ...START, yaw: 6, dist: 9.6 } },
-    { a: wordAt("يقول") - 0.1, b: wordAt("معي") + 0.4, to: { ...START, yaw: 14, dist: 8.4, target: [0.3, 2.0, 0] } },
+    { a: wordAt("يقول") - 0.1, b: wordAt("معي") + 0.4, to: { ...START, yaw: 14, dist: 8.4, target: [0.3, 1.6, 0] } },
   ], { still, shake: { amp: 0.015, rate: 0.5, seed: 8 } });
   return (
     <>
       <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, LIGHTS, still)} background={BAA.paper}>
         {/* سماء الحارة ورقة، والجدار بأقواسه طبقة الزمرد بعيدة */}
         <mesh position={[0, 3, -4.2]}><planeGeometry args={[40, 20]} /><meshStandardMaterial color={BAA.paper} map={paperC} roughness={1} /></mesh>
+        <group position={[0, 0, -3.8]}><Cutout shapes={houses} ink="#D98C6E" z={0} tex={paperB} shift={[0.05, -0.04]} /></group>
         <group position={[0, 0, -3]}><Cutout shapes={wall} ink={BAA.emerald} z={0} tex={paperA} shift={[0.06, -0.05]} /></group>
+        <group position={[0, 0, -2.2]}><Cutout shapes={lamps} ink={BAA.gold} z={0} tex={paperC} shift={[0.03, -0.025]} /></group>
         {/* الدكاكين طبقة النحاس، تنزل عند «السوق» */}
         <group position={[0, (1 - market) * -3, -1.4]}><Cutout shapes={stalls} ink={BAA.copper} z={0} tex={paperB} shift={[0.05, -0.04]} /></group>
         {/* الأرض */}

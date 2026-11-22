@@ -39,7 +39,7 @@ export const DirFrame: React.FC<{ t: number; name: string; tone?: "light" | "dar
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <div style={{ position: "absolute", top: 22, right: 28, padding: "5px 14px 7px", borderRadius: 8, background: "rgba(14,26,43,0.6)", color: BAA.paper,
         fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 20, direction: "rtl" }}>اتجاه للمقارنة · {name} · لا يُنشر</div>
-      <div style={{ position: "absolute", bottom: 64, left: 0, right: 0, textAlign: "center", direction: "rtl", fontFamily: "IBM Plex Sans Arabic", fontWeight: 600, fontSize: 46 }}>
+      <div style={{ position: "absolute", bottom: 64, left: 0, right: 0, textAlign: "center", direction: "rtl", fontFamily: "IBM Plex Sans Arabic", fontWeight: 600, fontSize: 56 }}>
         {t >= DIR_WORDS[0]!.s - 0.2 && words.map((w, i) => (
           <span key={i} style={{ color: t >= w.s ? on : off, margin: "0 6px" }}>{w.w}</span>
         ))}

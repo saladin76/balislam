@@ -7,13 +7,13 @@ import React, { useMemo } from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { Stage3D, camAt, ease, lightsAt, safeKeys, useGrainTexture, type Cam, type Light } from "../../three";
+import { Stage3D, camAt, ease, lightsAt, safeKeys, useAssetTextures, type Cam, type Light } from "../../three";
 import { BAA, DIR_STILL, DirFrame, wordAt } from "./common";
 
 const R = 1.6;
 const START: Cam = { target: [0, 0, 0.35], yaw: 0, pitch: 58, dist: 8.4, fov: 32 };
 const LIGHTS: Light[] = [
-  { kind: "ambient", kelvin: 6000, intensity: 0.9, position: [0, 0, 0] },
+  { kind: "ambient", kelvin: 6000, intensity: 1.5, position: [0, 0, 0] },
   // نور نافذة مائل يكشف خشونة الجص
   { kind: "key", kelvin: 4300, intensity: 2.6, position: [-5, 3.2, 2.5] },
 ];
@@ -54,7 +54,7 @@ const Compass: React.FC<{ angle: number; lift: number }> = ({ angle, lift }) => 
   const tilt = Math.atan2(R, 1.9);
   return (
     <group position={[0, 1.9 + lift * 2.5, 0]} rotation={[0, angle, 0]}>
-      <mesh position={[0, 0.1, 0]} castShadow><cylinderGeometry args={[0.09, 0.09, 0.22, 24]} /><meshStandardMaterial color={BAA.copper} metalness={0.8} roughness={0.35} /></mesh>
+      <mesh position={[0, 0.1, 0]} castShadow><cylinderGeometry args={[0.09, 0.09, 0.22, 24]} /><meshStandardMaterial color={BAA.gold} metalness={0.6} roughness={0.3} /></mesh>
       <mesh position={[0, -0.95, 0]} castShadow><cylinderGeometry args={[0.025, 0.008, 1.9, 12]} /><meshStandardMaterial color="#8A6A55" metalness={0.8} roughness={0.35} /></mesh>
       <group rotation={[0, 0, tilt]}><mesh position={[0, -legLen / 2, 0]} castShadow><cylinderGeometry args={[0.025, 0.008, legLen, 12]} /><meshStandardMaterial color="#8A6A55" metalness={0.8} roughness={0.35} /></mesh></group>
     </group>
@@ -67,7 +67,21 @@ export const LightGeometryLab: React.FC = () => {
   const { width, height, fps } = useVideoConfig();
   const t = frame / fps;
   const still = DIR_STILL;
-  const plaster = useGrainTexture(9, 0.55, 3);
+  const plaster = useAssetTextures(["balislam-plaster-diff", "balislam-plaster-nor"], [3, 2]);
+  // خطوط البناء كما في لفافة طوب قابي: شبكة الدوائر والأقطار بالرصاص، ونقاط حمراء عند التقاطعات — تملأ اللوح كله
+  const guides = useMemo(() => {
+    const W = 2048, H = 1366, c = document.createElement("canvas"); c.width = W; c.height = H;
+    const g = c.getContext("2d")!, u = W / 9; // ١ وحدة = ٢٢٧ بكسل (اللوح ٩×٦)
+    g.strokeStyle = "rgba(122,90,68,0.38)"; g.lineWidth = 3; g.setLineDash([14, 10]);
+    for (let i = -3; i <= 3; i++) for (let j = -2; j <= 2; j++) {
+      const x = W / 2 + i * 1.75 * u, y = H / 2 + j * 1.75 * u;
+      g.beginPath(); g.arc(x, y, R * u, 0, Math.PI * 2); g.stroke();
+      for (let k = 0; k < 4; k++) { const a = (k * Math.PI) / 4 + Math.PI / 8; g.beginPath(); g.moveTo(x - R * u * Math.cos(a), y - R * u * Math.sin(a)); g.lineTo(x + R * u * Math.cos(a), y + R * u * Math.sin(a)); g.stroke(); }
+    }
+    g.setLineDash([]); g.fillStyle = "#C2566B";
+    for (let i = -3; i <= 3; i++) for (let j = -2; j <= 2; j++) { g.beginPath(); g.arc(W / 2 + i * 1.75 * u, H / 2 + j * 1.75 * u, 9, 0, Math.PI * 2); g.fill(); }
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }, []);
   const segs = useMemo(starSegments, []);
   const key = (a: number, d: number) => safeKeys([{ a, b: a + d, to: 1 }], still)[0]!;
   const prog = (k: { a: number; b: number }) => Math.min(1, Math.max(0, (t - k.a) / (k.b - k.a)));
@@ -89,13 +103,15 @@ export const LightGeometryLab: React.FC = () => {
     }
     return s;
   }, []);
+  if (!plaster) return null;
   return (
     <>
       <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, LIGHTS, still)} background={BAA.night}>
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           <planeGeometry args={[9, 6]} />
-          <meshStandardMaterial color={BAA.paper} roughnessMap={plaster} bumpMap={plaster} bumpScale={0.6} roughness={1} />
+          <meshStandardMaterial normalMap={plaster[1]} normalScale={new THREE.Vector2(1.4, 1.4)} color={BAA.paper} roughness={1} />
         </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.004, 0]}><planeGeometry args={[9, 6]} /><meshStandardMaterial map={guides} transparent roughness={1} depthWrite={false} /></mesh>
         <Circle p={circle} />
         {segs.map((s, i) => {
           const d = (lines.b - lines.a) / segs.length;

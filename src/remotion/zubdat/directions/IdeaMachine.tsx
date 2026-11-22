@@ -8,7 +8,7 @@ import React, { useMemo } from "react";
 import { useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { Stage3D, camAt, ease, lightsAt, safeKeys, useGrainTexture, type Cam, type Light } from "../../three";
+import { Stage3D, camAt, ease, lightsAt, safeKeys, useAssetTextures, type Cam, type Light } from "../../three";
 import { IDEA, ZB, ZFrame, Z_STILL, zAt } from "./common";
 
 const START: Cam = { target: [0.4, 1.6, 0], yaw: -14, pitch: 10, dist: 10, fov: 34 };
@@ -48,8 +48,28 @@ export const IdeaMachineLab: React.FC = () => {
   const { width, height, fps } = useVideoConfig();
   const t = frame / fps;
   const still = Z_STILL;
-  const paper = useGrainTexture(13, 0.25, 4);
+  const wood = useAssetTextures(["zubdat-wood-diff", "zubdat-wood-nor"], [3, 2]);
+  const wall = useAssetTextures(["zubdat-plaster-nor"], [3, 1.5]);
   const card = useCardTexture(ready);
+  // ورقة مسطّرة (motif «ruled») وأسماء الأجزاء بالعربية بجوارها، فالآلة تشرح نفسها
+  const sheet = useMemo(() => {
+    const c = document.createElement("canvas"); c.width = 2048; c.height = 810; const g = c.getContext("2d")!;
+    g.fillStyle = ZB.warm; g.fillRect(0, 0, 2048, 810); g.strokeStyle = ZB.line; g.lineWidth = 3;
+    for (let y = 60; y < 810; y += 70) { g.beginPath(); g.moveTo(40, y); g.lineTo(2008, y); g.stroke(); }
+    g.strokeStyle = ZB.alert; g.lineWidth = 4; g.beginPath(); g.moveTo(1880, 0); g.lineTo(1880, 810); g.stroke();
+    const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+  }, []);
+  const labels = useMemo(() => [
+    { text: "الماء", at: [-3.2, 2.75, 0.62] as [number, number, number] },
+    { text: "الكفّة", at: [-2.3, 1.05, 0.7] as [number, number, number] },
+    { text: "الترس", at: [0.6, 0.55, 0.7] as [number, number, number] },
+  ].map((l) => {
+    const c = document.createElement("canvas"); c.width = 512; c.height = 160; const g = c.getContext("2d")!;
+    g.fillStyle = ZB.paper; g.fillRect(0, 0, 512, 160); g.strokeStyle = ZB.ink; g.lineWidth = 8; g.strokeRect(4, 4, 504, 152);
+    g.fillStyle = ZB.ink; g.font = "bold 104px Tajawal"; g.textAlign = "center"; g.direction = "rtl"; g.fillText(l.text, 256, 118);
+    const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace;
+    return { ...l, tex, w: 1.35 };
+  }), [ready]); // eslint-disable-line react-hooks/exhaustive-deps
   const key = (a: number, d: number) => safeKeys([{ a, b: a + d, to: 1 }], still)[0]!;
   const prog = (k: { a: number; b: number }) => Math.min(1, Math.max(0, (t - k.a) / (k.b - k.a)));
   const drip = key(zAt("يصلّي") - 0.1, zAt("يشعر") - zAt("يصلّي") + 0.5);
@@ -65,12 +85,19 @@ export const IdeaMachineLab: React.FC = () => {
     { a: zAt(IDEA) - 0.2, b: zAt(IDEA) + 0.9, to: { ...START, yaw: 8, dist: 7.6, target: [1.6, 2.2, 0] } },
   ], { still });
   const lever = -0.28 + tip * 0.5;
+  if (!wood || !wall) return null;
   return (
     <>
       <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, LIGHTS, still)} background={ZB.paper}>
         {/* الورقة: الأرض والخلفية */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[30, 20]} /><meshStandardMaterial color={ZB.paper} roughnessMap={paper} roughness={1} /></mesh>
-        <mesh position={[0, 5, -2.2]} receiveShadow><planeGeometry args={[30, 12]} /><meshStandardMaterial color={ZB.paper} roughnessMap={paper} roughness={1} /></mesh>
+        {/* مكتب خشب داكن حقيقي، وجدار جص أبيض خلفه (CC0) */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[30, 20]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} color={ZB.grey} roughness={0.7} /></mesh>
+        <mesh position={[0, 5, -2.2]} receiveShadow><planeGeometry args={[30, 12]} /><meshStandardMaterial normalMap={wall[0]} color={ZB.paper} roughness={1} /></mesh>
+        {/* ورقة الرسم تحت الآلة: مسطّرة كمخطوطة الجزري */}
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0.2, 0.004, 0.2]} receiveShadow><planeGeometry args={[8.6, 3.4]} /><meshStandardMaterial map={sheet} roughness={0.95} /></mesh>
+        {labels.map((l) => (
+          <mesh key={l.text} position={l.at} rotation={[-0.35, 0, 0]}><planeGeometry args={[l.w, 0.42]} /><meshBasicMaterial map={l.tex} transparent toneMapped={false} /></mesh>
+        ))}
         {/* الخزان والصنبور */}
         <mesh position={[-3.2, 3.6, 0]} castShadow><cylinderGeometry args={[0.55, 0.55, 1.1, 32]} />{INK}</mesh>
         <mesh position={[-2.6, 3.15, 0]} rotation={[0, 0, Math.PI / 2]} castShadow><cylinderGeometry args={[0.06, 0.06, 0.6, 12]} />{INK}</mesh>

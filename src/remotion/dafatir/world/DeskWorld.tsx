@@ -6,10 +6,10 @@
  * الألوان من «دفتر الأفق» المعتمدة؛ اللازورد التاريخي ليس فيها (قرار هوية للمالك)، فالبحر بدرجتها البنفسجية الفاتحة.
  */
 import React, { useMemo } from "react";
-import { continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { Stage3D, assetFile, camAt, ease, lightsAt, type Cam, type Light } from "../../three";
+import { Stage3D, camAt, ease, lightsAt, useAssetTextures, type Cam, type Light } from "../../three";
 
 export const WORLD_FPS = 30;
 const TEXT = "سنة مئة وخمس وأربعين للهجرة، بدأ أبو جعفر المنصور بناء بغداد على دجلة، وسمّاها مدينة السلام.";
@@ -190,30 +190,12 @@ const drawAstro = (g: CanvasRenderingContext2D, n: number, yearShown: number) =>
   }
 };
 
-/** خامات CC0 من القرص: الرندر ينتظرها (delayRender) فلا يخرج إطار بلا مكتب */
-const cache = new Map<string, THREE.Texture>();
-const useAssetTextures = (ids: string[], color: string[]) => {
-  const ready = ids.every((i) => cache.has(i));
-  // delayRender أثناء الرسم نفسه (لا في useEffect)، فلا يُلتقط إطار قبل وصول الخامات
-  const [handle] = React.useState(() => (ready ? null : delayRender(`خامات ${ids.join("، ")}`)));
-  const [list, setList] = React.useState<THREE.Texture[] | null>(() => (ready ? ids.map((i) => cache.get(i)!) : null));
-  React.useEffect(() => {
-    if (list) return;
-    Promise.all(ids.map((id) => cache.get(id) ?? new THREE.TextureLoader().loadAsync(staticFile(assetFile(id))).then((t) => {
-      t.wrapS = t.wrapT = THREE.RepeatWrapping;
-      if (color.includes(id)) t.colorSpace = THREE.SRGBColorSpace;
-      cache.set(id, t); return t;
-    }))).then((ts) => { setList(ts); if (handle !== null) continueRender(handle); });
-  }, [list]); // eslint-disable-line react-hooks/exhaustive-deps
-  return list;
-};
-
 const useCanvasTex = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, deps: unknown[]) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useMemo(() => { const [c, g] = canvas(w, h); draw(g); return tex(c); }, deps);
 
 const Desk: React.FC<{ ts: THREE.Texture[] }> = ({ ts }) => {
-  const [diff, nor, rough] = ts.map((x) => { const c = x.clone(); c.repeat.set(4, 2.6); c.needsUpdate = true; return c; });
+  const [diff, nor, rough] = ts;
   return <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[14, 9]} /><meshStandardMaterial map={diff} normalMap={nor} roughnessMap={rough} color="#c9b49a" /></mesh>;
 };
 
@@ -278,8 +260,8 @@ export const DeskWorldLab: React.FC = () => {
   const { width, height, fps } = useVideoConfig();
   const t = frame / fps;
   // الخامات تُحمّل هنا خارج لوحة Three، فينتظرها Remotion قبل التقاط الإطار (داخلها يُركَّب متأخرًا)
-  const wood = useAssetTextures(["dafatir-walnut-diff", "dafatir-walnut-nor", "dafatir-walnut-rough"], ["dafatir-walnut-diff"]);
-  const leather = useAssetTextures(["dafatir-leather-diff", "dafatir-leather-nor"], ["dafatir-leather-diff"]);
+  const wood = useAssetTextures(["dafatir-walnut-diff", "dafatir-walnut-nor", "dafatir-walnut-rough"], [4, 2.6]);
+  const leather = useAssetTextures(["dafatir-leather-diff", "dafatir-leather-nor"]);
   const mapTex = useCanvasTex(1536, 2048, (g) => drawMap(g, 1536, 2048, t), [ready, frame]);
   const textTex = useCanvasTex(1536, 2048, (g) => drawText(g, 1536, 2048, t), [ready, frame]);
   const docTex = useCanvasTex(1200, 1560, (g) => drawDoc(g, 1200, 1560, t), [ready, frame]);
@@ -290,7 +272,9 @@ export const DeskWorldLab: React.FC = () => {
   const pointer = ((year - 100) / 100) * Math.PI * 1.6 - Math.PI * 0.8;
   // الختم الخشبي ينزل عند «السلام» ويرتفع
   const sd = span(t, wAt("السلام") - 0.05, 0.2), su = span(t, wAt("السلام") + 0.35, 0.4);
-  const stampY = 0.9 - 0.82 * ease(sd) * (1 - ease(su));
+  const stampY = 0.9 - 0.82 * ease(sd) * (1 - ease(su)) + 0.5 * ease(su);
+  // بعد الطبع يرتفع ويُزاح جانبًا كما ترفعه اليد، فتظهر الطبعة
+  const stampX = -0.2 - 0.75 * ease(su), stampZ = 0.3 - 0.55 * ease(su);
   const cam = camAt(t, { target: ASTRO_AT, yaw: 10, pitch: 64, dist: 2.3, fov: 32 }, [
     // الإسطرلاب ٢٫٧ ث للتاريخ، ثم الدفتر، ثم الوثيقة والختم، ثم المكتب كله
     { a: wAt("بدأ") - 0.35, b: wAt("جعفر"), to: { target: [ATLAS_AT[0] + 0.55, 0, ATLAS_AT[2] - 0.1], yaw: -4, pitch: 70, dist: 3.0, fov: 32 } },
@@ -318,7 +302,7 @@ export const DeskWorldLab: React.FC = () => {
       {/* الوثيقة على المكتب، والختم الخشبي فوقها */}
       <group position={DOC_AT} rotation={[0, -0.12, 0]}>
         <mesh position={[0, 0.012, 0]} rotation={[-Math.PI / 2, 0, 0]} receiveShadow castShadow><planeGeometry args={[1.15, 1.5]} /><meshStandardMaterial map={docTex} roughness={0.95} /></mesh>
-        <group position={[-0.2, stampY, 0.3]}>
+        <group position={[stampX, stampY, stampZ]}>
           <mesh castShadow><cylinderGeometry args={[0.24, 0.24, 0.12, 40]} /><meshStandardMaterial color={K.inkDark} roughness={0.6} /></mesh>
           <mesh position={[0, 0.2, 0]} castShadow><cylinderGeometry args={[0.06, 0.09, 0.32, 24]} /><meshStandardMaterial color={K.brassDark} roughness={0.5} /></mesh>
           <mesh position={[0, 0.4, 0]} castShadow><sphereGeometry args={[0.1, 24, 16]} /><meshStandardMaterial color={K.brassDark} roughness={0.5} /></mesh>
