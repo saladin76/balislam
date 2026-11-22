@@ -61,6 +61,8 @@ export const ASSETS: readonly Asset[] = [
   { id: "zubdat-wood-diff", file: "three/zubdat-alkutub/wood-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dark_wood", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
   { id: "zubdat-wood-nor", file: "three/zubdat-alkutub/wood-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dark_wood", license: "CC0", checked: "2026-11-22", channel: "zubdat-alkutub" },
   { id: "dafatir-age-diff", file: "three/dafatir-alzaman/age-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/decrepit_wallpaper", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
+  { id: "dafatir-mudbrick-diff", file: "three/dafatir-alzaman/mudbrick-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/brown_brick_02", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
+  { id: "dafatir-mudbrick-nor", file: "three/dafatir-alzaman/mudbrick-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/brown_brick_02", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
 ];
 
 /** مسار الأصل لـ staticFile بمعرّفه (يرفض أصلًا غير مسجل) */
