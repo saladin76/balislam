@@ -10,7 +10,12 @@ export type JoinedSeam = SeamPlan & { at: number };
 export type SeamsRecord = { version: 1; size: number; mtimeMs: number; fps: number;
   /** seconds from each scene's start in the file to the next scene's start (the last: its own length) */
   sceneSeconds: Record<string, number>; seams: JoinedSeam[];
-  loudness: { target: number | null; gain: Record<string, number> } };
+  loudness: { target: number | null; gain: Record<string, number> };
+  /**
+   * D199 (pre-final only): the exact bytes of each scene cut joined into this file, and the file's own sha256, so a scene
+   * watched in it may be approved only if this is still its current cut (src/studio/preFinalWatch.ts).
+   */
+  sceneSha256?: Record<string, string>; fileSha256?: string };
 export const seamsRecordFile = (scriptPath: string, slot = "episode") => path.join(path.dirname(scriptPath), "previews", `${slot}.seams.json`);
 
 export const readSeamsRecord = async (scriptPath: string, slot = "episode"): Promise<SeamsRecord | null> => {
