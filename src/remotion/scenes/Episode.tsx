@@ -8,7 +8,12 @@ import { recitationFrameSchedule } from "../../quran/recitationTimeline";
 import { emptyMedia, type EpisodeMedia } from "../../plan/media";
 import { SceneFromPlan } from "./components";
 import { toFrames } from "./timing";
-import { ChannelIntro, introFramesFor, introKindFor } from "./ChannelIntro";
+import { ChannelIntro, channelIntroFramesFor, introFramesFor, introKindFor } from "./ChannelIntro";
+import { COLD_OPEN_TAIL_SEC, coldOpenCut, coldOpenFrames, coldOpenOf, coldOpenSource } from "../../plan/coldOpen";
+import { Book, NEUTRAL } from "../dafatir/horizon/book";
+import { Dusk } from "../dafatir/horizon/kit";
+import { CaptionBar } from "./CaptionBar";
+import { useChannel } from "../../channel/context";
 import type { Orientation } from "./types";
 import { Providers } from "../Providers";
 import { langPack } from "../../i18n/packs";
@@ -65,6 +70,64 @@ export const scenesOf = (p: Pick<EpisodeProps, "plan" | "chapter">): { chapter: 
   );
 
 export const mediaSrc = (media: EpisodeMedia, rel: string) => (media.mode === "static" ? staticFile(`${media.base}${rel}`) : `${media.base}${rel}${media.query ?? ""}`);
+
+/** ترجمة الخطاف: شريط الترجمة نفسه (D187، D192) على كلمات الخطاف وحدها؛ في «الدفتر» على الغسق «dusk» كما في SceneShell */
+const ColdOpenCaption: React.FC<{ themeId: Plan["themeId"]; timings: ReturnType<typeof toFrames>; portrait: boolean }> = ({ themeId, timings, portrait }) => {
+  const t = useTheme(themeId);
+  const notebook = useChannel().frame === "notebook";
+  return timings.length ? <AbsoluteFill><CaptionBar theme={t} timings={timings} portrait={portrait} variant={notebook ? "dusk" : "pill"} /></AbsoluteFill> : null;
+};
+
+/**
+ * الخطاف المسبق (D198): صورة المشهد المصدر وتسجيله نفسه حتى `to` (نص الكلمات المنطوقة فيه وحدها، فتظهر ترجمتها كالمعتاد)،
+ * ثم قلب صفحة الدفتر إلى أول مشهد مع صوت قلب الصفحة إن كان في مكتبة المؤثرات. لا صوت غير التسجيل القائم.
+ */
+export const ColdOpenScene: React.FC<{ plan: Plan; media: EpisodeMedia; orientation: Orientation; eyebrow?: string }> = ({ plan, media, orientation, eyebrow }) => {
+  const fps = config.video.fps;
+  const c = coldOpenOf(plan);
+  const src = coldOpenSource(plan);
+  const clip = src ? media.voice[src.id] : undefined;
+  if (!c || !src || !clip || clip.text !== src.narration.trim()) return null;
+  const cut = coldOpenCut(clip, c.to, c.words);
+  const end = Math.round(c.to * fps);
+  // صورة المشهد المصدر كما هي في أول ثوانيه: نصه وتوقيته كاملان (فترسم لقطته المصممة أحداثها بكلماتها)، والكلمات بعد
+  // القطع تُدفع إلى ما بعد نهاية الخطاف فلا يقع حدثها ولا تظهر ترجمتها؛ ولا خروج للمشهد نفسه: القلب بعده (ColdOpenTurn)
+  const far = 10_000;
+  const words = clip.words.map((w, i) => (i < cut.words.length ? w : { ...w, start: far + i, end: far + i + 0.5 }));
+  // الترجمة من الكلمات المنطوقة في الخطاف وحدها (لا تسبق جملة لم تُقل)، بأسلوب ترجمة القناة نفسه
+  const scene: PlanScene = { ...src, captions: false, props: { ...src.props, exit: "none", closeAt: String(c.to) } };
+  const g = config.audio.narrationVolume;
+  return (
+    <AbsoluteFill>
+      <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={eyebrow} timings={toFrames(words, fps)} media={media} episodeOverlays={plan.overlays} />
+      <ColdOpenCaption themeId={plan.themeId} timings={toFrames(cut.words, fps)} portrait={orientation === "portrait"} />
+      <Audio src={mediaSrc(media, `voice/${clip.file}`)} endAt={end}
+        volume={(f: number) => g * Math.min(1, Math.max(0, (end - f) / 3))} />
+      {src.template === "horizon-shot" ? <Sequence from={end} name="قلب صفحة الخطاف"><ColdOpenTurn /></Sequence> : null}
+      {media.sfx.includes("page-turn") ? (
+        <Sequence from={end + Math.round(COLD_OPEN_TURN_AT * fps)} name="صوت قلب الصفحة"><Audio src={mediaSrc(media, "sfx/page-turn.mp3")} volume={config.audio.sfxVolume} /></Sequence>
+      ) : null}
+    </AbsoluteFill>
+  );
+};
+
+/** متى تبدأ الورقة بالانقلاب بعد القطع (ث): بعد أن يتراجع الكادر إلى الدفتر كله */
+const COLD_OPEN_TURN_AT = 0.35;
+/**
+ * قلب الصفحة بعد الخطاف («خط الأفق»): الحبر يخفت إلى الدفتر كله (الكادر يتراجع من قرب خفيف إلى الوضع العام)، ثم تنقلب
+ * ورقة فارغة بطيّة الدفتر نفسها (FwdLeaf في Book)، فيبدأ أول مشهد من الدفتر بالكادر نفسه.
+ */
+const ColdOpenTurn: React.FC = () => {
+  const frame = useCurrentFrame();
+  const t = frame / config.video.fps;
+  const o = Math.min(1, t / 0.25);
+  return (
+    <AbsoluteFill style={{ opacity: o }}>
+      <Dusk />
+      <Book id="cold-open" t={t} dur={COLD_OPEN_TAIL_SEC} exit="turn" turnAt={COLD_OPEN_TURN_AT} from={{ cx: 960, cy: 520, s: 1.25 }} cam={NEUTRAL} />
+    </AbsoluteFill>
+  );
+};
 
 /** Never use unapproved or stale narration word stamps for final motion. */
 export const visualNarrationTimings = (scene: PlanScene, media: EpisodeMedia, timingMode: "estimated" | "scene-preview" | "approved" = "estimated") => {
@@ -148,11 +211,17 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
       {(() => {
         const kind = introKindFor(props.channel, plan, props.chapter);
         return kind ? (
-          <Series.Sequence key="intro" durationInFrames={introFramesFor(props.channel, plan, props.chapter)} name="افتتاحية القناة">
+          <Series.Sequence key="intro" durationInFrames={channelIntroFramesFor(props.channel, plan, props.chapter)} name="افتتاحية القناة">
             <ChannelIntro kind={kind} orientation={orientation} series={plan.series} />
           </Series.Sequence>
         ) : null;
       })()}
+      {coldOpenFrames(plan, props.chapter) > 0 ? (
+        <Series.Sequence key="cold-open" durationInFrames={coldOpenFrames(plan, props.chapter)} name="الخطاف المسبق">
+          <ColdOpenScene plan={plan} media={media} orientation={orientation}
+            eyebrow={plan.chapters[0] ? chapterEyebrow(props.channel, lang.strings.chapter, plan.chapters[0]) : undefined} />
+        </Series.Sequence>
+      ) : null}
       {(() => { const list = scenesOf(props); const shown = list.map((x) => x.scene);
         const seams = seamPlan(shown, media, { channelId: plan.channel });
         const audio = seamAudio(shown, media, { channelId: plan.channel });
