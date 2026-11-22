@@ -48,6 +48,25 @@ program
   });
 
 program
+  .command("compile")
+  .description("الفيديو التجميعي: يوصل النسخ النهائية لحلقات بإذن نشر بترتيبها بلا إعادة ترميز، ويكتب الفصول؛ لا يرفع شيئًا")
+  .argument("<name>", "اسم التجميع (مثل 2026-11)")
+  .argument("[episodes...]", "أرقام الحلقات بالترتيب")
+  .requiredOption("--title <title>", "عنوان التجميع")
+  .option("--series <id>", "كل حلقات السلسلة بترتيب أرقامها بدل قائمة الحلقات")
+  .action(async (name: string, episodes: string[], opts: { title: string; series?: string }) => {
+    const { makeCompilation } = await import("../package/compilation");
+    let list = episodes;
+    if (opts.series) {
+      const { episodesBySeries } = await import("../channel/seriesStore");
+      list = (await episodesBySeries()).filter((e) => e.series === opts.series).sort((a, b) => (a.number ?? 1e9) - (b.number ?? 1e9) || a.id.localeCompare(b.id)).map((e) => e.id);
+      if (!list.length) throw Error(`لا حلقات في السلسلة «${opts.series}».`);
+    }
+    const r = await makeCompilation({ name, title: opts.title, episodes: list }, (m) => console.log(m));
+    console.log(`التجميع: ${path.relative(projectRoot, r.out)} (${Math.round(r.seconds / 60)} د). شاهده كاملًا قبل النشر اليدوي.\nالفصول للوصف:\n${r.chapters}`);
+  });
+
+program
   .command("sfx-suggest")
   .description("D158 الخطوة ٣: اقتراح المؤثرات بالقواعد الست (الانتقال، والمكان، والكلمة)؛ للعرض فقط إلا بـ --write")
   .argument("<episode>", "رقم الحلقة")
