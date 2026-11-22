@@ -28,7 +28,7 @@ import type { Plan } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 
 /** يرتفع حين يتغير ما يُقاس أو طريقته، فيُعاد القياس */
-export const MEASURE_VERSION = 2;
+export const MEASURE_VERSION = 3;
 
 type Stored = FileMeasurements & { version: number; file: { size: number; mtimeMs: number }; at: string };
 
@@ -76,9 +76,9 @@ export const measureTarget = async (episode: string, target: CardTarget): Promis
       measureLoudness(file), leadingSilence(file), measureInteractivity(file, spans), verifyVideoEvidence(file),
     ]);
     // فحص الخلط من ملفات الراوي والمؤثرات نفسها، بالعلو الذي يخرج به الرندر (ربح سرد المشهد كما في التجميع وMaster)
-    const { sfxFile } = await import("../../voice/sfx");
+    const { sfxDir } = await import("../../voice/sfx");
     const { narrationLoudness } = await import("../narrationLoudness");
-    const mix = checkMix(plan, media, await measureMixLevels(scriptPath, plan, media, sfxFile), {
+    const mix = checkMix(plan, media, await measureMixLevels(scriptPath, plan, media, (file) => path.join(sfxDir, file)), {
       narrationVolume: config.audio.narrationVolume, sfxVolume: config.audio.sfxVolume, narrationGain: (await narrationLoudness(scriptPath, plan, media)).gain });
     const after = await fileStamp(file);
     if (!after || after.size !== before.size || after.mtimeMs !== before.mtimeMs) throw Error("تغيّر الملف أثناء القياس؛ أعد القياس.");
