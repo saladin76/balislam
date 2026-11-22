@@ -33,7 +33,7 @@ describe("اتجاهات «زبدة الكتب» للمقارنة", () => {
     expect(Z_STILL[0]![1]).toBeCloseTo(sacred[sacred.length - 1]!.e + 0.25, 6);
   });
   it("لا أدوات القوالب الشائعة ولا عشوائية", () => {
-    const banned = [/boxShadow|textShadow|drop-shadow/, /backdrop-?[Ff]ilter/, /\bInter\b|Poppins/, /particle|sparkle|lens.?flare|glow|Bloom/i, /spring\(|bounce/i, /@remotion\/transitions/, /Math\.random|Date\.now/];
+    const banned = [/boxShadow|drop-shadow|textShadow: (?!CAPTION_SHADOW)/, /backdrop-?[Ff]ilter/, /\bInter\b|Poppins/, /particle|sparkle|lens.?flare|glow|Bloom/i, /spring\(|bounce/i, /@remotion\/transitions/, /Math\.random|Date\.now/];
     expect(files.flatMap(({ f, code }) => banned.filter((re) => re.test(code.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""))).map((re) => `${f}: ${re}`))).toEqual([]);
   });
 });
@@ -49,5 +49,21 @@ describe("«الأفكار آلات» بأسلوب مخطوطة الجزري (D1
     expect(new Set(shots.map((x) => x.id)).size).toBe(shots.length);
     expect(new Set(shots.map((x) => x.size)).size).toBe(4);
     for (const x of shots) expect(x.b - x.a, x.id).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe("آلة الجزري بعد ملاحظة المالك (٢٢ نوفمبر): قناة ماء وعوّامة وبكرات وأسنان حقيقية ونحاس مستعمل", () => {
+  it("الترسان متعشّقان: المسافة بين المحورين مجموع نصفي القطرين، والمقاس واحد، والنسبة نسبة الأسنان", async () => {
+    const { MACHINE: M, g2Angle } = await import("../src/remotion/zubdat/directions/IdeaMachine");
+    expect(Math.hypot(M.g2.at[0] - M.g1.at[0], M.g2.at[1] - M.g1.at[1])).toBeCloseTo(M.g1.r + M.g2.r, 6);
+    expect((2 * M.g1.r) / M.g1.teeth).toBeCloseTo((2 * M.g2.r) / M.g2.teeth, 9);
+    expect(g2Angle(1) - g2Angle(0)).toBeCloseTo(-M.g1.teeth / M.g2.teeth, 9);
+    // اللوح يرتفع بقدر ما يلتف الحبل على الأسطوانة، ويبقى تحت البكرة
+    const wound = M.drum * Math.abs(g2Angle(M.g1.sweep) - g2Angle(0));
+    expect(M.boardTop0 + wound).toBeLessThan(3.9 - M.pulleyR);
+  });
+  it("الأجزاء كلها في الكود بأسمائها: القناة والماء الجاري، والعوّامة، والبكرتان والحبل، والنحاس بأثر الاستعمال", () => {
+    const code = files.find((x) => x.f === "IdeaMachine.tsx")!.code;
+    for (const re of [/useWornBrass/, /roughnessMap/, /useRipples/, /tankWater/, /<Pulley /, /<Cord /, /gearShape = \(r: number, teeth: number\)/, /"العوّامة"/, /"البكرة"/]) expect(code, String(re)).toMatch(re);
   });
 });

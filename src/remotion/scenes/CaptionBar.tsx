@@ -19,7 +19,7 @@ const useCaptionWord = () => {
  * ملوّن (أسلوب تيك توك ممنوع). الكلمات تُقسم أسطرًا ثابتة تُقطع بعد علامة الوقف أو حين يبلغ السطر حده، والسطر لا
  * يتغير حتى تبدأ أول كلمة في التالي، ويظهر بتلاشٍ قصير. في الشورت يرتفع فوق منطقة أزرار المنصات.
  */
-export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean; variant?: "pill" | "cinema" | "paper" | "dusk" }> = ({ theme, timings, portrait, variant = "pill" }) => {
+export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean; variant?: "pill" | "cinema" | "paper" | "dusk" }> = ({ timings, portrait, variant = "pill" }) => {
   const frame = useCurrentFrame();
   const shown = useCaptionWord();
   const fontSize = useSize("caption", portrait ? "portrait" : "landscape");
@@ -30,19 +30,18 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
   const lines = captionLines(timings.map((t) => t.word), portrait ? CAPTION_MAX_WORDS.portrait : CAPTION_MAX_WORDS.landscape);
   const line = lines.find((l) => idx >= l[0]! && idx <= l[l.length - 1]!) ?? lines[0]!;
   const fade = Math.min(1, Math.max(0, (frame - timings[line[0]!]!.start + 1) / FADE_FRAMES));
-  const c = theme.colors;
-  const look = variant === "cinema"
-    ? { background: "transparent", color: "#F4EEE2", textShadow: "0 2px 6px rgba(0,0,0,0.9)" }
-    : variant === "paper" ? { background: "rgba(241,228,203,0.88)", color: "#4A2E1F" }
-    : variant === "dusk" ? { background: "rgba(18,12,28,0.55)", color: "#F1E4CB" }
-    : { background: c.captionBg, color: c.captionInk };
+  // قرار المالك ٢٢ نوفمبر: بلا مستطيل خلف الترجمة في القنوات الثلاث، نص بظل خفيف فقط. نص فاتح بظل داكن ناعم،
+  // وعلى ورق «دفاتر الزمن» الفاتح حبر داكن بهالة فاتحة؛ والظل يُعدّ للقراءة لا للزينة (بلا توهج ولا ألوان)
+  const look = variant === "paper"
+    ? { color: "#4A2E1F", textShadow: CAPTION_SHADOW.light }
+    : { color: variant === "dusk" ? "#F1E4CB" : variant === "cinema" ? "#F4EEE2" : "#FFFFFF", textShadow: CAPTION_SHADOW.dark };
   return (
     <div style={{ position: "absolute", left: 0, right: 0, bottom: portrait ? 470 : variant === "cinema" ? 38 : 64, display: "flex", justifyContent: "center", padding: "0 64px" }}>
       <div
         style={{
           ...look,
           opacity: fade,
-          borderRadius: 10,
+          background: "transparent",
           padding: portrait ? "12px 26px" : "10px 28px",
           fontFamily: fontFamilies.body,
           fontWeight: 500,
@@ -58,6 +57,12 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
     </div>
   );
 };
+
+/** ظل الترجمة الخفيف (بلا مستطيل): ظل قريب يحدد الحرف، وظل أوسع خافت يفصله عن الصورة */
+export const CAPTION_SHADOW = {
+  dark: "0 1px 2px rgba(0,0,0,0.75), 0 0 10px rgba(0,0,0,0.45)",
+  light: "0 1px 2px rgba(255,255,255,0.7), 0 0 10px rgba(255,255,255,0.5)",
+} as const;
 
 /** حد كلمات السطر: يتسع للجملة القصيرة كلها، ويُقرأ في لمحة */
 export const CAPTION_MAX_WORDS = { landscape: 10, portrait: 6 } as const;
