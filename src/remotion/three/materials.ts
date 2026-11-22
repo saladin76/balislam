@@ -2,7 +2,7 @@
  * عدّة الثري دي — سجل الخامات والصور الأرشيفية. القاعدة (ملف التسليم ٢٢ نوفمبر): للاستعمال التجاري CC0 فقط،
  * من مصادر مسمّاة (المتروبوليتان، ووالترز، وكليفلاند، وSmithsonian، وPoly Haven للخامات)، ولكل ملف مصدره ورابطه
  * وتاريخ مراجعة رخصته. السجل يرفض غير ذلك، فلا يدخل الرندر ملف بلا رخصة مراجعة.
- * السجل فارغ عمدًا: اختيار الخامات جزء من «عالم» كل قناة، ويُضاف مع نموذجه بعد اختيار المالك اتجاهه.
+ * يُضاف إليه مع نموذج عالم كل قناة؛ والملف نفسه لا يُستعمل في قناة غير قناته.
  */
 export const CC0_SOURCES = {
   met: "metmuseum.org",
@@ -43,6 +43,18 @@ export const assetProblems = (a: Asset): string[] => {
 };
 
 /** السجل: يُضاف إليه مع نموذج كل عالم (tests/three-kit.test.ts يفحص كل مدخل) */
-export const ASSETS: readonly Asset[] = [];
+export const ASSETS: readonly Asset[] = [
+  // Poly Haven (CC0، راجعت الرخصة على polyhaven.com/license وصفحة كل أصل ٢٢ نوفمبر)، دقة 1k
+  { id: "dafatir-walnut-diff", file: "three/dafatir-alzaman/walnut-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/american_walnut_veneer", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
+  { id: "dafatir-walnut-nor", file: "three/dafatir-alzaman/walnut-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/american_walnut_veneer", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
+  { id: "dafatir-walnut-rough", file: "three/dafatir-alzaman/walnut-rough.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/american_walnut_veneer", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
+  { id: "dafatir-leather-diff", file: "three/dafatir-alzaman/leather-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/brown_leather", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
+  { id: "dafatir-leather-nor", file: "three/dafatir-alzaman/leather-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/brown_leather", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
+  { id: "balisla-cotton-diff", file: "three/balislam/cotton-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/cotton_jersey", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+  { id: "balisla-cotton-nor", file: "three/balislam/cotton-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/cotton_jersey", license: "CC0", checked: "2026-11-22", channel: "balislam" },
+];
+
+/** مسار الأصل لـ staticFile بمعرّفه (يرفض أصلًا غير مسجل) */
+export const assetFile = (id: string) => { const a = ASSETS.find((x) => x.id === id); if (!a) throw Error(`أصل غير مسجل: ${id}`); return a.file; };
 
 export const assetsFor = (channel: Asset["channel"]) => ASSETS.filter((a) => a.channel === channel);
