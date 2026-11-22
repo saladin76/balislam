@@ -344,6 +344,8 @@ export const balApi = (): Plugin => ({
               const { directPreparationRefusal } = await load("/src/studio/preparation.ts");
               const prepRefusal = await directPreparationRefusal(ep, body);
               if (prepRefusal) return send(res, 409, { ok: false, code: "PREPARATION_CHECKS", error: prepRefusal });
+              // D199: `viaPreFinal` is set only by the server's «اعتمد المشاهد التي شاهدتها كاملة» (prefinal-approve), never by a client
+              if (body && typeof body === "object") delete (body as Record<string, unknown>).viaPreFinal;
               try {
                 await decideSceneProduction(ep, body);
                 // D53: right after the publish permission (never before), the approved files go to the owner's
@@ -407,6 +409,29 @@ export const balApi = (): Plugin => ({
             catch (error) { return refuse(error); }
             return send(res, 200, { ok: true, preview: `${PRE_FINAL_SLOT}.mp4`, version: output.version,
               scenes: output.scenes, recitationPending: output.recitationPending });
+          }
+
+          // D199: what the owner actually played of the current pre-final (GET: spans + the list the button would show;
+          // POST: spans played at 1× from the player), and «اعتمد المشاهد التي شاهدتها كاملة» after he confirmed that list.
+          if (parts[2] === "prefinal-watch" && parts.length === 3) {
+            const pf = await load("/src/studio/preFinalApprove.ts");
+            if (req.method === "GET") {
+              try { return send(res, 200, await pf.preFinalWatchView(ep)); } catch (error) { return refuse(error); }
+            }
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const body = await readBody(req);
+            try { return send(res, 200, { watched: await pf.addPreFinalWatch(ep, body?.fileSha256, body?.spans) }); }
+            catch (error) { return refuse(error); }
+          }
+          if (parts[2] === "prefinal-approve" && parts.length === 3) {
+            if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
+            const pf = await load("/src/studio/preFinalApprove.ts");
+            const body = await readBody(req);
+            try {
+              const result = await pf.approveWatchedPreFinal(ep, body ?? {});
+              const { inspectSceneProduction } = await load("/src/studio/sceneService.ts");
+              return send(res, 200, { ...result, state: await inspectSceneProduction(ep) });
+            } catch (error) { return refuse(error); }
           }
 
           if (parts[2] === "scene-av-render" && parts.length === 3) {

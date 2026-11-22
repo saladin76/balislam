@@ -12,7 +12,7 @@ import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import type { Plan, PlanScene } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
-import { isAmbience, sceneSacredSpans, sfxGainAt, speechSpans } from "../../plan/sfxMix";
+import { isAmbience, sceneSacredSpans, sfxGainAt, sfxTrim, speechSpans } from "../../plan/sfxMix";
 import { splitWords } from "../../remotion/scenes/timing";
 import { sfxFileNames } from "../../plan/sfxVariants";
 
@@ -81,7 +81,7 @@ export const checkMix = (plan: Plan, media: Pick<EpisodeMedia, "voice" | "recita
           const t = x.at + f.t;
           if (!inside(t) || !Number.isFinite(f.m)) continue;
           // الخفض والسكون على وسط النافذة اللحظية
-          peak = Math.max(peak, f.m + db(opts.sfxVolume * sfxGainAt(t - 0.2, sacred, speech, amb)));
+          peak = Math.max(peak, f.m + db(opts.sfxVolume * sfxTrim(x.gainDb) * sfxGainAt(t - 0.2, sacred, speech, amb)));
         }
         if (!Number.isFinite(peak) || peak <= SILENT) continue;
         const need = amb ? MIX_MIN.ambience : MIX_MIN.sfx;

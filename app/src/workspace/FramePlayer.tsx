@@ -14,7 +14,9 @@ export const FramePlayer = React.forwardRef<HTMLVideoElement, {
   src: string; label: string; autoPlay?: boolean; className?: string;
   expectedDuration?: number; onDuration?: (seconds: number) => void;
   onTimeUpdate?: React.ReactEventHandler<HTMLVideoElement>; onLoadedMetadata?: React.ReactEventHandler<HTMLVideoElement>;
-}>(({ src, label, autoPlay, className, expectedDuration, onDuration, onTimeUpdate, onLoadedMetadata }, ref) => {
+  /** D199: a seek (the bar or the keyboard) breaks the «watched» chain of the pre-final. */
+  onSeeking?: React.ReactEventHandler<HTMLVideoElement>; onPause?: React.ReactEventHandler<HTMLVideoElement>;
+}>(({ src, label, autoPlay, className, expectedDuration, onDuration, onTimeUpdate, onLoadedMetadata, onSeeking, onPause }, ref) => {
   const own = useRef<HTMLVideoElement | null>(null);
   const box = useRef<HTMLDivElement | null>(null);
   const [t, setT] = useState(0);
@@ -45,7 +47,8 @@ export const FramePlayer = React.forwardRef<HTMLVideoElement, {
     <>
     <div ref={box} className={`s3-frame${className ? ` ${className}` : ""}`}>
       <video ref={setRef} className="scene-first-video" preload="metadata" playsInline autoPlay={autoPlay} src={src} aria-label={label}
-        onClick={toggle} onPlay={() => { setPlaying(true); setError(""); }} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
+        onClick={toggle} onPlay={() => { setPlaying(true); setError(""); }} onPause={(e) => { setPlaying(false); onPause?.(e); }} onEnded={(e) => { setPlaying(false); onPause?.(e); }}
+        onSeeking={onSeeking}
         onError={(e) => { setPlaying(false); setError(videoFailureMessage(e.currentTarget.error?.code)); }}
         onVolumeChange={(e) => setMuted(e.currentTarget.muted)}
         onTimeUpdate={(e) => { setT(e.currentTarget.currentTime); onTimeUpdate?.(e); }}
