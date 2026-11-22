@@ -171,3 +171,32 @@ describe("bal quality (البطاقة نصًا)", () => {
     expect(t).toMatch(/تمنع \(\d+\):/);
   });
 });
+
+// Owner, 22 Nov (coordinator): B's packaging and shorts items are wired into the card. They block publishing only —
+// the «مشهد» and «سؤال» thumbnails are made from the master, and the episode link exists only after it is published.
+import { buildCard as buildCardReady, cardRefusal as refusalReady } from "../src/studio/quality/card";
+describe("packaging and shorts from B: publish-only", () => {
+  const plan = { version: 1, title: "ت", chapters: [{ number: 1, title: "", scenes: [] }] } as never;
+  const ready = {
+    packaging: { items: [{ id: "thumbnails", label: "الأغلفة الثلاثة", ok: false, detail: "«مشهد» و«سؤال» بانتظار الاتجاه" }] },
+    shorts: { items: [{ id: "shorts-exist", label: "شورتس من الحلقة", ok: true }, { id: "shorts-link", label: "رابط الحلقة", ok: false, detail: "يُكتب بعد نشر الحلقة" }] },
+  };
+  it("a packaging ✗ never blocks the final version, and does block publishing", () => {
+    const card = buildCardReady({ target: "master", plan, measured: null, ready });
+    expect(card.blockers.some((b) => b.includes("الأغلفة"))).toBe(false);
+    expect(card.publishBlockers.some((b) => b.includes("الأغلفة"))).toBe(true);
+    expect(card.publishBlocks).toBe(true);
+    expect(refusalReady(card, "publish")).toContain("الأغلفة الثلاثة");
+  });
+  it("the episode link in a short's description is a warning before the episode is published", () => {
+    const card = buildCardReady({ target: "master", plan, measured: null, ready });
+    const link = card.sections.find((s) => s.id === "shorts")!.items.find((i) => i.id === "shorts-link")!;
+    expect(link.status).toBe("warn");
+    expect(link.stage).toBe("publish");
+  });
+  it("no publish package yet: publishing is refused with that reason, the final version is not", () => {
+    const card = buildCardReady({ target: "master", plan, measured: null });
+    expect(card.publishBlockers.join(" ")).toContain("لا توجد حزمة نشر");
+    expect(card.blockers.join(" ")).not.toContain("لا توجد حزمة نشر");
+  });
+});

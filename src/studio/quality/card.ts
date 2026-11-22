@@ -23,11 +23,12 @@ export const HEAD_SILENCE_MAX = 0.6;
 export const HOOK_WINDOW_SEC = 15;
 
 export type ItemStatus = "pass" | "fail" | "unmeasured" | "warn" | "later";
-export type CardItem = { id: string; label: string; status: ItemStatus; value?: string; need: string; reason?: string };
+/** stage "publish": يمنع إذن النشر وحده (التغليف والشورتس تُصنع من النسخة النهائية وبعد نشرها)، لا صنع النسخة النهائية */
+export type CardItem = { id: string; label: string; status: ItemStatus; value?: string; need: string; reason?: string; stage?: "publish" };
 export type CardSection = { id: "audio" | "picture" | "script" | "packaging" | "shorts"; label: string; items: CardItem[] };
 /** الملف الذي قيست عليه البطاقة: الحلقة المجمّعة (قبل النهائية) أو النسخة النهائية (قبل النشر) */
 export type CardTarget = "assembly" | "master";
-export type QualityCard = { target: CardTarget; file?: { size: number; mtimeMs: number }; measuredAt?: string; sections: CardSection[]; blocks: boolean; blockers: string[] };
+export type QualityCard = { target: CardTarget; file?: { size: number; mtimeMs: number }; measuredAt?: string; sections: CardSection[]; publishBlocks: boolean; publishBlockers: string[]; blocks: boolean; blockers: string[] };
 
 /** ما يقيسه measure.ts على الملف (null: لم يُقس بعد) */
 export type FileMeasurements = {
@@ -137,9 +138,19 @@ export const scriptItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "re
   ];
 };
 
-/** التغليف والشورتس من تيرمينال B: يُضاف مزوّدهما هنا حين يُسلَّم */
-export const packagingItems = (): CardItem[] => [later("packaging", "التغليف (العنوان والصورة المصغّرة والوصف)", "معايير B", "تيرمينال B (النمو)")];
-export const shortsItems = (): CardItem[] => [later("shorts", "الشورتس", "معايير B", "تيرمينال B (النمو)")];
+/** بنود التغليف والشورتس من B (`src/package/qualityCard.ts`) بصيغة البطاقة؛ كلها «للنشر» */
+export type ReadyItems = { items: { id: string; label: string; ok: boolean; detail?: string }[] };
+const fromReady = (r: ReadyItems | undefined, missing: CardItem): CardItem[] =>
+  !r ? [missing] : r.items.map((i) => ({
+    id: i.id, label: i.label, need: i.label, stage: "publish" as const,
+    // رابط الحلقة في وصف الشورت لا يوجد إلا بعد نشر الحلقة: تنبيه لا منع
+    status: i.ok ? "pass" as const : i.id === "shorts-link" ? "warn" as const : "fail" as const,
+    ...(i.detail ? { reason: i.detail } : {}),
+  }));
+export const packagingItems = (r?: ReadyItems): CardItem[] =>
+  fromReady(r, { id: "packaging", label: "حزمة النشر (publish.json)", need: "العناوين والأغلفة والوصف", status: "fail", stage: "publish", reason: "لا توجد حزمة نشر للحلقة بعد." });
+export const shortsItems = (r?: ReadyItems): CardItem[] =>
+  fromReady(r, { id: "shorts", label: "الشورتس", need: "شورتس بعناوين أسئلة", status: "fail", stage: "publish", reason: "لا توجد حزمة نشر للحلقة بعد." });
 
 /** يمنع ما فيه ✗ أو قياس لم يُجرَ؛ والتنبيه والمؤجل لا يمنعان */
 export const BLOCKING: ReadonlySet<ItemStatus> = new Set(["fail", "unmeasured"]);
@@ -148,22 +159,26 @@ export const buildCard = (input: {
   target: CardTarget; plan: Plan; media?: Pick<EpisodeMedia, "voice" | "recitations">;
   measured: (FileMeasurements & { file: { size: number; mtimeMs: number }; at: string }) | null;
   citations?: { total: number; open: number };
+  ready?: { packaging: ReadyItems; shorts: ReadyItems };
 }): QualityCard => {
   const m = input.measured;
   const sections: CardSection[] = [
     { id: "audio", label: "الصوت", items: audioItems(m) },
     { id: "picture", label: "الصورة", items: pictureItems(m, input.target, input.plan) },
     { id: "script", label: "السكريبت", items: scriptItems(input.plan, input.media, input.citations) },
-    { id: "packaging", label: "التغليف", items: packagingItems() },
-    { id: "shorts", label: "الشورتس", items: shortsItems() },
+    { id: "packaging", label: "التغليف", items: packagingItems(input.ready?.packaging) },
+    { id: "shorts", label: "الشورتس", items: shortsItems(input.ready?.shorts) },
   ];
-  const blockers = sections.flatMap((s) => s.items.filter((i) => BLOCKING.has(i.status)).map((i) => `${s.label} — ${i.label}: ${i.status === "unmeasured" ? "لم يُقس بعد" : i.reason ?? "✗"}`));
-  return { target: input.target, ...(m ? { file: m.file, measuredAt: m.at } : {}), sections, blocks: blockers.length > 0, blockers };
+  const line = (s: CardSection, i: CardItem) => `${s.label} — ${i.label}: ${i.status === "unmeasured" ? "لم يُقس بعد" : i.reason ?? "✗"}`;
+  const publishBlockers = sections.flatMap((s) => s.items.filter((i) => BLOCKING.has(i.status)).map((i) => line(s, i)));
+  // النسخة النهائية لا ينتظرها ما يُصنع منها أو بعد نشرها
+  const blockers = sections.flatMap((s) => s.items.filter((i) => BLOCKING.has(i.status) && i.stage !== "publish").map((i) => line(s, i)));
+  return { target: input.target, ...(m ? { file: m.file, measuredAt: m.at } : {}), sections, blocks: blockers.length > 0, blockers, publishBlocks: publishBlockers.length > 0, publishBlockers };
 };
 
 /** رسالة الرفض للمالك: ما يمنع، بندًا بندًا */
 export const cardRefusal = (card: QualityCard, action: "final" | "publish") =>
-  `${action === "final" ? "لا تُصنع النسخة النهائية" : "لا يُمنح إذن النشر"} قبل أن تكون بطاقة الجودة بلا ✗ (${card.target === "assembly" ? "الحلقة المجمّعة" : "النسخة النهائية"}):\n${card.blockers.map((b) => `- ${b}`).join("\n")}`;
+  `${action === "final" ? "لا تُصنع النسخة النهائية" : "لا يُمنح إذن النشر"} قبل أن تكون بطاقة الجودة بلا ✗ (${card.target === "assembly" ? "الحلقة المجمّعة" : "النسخة النهائية"}):\n${(action === "final" ? card.blockers : card.publishBlockers).map((b) => `- ${b}`).join("\n")}`;
 
 const SIGN: Record<ItemStatus, string> = { pass: "✓", fail: "✗", unmeasured: "…", warn: "!", later: "—" };
 /** البطاقة نصًا (للطرفية، `bal quality`): كل بند بعلامته وقيمته والمطلوب وسببه، ثم الحكم */
