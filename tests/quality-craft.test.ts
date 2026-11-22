@@ -6,7 +6,7 @@ import type { Plan, PlanScene } from "../src/plan/types";
 import { measureCraft } from "../src/studio/quality/craft";
 import { buildCard, craftItems } from "../src/studio/quality/card";
 
-const sc = (id: string, props: Record<string, unknown>, extra: Partial<PlanScene> = {}): PlanScene =>
+const sc = (id: string, props: Record<string, string>, extra: Partial<PlanScene> = {}): PlanScene =>
   ({ id, template: "set-scene", narration: "x", line: 0, props, sfx: [], durationSec: 20, ...extra });
 const plan = (...scenes: PlanScene[]): Plan => ({ version: 1, episode: "001", title: "t", domain: "faith" as Plan["domain"], themeId: "x" as Plan["themeId"], updatedAt: "", chapters: [{ number: 1, title: "", scenes }] });
 
