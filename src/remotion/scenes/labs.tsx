@@ -5,6 +5,10 @@ import { KitLab, KIT_LAB_FPS, KIT_LAB_SEC } from "../three/KitLab";
 import { ShadowTheaterLab } from "../balislam/directions/ShadowTheater";
 import { LightGeometryLab } from "../balislam/directions/LightGeometry";
 import { PrintedAlleyLab } from "../balislam/directions/PrintedAlley";
+import { IdeaMachineLab } from "../zubdat/directions/IdeaMachine";
+import { BulaqPressLab } from "../zubdat/directions/BulaqPress";
+import { ReadingRoomLab } from "../zubdat/directions/ReadingRoom";
+import { ZDIR_FPS, zFrames } from "../zubdat/directions/common";
 import { DIR_FPS, dirFrames } from "../balislam/directions/common";
 
 /**
@@ -21,5 +25,9 @@ export const TemplateLabs: React.FC = () => (
     <Composition id="balislam-dir-geometry" component={LightGeometryLab} durationInFrames={dirFrames()} fps={DIR_FPS} width={1920} height={1080} />
     <Composition id="balislam-dir-alley" component={PrintedAlleyLab} durationInFrames={dirFrames()} fps={DIR_FPS} width={1920} height={1080} />
     <Composition id="balislam-dir-shadow" component={ShadowTheaterLab} durationInFrames={dirFrames()} fps={DIR_FPS} width={1920} height={1080} />
+    {/* زبدة الكتب: اتجاهات المقارنة الثلاثة بثري دي (لا قالب قبل اختيار المالك)، صامتة لا تُنشر */}
+    <Composition id="zubdat-dir-bulaq" component={BulaqPressLab} durationInFrames={zFrames()} fps={ZDIR_FPS} width={1920} height={1080} />
+    <Composition id="zubdat-dir-reading" component={ReadingRoomLab} durationInFrames={zFrames()} fps={ZDIR_FPS} width={1920} height={1080} />
+    <Composition id="zubdat-dir-machine" component={IdeaMachineLab} durationInFrames={zFrames()} fps={ZDIR_FPS} width={1920} height={1080} />
   </>
 );
