@@ -127,12 +127,18 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
   // FFmpeg 8 removed -filter_complex_script (owner's Mac, 18 Nov): the form follows the local FFmpeg (ffmpegFilterScript.ts)
   const run = (form: Awaited<ReturnType<typeof localFilterScriptForm>>) => exec("ffmpeg", [
     "-nostdin", "-hide_banner", "-loglevel", "error",
+    // KI-122: the filter graph single-threaded too. Even with one decoder thread per cut, the pre-final join of «دفاتر الزمن
+    // 001» (47 cuts) was SIGKILLed again on 22 Nov (exit -9, no message, ~1.3 GB before the kill); with the filter graph and
+    // the encoder on one thread it finished in 164 s at 933 MB (measured on the owner's Mac, same inputs and filter).
+    "-filter_complex_threads", "1",
     // KI-092: one decoder thread per scene. With FFmpeg's default (a thread per core), 47 cuts at 1080p took ~6 GB and
     // macOS killed the join (SIGKILL, no message) on the owner's 8 GB Mac; measured on 24 cuts: 3.2 GB → 1.1 GB, same speed
     // (the encoder keeps every core).
     ...cuts.flatMap((c) => ["-threads", "1", "-i", c.file]),
     ...filterScriptArgs(script, form), "-map", "[vout]", "-map", "[aout]",
     "-c:v", "libx264", "-preset", q.x264Preset, "-crf", String(q.crf), "-pix_fmt", "yuv420p",
+    // KI-122: one encoder thread and a short look-ahead (the encoder's frame buffers grow with its threads)
+    "-threads", "1", "-x264-params", "threads=1:lookahead-threads=1:rc-lookahead=10",
     "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
     "-c:a", "aac", "-b:a", q.audioBitrate, "-ar", "48000",
     "-map_metadata", "-1", "-movflags", "+faststart", "-y", tempVideo,

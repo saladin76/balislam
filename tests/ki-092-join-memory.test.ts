@@ -10,3 +10,13 @@ describe("KI-092: the join opens every scene with one decoder thread", () => {
     expect(s).not.toContain('...cuts.flatMap((c) => ["-i", c.file])');
   });
 });
+
+// KI-122 (owner, 22 Nov): the same join was SIGKILLed again (exit -9 at ~1.3 GB) with 47 cuts; single-threaded filter graph and
+// encoder finished it at 933 MB on the owner's Mac.
+describe("KI-122: the join's filter graph and encoder run on one thread", () => {
+  it("passes -filter_complex_threads 1 and a one-thread x264 with a short look-ahead", () => {
+    const s = readFileSync(path.join(import.meta.dirname, "..", "src/studio/assembleScenes.ts"), "utf8");
+    expect(s).toContain('"-filter_complex_threads", "1",');
+    expect(s).toContain('"-threads", "1", "-x264-params", "threads=1:lookahead-threads=1:rc-lookahead=10",');
+  });
+});
