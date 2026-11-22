@@ -10,8 +10,8 @@
 import React from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { useBrandFonts } from "../../useBrandFonts";
-import { CAPTION_SHADOW, calmAt, ease, orbit, safeKeys, swing, type CamState, type V3, type Window } from "../../three";
-import { anchorAt, captionLine, effectiveTime, sceneWords, stillWindows, type TimedWord } from "../../three/anchors";
+import { calmAt, ease, orbit, safeKeys, swing, type CamState, type V3, type Window } from "../../three";
+import { CAPTION_BAND, CAPTION_TONES, anchorAt, captionLine, effectiveTime, sceneWords, stillWindows, type TimedWord } from "../../three/anchors";
 import type { SceneBase, StringFields } from "../../scenes/types";
 import { SceneShell } from "../../scenes/SceneShell";
 import { DRIP_PERIOD, JAZARI, MachineStage, type MachineTags } from "../directions/IdeaMachine";
@@ -104,7 +104,7 @@ export const JazariMachine: React.FC<JazariMachineProps> = (props) => {
   return (
     <SceneShell {...props} captions={false} eyebrow={undefined} motif={false} watermark={false} background={JAZARI.paperDeep} durationInFrames={durationInFrames} exitFrames={0} frameless>
       <MachineStage t={t} width={width} height={height} cam={cam} aperture={cut.aperture} still={still} calm={calm} ready={ready}
-        drip={drip ? { a: drip.a, b: drip.b } : null} fillAt={fillAt} lever={lever} turn={turn} boardSway={boardSway} idea={props.idea ?? ""} tags={jazariTags(props.parts)} />
+        drip={drip ? { a: drip.a, b: drip.b } : null} fillAt={fillAt} lever={lever} turn={turn} boardSway={boardSway} idea={props.idea ?? ""} tags={jazariTags(props.parts)} captionBand={line ? CAPTION_BAND : 0} />
       {/* صوت الورشة الخافت، ومع كل حركة صوتها (D158): كل قطرة، وميل الذراع، ودوران الترس والبكرتين، ووصول اللوح */}
       <Audio src={SFX("silence-room")} volume={0.3} loop />
       {drip && Array.from({ length: 40 }, (_, k) => drip.a + (k + 1) * DRIP_PERIOD).filter((x) => x <= drip.b + DRIP_PERIOD).map((x, i) => <Sequence key={`d${i}`} from={Math.round(x * fps)} durationInFrames={12}><Audio src={SFX("water-drop")} volume={0.32 + (i % 3) * 0.06} /></Sequence>)}
@@ -113,9 +113,9 @@ export const JazariMachine: React.FC<JazariMachineProps> = (props) => {
       {turnE && <Sequence from={Math.round(turnE.b * fps)} durationInFrames={15}><Audio src={SFX("tick")} volume={0.5} /></Sequence>}
       {line && (
         <AbsoluteFill style={{ pointerEvents: "none" }}>
-          {/* الترجمة سطر هادئ (جملة جملة) بظل خفيف بلا مستطيل (D187، D192) */}
+          {/* الترجمة سطر هادئ (جملة جملة) بلا مستطيل (D187، D192)، حبر بهالة فاتحة على ورق المخطوطة والجص */}
           <div style={{ position: "absolute", bottom: props.orientation === "portrait" ? 460 : 56, left: 40, right: 40, display: "flex", justifyContent: "center" }}>
-            <div style={{ opacity: line.fade, color: JAZARI.paper, textShadow: CAPTION_SHADOW, padding: "8px 28px", fontFamily: "Tajawal", fontWeight: 500, fontSize: 52, direction: "rtl", textAlign: "center" }}>{line.text}</div>
+            <div style={{ opacity: line.fade, color: JAZARI_SHOTS[shot].caption === "ink" ? JAZARI.ink : JAZARI.paper, textShadow: CAPTION_TONES[JAZARI_SHOTS[shot].caption].textShadow, padding: "8px 28px", fontFamily: "Tajawal", fontWeight: 500, fontSize: 52, direction: "rtl", textAlign: "center" }}>{line.text}</div>
           </div>
         </AbsoluteFill>
       )}

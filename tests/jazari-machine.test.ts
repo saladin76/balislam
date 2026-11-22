@@ -72,9 +72,29 @@ describe("قالب «آلات الجزري» (D201)", () => {
   it("صوت لكل حركة فوق صوت الورشة، والترجمة بلا مستطيل، وبلا فسفوري ولا ألوان خارج المخطوطة", () => {
     expect(CODE).toMatch(/SFX\("silence-room"\)/);
     for (const f of ["water-drop", "drop-soft", "gears", "tick", "silence-room"]) expect(() => readFileSync(`public/three/sfx/${f}.mp3`)).not.toThrow();
-    expect(CODE).toMatch(/textShadow: CAPTION_SHADOW/);
+    expect(CODE).toMatch(/textShadow: CAPTION_TONES\[JAZARI_SHOTS\[shot\]\.caption\]\.textShadow/);
     expect(CODE).not.toMatch(/background: "rgba|borderRadius/);
     expect(CODE).not.toMatch(/fluo|#E8F542/i);
     expect(CODE).not.toMatch(/#[0-9A-Fa-f]{6}\b/);
+  });
+});
+
+describe("مراجعة المنسّق: لون الترجمة حسب ما تحتها، ولا بطاقة في نطاق الترجمة", () => {
+  it("كل لقطة تعلن نبرة الترجمة (حبر على الورق والجص، ونص فاتح على طاولة الخشب)", () => {
+    for (const [id, s] of Object.entries(JAZARI_SHOTS)) expect(["ink", "light"], id).toContain(s.caption);
+    expect([JAZARI_SHOTS.drip.caption, JAZARI_SHOTS.lever.caption, JAZARI_SHOTS.gears.caption]).toEqual(["ink", "ink", "ink"]);
+    expect(JAZARI_SHOTS.machine.caption).toBe("light"); // الواسعة: الترجمة فوق طاولة الخشب الداكنة
+    expect(CODE).not.toMatch(/mixBlendMode/);
+  });
+  it("بطاقات الأسماء فوق أجزائها، وتُخفى إن وقعت في نطاق الترجمة أسفل الكادر", async () => {
+    const { TAG_AT } = await import("../src/remotion/zubdat/directions/IdeaMachine");
+    const { CAPTION_BAND } = await import("../src/remotion/three/anchors");
+    expect(CAPTION_BAND).toBeCloseTo(0.22, 6);
+    // الكفّة والدولاب فوق أجزائهما لا تحتها (كانتا على الأرض تحت الترجمة)
+    expect(TAG_AT.cup[1]).toBeGreaterThan(2); expect(TAG_AT.gear[1]).toBeGreaterThan(2);
+    const machine = readFileSync("src/remotion/zubdat/directions/IdeaMachine.tsx", "utf8");
+    expect(machine).toMatch(/if \(band > 0 && fromBottom < band \+ 0\.04\) return null;/);
+    expect(machine).toMatch(/Math\.abs\(v\.x\) > 0\.78/);
+    expect(CODE).toMatch(/captionBand=\{line \? CAPTION_BAND : 0\}/);
   });
 });

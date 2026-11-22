@@ -7,6 +7,7 @@
  * أربع لقطات بقطع (تفاصيل، متوسطة، قريبة، واسعة) مددها ٢–٦ ث، وعمق ميدان، وتأرجح بعد الحركة، وصوت مع كل حركة.
  */
 import React, { useMemo } from "react";
+import { useThree } from "@react-three/fiber";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
@@ -188,9 +189,25 @@ export type MachineStageProps = {
   /** امتلاء الكفّة إن لم يكن تقطير (٠ فارغة، ١ ممتلئة) */
   fillAt?: number;
   lever: number; turn: number; boardSway: number; idea: string; tags: MachineTags;
+  /** نطاق الترجمة أسفل الكادر (٠ = بلا قيد): لا بطاقة فيه */
+  captionBand?: number;
+};
+/** مواضع بطاقات الأسماء في الآلة (الحوض فوقه، والكفّة والدولاب فوقهما لا أسفلهما، بعيدًا عن شريط الترجمة) */
+export const TAG_AT: Record<keyof MachineTags, V3> = {
+  water: [-3.25, 3.2, 0.6], float: [M.tank.x + 0.85, 5.0, 0.3], cup: [-2.9, 2.45, 0.55], gear: [0.25, 2.55, 0.55], pulley: [3.05, 4.65, 0.3],
+};
+/** بطاقة اسم لا تُرسم إن وقع مركزها على الشاشة في نطاق الترجمة (نسبة من أسفل الكادر) أو قرب حافته فتُقطع */
+const TagCard: React.FC<{ at: V3; tex: THREE.Texture; band: number }> = ({ at, tex, band }) => {
+  const { camera } = useThree();
+  const v = new THREE.Vector3(...at).project(camera);
+  const fromBottom = (v.y + 1) / 2;
+  if (band > 0 && fromBottom < band + 0.04) return null;
+  // ولا بطاقة مقطوعة بحافة الكادر
+  if (Math.abs(v.x) > 0.78 || v.y > 0.9) return null;
+  return <mesh position={at} rotation={[-0.2, 0, 0]}><planeGeometry args={[1.2, 0.38]} /><meshStandardMaterial map={tex} roughness={0.9} /></mesh>;
 };
 /** آلة الجزري (المشهد كله بلا صوت ولا ترجمة): يستعملها نموذج المقارنة وقالب «آلات الجزري» معًا */
-export const MachineStage: React.FC<MachineStageProps> = ({ t, width, height, cam, aperture, still, calm, ready, drip, fillAt = 0, lever, turn, boardSway, idea: ideaText, tags }) => {
+export const MachineStage: React.FC<MachineStageProps> = ({ t, width, height, cam, aperture, still, calm, ready, drip, fillAt = 0, lever, turn, boardSway, idea: ideaText, tags, captionBand = 0 }) => {
   const wood = useAssetTextures(["zubdat-wood-diff", "zubdat-wood-nor"], [3, 2]);
   const wall = useAssetTextures(["zubdat-plaster-nor"], [3, 1.5]);
   const folio = useFolio(ready);
@@ -298,8 +315,9 @@ export const MachineStage: React.FC<MachineStageProps> = ({ t, width, height, ca
         <mesh position={[0, -0.02, 0]} material={brass}><torusGeometry args={[0.05, 0.012, 8, 20]} /></mesh>
       </group>
       {/* أسماء الأجزاء بالحبر الأحمر بالنسخ */}
-      {[{ tex: tagTex.water, on: Boolean(tags.water), at: [M.tank.x, 3.05, 0.6] }, { tex: tagTex.float, on: Boolean(tags.float), at: [M.tank.x + 0.85, 5.0, 0.3] }, { tex: tagTex.cup, on: Boolean(tags.cup), at: [-2.3, 0.75, 0.55] }, { tex: tagTex.gear, on: Boolean(tags.gear), at: [0.6, 0.55, 0.55] }, { tex: tagTex.pulley, on: Boolean(tags.pulley), at: [(P1[0] + P2[0]) / 2, 4.65, 0.3] }].filter((l) => l.on).map((l, i) => (
-        <mesh key={i} position={l.at as V3} rotation={[-0.2, 0, 0]}><planeGeometry args={[1.2, 0.38]} /><meshStandardMaterial map={l.tex} roughness={0.9} /></mesh>
+      {/* والبطاقة لا تقع في نطاق الترجمة أسفل الكادر (captionBand): تُخفى في اللقطة التي يقع موضعها فيه */}
+      {(Object.keys(TAG_AT) as (keyof typeof TAG_AT)[]).filter((k) => tags[k]).map((k) => (
+        <TagCard key={k} at={TAG_AT[k]} tex={tagTex[k]} band={captionBand} />
       ))}
     </Stage3D>
   );
