@@ -48,6 +48,38 @@ program
   });
 
 program
+  .command("sfx-suggest")
+  .description("D158 الخطوة ٣: اقتراح المؤثرات بالقواعد الست (الانتقال، والمكان، والكلمة)؛ للعرض فقط إلا بـ --write")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--write", "أضف الاقتراحات إلى الخطة (لا يمس مؤثرات المالك)، واحذف المؤثرات التي لا ملف لها")
+  .action(async (episode: string, opts: { write?: boolean }) => {
+    const { existsSync } = await import("node:fs");
+    const { loadPlan, savePlan } = await import("../plan/io");
+    const { collectMedia } = await import("../plan/collect");
+    const { suggestSfx, missingSfx } = await import("../plan/sfxSuggest");
+    const { sfxLibrary } = await import("../../brand/sfx");
+    const plan = await loadPlan(episode);
+    if (!plan) throw Error("لا توجد خطة للحلقة.");
+    const media = await collectMedia(episode, plan);
+    const lib = new Set(sfxLibrary.map((d) => d.id).filter((id) => existsSync(path.join(process.cwd(), "assets", "sfx", `${id}.mp3`))));
+    const s = suggestSfx(plan, media, lib);
+    const missing = missingSfx(plan, lib);
+    const voiced = plan.chapters.flatMap((c) => c.scenes).filter((x) => media.voice[x.id]?.text === x.narration.trim()).length;
+    console.log(`اقتراحات المؤثرات: ${s.length} (توقيت ${voiced ? "من صوت الراوي" : "تقديري — ولّد الصوت أولًا لتوقيت دقيق"})`);
+    for (const x of s) console.log(`  ${x.scene.padEnd(8)} ${x.sfx.at.toFixed(2).padStart(6)} ث  ${x.sfx.id.padEnd(15)} ${x.why}`);
+    if (missing.length) console.log(`مؤثرات في الخطة بلا ملف (تُتجاهل في الرندر): ${missing.map((m) => `${m.scene}: ${m.id}`).join("، ")}`);
+    if (!opts.write) { console.log("لم يُكتب شيء. اسمعها بعد الإضافة في المعاينة؛ للإضافة: --write"); return; }
+    const byScene = new Map<string, typeof s>();
+    for (const x of s) byScene.set(x.scene, [...(byScene.get(x.scene) ?? []), x]);
+    for (const c of plan.chapters) for (const sc of c.scenes) {
+      sc.sfx = sc.sfx.filter((x) => lib.has(x.id));
+      if (!sc.sfx.length && byScene.has(sc.id)) sc.sfx = byScene.get(sc.id)!.map((x) => x.sfx);
+    }
+    await savePlan(episode, plan);
+    console.log(`كُتبت ${s.length} مؤثرًا في الخطة${missing.length ? `، وحُذف ${missing.length} بلا ملف` : ""}. حدّث معاينة المشاهد لتسمعها.`);
+  });
+
+program
   .command("tone-map-sync")
   .description("دفاتر الزمن: يطابق مقاطع خريطة النبرة بسطور التشكيل الحالي بالنص (KI-088)؛ للعرض فقط إلا بـ --write")
   .argument("<episode>", "رقم الحلقة (001) أو مسار السكريبت")
