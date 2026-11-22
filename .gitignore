@@ -103,3 +103,6 @@ channels/*/episodes/*/**/*.tmp
 # الوصلات التي سمعها المالك في النسخة المجمعة (M6): حالة محلية مربوطة ببصمة التجميع، لا تُرفع
 channels/*/episodes/*/seam-checks.local.json
 channels/*/episodes/*/seam-checks.local.json.lock
+
+# الفيديو التجميعي (src/package/compilation.ts): فيديو محلي لا يُرفع أبدًا
+channels/*/compilations/
