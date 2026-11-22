@@ -1118,3 +1118,8 @@
 ## 2026-11-23 — قالب «الحارة» لبالإسلام في الملفات المشتركة (D200، التعريف: docs/balislam/06-decisions.md)
 
 - `src/studio/quality/diversity.ts` يعرف حقول تكوين القالب `alley-world`، و`src/remotion/three/anchors.ts` (أزمنة الكلمات والسكون المقصود للقوالب ثلاثية الأبعاد) مشترك بلا هوية. لا تغيير في قوالب هذه القناة.
+
+
+## 2026-11-23 — قالب «آلات الجزري» لزبدة الكتب في الملفات المشتركة (D201، التعريف: docs/zubdat-alkutub/06-decisions.md)
+
+- `src/studio/quality/diversity.ts` يعرف حقول تكوين القالب `jazari-machine`، و`src/remotion/scenes/channelSamples.ts` نموذجه لزبدة الكتب. لا تغيير في قوالب هذه القناة.

@@ -94,6 +94,17 @@ export const channelSamples: Record<string, Record<string, Record<string, unknow
   },
   // زبدة الكتب: خلاصات الكتب وشرحها بأسلوبنا، والعناصر من مكتبتها وحدها
   "zubdat-alkutub": {
+    // «آلات الجزري» (D201): الحضور قبل الشعور، بمحتوى القناة نفسها
+    "jazari-machine": {
+      shot: "machine",
+      idea: "الحضور",
+      parts: "الحوض|العوّامة|الكفّة|الدولاب",
+      dripWord: "يصلّي",
+      tipWord: "ينتظر",
+      turnWord: "الشعور",
+      riseWord: "الحضور",
+      narration: "كثيرٌ منّا يصلّي ولا يشعر، لأنّه ينتظر الشعور قبل الحضور. واللهُ أقربُ إلينا ممّا نظن.",
+    },
     "big-question": {
       eyebrow: "السؤال",
       question: "لماذا نقرأ كثيرًا ولا يبقى إلا القليل؟",
