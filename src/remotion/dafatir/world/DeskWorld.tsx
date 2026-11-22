@@ -15,7 +15,7 @@ import React, { useMemo } from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { BeamDust, DepthOfField, Stage3D, ease, flicker, lightsAt, orbit, swing, useAssetTextures, type CamState, type Light, type V3 } from "../../three";
+import { BeamDust, DepthOfField, Stage3D, ease, flicker, lightsAt, orbit, swing, useAssetTextures, type CamState, type Light, type V3 , CAPTION_SHADOW } from "../../three";
 
 export const WORLD_FPS = 30;
 const SENTENCES = ["سنة مئة وخمس وأربعين للهجرة،", "وقف أبو جعفر المنصور على ضفة دجلة،", "فخطّ مدينةً مدوّرة، لها أربعة أبواب، وفي قلبها قصره،", "وسمّاها مدينة السلام."];
@@ -210,36 +210,68 @@ const CITY_AT: V3 = [-2.55, 0, 1.25];
 export const BAGHDAD_WORLD: V3 = [ATLAS_AT[0] + 0.64 + (BAGHDAD_PX.x / MAP_W - 0.5) * 1.26, 0.046, ATLAS_AT[2] + (BAGHDAD_PX.y / MAP_H - 0.5) * 1.68];
 export const CITY_R = 0.62;
 
-/** المدينة المدوّرة (القطعة المخصوصة لهذه الحلقة): خندق لازوردي، وسوران، وأربعة أبواب على القطرين، والقصر والقبة في القلب */
-const RoundCity: React.FC<{ wood: THREE.Texture[]; rise: number }> = ({ wood, rise }) => {
-  const sand = <meshStandardMaterial color={K.gold} roughness={0.85} />;
-  const h = (x: number) => Math.max(0.001, x * rise);
+/** طوب لبن بمقياس المدينة: نسخة من الخامة بتكرار يناسب كل سطح (الطوبة نحو ثلث ارتفاع السور) */
+const useBrick = (src: THREE.Texture[] | null, rx: number, ry: number) => useMemo(() => {
+  if (!src) return null;
+  return src.map((t, i) => {
+    // اللبن طين مجفف بالشمس: أقل تشبعًا من الآجر المحروق، فتُخفف الخامة قبل استعمالها (الخريطة اللونية وحدها)
+    let c: THREE.Texture = t.clone();
+    const img = t.image as (CanvasImageSource & { width: number; height: number }) | undefined;
+    if (i === 0 && img?.width) {
+      const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height; const g = cv.getContext("2d")!;
+      g.filter = "saturate(0.4) brightness(1.08)"; g.drawImage(img, 0, 0);
+      c = new THREE.CanvasTexture(cv); c.colorSpace = THREE.SRGBColorSpace;
+    }
+    c.wrapS = c.wrapT = THREE.RepeatWrapping; c.repeat.set(rx, ry); c.needsUpdate = true; return c;
+  });
+}, [src, rx, ry]);
+/** سور سميك بمقطع مستطيل يدور حول المركز (لا أسطوانة رقيقة): وجهه الخارجي وأعلاه وداخله طوب لبن */
+const wallGeo = (r: number, thick: number, hh: number) => new THREE.LatheGeometry([new THREE.Vector2(r - thick, 0), new THREE.Vector2(r, 0), new THREE.Vector2(r, hh), new THREE.Vector2(r - thick, hh), new THREE.Vector2(r - thick, 0)], 128);
+export const CITY_WALLS = [{ r: CITY_R, hh: 0.11, thick: 0.035, merlons: 72 }, { r: CITY_R * 0.78, hh: 0.15, thick: 0.03, merlons: 56 }] as const;
+
+/** المدينة المدوّرة (القطعة المخصوصة لهذه الحلقة): خندق لازوردي، وسوران من طوب لبن بشرفاتهما، وأربعة أبواب على القطرين، والقصر والقبة في القلب */
+const RoundCity: React.FC<{ wood: THREE.Texture[]; brick: THREE.Texture[]; rise: number }> = ({ wood, brick, rise }) => {
+  const wallTex = useBrick(brick, 26, 2), smallTex = useBrick(brick, 0.35, 0.35);
+  const geos = useMemo(() => CITY_WALLS.map((w) => wallGeo(w.r, w.thick, w.hh)), []);
+  const mud = (tx: THREE.Texture[] | null) => <meshStandardMaterial map={tx?.[0]} normalMap={tx?.[1]} normalScale={new THREE.Vector2(0.8, 0.8)} color={K.parchment} roughness={0.95} />;
+  const y = Math.max(0.001, rise);
   return (
     <group position={CITY_AT}>
       <mesh position={[0, 0.03, 0]} receiveShadow castShadow><cylinderGeometry args={[CITY_R + 0.22, CITY_R + 0.25, 0.06, 96]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} color="#c9b49a" /></mesh>
       <mesh position={[0, 0.062, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[CITY_R + 0.04, CITY_R + 0.12, 96]} /><meshStandardMaterial color={K.lapis} roughness={0.25} /></mesh>
-      {[{ r: CITY_R, hh: 0.11 }, { r: CITY_R * 0.78, hh: 0.15 }].map((x, i) => (
-        <mesh key={i} position={[0, 0.06 + h(x.hh) / 2, 0]} castShadow receiveShadow><cylinderGeometry args={[x.r, x.r, h(x.hh), 96, 1, true]} /><meshStandardMaterial color={K.gold} side={THREE.DoubleSide} roughness={0.85} /></mesh>
-      ))}
-      {[0, 1, 2, 3].map((k) => {
-        const a = Math.PI / 4 + (k * Math.PI) / 2;
-        return (
-          <group key={k} position={[CITY_R * Math.cos(a), 0.06, CITY_R * Math.sin(a)]} rotation={[0, -a, 0]}>
-            <mesh position={[0, h(0.18) / 2, 0]} castShadow><boxGeometry args={[0.09, h(0.18), 0.14]} />{sand}</mesh>
-            <mesh position={[0, h(0.18), 0]} castShadow><sphereGeometry args={[0.05 * rise + 0.001, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.5} /></mesh>
+      {/* السوران يرتفعان من الأرض مع «المدوّرة»، وعليهما الشرفات */}
+      <group position={[0, 0.06, 0]} scale={[1, y, 1]}>
+        {CITY_WALLS.map((w, i) => (
+          <group key={i}>
+            <mesh geometry={geos[i]} castShadow receiveShadow>{mud(wallTex)}</mesh>
+            {Array.from({ length: w.merlons }, (_, k) => {
+              const a = (k / w.merlons) * Math.PI * 2;
+              return <mesh key={k} position={[(w.r - w.thick / 2) * Math.cos(a), w.hh + 0.011, (w.r - w.thick / 2) * Math.sin(a)]} rotation={[0, -a, 0]} castShadow>
+                <boxGeometry args={[w.thick * 0.9, 0.022, ((Math.PI * 2 * w.r) / w.merlons) * 0.55]} />{mud(smallTex)}</mesh>;
+            })}
           </group>
-        );
-      })}
+        ))}
+        {/* الأبواب الأربعة: برج بطوب اللبن وقبة خضراء */}
+        {[0, 1, 2, 3].map((k) => {
+          const a = Math.PI / 4 + (k * Math.PI) / 2;
+          return (
+            <group key={k} position={[CITY_R * Math.cos(a), 0, CITY_R * Math.sin(a)]} rotation={[0, -a, 0]}>
+              <mesh position={[0, 0.09, 0]} castShadow receiveShadow><boxGeometry args={[0.1, 0.18, 0.15]} />{mud(smallTex)}</mesh>
+              <mesh position={[0, 0.18, 0]} castShadow><sphereGeometry args={[0.05, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.5} /></mesh>
+            </group>
+          );
+        })}
+        {/* البيوت والأسواق بين السورين: كتل طوب لبن بأسطح مستوية وأحجام حتمية، تُترك فيها الطرق الأربعة */}
+        {Array.from({ length: 2 }, (_, ring) => Array.from({ length: 34 }, (__, i) => {
+          const a = (i / 34) * Math.PI * 2 + ring * 0.09;
+          if (Math.abs(((a - Math.PI / 4) % (Math.PI / 2) + Math.PI / 2) % (Math.PI / 2)) < 0.12) return null; // الطرق
+          const rr = CITY_R * (0.84 + ring * 0.08), hh = 0.04 + ((i * 7 + ring * 3) % 5) * 0.012, ww = 0.05 + ((i * 3) % 3) * 0.01;
+          return <mesh key={`${ring}-${i}`} position={[rr * Math.cos(a), hh / 2, rr * Math.sin(a)]} rotation={[0, -a, 0]} castShadow receiveShadow><boxGeometry args={[ww, hh, 0.05]} />{mud(smallTex)}</mesh>;
+        }))}
+        <mesh position={[0, 0.09, 0]} castShadow><boxGeometry args={[0.2, 0.18, 0.2]} />{mud(smallTex)}</mesh>
+        <mesh position={[0, 0.18, 0]} castShadow><sphereGeometry args={[0.1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.4} metalness={0.3} /></mesh>
+      </group>
       {[0, 1].map((k) => <mesh key={k} position={[0, 0.063, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4 + (k * Math.PI) / 2]}><planeGeometry args={[CITY_R * 2, 0.03]} /><meshStandardMaterial color={K.brassDark} /></mesh>)}
-      {/* البيوت والأسواق بين السورين: حلقتان من بيوت صغيرة بأحجام حتمية، تُترك فيهما الطرق الأربعة */}
-      {Array.from({ length: 2 }, (_, ring) => Array.from({ length: 34 }, (__, i) => {
-        const a = (i / 34) * Math.PI * 2 + ring * 0.09;
-        if (Math.abs(((a - Math.PI / 4) % (Math.PI / 2) + Math.PI / 2) % (Math.PI / 2)) < 0.12) return null; // الطرق
-        const rr = CITY_R * (0.84 + ring * 0.08), hh = 0.04 + ((i * 7 + ring * 3) % 5) * 0.012, ww = 0.05 + ((i * 3) % 3) * 0.01;
-        return <mesh key={`${ring}-${i}`} position={[rr * Math.cos(a), 0.06 + h(hh) / 2, rr * Math.sin(a)]} rotation={[0, -a, 0]} castShadow receiveShadow><boxGeometry args={[ww, h(hh), 0.05]} /><meshStandardMaterial color={i % 4 ? K.parchmentDeep : K.gold} roughness={0.9} /></mesh>;
-      }))}
-      <mesh position={[0, 0.06 + h(0.18) / 2, 0]} castShadow><boxGeometry args={[0.2, h(0.18), 0.2]} />{sand}</mesh>
-      <mesh position={[0, 0.06 + h(0.18), 0]} castShadow><sphereGeometry args={[0.1 * rise + 0.001, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.4} metalness={0.3} /></mesh>
     </group>
   );
 };
@@ -333,6 +365,7 @@ export const DeskWorldLab: React.FC = () => {
   const wood = useAssetTextures(["dafatir-walnut-diff", "dafatir-walnut-nor", "dafatir-walnut-rough"], [4, 2.6]);
   const leather = useAssetTextures(["dafatir-leather-diff", "dafatir-leather-nor"]);
   const age = useAssetTextures(["dafatir-age-diff"]);
+  const brick = useAssetTextures(["dafatir-mudbrick-diff", "dafatir-mudbrick-nor"]);
   const ageImg = (age?.[0]?.image as CanvasImageSource | undefined) ?? null;
   const mapTex = useCanvasTex(MAP_W, MAP_H, (g) => drawMap(g, t, ageImg), [ready, frame, Boolean(ageImg)]);
   const textTex = useCanvasTex(MAP_W, MAP_H, (g) => drawText(g, ageImg), [ready, Boolean(ageImg)]);
@@ -353,7 +386,7 @@ export const DeskWorldLab: React.FC = () => {
   const sl = span(t, wAt("السلام") + 0.75, 0.5);
   const stamp: V3 = [-0.2 - 1.3 * ease(su), 0.9 - 0.82 * ease(sd) * (1 - ease(su)) + 0.9 * ease(su) - 1.74 * ease(sl), 0.3 - 0.9 * ease(su)];
   const rise = ease(span(t, shots[2]!.a + 0.4, 1.6));
-  if (!wood || !leather || !age) return null;
+  if (!wood || !leather || !age || !brick) return null;
   const tickTimes = Array.from({ length: 8 }, (_, i) => 0.35 + i * ((wAt("للهجرة") - 0.1) / 8));
   return (
     <>
@@ -388,7 +421,7 @@ export const DeskWorldLab: React.FC = () => {
           </group>
           <mesh position={[0, 0.09, 0]}><cylinderGeometry args={[0.04, 0.04, 0.04, 24]} /><meshStandardMaterial color={K.gold} metalness={0.9} roughness={0.25} /></mesh>
         </group>
-        <RoundCity wood={wood} rise={rise} />
+        <RoundCity wood={wood} brick={brick} rise={rise} />
       </Stage3D>
       {/* صوت الغرفة، ومع كل حركة صوتها (D158): تكّات العنكبوت، والقلم، والمدينة، والوثيقة، والختم */}
       <Audio src={SFX("silence-room")} volume={0.35} loop />
@@ -412,7 +445,7 @@ const CalmCaption: React.FC<{ t: number }> = ({ t }) => {
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <div style={{ position: "absolute", bottom: 62, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-        <div style={{ opacity: fade, background: "rgba(42,30,63,0.55)", color: K.parchment, padding: "8px 28px", borderRadius: 10, fontFamily: "Tajawal", fontWeight: 500, fontSize: 52, direction: "rtl" }}>
+        <div style={{ opacity: fade, color: K.parchment, textShadow: CAPTION_SHADOW, padding: "8px 28px", fontFamily: "Tajawal", fontWeight: 500, fontSize: 52, direction: "rtl" }}>
           {words.map((w) => w.w).join(" ")}
         </div>
       </div>

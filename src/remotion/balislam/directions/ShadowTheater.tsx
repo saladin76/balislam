@@ -13,7 +13,7 @@ import React, { useMemo } from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { DepthOfField, Stage3D, calmAt, ease, flicker, lightsAt, orbit, safeKeys, swing, useAssetTextures, type CamState, type Light, type V3 } from "../../three";
+import { DepthOfField, Stage3D, calmAt, ease, flicker, lightsAt, orbit, safeKeys, swing, useAssetTextures, type CamState, type Light, type V3 , CAPTION_SHADOW } from "../../three";
 import { BAA, DIR_SEC, DIR_STILL, DIR_WORDS, wordAt } from "./common";
 import { figureShapes, type FigureVariant } from "./figure";
 
@@ -226,7 +226,7 @@ const CalmLine: React.FC<{ t: number }> = ({ t }) => {
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <div style={{ position: "absolute", bottom: 56, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-        <div style={{ opacity: fade, background: "rgba(14,26,43,0.6)", color: BAA.paper, padding: "8px 28px", borderRadius: 10, fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 52, direction: "rtl" }}>
+        <div style={{ opacity: fade, color: BAA.paper, textShadow: CAPTION_SHADOW, padding: "8px 28px", fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 52, direction: "rtl" }}>
           {words.map((w) => w.w).join(" ")}
         </div>
       </div>
