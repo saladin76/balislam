@@ -140,6 +140,22 @@ const camOf = (s: MachineShot, t: number): CamState & { focus: number } => {
   return { position: orbit(c), target: c.target, fov: c.fov, focus: c.dist };
 };
 
+/** لمعة سطح الماء: انعكاس نافذة الورشة شريطًا ناعمًا مائلًا، وحلقات خفيفة (تُضاف فوق الماء الشفاف) */
+const useSheen = () => useMemo(() => {
+  const N = 256, c = document.createElement("canvas"); c.width = N; c.height = N; const g = c.getContext("2d")!;
+  g.clearRect(0, 0, N, N);
+  g.save(); g.translate(N * 0.42, N * 0.4); g.rotate(-0.6); g.scale(1, 0.28);
+  const r = g.createRadialGradient(0, 0, 0, 0, 0, N * 0.38); r.addColorStop(0, "rgba(255,255,255,0.85)"); r.addColorStop(0.5, "rgba(255,255,255,0.25)"); r.addColorStop(1, "rgba(255,255,255,0)");
+  g.fillStyle = r; g.beginPath(); g.arc(0, 0, N * 0.38, 0, Math.PI * 2); g.fill(); g.restore();
+  g.strokeStyle = "rgba(255,255,255,0.18)"; g.lineWidth = 2;
+  for (const rr of [0.2, 0.3, 0.4]) { g.beginPath(); g.arc(N * 0.55, N * 0.6, N * rr, 0.3, 1.6); g.stroke(); }
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+}, []);
+/** الماء: شفاف بلمعة (لا أبيض)، يُرى النحاس من تحته؛ ولونه أثر خفيف من أخضر المخطوطة على بياض الورق */
+const WATER = new THREE.Color(J.paper).lerp(new THREE.Color(J.green), 0.3);
+/** الماء في إناء النحاس يُرى عميقًا داكنًا (لا أبيض)، ولمعته انعكاس النافذة فوقه */
+const DEEP = new THREE.Color(J.wood).lerp(new THREE.Color(J.green), 0.45).multiplyScalar(0.55);
+
 const SFX = (f: string) => staticFile(`three/sfx/${f}.mp3`);
 
 /** هندسة الآلة (وحدات المشهد): مواضع ثابتة تُختبر (الترسان متعشّقان، والحبل يلتف على الأسطوانة بقدر ما يرتفع اللوح) */
@@ -166,6 +182,7 @@ export const IdeaMachineLab: React.FC = () => {
   const folio = useFolio(ready);
   const brass = useWornBrass();
   const ripples = useRipples();
+  const sheen = useSheen();
   const tags = { water: useTag(ready, "الحوض"), float: useTag(ready, "العوّامة"), cup: useTag(ready, "الكفّة"), gear: useTag(ready, "الدولاب"), pulley: useTag(ready, "البكرة") };
   const idea = useTag(ready, IDEA, true);
   const key = (a: number, d: number) => safeKeys([{ a, b: a + d, to: 1 }], still)[0]!;
@@ -229,9 +246,10 @@ export const IdeaMachineLab: React.FC = () => {
         {/* الحوض النحاسي المفتوح على عموده، وفيه الماء والعوّامة الخشبية بقضيبها وعلامتها الحمراء */}
         <mesh position={[M.tank.x - 0.2, (M.tank.y - 0.45) / 2, 0]} castShadow><boxGeometry args={[0.16, M.tank.y - 0.45, 0.16]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
         <mesh position={[M.tank.x, M.tank.y, 0]} castShadow material={brass}><cylinderGeometry args={[0.5, 0.42, M.tank.h, 40, 1, true]} /></mesh>
-        <mesh position={[M.tank.x, M.tank.y - 0.44, 0]} rotation={[-Math.PI / 2, 0, 0]} material={brass}><circleGeometry args={[0.42, 40]} /></mesh>
+        <mesh position={[M.tank.x, M.tank.y - 0.44, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.42, 40]} /><meshStandardMaterial color={J.wood} metalness={0.5} roughness={0.5} /></mesh>
         <mesh position={[M.tank.x, M.tank.y + 0.45, 0]} rotation={[Math.PI / 2, 0, 0]} material={brass}><torusGeometry args={[0.5, 0.03, 10, 48]} /></mesh>
-        <mesh position={[M.tank.x, tankWater, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.47, 40]} /><meshPhysicalMaterial color={J.paper} transmission={0.5} roughness={0.08} /></mesh>
+        <mesh position={[M.tank.x, tankWater, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.47, 40]} /><meshStandardMaterial color={DEEP} roughness={0.06} metalness={0.25} bumpMap={ripples} bumpScale={0.4} /></mesh>
+        <mesh position={[M.tank.x, tankWater + 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.47, 40]} /><meshBasicMaterial map={sheen} transparent opacity={0.7} depthWrite={false} toneMapped={false} /></mesh>
         <mesh position={[M.tank.x, tankWater, 0]} castShadow><sphereGeometry args={[0.16, 24, 16]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" roughness={0.7} /></mesh>
         <mesh position={[M.tank.x, tankWater + 0.5, 0]} castShadow material={brass}><cylinderGeometry args={[0.02, 0.02, 1.0, 10]} /></mesh>
         <mesh position={[M.tank.x + 0.09, tankWater + 0.96, 0]} castShadow><boxGeometry args={[0.16, 0.1, 0.02]} /><meshStandardMaterial color={J.red} roughness={0.8} /></mesh>
@@ -240,10 +258,10 @@ export const IdeaMachineLab: React.FC = () => {
         <group position={[trMid[0], trMid[1], 0]} rotation={[0, 0, trA]}>
           <mesh castShadow receiveShadow><boxGeometry args={[trL, 0.014, 0.26]} /><meshStandardMaterial color={J.gold} metalness={0.75} roughness={0.38} /></mesh>
           {[-0.125, 0.125].map((dz) => <mesh key={dz} position={[0, 0.025, dz]} castShadow><boxGeometry args={[trL, 0.05, 0.014]} /><meshStandardMaterial color={J.gold} metalness={0.75} roughness={0.38} /></mesh>)}
-          <mesh position={[0, 0.024, 0]}><boxGeometry args={[trL - 0.02, 0.022, 0.235]} /><meshPhysicalMaterial map={ripples} transparent opacity={0.9 * flow} roughness={0.05} clearcoat={1} /></mesh>
+          <mesh position={[0, 0.024, 0]}><boxGeometry args={[trL - 0.02, 0.022, 0.235]} /><meshStandardMaterial color={WATER} transparent opacity={0.42 * flow} roughness={0.15} metalness={0} bumpMap={ripples} bumpScale={0.8} depthWrite={false} /></mesh>
         </group>
         <mesh position={[trMid[0] + 0.05, trMid[1] - 0.75, -0.06]} castShadow><boxGeometry args={[0.08, 1.4, 0.08]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        {drops.map((d, i) => <mesh key={`d${i}`} position={[lip[0] - 0.02, d.y, 0]} scale={[d.s, d.s * 1.25, d.s]}><sphereGeometry args={[0.045, 16, 12]} /><meshPhysicalMaterial color={J.paper} roughness={0.03} clearcoat={1} transparent opacity={0.85} /></mesh>)}
+        {drops.map((d, i) => <mesh key={`d${i}`} position={[lip[0] - 0.02, d.y, 0]} scale={[d.s, d.s * 1.25, d.s]}><sphereGeometry args={[0.045, 16, 12]} /><meshPhysicalMaterial color={WATER} transparent opacity={0.55} roughness={0.02} clearcoat={1} depthWrite={false} /></mesh>)}
         {rings.map((q, i) => <mesh key={`r${i}`} position={[cupWater[0], cupWater[1] + 0.006, 0]} rotation={[Math.PI / 2, 0, 0]} scale={0.04 + q * 0.18}><torusGeometry args={[1, 0.06, 6, 32]} /><meshStandardMaterial color={J.paper} transparent opacity={0.6 * (1 - q)} roughness={0.1} /></mesh>)}
         {/* الذراع الخشبي على محوره، والكفّة النحاسية على طرفه */}
         <mesh position={[px, 0.8, 0]} castShadow><boxGeometry args={[0.18, 1.6, 0.3]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
@@ -252,7 +270,8 @@ export const IdeaMachineLab: React.FC = () => {
           <mesh rotation={[Math.PI / 2, 0, 0]} material={brass}><cylinderGeometry args={[0.05, 0.05, 0.4, 16]} /></mesh>
           <group position={[M.lever.cup, 0.32, 0]}>
             <mesh castShadow material={brass}><cylinderGeometry args={[0.3, 0.22, 0.5, 32, 1, true]} /></mesh>
-            <mesh position={[0, -0.24 + fill * 0.4, 0]}><cylinderGeometry args={[0.22 + fill * 0.07, 0.22, 0.01, 32]} /><meshPhysicalMaterial color={J.paper} transmission={0.6} roughness={0.05} /></mesh>
+            <mesh position={[0, -0.24 + fill * 0.4, 0]}><cylinderGeometry args={[0.22 + fill * 0.07, 0.22, 0.01, 32]} /><meshStandardMaterial color={DEEP} roughness={0.06} metalness={0.25} bumpMap={ripples} bumpScale={0.4} /></mesh>
+            <mesh position={[0, -0.234 + fill * 0.4, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.21 + fill * 0.07, 32]} /><meshBasicMaterial map={sheen} transparent opacity={0.6} depthWrite={false} toneMapped={false} /></mesh>
           </group>
         </group>
         <mesh position={[(tip[0] + pin[0]) / 2, (tip[1] + pin[1]) / 2, 0.14]} rotation={[0, 0, Math.atan2(rod.dy, rod.dx)]} castShadow material={brass}><boxGeometry args={[Math.hypot(rod.dx, rod.dy), 0.05, 0.05]} /></mesh>

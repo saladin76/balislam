@@ -74,3 +74,22 @@ describe("«حكايات الحارة» عالم بالإسلام بعد محا�
     expect(code).not.toMatch(/background: "rgba|DirFrame/);
   });
 });
+
+describe("تصحيحات «الحارة» بعد الاعتماد (٢٢ نوفمبر)", () => {
+  it("الذراع بثلاثة مفاصل وتتابع الحركة: الكوع بعد الكتف والرسغ آخرًا، ثم تستقر على الإيماءة", async () => {
+    const { armPose, GESTURES } = await import("../src/remotion/balislam/directions/PrintedAlley");
+    const k = { a: 1, b: 1.5 };
+    const early = armPose(1.1, k, GESTURES.speak, 1);
+    expect(early.shoulder).toBeGreaterThan(0);
+    expect(early.elbow / GESTURES.speak.elbow).toBeLessThan(early.shoulder / GESTURES.speak.shoulder);
+    expect(early.wrist).toBeLessThan(early.elbow);
+    const end = armPose(6, k, GESTURES.self, 1);
+    expect(end.elbow).toBeCloseTo(GESTURES.self.elbow, 3);
+    expect(GESTURES.self.elbow).toBeLessThan(0); // الكف تعود إلى الصدر
+  });
+  it("الدكاكين لا تُرى قبل «السوق»، والطبقة الأمامية سلال وأكياس وقماش", () => {
+    const code = readFileSync(`${DIR}/PrintedAlley.tsx`, "utf8");
+    expect(code).toMatch(/visible=\{market > 0\}/);
+    for (const re of [/basket\(/, /sack\(/, /CLOTH_STACK/]) expect(code).toMatch(re);
+  });
+});
