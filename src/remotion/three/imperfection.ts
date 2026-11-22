@@ -50,3 +50,10 @@ export const grain = (size: number, seed: number, strength: number): Uint8Clampe
   }
   return out;
 };
+
+/**
+ * التأرجح بعد الحركة (معايير «الحِرفة»): جسم معلّق أو دمية على عصا تتوقف حركتها فتتأرجح قليلًا ثم تهدأ.
+ * يعيد الإزاحة الزاوية عند t لحركة توقفت عند stop بسعة amp وتردد freq (هرتز) ومعدل خمود decay.
+ */
+export const swing = (t: number, stop: number, amp: number, freq = 1.6, decay = 2.4) =>
+  t <= stop ? 0 : amp * Math.exp(-decay * (t - stop)) * Math.sin(2 * Math.PI * freq * (t - stop));

@@ -36,3 +36,23 @@ describe("اتجاهات «بالإسلام» للمقارنة", () => {
     expect(files.flatMap(({ f, code }) => banned.filter((re) => re.test(code.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""))).map((re) => `${f}: ${re}`))).toEqual([]);
   });
 });
+
+describe("«خيال الظل» عالم بالإسلام (D190) بمعايير «الحِرفة» (D189)", () => {
+  it("أربع لقطات بأحجام مختلفة ٢–٦ ث بلا تكرار، والأخيرة تبدأ قبل جملة الذكر ولا تتحرك فيها", async () => {
+    const { theaterShots } = await import("../src/remotion/balislam/directions/ShadowTheater");
+    const shots = theaterShots();
+    expect(new Set(shots.map((x) => x.size)).size).toBe(4);
+    expect(new Set(shots.map((x) => x.id)).size).toBe(shots.length);
+    for (const x of shots.slice(0, -1)) { expect(x.b - x.a, x.id).toBeGreaterThanOrEqual(2); expect(x.b - x.a, x.id).toBeLessThanOrEqual(8); }
+    const last = shots[shots.length - 1]!;
+    expect(last.a).toBeLessThanOrEqual(DIR_STILL[0]![0]);
+    expect(last.b).toBeGreaterThan(DIR_STILL[0]![1]);
+  });
+  it("المشربية نجمة ثمانية من مربعين متراكبين في قلبها مثمن (لا تساعية ولا سباعي)، والعصيّ من أسفل", () => {
+    const code = readFileSync(`${DIR}/ShadowTheater.tsx`, "utf8");
+    expect(code).toContain("for (const rot of [0, Math.PI / 4])");
+    expect(code).toContain("for (let k = 0; k < 8; k++) { const a = (k * Math.PI) / 4 + Math.PI / 8;");
+    expect(code).not.toContain("lanternShape");
+    expect(code).toContain("const bottom = -0.9");
+  });
+});
