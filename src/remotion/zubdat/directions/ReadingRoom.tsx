@@ -45,6 +45,8 @@ export const ReadingRoomLab: React.FC = () => {
   const cam = camAt(t, START, [{ a: 0.4, b: zAt(IDEA) + 0.6, to: { ...START, yaw: 4, pitch: 58, dist: 4.4, target: [0.9, 0, -0.2] } }], { still });
   // القلم المميِّز: يتحرك فوق السطر مع التظليل ثم يرتفع
   const lift = key(zAt(IDEA) + 0.5, 0.5);
+  const reach = key(zAt(IDEA) - 0.5, 0.45);
+  const near = ease(Math.min(1, Math.max(0, (t - reach.a) / (reach.b - reach.a))));
   const pen = ease(Math.min(1, Math.max(0, (t - lift.a) / (lift.b - lift.a))));
   return (
     <>
@@ -58,7 +60,8 @@ export const ReadingRoomLab: React.FC = () => {
         <mesh position={[-2.3, 1.3, -1.0]} rotation={[0, 0, -0.35]} castShadow><cylinderGeometry args={[0.04, 0.04, 2.6, 12]} /><meshStandardMaterial color={ZB.dark} metalness={0.5} roughness={0.4} /></mesh>
         <mesh position={[-1.75, 2.55, -0.75]} rotation={[0.3, 0, 0.9]}><coneGeometry args={[0.42, 0.55, 32, 1, true]} /><meshStandardMaterial color={ZB.dark} side={THREE.DoubleSide} metalness={0.4} roughness={0.5} /></mesh>
         {/* القلم المميِّز */}
-        <group position={[1.35 - hi * 0.35, 0.12 + pen * 0.5, -0.88]} rotation={[0, 0.5, 0.6]}>
+        {/* يستريح في الهامش خارج النص، ويقترب من سطر الفكرة قبلها بقليل */}
+        <group position={[2.35 + (1.35 - hi * 0.35 - 2.35) * near, 0.12 + pen * 0.5 + (1 - near) * 0.25, -0.3 + (-0.62 + 0.3) * near]} rotation={[0, 0.5, 0.6]}>
           <mesh castShadow><cylinderGeometry args={[0.07, 0.07, 0.9, 16]} /><meshStandardMaterial color={ZB.ink} roughness={0.5} /></mesh>
           <mesh position={[0, -0.5, 0]}><cylinderGeometry args={[0.03, 0.07, 0.12, 16]} /><meshBasicMaterial color={ZB.fluo} toneMapped={false} /></mesh>
         </group>
