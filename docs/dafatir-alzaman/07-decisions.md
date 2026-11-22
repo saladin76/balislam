@@ -1100,3 +1100,4 @@
 ## 2026-11-22 — الترجمة في نموذج «مكتب الرحّالة» بلا مستطيل (D193، التعريف: docs/balislam/06-decisions.md)
 
 - سطر الترجمة في `src/remotion/dafatir/world/DeskWorld.tsx` نص بظل خفيف (`CAPTION_SHADOW`) بلا خلفية.
+- **سور بغداد من طوب لبن لا مكعبات** (قرار المالك): السوران سميكان بمقطع مستطيل يدور (`LatheGeometry`) وعليهما شرفات (`CITY_WALLS`)، والأبواب والبيوت والقصر بالخامة نفسها؛ الخامة `dafatir-mudbrick-diff/nor` من Poly Haven (brown_brick_02، CC0، للقناة وحدها، بلا بيانات وصفية) مخففة التشبع لأن اللبن طين مجفف لا آجر محروق. الاختبار `tests/dafatir-world.test.ts`.

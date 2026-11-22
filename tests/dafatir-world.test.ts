@@ -66,3 +66,18 @@ describe("مكتب الرحّالة: الهوية والخامات والصوت"
     expect(code).toMatch(/words\.map\(\(w\) => w\.w\)\.join\(" "\)/);
   });
 });
+
+describe("سور بغداد من طوب لبن لا مكعبات (قرار المالك ٢٢ نوفمبر)", () => {
+  it("خامة طوب لبن مسجّلة CC0 للقناة وحدها، والسوران سميكان بشرفات، والخامة مخففة التشبع", async () => {
+    const { ASSETS } = await import("../src/remotion/three/materials");
+    const { CITY_WALLS } = await import("../src/remotion/dafatir/world/DeskWorld");
+    for (const id of ["dafatir-mudbrick-diff", "dafatir-mudbrick-nor"]) {
+      const a = ASSETS.find((x) => x.id === id)!;
+      expect(a.license).toBe("CC0"); expect(a.channel).toBe("dafatir-alzaman"); expect(existsSync(`public/${a.file}`)).toBe(true);
+    }
+    for (const w of CITY_WALLS) { expect(w.thick).toBeGreaterThan(0.02); expect(w.merlons).toBeGreaterThanOrEqual(48); }
+    const code = readFileSync("src/remotion/dafatir/world/DeskWorld.tsx", "utf8");
+    expect(code).toMatch(/new THREE\.LatheGeometry/);
+    expect(code).toMatch(/saturate\(0\.4\)/);
+  });
+});
