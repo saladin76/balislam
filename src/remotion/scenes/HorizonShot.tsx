@@ -88,7 +88,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const pr = props as unknown as Record<string, string | undefined>;
   const verseShow = vw ? prog(t, vw[0] - 0.05, vw[0] + 0.55) * (1 - prog(t, dur - 0.75, dur - 0.15)) : 0;
   return (
-    <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless>
+    <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless captionVariant="adaptive">
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <Dusk />
         <SceneCloseContext.Provider value={close}>
