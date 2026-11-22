@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
+import { OwnerText } from "../ui/OwnerText";
 
 /**
  * «غرفة العمليات ← الليل والأسبوع» (D191): ملخص الليلة الأخير، وضبط ساعة الطابور الليلي وتشغيله، والمراجعة الأسبوعية.
@@ -31,7 +32,7 @@ export const NightlyPanel: React.FC = () => {
     const t = setInterval(load, 15_000);
     return () => clearInterval(t);
   }, [night?.running]);
-  if (!night) return <p>{msg || "…"}</p>;
+  if (!night) return <p>{msg ? <OwnerText text={msg} /> : "…"}</p>;
   const save = (s: Night["settings"]) => api.saveNightly(s).then((r) => setNight({ ...night, settings: r.settings })).catch((e: Error) => setMsg(e.message));
   const runNow = () => api.runNightly().then(() => { setNight({ ...night, running: true }); setMsg("بدأ الطابور الليلي الآن."); }).catch((e: Error) => setMsg(e.message));
   return (
@@ -45,7 +46,7 @@ export const NightlyPanel: React.FC = () => {
         </select>
       </label>{" "}
       <button type="button" disabled={night.running} onClick={runNow}>{night.running ? "يعمل الآن…" : "شغّل الآن"}</button>
-      {msg ? <p role="status">{msg}</p> : null}
+      {msg ? <p role="status"><OwnerText text={msg} /></p> : null}
       {night.markdown ? <Md text={night.markdown} /> : <p>لا ملخص بعد: أول تشغيل الليلة.</p>}
 
       <h2>المراجعة الأسبوعية</h2>
