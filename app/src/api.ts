@@ -18,6 +18,7 @@ import { emitStudioError } from "./errorEvents";
 import { ownerText, planOrder } from "../../src/i18n/sceneNames";
 import type { PaceCommand, PaceStatus, RefreshResult } from "../../src/voice/paceApply";
 import type { QualityCard, CardTarget } from "../../src/studio/quality/card";
+import type { PreFinalWatchView } from "../../src/studio/preFinalApprove";
 export type QualityCardRead = QualityCard & { exists: boolean; measuring: boolean };
 import type { LexiconCommand, SentenceCommand, SentencesRead, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
@@ -300,6 +301,14 @@ export const api = {
   makePreFinal: (episode: string, channel: string) =>
     call<{ ok: true; preview: string; version: number; scenes: number; recitationPending: string[] }>(
       `/api/episodes/${episode}/scene-prefinal`, { method: "POST" }, channel),
+  /** D199: what the owner played of the current pre-final, and the list «اعتمد المشاهد التي شاهدتها كاملة» would show. */
+  preFinalWatch: (episode: string, channel: string) =>
+    call<PreFinalWatchView>(`/api/episodes/${episode}/prefinal-watch`, undefined, channel),
+  addPreFinalWatch: (episode: string, channel: string, fileSha256: string, spans: [number, number][]) =>
+    call<{ watched: [number, number][] }>(`/api/episodes/${episode}/prefinal-watch`, { method: "POST", json: { fileSha256, spans } }, channel),
+  approveWatchedPreFinal: (episode: string, channel: string, fileSha256: string, sceneIds: string[]) =>
+    call<{ approved: string[]; failed: { id: string; error: string }[] }>(`/api/episodes/${episode}/prefinal-approve`,
+      { method: "POST", json: { fileSha256, sceneIds, confirmed: true } }, channel),
   /** The owner's own recitations: upload (processed + original kept), switch variant, approve after listening. */
   ownRecitations: (episode: string, channel: string) =>
     call<OwnRecitationsRead>(`/api/episodes/${episode}/own-recitations`, undefined, channel),

@@ -30,14 +30,21 @@ export type SceneOwnerCommand = {
    * (src/voice/toneMapOverride.ts). Elsewhere the tone lives in the plan and this field is ignored.
    */
   tone?: string;
+  /**
+   * D199 approve-scene only, set by the server (never by a client body): the approval came from «اعتمد المشاهد التي
+   * شاهدتها كاملة في المعاينة قبل النهائية», with that pre-final file's sha256 (src/studio/preFinalApprove.ts).
+   */
+  viaPreFinal?: string;
 };
+/** D199: how an approval was given, when it was not the single «اعتمد» of the scene's own preview. */
+export type ApprovalVia = { kind: "prefinal-watched"; prefinalSha256: string };
 /**
  * One ledger event. `by: "owner"` for every owner decision; `by: "system"` only for «تحديث بعد التجهيز»
  * (AFTER_PREPARATION_ACTION, owner decision 11 Nov): a change after «اعتمد التجهيز» carried forward, with what changed.
  * Both are covered by the ledger's HMAC like the rest of the history.
  */
 export type AuditEvent = { seq: number; action: CommandAction | typeof AFTER_PREPARATION_ACTION; sceneId?: string;
-  at: string; by: "owner" | "system"; resultSha256: string; note: string; change?: AfterPreparationChange };
+  at: string; by: "owner" | "system"; resultSha256: string; note: string; change?: AfterPreparationChange; via?: ApprovalVia };
 export type SignedSceneLedger = {
   version: 1;
   state: SceneFirstProduction;
