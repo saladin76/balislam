@@ -30,7 +30,12 @@
           "props": {
             "shot": "return"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -106,7 +111,12 @@
             "shot": "interpreters",
             "ref": "البقرة · ٣٠"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -189,7 +199,12 @@
           "props": {
             "shot": "catalog"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -335,7 +350,12 @@
             "bText": "ليس مسلوب الإرادة",
             "bWord": "الإنسان"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -396,7 +416,12 @@
           "props": {
             "shot": "whisper"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -447,7 +472,12 @@
           "props": {
             "shot": "stances"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -508,7 +538,12 @@
           "props": {
             "shot": "bridge"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -557,7 +592,12 @@
           "props": {
             "shot": "lineline"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -600,7 +640,12 @@
           "props": {
             "shot": "roadmap"
           },
-          "sfx": [],
+          "sfx": [
+            {
+              "id": "page-turn",
+              "at": 0
+            }
+          ],
           "edited": true
         },
         {
@@ -611,12 +656,7 @@
           "props": {
             "shot": "closing"
           },
-          "sfx": [
-            {
-              "id": "aah-outro",
-              "at": 1
-            }
-          ],
+          "sfx": [],
           "edited": true
         }
       ]
@@ -629,6 +669,6 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-18T18:12:07.427Z",
+  "updatedAt": "2026-11-22T16:28:42.185Z",
   "intro": false
 }
