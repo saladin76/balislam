@@ -4,7 +4,8 @@ import { existsSync, readdirSync } from "node:fs";
 import { stageRenderFiles, stageStoryboardFiles, defaultRenderMediaRoot, type RenderStageFile } from "./renderStage";
 import { resolveScriptPath } from "../script/episodes";
 import { loadVoiceIndex, voiceDirFor } from "../voice/generate";
-import { availableSfx, sfxFile } from "../voice/sfx";
+import { availableSfx, availableVariants, sfxDir, sfxFile } from "../voice/sfx";
+import { variantFile } from "./sfxVariants";
 import { isOwnRecordingEvidence, type EpisodeMedia, type Recitation } from "./media";
 import type { Plan } from "./types";
 import { recitationsDirFor } from "../quran/sync";
@@ -90,7 +91,8 @@ export const collectMedia = async (
   }
   const sp = await resolveScriptPath(episode);
   const images = usedImages(plan, imagesDirFor(sp), libraryDirFor(sp));
-  return { voice, sfx, recitations, images };
+  const sfxVariants = Object.fromEntries(sfx.map((id) => [id, availableVariants(id)] as const).filter(([, v]) => v.length));
+  return { voice, sfx, ...(Object.keys(sfxVariants).length ? { sfxVariants } : {}), recitations, images };
 };
 
 /** The voice clips of the plan's own scenes only (several scenes may share one clip file). */
@@ -120,7 +122,10 @@ export const prepareRenderMedia = async (
     const source = path.join(vdir, clip.file);
     if (existsSync(source)) files.push({ kind: "voice", name: clip.file, source });
   }
-  for (const id of m.sfx) files.push({ kind: "sfx", name: `${id}.mp3`, source: sfxFile(id) });
+  for (const id of m.sfx) {
+    files.push({ kind: "sfx", name: `${id}.mp3`, source: sfxFile(id) });
+    for (const v of m.sfxVariants?.[id] ?? []) files.push({ kind: "sfx", name: variantFile(id, v), source: path.join(sfxDir, variantFile(id, v)) });
+  }
   const recDir = recitationsDirFor(scriptPath);
   for (const r of Object.values(m.recitations)) {
     if (r.source !== "manual" || !r.parts?.length)
