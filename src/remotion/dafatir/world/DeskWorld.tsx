@@ -7,7 +7,7 @@
  *     بأسوارها وأبوابها الأربعة والقصر والقبة في قلبها، والكاميرا ترتفع فتكشفها على المكتب.
  *  ٤. (قريبة): الوثيقة تسقط على المكتب وتستقر بوزنها، والسطر يُكتب بحبر يتشرب، والختم يُضغط بأثر ناقص كالحقيقي.
  *  ٥. (واسعة، ملصق): المكتب كله، وشمعة ترتعش، والشمس تحركت ودفئت منذ البداية.
- * الضوء من مصادر داخل المشهد (شمس النافذة تتحرك، والشمعة)، والظلال ناعمة دافئة، وعمق ميدان حقيقي لكل لقطة،
+ * الضوء من مصادر داخل المشهد (شمس النافذة تتحرك وغبار في شعاعها، والشمعة)، والظلال ناعمة دافئة بلا ظل إطار أسود، وعمق ميدان حقيقي لكل لقطة،
  * وصوت مع كل حركة فوق صوت الغرفة (D158). الخامات CC0 (materials.ts)، والقِدم من بقع صورة حقيقية.
  * الألوان من «دفتر الأفق» واللازورد للماء والخرائط وحدها (D188).
  */
@@ -231,6 +231,13 @@ const RoundCity: React.FC<{ wood: THREE.Texture[]; rise: number }> = ({ wood, ri
         );
       })}
       {[0, 1].map((k) => <mesh key={k} position={[0, 0.063, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4 + (k * Math.PI) / 2]}><planeGeometry args={[CITY_R * 2, 0.03]} /><meshStandardMaterial color={K.brassDark} /></mesh>)}
+      {/* البيوت والأسواق بين السورين: حلقتان من بيوت صغيرة بأحجام حتمية، تُترك فيهما الطرق الأربعة */}
+      {Array.from({ length: 2 }, (_, ring) => Array.from({ length: 34 }, (__, i) => {
+        const a = (i / 34) * Math.PI * 2 + ring * 0.09;
+        if (Math.abs(((a - Math.PI / 4) % (Math.PI / 2) + Math.PI / 2) % (Math.PI / 2)) < 0.12) return null; // الطرق
+        const rr = CITY_R * (0.84 + ring * 0.08), hh = 0.04 + ((i * 7 + ring * 3) % 5) * 0.012, ww = 0.05 + ((i * 3) % 3) * 0.01;
+        return <mesh key={`${ring}-${i}`} position={[rr * Math.cos(a), 0.06 + h(hh) / 2, rr * Math.sin(a)]} rotation={[0, -a, 0]} castShadow receiveShadow><boxGeometry args={[ww, h(hh), 0.05]} /><meshStandardMaterial color={i % 4 ? K.parchmentDeep : K.gold} roughness={0.9} /></mesh>;
+      }))}
       <mesh position={[0, 0.06 + h(0.18) / 2, 0]} castShadow><boxGeometry args={[0.2, h(0.18), 0.2]} />{sand}</mesh>
       <mesh position={[0, 0.06 + h(0.18), 0]} castShadow><sphereGeometry args={[0.1 * rise + 0.001, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.4} metalness={0.3} /></mesh>
     </group>
@@ -282,26 +289,17 @@ const Candle: React.FC<{ t: number }> = ({ t }) => {
   );
 };
 
-/** إطار النافذة: لا تراه الكاميرا، ويلقي ظلًا ناعمًا */
-const WindowGobo: React.FC = () => {
-  const bars: [number, number, number, number][] = [[0, 2.3, 5, 0.6], [0, -2.3, 5, 0.6], [2.4, 0, 0.6, 5], [-2.4, 0, 0.6, 5], [0, 0, 0.12, 4.4]];
-  return (
-    <group position={[-4.6, 4.8, -3.4]} rotation={[0, 0.9, 0.35]} scale={1.6}>
-      {bars.map(([x, y, w, h], i) => <mesh key={i} position={[x, y, 0]} castShadow><boxGeometry args={[w, h, 0.05]} /><meshBasicMaterial colorWrite={false} depthWrite={false} /></mesh>)}
-    </group>
-  );
-};
-
 // ——— اللقطات ———
 type ShotCam = { target: V3; yaw: number; pitch: number; dist: number; fov: number };
-export type Shot = { id: string; size: "detail" | "medium" | "close" | "wide"; a: number; b: number; from: ShotCam; to: ShotCam; aperture: number };
+/** push: أس منحنى الحركة (>١ = تبقى قريبة من البداية وتندفع في آخرها) */
+export type Shot = { id: string; size: "detail" | "medium" | "close" | "wide"; a: number; b: number; from: ShotCam; to: ShotCam; aperture: number; push?: number };
 export const worldShots = (): Shot[] => {
   const t1 = wAt("وقف") - 0.25, t2 = wAt("فخطّ") - 0.15, t3 = wAt("وسمّاها") - 0.3, t4 = wAt("السلام") + 1.25, end = WORLD_SEC;
   // قطع بالشكل: آخر لقطة الخريطة دائرة بغداد من فوق، وأول لقطة المدينة سورها من فوق بالحجم نفسه على الشاشة
-  const dMap = 0.42, dCity = dMap * (CITY_R / ((BAGHDAD_PX.r / MAP_W) * 1.26));
+  const dMap = 0.42, dCity = dMap * ((CITY_R + 0.12) / ((BAGHDAD_PX.r / MAP_W) * 1.26));
   return [
     { id: "astrolabe", size: "detail", a: 0, b: t1, aperture: 0.03, from: { target: ASTRO_AT, yaw: 20, pitch: 80, dist: 1.25, fov: 30 }, to: { target: ASTRO_AT, yaw: 4, pitch: 86, dist: 1.1, fov: 30 } },
-    { id: "map", size: "medium", a: t1, b: t2, aperture: 0.016, from: { target: [ATLAS_AT[0] + 0.8, 0, ATLAS_AT[2] + 0.1], yaw: -10, pitch: 62, dist: 2.7, fov: 32 }, to: { target: BAGHDAD_WORLD, yaw: 0, pitch: 89, dist: dMap, fov: 32 } },
+    { id: "map", size: "medium", a: t1, b: t2, aperture: 0.016, push: 2.6, from: { target: [ATLAS_AT[0] + 0.66, 0, ATLAS_AT[2] + 0.05], yaw: -6, pitch: 74, dist: 2.75, fov: 34 }, to: { target: BAGHDAD_WORLD, yaw: 0, pitch: 89, dist: dMap, fov: 32 } },
     { id: "city", size: "wide", a: t2, b: t3, aperture: 0.012, from: { target: [CITY_AT[0], 0.06, CITY_AT[2]], yaw: 0, pitch: 89, dist: dCity, fov: 32 }, to: { target: [CITY_AT[0] + 0.2, 0.08, CITY_AT[2] - 0.1], yaw: -35, pitch: 38, dist: 2.6, fov: 32 } },
     { id: "document", size: "close", a: t3, b: t4, aperture: 0.02, from: { target: [DOC_AT[0], 0, DOC_AT[2]], yaw: 12, pitch: 66, dist: 2.0, fov: 32 }, to: { target: [DOC_AT[0] - 0.1, 0, DOC_AT[2] + 0.15], yaw: 4, pitch: 74, dist: 1.75, fov: 32 } },
     { id: "desk", size: "wide", a: t4, b: end, aperture: 0.006, from: { target: [0, 0, 0.1], yaw: -2, pitch: 46, dist: 6.6, fov: 34 }, to: { target: [-0.2, 0, 0], yaw: -12, pitch: 50, dist: 7.4, fov: 34 } },
@@ -309,7 +307,7 @@ export const worldShots = (): Shot[] => {
 };
 
 const camOfShot = (s: Shot, t: number): CamState & { focus: number } => {
-  const p = ease(span(t, s.a, s.b - s.a));
+  const p = Math.pow(ease(span(t, s.a, s.b - s.a)), s.push ?? 1);
   const L = (x: number, y: number) => x + (y - x) * p;
   const c = { target: [L(s.from.target[0], s.to.target[0]), L(s.from.target[1], s.to.target[1]), L(s.from.target[2], s.to.target[2])] as V3, yaw: L(s.from.yaw, s.to.yaw), pitch: L(s.from.pitch, s.to.pitch), dist: L(s.from.dist, s.to.dist), fov: L(s.from.fov, s.to.fov) };
   return { position: orbit(c), target: c.target, fov: c.fov, focus: c.dist };
@@ -319,7 +317,7 @@ const camOfShot = (s: Shot, t: number): CamState & { focus: number } => {
 const lightsAtT = (t: number): Light[] => {
   const p = t / WORLD_SEC;
   return [
-    { kind: "ambient", kelvin: 3600, intensity: 0.6, position: [0, 0, 0] },
+    { kind: "ambient", kelvin: 3600, intensity: 0.95, position: [0, 0, 0] },
     { kind: "key", kelvin: 4600 - 1000 * p, intensity: 2.6, position: [-7 + 2 * p, 8 - 1.2 * p, -5 + 1.5 * p] },
     { kind: "practical", kelvin: 1900, intensity: 1.6, position: [CANDLE_AT[0], 0.75, CANDLE_AT[2]], flicker: { depth: 0.2, rate: 7, seed: 41 } },
   ];
@@ -351,7 +349,9 @@ export const DeskWorldLab: React.FC = () => {
   const docY = t < docDrop ? 0.45 : t < land ? 0.45 * (1 - ease((t - docDrop) / 0.35)) : Math.abs(swing(t, land, 0.025, 3.2, 7));
   const docTilt = t < land ? 0.06 : swing(t, land, 0.05, 2.4, 6);
   const sd = span(t, wAt("السلام") - 0.05, 0.2), su = span(t, wAt("السلام") + 0.35, 0.4);
-  const stamp: V3 = [-0.2 - 0.75 * ease(su), 0.9 - 0.82 * ease(sd) * (1 - ease(su)) + 0.5 * ease(su), 0.3 - 0.55 * ease(su)];
+  // بعد الطبع يرتفع ويُزاح جانبًا ثم يوضع على المكتب
+  const sl = span(t, wAt("السلام") + 0.75, 0.5);
+  const stamp: V3 = [-0.2 - 1.3 * ease(su), 0.9 - 0.82 * ease(sd) * (1 - ease(su)) + 0.9 * ease(su) - 1.74 * ease(sl), 0.3 - 0.9 * ease(su)];
   const rise = ease(span(t, shots[2]!.a + 0.4, 1.6));
   if (!wood || !leather || !age) return null;
   const tickTimes = Array.from({ length: 8 }, (_, i) => 0.35 + i * ((wAt("للهجرة") - 0.1) / 8));
@@ -361,7 +361,6 @@ export const DeskWorldLab: React.FC = () => {
         <DepthOfField focus={cam.focus} aperture={shot.aperture} />
         <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[14, 9]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} roughnessMap={wood[2]} color="#c9b49a" /></mesh>
         <mesh position={[0, 3, -4.4]} receiveShadow><planeGeometry args={[24, 10]} /><meshStandardMaterial color={K.dusk} roughness={1} /></mesh>
-        <WindowGobo />
         <BeamDust t={t} from={[-4.2, 4.4, -3.1]} to={[0.4, 0.2, -0.2]} radius={0.9} color={K.goldLight} count={110} seed={7} />
         <LeatherBook ts={leather} />
         <Inkwell />
