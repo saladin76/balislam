@@ -33,6 +33,8 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "ink-meaning": { family: "explain", only: ["zubdat-alkutub"] },
   "ink-shot": { family: "explain", only: ["zubdat-alkutub"] },
   "horizon-shot": { family: "explain", only: ["dafatir-alzaman"] },
+  // «مكتب الرحّالة» (D194): العالم ثلاثي الأبعاد قالبًا للحلقات الجديدة (D191)
+  "rahhala-desk": { family: "story", only: ["dafatir-alzaman"] },
   symbolic: { family: "explain" },
   "big-question": { family: "text" },
   "kinetic-text": { family: "text", only: ["balislam"] },
