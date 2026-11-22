@@ -61,3 +61,17 @@ export const captionLine = (narration: string, words: TimedWord[], t: number): {
   }
   return null;
 };
+
+/**
+ * لون الترجمة حسب ما تحتها في كل لقطة (طلب المالك ٢٢ نوفمبر: «حبر داكن على الورق والخلفيات الفاتحة، وأبيض على الداكنة»):
+ * كل لقطة تعلن نبرة شريط الترجمة فيها. ink = حبر داكن بهالة فاتحة (ورق وأرض فاتحة)، light = نص فاتح بحد داكن رفيع
+ * من ثمانية ظلال (جدار أخضر أو ليل). بلا مستطيل خلف السطر (D192). لا يُستعمل مزج «الفرق» هنا: يقلب ألوان الحارة الأخضر والبرتقالي.
+ */
+export type CaptionTone = "ink" | "light";
+const RING = [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5], [1.1, 1.1], [-1.1, 1.1], [1.1, -1.1], [-1.1, -1.1]];
+export const CAPTION_TONES: Record<CaptionTone, { textShadow: string }> = {
+  light: { textShadow: RING.map(([x, y]) => `${x}px ${y}px 0 rgba(0,0,0,0.8)`).join(", ") + ", 0 2px 6px rgba(0,0,0,0.55), 0 0 14px rgba(0,0,0,0.35)" },
+  ink: { textShadow: RING.map(([x, y]) => `${x}px ${y}px 0 rgba(255,250,240,0.85)`).join(", ") + ", 0 0 12px rgba(255,250,240,0.7)" },
+};
+/** نطاق الترجمة أسفل الكادر (نسبة من الارتفاع): لا بطاقة ولا عنصر مقروء يقع فيه */
+export const CAPTION_BAND = 0.22;
