@@ -166,8 +166,7 @@ describe("D199 — «اعتمد المشاهد التي شاهدتها كامل�
     await expect(decideSceneProduction("003", { action: "correct-scene", expectedSha256: "a".repeat(64), sceneId: "c1-s1", note: "x", viaPreFinal: "b".repeat(64) }))
       .rejects.toThrow(/Malformed/);
     const api = readFileSync(path.join(repo, "app/server/api.ts"), "utf8");
-    expect(api).toContain("const { viaPreFinal: _via, ...command } = (body ?? {}) as Record<string, unknown>;");
-    expect(api).toContain("await decideSceneProduction(ep, command);");
+    expect(api).toContain('if (body && typeof body === "object") delete (body as Record<string, unknown>).viaPreFinal;\n              try {\n                await decideSceneProduction(ep, body);');
   });
 
   it("الزر في «معاينة قبل النهائية» يعرض القائمة (ما سيُعتمد وما لن يُعتمد بسببه) قبل التأكيد", () => {

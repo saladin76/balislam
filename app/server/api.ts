@@ -341,10 +341,10 @@ export const balApi = (): Plugin => ({
               const { directPreparationRefusal } = await load("/src/studio/preparation.ts");
               const prepRefusal = await directPreparationRefusal(ep, body);
               if (prepRefusal) return send(res, 409, { ok: false, code: "PREPARATION_CHECKS", error: prepRefusal });
+              // D199: `viaPreFinal` is set only by the server's «اعتمد المشاهد التي شاهدتها كاملة» (prefinal-approve), never by a client
+              if (body && typeof body === "object") delete (body as Record<string, unknown>).viaPreFinal;
               try {
-                // D199: `viaPreFinal` is set only by the server's «اعتمد المشاهد التي شاهدتها كاملة» (prefinal-approve), never by a client
-                const { viaPreFinal: _via, ...command } = (body ?? {}) as Record<string, unknown>;
-                await decideSceneProduction(ep, command);
+                await decideSceneProduction(ep, body);
                 // D53: right after the publish permission (never before), the approved files go to the owner's
                 // Google Drive folder in the background; the request does not wait for large copies.
                 if (body?.action === "grant-publish") {
