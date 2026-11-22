@@ -8,7 +8,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { writeFile, rm, stat, rename } from "node:fs/promises";
+import { writeFile, rm, stat, rename, mkdir } from "node:fs/promises";
 import config from "../../config.json";
 import { loadPlan } from "../plan/io";
 import { collectMedia } from "../plan/collect";
@@ -59,6 +59,59 @@ export const leadingSilence = async (file: string): Promise<number> => {
   return m && Number(m[1]) < 0.05 ? Number(m[2]) : 0;
 };
 
+/** KI-123: at most this many scene cuts are decoded together in one picture pass of the join. */
+export const JOIN_CHUNK_CUTS = 8;
+/** Consecutive [from, to) ranges covering every cut exactly once, each of at most `max` cuts, as even as possible. */
+export const planJoinChunks = (n: number, max = JOIN_CHUNK_CUTS): [number, number][] => {
+  if (n <= 0) return [];
+  const k = Math.ceil(n / Math.max(1, max));
+  return Array.from({ length: k }, (_, i) => [Math.round((i * n) / k), Math.round(((i + 1) * n) / k)] as [number, number]);
+};
+/**
+ * The picture chain of n inputs [v0]…[v{n-1}] → [vout]: a dissolve (xfade at the input's start) where the seam before it has
+ * dissolve frames, else a hard cut. The same chain joins the cuts of a chunk and then the chunks, so a dissolve that falls
+ * on a chunk boundary is made in the final pass with the same duration at the same offset on the episode clock.
+ */
+export const videoChain = (n: number, dissolveBefore: (i: number) => number, startOf: (i: number) => number, fps: number): string[] => {
+  if (n === 1) return ["[v0]null[vout]"];
+  const f6 = (x: number) => x.toFixed(6);
+  const g: string[] = [];
+  let cur = "v0";
+  for (let i = 1; i < n; i++) {
+    const out = i === n - 1 ? "vout" : `x${i}`;
+    const d = dissolveBefore(i);
+    g.push(d > 0 ? `[${cur}][v${i}]xfade=transition=fade:duration=${f6(d / fps)}:offset=${f6(startOf(i))}[${out}]`
+      // concat outputs AV_TIME_BASE (1/1000000), but xfade needs both inputs on the scenes' 1/fps time base: a hard
+      // cut followed by a dissolve failed with «First input link main timebase … do not match» (#154 e2e, KI-082).
+      : `[${cur}][v${i}]concat=n=2:v=1:a=0,settb=1/${fps}[${out}]`);
+    cur = out;
+  }
+  return g;
+};
+// KI-122: one encoder thread and a short look-ahead (the encoder's frame buffers grow with its threads)
+const ONE_THREAD_X264 = ["-threads", "1", "-x264-params", "threads=1:lookahead-threads=1:rc-lookahead=10"];
+/** One ffmpeg pass of the join, with the memory limits of KI-092/KI-122 on every input, on the graph and on the encoder. */
+export const runJoinPass = async (script: string, graph: string[], inputs: string[], out: string[]) => {
+  await writeFile(script, graph.join(";\n"), { flag: "wx", mode: 0o600 });
+  // FFmpeg 8 removed -filter_complex_script (owner's Mac, 18 Nov): the form follows the local FFmpeg (ffmpegFilterScript.ts)
+  const run = (form: Awaited<ReturnType<typeof localFilterScriptForm>>) => exec("ffmpeg", [
+    "-nostdin", "-hide_banner", "-loglevel", "error",
+    // KI-122: the filter graph single-threaded too (47 cuts were SIGKILLed at ~1.3 GB on 22 Nov; 933 MB on one thread).
+    "-filter_complex_threads", "1",
+    // KI-092: one decoder thread per input. With FFmpeg's default (a thread per core), 47 cuts at 1080p took ~6 GB and
+    // macOS killed the join (SIGKILL, no message) on the owner's 8 GB Mac; measured on 24 cuts: 3.2 GB → 1.1 GB.
+    ...inputs.flatMap((file) => ["-threads", "1", "-i", file]),
+    ...filterScriptArgs(script, form), ...out,
+  ], { timeout: 3_600_000, maxBuffer: 8 * 1024 * 1024 }).catch((error: Error & { signal?: string | null }) => {
+    // A kill by the system (out of memory) leaves no ffmpeg message: say so, not a bare «Command failed»
+    if (error.signal) error.message = `ffmpeg stopped by ${error.signal} (likely out of memory). ${error.message}`;
+    throw error;
+  });
+  const form = await localFilterScriptForm();
+  try { await run(form); }
+  catch (error) { if (!refusedOption(error)) throw error; await run(otherForm(form)); }
+};
+
 export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: string, script: string) => {
   const evidence = await Promise.all(cuts.map(item => verifyVideoEvidence(item.file)));
   const base = evidence[0]!;
@@ -90,62 +143,66 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
   for (let i = 0; i + 1 < cuts.length; i++) starts.push(starts[i]! + real[i]! - seams[i]!.overlapFrames / fps);
   const total = starts[cuts.length - 1]! + real[cuts.length - 1]!;
   const f6 = (x: number) => x.toFixed(6);
-  const g: string[] = [];
-  cuts.forEach((_, i) => {
-    g.push(`[${i}:v:0]settb=AVTB,fps=${fps},format=yuv420p,setsar=1[v${i}]`);
-    const lead = i === 0 ? intro : 0;
+  // KI-091 (D155): the episode starts speaking. «دفاتر الزمن 001» opened on 3.5 s of silence inside its first scene;
+  // whatever its cause, the joined head is trimmed (picture and sound together) to HEAD_AIR before the first word.
+  const head = list[0]?.narration?.trim() ? headTrimFor(await leadingSilence(cuts[0]!.file)) : 0;
+  const q = qualitySpec("preview");
+  // KI-123: the join runs in bounded passes — the picture in chunks of at most JOIN_CHUNK_CUTS cuts, the sound in one pass
+  // that never decodes a picture, and a light final pass over the chunks — never one graph over every scene: that graph
+  // grew to ~0.9 GB on 47 cuts and macOS killed it with no message on the owner's 8 GB Mac (22 Nov).
+  const work = `${script}.d`;
+  await mkdir(work, { mode: 0o700 });
+  try {
+    const chunks = planJoinChunks(cuts.length);
+    const parts: string[] = [];
+    for (const [k, [a, b]] of chunks.entries()) {
+      // The picture of cuts a..b-1 with their own dissolves and hard cuts, on the chunk's clock (starts relative to a)
+      const gv: string[] = [];
+      for (let i = a; i < b; i++) gv.push(`[${i - a}:v:0]settb=AVTB,fps=${fps},format=yuv420p,setsar=1[v${i - a}]`);
+      gv.push(...videoChain(b - a, (j) => seams[a + j - 1]!.dissolveFrames, (j) => starts[a + j]! - starts[a]!, fps));
+      const part = path.join(work, `part-${k}.mkv`);
+      await runJoinPass(path.join(work, `part-${k}.filter`), gv, cuts.slice(a, b).map((c) => c.file), [
+        // a near-lossless intermediate: it is encoded once more in the final pass
+        "-map", "[vout]", "-c:v", "libx264", "-preset", "superfast", "-crf", "10", "-pix_fmt", "yuv420p", ...ONE_THREAD_X264, "-an", "-y", part,
+      ]);
+      parts.push(part);
+    }
+    const ga: string[] = [];
+    cuts.forEach((_, i) => {
+      const lead = i === 0 ? intro : 0;
     const a = audio[i]!;
     const fx = [`aresample=48000`, `atrim=0:${f6(real[i]!)}`, `asetpts=PTS-STARTPTS`, `apad=whole_dur=${f6(real[i]!)}`];
     const gain = loud.gain[cuts[i]!.sceneId];
     if (gain && gain !== 1) fx.push(`volume=${gain}`);
     if (a.fadeInSec) fx.push(`afade=t=in:st=${f6(lead)}:d=${f6(a.fadeInSec)}:curve=qsin`);
     if (a.fadeOutStart !== undefined && a.fadeOutSec) fx.push(`afade=t=out:st=${f6(lead + a.fadeOutStart)}:d=${f6(a.fadeOutSec)}:curve=qsin`);
-    if (starts[i]! > 0) fx.push(`adelay=${Math.round(starts[i]! * 1000)}:all=1`);
-    g.push(`[${i}:a:0]${fx.join(",")}[a${i}]`);
-  });
-  let cur = "v0";
-  for (let i = 1; i < cuts.length; i++) {
-    const out = i === cuts.length - 1 ? "vout" : `x${i}`;
-    const d = seams[i - 1]!.dissolveFrames;
-    g.push(d > 0 ? `[${cur}][v${i}]xfade=transition=fade:duration=${f6(d / fps)}:offset=${f6(starts[i]!)}[${out}]`
-      // concat outputs AV_TIME_BASE (1/1000000), but xfade needs both inputs on the scenes' 1/fps time base: a hard
-      // cut followed by a dissolve failed with «First input link main timebase … do not match» (#154 e2e, KI-082).
-      : `[${cur}][v${i}]concat=n=2:v=1:a=0,settb=1/${fps}[${out}]`);
-    cur = out;
+      if (starts[i]! > 0) fx.push(`adelay=${Math.round(starts[i]! * 1000)}:all=1`);
+      ga.push(`[${i}:a:0]${fx.join(",")}[a${i}]`);
+    });
+    ga.push(`${cuts.map((_, i) => `[a${i}]`).join("")}amix=inputs=${cuts.length}:normalize=0:dropout_transition=0,atrim=0:${f6(total)}[aout]`);
+    // The sound of every cut mixed on the episode clock, in PCM (no AAC priming at a boundary). The pictures are not used,
+    // so they are never decoded here (measured on the 47 cuts of «دفاتر الزمن 001»: ~90 MB, 4 s).
+    const sound = path.join(work, "sound.wav");
+    await runJoinPass(path.join(work, "sound.filter"), ga, cuts.map((c) => c.file), ["-map", "[aout]", "-c:a", "pcm_s24le", "-y", sound]);
+    // The final pass: the chunks joined at the seam before each chunk's first cut (same dissolve, same offset on the
+    // episode clock as in one graph), the sound, and the head trim
+    const g: string[] = parts.map((_, k) => `[${k}:v:0]settb=AVTB,fps=${fps},format=yuv420p,setsar=1[v${k}]`);
+    g.push(...videoChain(parts.length, (k) => seams[chunks[k]![0] - 1]!.dissolveFrames, (k) => starts[chunks[k]![0]]!, fps));
+    g.push(`[${parts.length}:a:0]anull[aout]`);
+    if (head > 0) {
+      for (let k = 0; k < g.length; k++) g[k] = g[k]!.replace("[vout]", "[vjoin]").replace("[aout]", "[ajoin]");
+      g.push(`[vjoin]trim=start=${f6(head)},setpts=PTS-STARTPTS[vout]`, `[ajoin]atrim=start=${f6(head)},asetpts=PTS-STARTPTS[aout]`);
+    }
+    await runJoinPass(script, g, [...parts, sound], [
+      "-map", "[vout]", "-map", "[aout]",
+      "-c:v", "libx264", "-preset", q.x264Preset, "-crf", String(q.crf), "-pix_fmt", "yuv420p", ...ONE_THREAD_X264,
+      "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
+      "-c:a", "aac", "-b:a", q.audioBitrate, "-ar", "48000",
+      "-map_metadata", "-1", "-movflags", "+faststart", "-y", tempVideo,
+    ]);
+  } finally {
+    await rm(work, { recursive: true, force: true });
   }
-  if (cuts.length === 1) g.push(`[v0]null[vout]`);
-  g.push(`${cuts.map((_, i) => `[a${i}]`).join("")}amix=inputs=${cuts.length}:normalize=0:dropout_transition=0,atrim=0:${f6(total)}[aout]`);
-  // KI-091 (D155): the episode starts speaking. «دفاتر الزمن 001» opened on 3.5 s of silence inside its first scene;
-  // whatever its cause, the joined head is trimmed (picture and sound together) to HEAD_AIR before the first word.
-  const head = list[0]?.narration?.trim() ? headTrimFor(await leadingSilence(cuts[0]!.file)) : 0;
-  if (head > 0) {
-    for (let k = 0; k < g.length; k++) g[k] = g[k]!.replace("[vout]", "[vjoin]").replace("[aout]", "[ajoin]");
-    g.push(`[vjoin]trim=start=${f6(head)},setpts=PTS-STARTPTS[vout]`, `[ajoin]atrim=start=${f6(head)},asetpts=PTS-STARTPTS[aout]`);
-  }
-  await writeFile(script, g.join(";\n"), { flag: "wx", mode: 0o600 });
-  const q = qualitySpec("preview");
-  // FFmpeg 8 removed -filter_complex_script (owner's Mac, 18 Nov): the form follows the local FFmpeg (ffmpegFilterScript.ts)
-  const run = (form: Awaited<ReturnType<typeof localFilterScriptForm>>) => exec("ffmpeg", [
-    "-nostdin", "-hide_banner", "-loglevel", "error",
-    // KI-122: the filter graph single-threaded too. Even with one decoder thread per cut, the pre-final join of «دفاتر الزمن
-    // 001» (47 cuts) was SIGKILLed again on 22 Nov (exit -9, no message, ~1.3 GB before the kill); with the filter graph and
-    // the encoder on one thread it finished in 164 s at 933 MB (measured on the owner's Mac, same inputs and filter).
-    "-filter_complex_threads", "1",
-    // KI-092: one decoder thread per scene. With FFmpeg's default (a thread per core), 47 cuts at 1080p took ~6 GB and
-    // macOS killed the join (SIGKILL, no message) on the owner's 8 GB Mac; measured on 24 cuts: 3.2 GB → 1.1 GB, same speed
-    // (the encoder keeps every core).
-    ...cuts.flatMap((c) => ["-threads", "1", "-i", c.file]),
-    ...filterScriptArgs(script, form), "-map", "[vout]", "-map", "[aout]",
-    "-c:v", "libx264", "-preset", q.x264Preset, "-crf", String(q.crf), "-pix_fmt", "yuv420p",
-    // KI-122: one encoder thread and a short look-ahead (the encoder's frame buffers grow with its threads)
-    "-threads", "1", "-x264-params", "threads=1:lookahead-threads=1:rc-lookahead=10",
-    "-colorspace", "bt709", "-color_primaries", "bt709", "-color_trc", "bt709",
-    "-c:a", "aac", "-b:a", q.audioBitrate, "-ar", "48000",
-    "-map_metadata", "-1", "-movflags", "+faststart", "-y", tempVideo,
-  ], { timeout: 3_600_000, maxBuffer: 8 * 1024 * 1024 });
-  const form = await localFilterScriptForm();
-  try { await run(form); }
-  catch (error) { if (!refusedOption(error)) throw error; await run(otherForm(form)); }
   await verifyVideoEvidence(tempVideo, base.width, base.height);
   // المرحلة A (المهمة ٣): الحلقة كلها بعلو −14 LUFS بقياسين وكسب خطي واحد (src/studio/quality/normalize.ts)
   const { normalizeProgramLoudness } = await import("./quality/normalize");

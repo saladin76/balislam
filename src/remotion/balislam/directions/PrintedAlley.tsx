@@ -85,18 +85,77 @@ const foreArch = () => {
 };
 const LANTERNS = Array.from({ length: 7 }, (_, k) => ({ x: -6 + k * 2, y: 5.0 - 0.35 * Math.cos((((k - 3) / 3) * Math.PI) / 2) }));
 
-const Person: React.FC<{ x: number; flip: boolean; ink: string; arm: number; tex: THREE.Texture; nor?: THREE.Texture; cap: "turban" | "kufiya"; wob: number }> = ({ x, flip, ink, arm, tex, nor, cap, wob }) => {
+/** الطبقة الأمامية (عمق): سلال مجدولة، وأكياس بهار بكومها، وأثواب قماش مطوية على الأرض — كلها من عُدّة السوق */
+const basket = (x: number, w: number, h: number) => {
+  const s = new THREE.Shape(); s.moveTo(x - w / 2, h); s.lineTo(x + w / 2, h); s.quadraticCurveTo(x + w / 2, 0, x, 0); s.quadraticCurveTo(x - w / 2, 0, x - w / 2, h);
+  for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
+    const cx = x - w * 0.27 + c * w * 0.18 + (r ? w * 0.09 : 0), cy = h * (0.55 + r * 0.22), d = Math.min(w, h) * 0.07, p = new THREE.Path();
+    if (Math.abs(cx - x) > w * (0.42 - r * 0.05)) continue;
+    p.moveTo(cx, cy - d); p.lineTo(cx + d, cy); p.lineTo(cx, cy + d); p.lineTo(cx - d, cy); p.lineTo(cx, cy - d); s.holes.push(p);
+  }
+  const rim = new THREE.Shape(); rim.moveTo(x - w / 2 - 0.05, h); rim.lineTo(x + w / 2 + 0.05, h); rim.lineTo(x + w / 2 + 0.05, h + 0.09); rim.lineTo(x - w / 2 - 0.05, h + 0.09); rim.lineTo(x - w / 2 - 0.05, h);
+  return [s, rim];
+};
+const sack = (x: number, w: number, h: number) => {
+  const s = new THREE.Shape(); s.moveTo(x - w / 2, 0); s.lineTo(x + w / 2, 0); s.quadraticCurveTo(x + w * 0.62, h * 0.6, x + w * 0.36, h); s.lineTo(x - w * 0.36, h); s.quadraticCurveTo(x - w * 0.62, h * 0.6, x - w / 2, 0);
+  const heap = new THREE.Shape(); heap.moveTo(x - w * 0.36, h); heap.quadraticCurveTo(x, h + w * 0.42, x + w * 0.36, h); heap.lineTo(x - w * 0.36, h);
+  return { sack: [s], heap: [heap] };
+};
+/** أثواب قماش مطوية مكدسة على الأرض: طبقات بألوان مختلفة، وطيّة مدوّرة عند طرفها */
+const clothFold = (x: number, y: number, w: number, h: number) => {
+  const s = new THREE.Shape(), r = h / 2;
+  s.moveTo(x - w / 2, y); s.lineTo(x + w / 2 - r, y); s.absarc(x + w / 2 - r, y + r, r, -Math.PI / 2, Math.PI / 2, false); s.lineTo(x - w / 2, y + h); s.lineTo(x - w / 2, y);
+  return [s];
+};
+export const CLOTH_STACK = [{ ink: "emerald", w: 1.25 }, { ink: "rose", w: 1.15 }, { ink: "gold", w: 1.2 }, { ink: "paper", w: 1.05 }] as const;
+
+/** وضع الذراع: زاوية الكتف من التدلي، وثني الكوع، وميل الرسغ (موجب = نحو الخارج والأعلى) */
+export type ArmPose = { shoulder: number; elbow: number; wrist: number };
+/** الكف: راحة مدوّرة وإبهام صغير (قصاصة واحدة، بلا أصابع مرسومة) */
+const handShape = () => {
+  const s = new THREE.Shape();
+  s.moveTo(-0.022, 0); s.lineTo(0.022, 0); s.quadraticCurveTo(0.028, 0.05, 0.016, 0.07); s.quadraticCurveTo(0, 0.082, -0.016, 0.07); s.quadraticCurveTo(-0.028, 0.05, -0.022, 0);
+  const thumb = new THREE.Shape(); thumb.absellipse(0.024, 0.028, 0.009, 0.02, 0, Math.PI * 2, false, -0.5);
+  return [s, thumb];
+};
+/** مسمار المفصل النحاسي (كما تُثبّت قصاصات مسرح الورق) */
+const Brad: React.FC = () => <mesh position={[0, 0, 0.016]}><circleGeometry args={[0.011, 16]} /><meshStandardMaterial color={BAA.gold} metalness={0.6} roughness={0.35} /></mesh>;
+
+const Person: React.FC<{ x: number; flip: boolean; ink: string; pose: ArmPose; tex: THREE.Texture; nor?: THREE.Texture; cap: "turban" | "kufiya"; wob: number }> = ({ x, flip, ink, pose, tex, nor, cap, wob }) => {
   const s = useMemo(() => figureShapes({ robe: cap === "turban" ? 1 : 1.1, cap, stoop: 0 }), [cap]);
+  const hand = useMemo(handShape, []);
   return (
     <group position={[x, 0, 0]} rotation={[0, 0, wob]} scale={[flip ? -2.6 : 2.6, 2.6, 1]}>
       <Paper shapes={[s.robe, s.head]} ink={ink} tex={tex} nor={nor} shift={[0.01, -0.008]} />
       <Paper shapes={[s.cap]} ink={BAA.paper} tex={tex} nor={nor} shift={[0.007, -0.005]} z={0.006} />
-      <group position={[s.shoulder.x + 0.02, s.shoulder.y - 0.01, 0.012]} rotation={[0, 0, Math.PI + arm]}>
+      {/* الكتف ← العضد ← الكوع ← الساعد ← الرسغ ← الكف، وعلى كل مفصل مسمار */}
+      <group position={[s.shoulder.x + 0.02, s.shoulder.y - 0.01, 0.012]} rotation={[0, 0, Math.PI + pose.shoulder]}>
         <Paper shapes={[s.upper]} ink={ink} tex={tex} nor={nor} shift={[0.007, -0.005]} />
-        <group position={[0, 0.19, 0.006]} rotation={[0, 0, -arm * 0.3]}><Paper shapes={[s.fore]} ink={ink} tex={tex} nor={nor} shift={[0.007, -0.005]} /></group>
+        <Brad />
+        <group position={[0, 0.18, 0.006]} rotation={[0, 0, pose.elbow]}>
+          <Paper shapes={[s.fore]} ink={ink} tex={tex} nor={nor} shift={[0.007, -0.005]} />
+          <Brad />
+          <group position={[0, 0.17, 0.006]} rotation={[0, 0, pose.wrist]}>
+            <Paper shapes={hand} ink={ink} tex={tex} nor={nor} shift={[0.005, -0.004]} />
+          </group>
+        </group>
       </group>
     </group>
   );
+};
+
+/**
+ * إيماءة طبيعية: الكتف يبدأ، والكوع يتبعه بعد قليل، والرسغ آخرًا (تتابع الحركة)، وكل مفصل يتأرجح قليلًا عند وصوله ثم يهدأ.
+ * «يقول»: ذراع ممدودة للخارج وراحة مفتوحة. «الحقُّ معي»: الكف تعود إلى الصدر.
+ */
+export const GESTURES = {
+  speak: { shoulder: 1.2, elbow: 0.5, wrist: 0.5 },
+  self: { shoulder: 0.55, elbow: -1.9, wrist: -0.3 },
+} as const;
+export const armPose = (t: number, k: { a: number; b: number }, to: ArmPose, calm: number): ArmPose => {
+  const d = k.b - k.a, p = (lag: number) => ease(Math.min(1, Math.max(0, (t - k.a - lag) / d)));
+  const sw = (lag: number, amp: number) => swing(t, k.b + lag, amp, 2.0) * calm;
+  return { shoulder: to.shoulder * p(0) + sw(0, 0.08), elbow: to.elbow * p(0.08) + sw(0.08, 0.1 * Math.sign(to.elbow)), wrist: to.wrist * p(0.15) + sw(0.15, 0.14 * Math.sign(to.wrist)) };
 };
 
 type ShotCam = { target: V3; yaw: number; pitch: number; dist: number; fov: number };
@@ -134,6 +193,7 @@ export const PrintedAlleyLab: React.FC = () => {
   const paperA = usePaper(3), paperB = usePaper(7), paperC = usePaper(11);
   const wall = useMemo(archRow, []), houses = useMemo(farHouses, []), lantern = useMemo(lanternShape, []), fore = useMemo(foreArch, []);
   const stalls = useMemo(() => [stall(-3.2), stall(3.4)], []);
+  const fg = useMemo(() => ({ baskets: [...basket(-5.6, 1.5, 0.75), ...basket(-4.1, 1.1, 0.55)], sacks: [sack(4.3, 0.9, 0.85), sack(5.5, 1.05, 1.0)], cloth: CLOTH_STACK.map((c, i) => ({ ink: BAA[c.ink], shapes: clothFold(2.9 + (i % 2) * 0.06, i * 0.17, c.w, 0.16) })) }), []);
   const key = (w: string, d: number, lead = 0.1) => safeKeys([{ a: wordAt(w) - lead, b: wordAt(w) - lead + d, to: 1 }], still)[0]!;
   const enterK = key("رجلان", 1.0, 0.2), marketK = key("السوق", 0.7), say1K = key("يقول", 0.5, 0.05), say2K = key("الحقُّ", 0.5, 0.05);
   const prog = (k: { a: number; b: number }) => ease(span(t, k.a, k.b - k.a));
@@ -143,7 +203,7 @@ export const PrintedAlleyLab: React.FC = () => {
   const settle = swing(t, marketK.b, 0.05, 1.6) * calm;
   const wobA = (swing(t, enterK.b, 0.035, 1.8) + (enter > 0 && enter < 1 ? 0.02 * Math.sin(t * 14) : 0)) * calm;
   const wobB = (swing(t, enterK.b, -0.03, 1.5) + (enter > 0 && enter < 1 ? 0.02 * Math.sin(t * 13 + 1) : 0)) * calm;
-  const arm1 = prog(say1K) * 1.2 + swing(t, say1K.b, 0.12, 2) * calm, arm2 = prog(say2K) * 1.0 + swing(t, say2K.b, 0.1, 2.2) * calm;
+  const pose1 = armPose(t, say1K, GESTURES.speak, calm), pose2 = armPose(t, say2K, GESTURES.self, calm);
   const lanternSway = (k: number) => 0.04 * Math.sin(t * 1.3 + k * 0.9) * calm;
   const shots = alleyShots();
   const shot = shots.find((s) => t >= s.a && t < s.b) ?? shots[shots.length - 1]!;
@@ -177,14 +237,25 @@ export const PrintedAlleyLab: React.FC = () => {
         <BeamDust t={t} from={[-6, 6, 3]} to={[-1.8, 0.6, -1.4]} radius={0.9} color={BAA.paper} count={70} still={still} seed={17} />
         {/* الدكاكين تنزل من أعلى المسرح عند «السوق» (كما تُدلّى قطع مسرح الورق) وتستقر */}
         {stalls.map((sh, i) => (
-          <group key={i} position={[0, (1 - market) * 4.5, -1.4]} rotation={[0, 0, i ? -settle : settle]}>
+          <group key={i} visible={market > 0} position={[0, (1 - market) * 9, -1.4]} rotation={[0, 0, i ? -settle : settle]}>
             <Paper shapes={sh} ink={BAA.copper} tex={paperB} nor={nor[0]} shift={[0.05, -0.04]} />
           </group>
         ))}
         {/* الأرض */}
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, -1]} receiveShadow><planeGeometry args={[40, 14]} /><meshStandardMaterial color="#D9B08C" map={paperA} normalMap={nor[0]} roughness={1} /></mesh>
-        <Person x={-6 + enter * 4.2} flip={false} ink={BAA.rose} arm={arm1} tex={paperC} nor={nor[0]} cap="turban" wob={wobA} />
-        <Person x={6 - enter * 4.2} flip ink={BAA.night} arm={arm2} tex={paperB} nor={nor[0]} cap="kufiya" wob={wobB} />
+        <Person x={-6 + enter * 4.2} flip={false} ink={BAA.rose} pose={pose1} tex={paperC} nor={nor[0]} cap="turban" wob={wobA} />
+        <Person x={6 - enter * 4.2} flip ink={BAA.night} pose={pose2} tex={paperB} nor={nor[0]} cap="kufiya" wob={wobB} />
+        {/* الطبقة الأمامية للعمق: سلال، وأكياس بهار بكومها، وأثواب قماش مطوية مكدسة */}
+        <group position={[0, 0, 1.5]}>
+          <Paper shapes={fg.baskets} ink={BAA.gold} tex={paperA} nor={nor[0]} shift={[0.04, -0.03]} />
+          {fg.sacks.map((k, i) => (
+            <group key={i}>
+              <Paper shapes={k.sack} ink={i ? BAA.emerald : BAA.rose} tex={paperB} nor={nor[0]} shift={[0.04, -0.03]} />
+              <Paper shapes={k.heap} ink={i ? BAA.gold : BAA.copper} tex={paperC} nor={nor[0]} shift={[0.03, -0.02]} z={0.004} />
+            </group>
+          ))}
+          {fg.cloth.map((c, i) => <Paper key={i} shapes={c.shapes} ink={c.ink} tex={paperA} nor={nor[0]} shift={[0.03, -0.02]} z={i * 0.003} />)}
+        </group>
         {/* القوس الأمامي القريب */}
         <group position={[0, 0, 2.6]}><Paper shapes={fore} ink={BAA.night} tex={paperA} nor={nor[0]} shift={[0.06, -0.05]} /></group>
       </Stage3D>
