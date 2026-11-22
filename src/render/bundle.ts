@@ -66,7 +66,8 @@ export const stageRemotionPublicDir = async (
   try {
     // Explicit allowlist: do not bundle a future misplaced private file from
     // public/ merely because its filename does not start with an underscore.
-    const sharedAssets = new Set(["fonts", "illus"]);
+    // three: خامات العدّة ثلاثية الأبعاد، CC0 وحدها ومسجلة في src/remotion/three/materials.ts (D166)
+    const sharedAssets = new Set(["fonts", "illus", "three"]);
     for (const entry of await readdir(publicRoot, { withFileTypes: true })) {
       if (!sharedAssets.has(entry.name)) continue;
       await copyPublicTree(path.join(publicRoot, entry.name), path.join(dir, entry.name));
