@@ -14,6 +14,7 @@ import { sceneSeconds } from "../../plan/duration";
 import { normalizeArabic } from "../../script/quranMeta";
 import { measureDiversity } from "./diversity";
 import { INTERACTIVITY_MIN, type InteractivityReport } from "./interactivity";
+import { MIX_MIN, type MixReport } from "./mix";
 
 export const LOUDNESS_TARGET = -14;
 export const LOUDNESS_TOLERANCE = 1;
@@ -36,6 +37,8 @@ export type FileMeasurements = {
   headSilence: number;
   interactivity: Pick<InteractivityReport, "percent" | "counted" | "exempt" | "still" | "ok">;
   video: { width: number; height: number };
+  /** فحص الخلط سطرًا سطرًا (mix.ts)؛ غيابه في قياس قديم = لم يُقس */
+  mix?: MixReport;
 };
 
 const ar = (n: number, d = 1) => (Number.isFinite(n) ? n.toLocaleString("ar-EG", { maximumFractionDigits: d, minimumFractionDigits: 0 }) : "—∞");
@@ -47,10 +50,7 @@ export const audioItems = (m: FileMeasurements | null): CardItem[] => {
   const loudNeed = `${ar(LOUDNESS_TARGET)} LUFS ± ${ar(LOUDNESS_TOLERANCE)}`;
   const peakNeed = `≤ ${ar(TRUE_PEAK_MAX)} dBTP`;
   const headNeed = `≤ ${ar(HEAD_SILENCE_MAX)} ث`;
-  const mix = [
-    later("narrator-over-ambience", "الراوي أعلى من صوت المكان", "≥ ١٥ dB", "فحص الخلط سطرًا سطرًا (المهمة ٦)"),
-    later("narrator-over-sfx", "الراوي أعلى من المؤثر على الجملة", "≥ ٦ dB", "فحص الخلط سطرًا سطرًا (المهمة ٦)"),
-  ];
+  const mix = mixItems(m?.mix);
   if (!m) return [unmeasured("loudness", "علو الحلقة", loudNeed), unmeasured("true-peak", "الذروة", peakNeed), unmeasured("head-silence", "سكوت البداية", headNeed), ...mix];
   const { integrated, truePeak } = m.loudness;
   const loudOk = Math.abs(integrated - LOUDNESS_TARGET) <= LOUDNESS_TOLERANCE;
@@ -63,6 +63,24 @@ export const audioItems = (m: FileMeasurements | null): CardItem[] => {
       ...(m.headSilence <= HEAD_SILENCE_MAX ? {} : { reason: "الفيديو يبدأ بصمت؛ المشاهد يغادر قبل أول كلمة (D155)." }) },
     ...mix,
   ];
+};
+
+/** بندا الخلط: أقل فرق بين الراوي والمؤثر في جمل الحلقة، وأسوأ الجمل سببًا */
+export const mixItems = (r: MixReport | undefined): CardItem[] => {
+  const spec = [
+    { id: "narrator-over-ambience", label: "الراوي أعلى من صوت المكان", kind: "ambience" as const, min: MIX_MIN.ambience },
+    { id: "narrator-over-sfx", label: "الراوي أعلى من المؤثر على الجملة", kind: "sfx" as const, min: MIX_MIN.sfx },
+  ];
+  return spec.map(({ id, label, kind, min }): CardItem => {
+    const need = `≥ ${ar(min, 0)} dB في كل جملة`;
+    if (!r) return unmeasured(id, label, need);
+    const lines = r.lines.filter((l) => l.kind === kind);
+    if (!lines.length) return { id, label, need, status: "pass", value: kind === "ambience" ? "لا صوت مكان تحت الكلام" : "لا مؤثر على الكلام" };
+    const bad = lines.filter((l) => !l.ok).sort((a, b) => a.margin - b.margin);
+    const least = Math.min(...lines.map((l) => l.margin));
+    return { id, label, need, value: `أقل فرق ${ar(least)} dB في ${ar(lines.length, 0)} جملة`, status: bad.length ? "fail" : "pass",
+      ...(bad.length ? { reason: `المؤثر يغطي الراوي في ${ar(bad.length, 0)} جملة؛ اخفضه أو انقله بعيدًا عن الكلام: ${bad.slice(0, 4).map((l) => `${l.scene} «${l.sentence.slice(0, 30)}» ← ${l.sfx} (${ar(l.margin)} dB)`).join("، ")}${bad.length > 4 ? "، …" : ""}` } : {}) };
+  });
 };
 
 /** 4K: 3840×2160 للحلقة و2160×3840 للعمودي (القاعدة الرابعة) */
