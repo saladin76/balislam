@@ -86,3 +86,37 @@ describe("الخطاف المسبق (D198)", () => {
     expect(readFileSync("src/remotion/scenes/Episode.tsx", "utf8")).toMatch(/<Audio src=\{mediaSrc\(media, `voice\/\$\{clip\.file\}`\)\} endAt=\{end\}/);
   });
 });
+
+describe("صورة الخطاف في «خط الأفق» (ملاحظة المالك: لا صفحات فارغة، خانة التاريخ الفارغة والحبر يكتب «؟»)", () => {
+  it("الأحداث على كلمات السؤال: الخانة من البداية، والخطّاف مع «…البداية؟»، والدائرة والنقطة مع «وأين كانت؟»", async () => {
+    const { slotBeats } = await import("../src/remotion/dafatir/horizon/coldOpenSlot");
+    const b = slotBeats(words.slice(0, 6));
+    expect(b.box[0]).toBe(0);
+    expect(b.line[0]).toBe(0);
+    expect(b.hook).toEqual([words[2]!.start, words[3]!.end]);
+    expect(b.ring).toEqual([words[4]!.start, words[5]!.end]);
+    expect(b.dot[0]).toBe(words[5]!.start);
+    // سؤال واحد فقط (الخيار «ب»): النقطة مع آخر «البداية؟» ولا دائرة
+    const one = slotBeats(words.slice(0, 4));
+    expect(one.ring).toBeNull();
+    expect(one.dot[0]).toBeCloseTo(words[3]!.end - 0.1, 6);
+  });
+  it("«؟» عربية (الانتفاخ يسار، الطرف الحر يمين) بلا قلب مرآة، ولا نص غيرها على الصفحة", () => {
+    const code = readFileSync("src/remotion/dafatir/horizon/coldOpenSlot.tsx", "utf8");
+    expect(code).toContain("const HOOK = `M${SLOT.x + 40} 512 C${SLOT.x + 40} 470 ${SLOT.x - 40} 470 ${SLOT.x - 40} 512");
+    expect(code).not.toMatch(/scale\(-1 1\)/);
+    expect(code).not.toMatch(/<text|WriteText/);
+  });
+  it("بعد القطع يتراجع الكادر إلى الدفتر كله ويخفت الحبر، ثم تنقلب الورقة من الكادر نفسه داخل ذيل الخطاف", async () => {
+    const { SLOT_BACK_SEC, SLOT_NEUTRAL } = await import("../src/remotion/dafatir/horizon/coldOpenSlot");
+    const { NEUTRAL } = await import("../src/remotion/dafatir/horizon/book");
+    expect(SLOT_NEUTRAL).toEqual(NEUTRAL);
+    const ep = readFileSync("src/remotion/scenes/Episode.tsx", "utf8");
+    expect(ep).toContain("<ColdOpenSlotFrames words={cut.words} end={c.to} />");
+    expect(ep).toContain("<Sequence from={end + back} name=\"قلب صفحة الخطاف\">");
+    expect(ep).toContain("from={SLOT_NEUTRAL} cam={NEUTRAL} />");
+    // القلب (٠٫٨ ث) يبدأ بعد التراجع ويكتمل داخل الذيل
+    const turnAt = Number(/const COLD_OPEN_TURN_AT = ([0-9.]+);/.exec(ep)![1]);
+    expect(SLOT_BACK_SEC + turnAt + 0.8).toBeLessThanOrEqual(COLD_OPEN_TAIL_SEC + 1e-9);
+  });
+});

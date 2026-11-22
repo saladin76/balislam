@@ -12,6 +12,7 @@ import { ChannelIntro, channelIntroFramesFor, introFramesFor, introKindFor } fro
 import { COLD_OPEN_TAIL_SEC, coldOpenCut, coldOpenFrames, coldOpenOf, coldOpenSource } from "../../plan/coldOpen";
 import { Book, NEUTRAL } from "../dafatir/horizon/book";
 import { Dusk } from "../dafatir/horizon/kit";
+import { ColdOpenSlot, SLOT_BACK_SEC, SLOT_NEUTRAL } from "../dafatir/horizon/coldOpenSlot";
 import { CaptionBar } from "./CaptionBar";
 import { useChannel } from "../../channel/context";
 import type { Orientation } from "./types";
@@ -90,6 +91,8 @@ export const ColdOpenScene: React.FC<{ plan: Plan; media: EpisodeMedia; orientat
   if (!c || !src || !clip || clip.text !== src.narration.trim()) return null;
   const cut = coldOpenCut(clip, c.to, c.words);
   const end = Math.round(c.to * fps);
+  // «خط الأفق»: الكادر يتراجع إلى الدفتر كله والحبر يخفت (SLOT_BACK_SEC) ثم تنقلب الورقة من الكادر نفسه
+  const back = Math.round(SLOT_BACK_SEC * fps);
   // صورة المشهد المصدر كما هي في أول ثوانيه: نصه وتوقيته كاملان (فترسم لقطته المصممة أحداثها بكلماتها)، والكلمات بعد
   // القطع تُدفع إلى ما بعد نهاية الخطاف فلا يقع حدثها ولا تظهر ترجمتها؛ ولا خروج للمشهد نفسه: القلب بعده (ColdOpenTurn)
   const far = 10_000;
@@ -99,20 +102,36 @@ export const ColdOpenScene: React.FC<{ plan: Plan; media: EpisodeMedia; orientat
   const g = config.audio.narrationVolume;
   return (
     <AbsoluteFill>
-      <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={eyebrow} timings={toFrames(words, fps)} media={media} episodeOverlays={plan.overlays} />
+      {src.template === "horizon-shot" ? (
+        // «خط الأفق» (ملاحظة المالك): لا صفحات فارغة؛ خانة التاريخ الفارغة على الخط الزمني والحبر يكتب فيها «؟» مع السؤال
+        <ColdOpenSlotFrames words={cut.words} end={c.to} />
+      ) : (
+        <SceneFromPlan scene={scene} themeId={plan.themeId} orientation={orientation} eyebrow={eyebrow} timings={toFrames(words, fps)} media={media} episodeOverlays={plan.overlays} />
+      )}
       <ColdOpenCaption themeId={plan.themeId} timings={toFrames(cut.words, fps)} portrait={orientation === "portrait"} />
       <Audio src={mediaSrc(media, `voice/${clip.file}`)} endAt={end}
         volume={(f: number) => g * Math.min(1, Math.max(0, (end - f) / 3))} />
-      {src.template === "horizon-shot" ? <Sequence from={end} name="قلب صفحة الخطاف"><ColdOpenTurn /></Sequence> : null}
+      {src.template === "horizon-shot" ? <Sequence from={end + back} name="قلب صفحة الخطاف"><ColdOpenTurn /></Sequence> : null}
       {media.sfx.includes("page-turn") ? (
-        <Sequence from={end + Math.round(COLD_OPEN_TURN_AT * fps)} name="صوت قلب الصفحة"><Audio src={mediaSrc(media, "sfx/page-turn.mp3")} volume={config.audio.sfxVolume} /></Sequence>
+        <Sequence from={end + (src.template === "horizon-shot" ? back : 0) + Math.round(COLD_OPEN_TURN_AT * fps)} name="صوت قلب الصفحة"><Audio src={mediaSrc(media, "sfx/page-turn.mp3")} volume={config.audio.sfxVolume} /></Sequence>
       ) : null}
     </AbsoluteFill>
   );
 };
 
+/** صورة الخطاف في «خط الأفق» بزمن الإطار (الكلمات بالثواني من التسجيل نفسه) */
+const ColdOpenSlotFrames: React.FC<{ words: { word: string; start: number; end: number }[]; end: number }> = ({ words, end }) => {
+  const frame = useCurrentFrame();
+  return (
+    <AbsoluteFill>
+      <Dusk />
+      <ColdOpenSlot t={frame / config.video.fps} words={words} end={end} />
+    </AbsoluteFill>
+  );
+};
+
 /** متى تبدأ الورقة بالانقلاب بعد القطع (ث): بعد أن يتراجع الكادر إلى الدفتر كله */
-const COLD_OPEN_TURN_AT = 0.35;
+const COLD_OPEN_TURN_AT = 0.05;
 /**
  * قلب الصفحة بعد الخطاف («خط الأفق»): الحبر يخفت إلى الدفتر كله (الكادر يتراجع من قرب خفيف إلى الوضع العام)، ثم تنقلب
  * ورقة فارغة بطيّة الدفتر نفسها (FwdLeaf في Book)، فيبدأ أول مشهد من الدفتر بالكادر نفسه.
@@ -120,11 +139,11 @@ const COLD_OPEN_TURN_AT = 0.35;
 const ColdOpenTurn: React.FC = () => {
   const frame = useCurrentFrame();
   const t = frame / config.video.fps;
-  const o = Math.min(1, t / 0.25);
+  const o = Math.min(1, t / 0.1);
   return (
     <AbsoluteFill style={{ opacity: o }}>
       <Dusk />
-      <Book id="cold-open" t={t} dur={COLD_OPEN_TAIL_SEC} exit="turn" turnAt={COLD_OPEN_TURN_AT} from={{ cx: 960, cy: 520, s: 1.25 }} cam={NEUTRAL} />
+      <Book id="cold-open" t={t} dur={COLD_OPEN_TAIL_SEC} exit="turn" turnAt={COLD_OPEN_TURN_AT} from={SLOT_NEUTRAL} cam={NEUTRAL} />
     </AbsoluteFill>
   );
 };
