@@ -12,7 +12,7 @@ import { VERSE_PLACEHOLDER } from "../plan/quranText";
 import { sceneFrames } from "../plan/duration";
 import { resolveScriptPath } from "../script/episodes";
 import type { Plan } from "../plan/types";
-import { coldOpenIssues, cutPlans } from "../plan/coldOpen";
+import { cutPlans } from "../plan/sceneCut";
 import type { EpisodeMedia } from "../plan/media";
 import { renderEpisode } from "./episode";
 import { scriptVersesAreCitations } from "../quran/citationChannel";
@@ -65,17 +65,12 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   const sceneDraft = /^scene-[a-z0-9-]+-av$/.test(opts.slot);
   // A scene cut carries the channel intro only if it opens the episode: the assembly concatenates the cuts,
   // so it then holds one intro at the start exactly like the Master, not one per scene (funnel audit, D36).
-  // A scene cut carries the channel intro and the D198 cold open only if it opens the episode (cutPlans, src/plan/coldOpen.ts):
-  // the assembly concatenates the cuts, so it then holds one intro at the start exactly like the Master (funnel audit, D36).
   const { plan, mediaPlan } = cutPlans(full, ids, sceneDraft);
   const draftMode = Boolean(opts.allowPendingRecitation && sceneDraft);
-  // Only reviewed, owner-attached recordings are ever used; a draft simply leaves a missing one silent. The cold open's source
-  // recording and its page-turn (D158) are collected with the rendered scenes through mediaPlan (never a new recording).
+  // Only reviewed, owner-attached recordings are ever used; a draft simply leaves a missing one silent.
   const media = draftMode
     ? await prepareRenderMedia(episode, mediaPlan, { requireApprovedQuran: false })
     : await prepareRenderMedia(episode, mediaPlan, { requireApprovedQuran: true });
-  const coldIssues = coldOpenIssues(plan, media.voice);
-  if (coldIssues.length) throw new Error(coldIssues.join("\n"));
   // D68: a written-citation channel's verse card is the finished silent card, never marked «التلاوة تُضاف لاحقًا».
   const cited = scriptVersesAreCitations(scriptPath);
   const pendingRecitation = draftMode ? plan.chapters.flatMap((c) => c.scenes)
