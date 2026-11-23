@@ -14,7 +14,7 @@ import { defaultChannel, type ChannelConfig } from "../channel/types";
  * تُحفظ في publish.json بجوار السكريبت (تُعدَّل من الاستوديو، أو يكتبها Claude بعناية لكل حلقة)،
  * وهذا الملف يولّد نسخة أولى آلية من السكريبت حين لا توجد.
  */
-import { traceCheck } from "./traces";
+import { findTraces, traceCheck } from "./traces";
 import { THUMB_KIND_LABEL, conceptOrder, type ThumbnailConcept } from "./thumbnails";
 import { EPISODE_LINK_TOKEN, questionFrom, resolveEpisodeLink } from "./shortsLink";
 import { chapterMarksText, sceneStartsFor, type ChapterMark } from "./chapters";
@@ -71,7 +71,27 @@ export const resolveDescription = (desc: string, chapters: string) => {
   return out.replace(/\n{3,}/g, "\n\n").trim();
 };
 
-export type PublishKit = { version: 1; generatedBy: "auto" | "claude" | "edited"; updatedAt: string; long: LongKit; shorts: ShortKit[] };
+/**
+ * مصدر الحزمة: «auto» نسخة آلية من السكريبت، و«written» مكتوبة لهذه الحلقة، و«edited» عدّلها المالك.
+ * القاعدة الأولى: لا اسم أداة ولو في حقل داخلي من publish.json، فبوابة المحتوى تقرأ كل نصوصه (رفضت «claude» في ٢٣ نوفمبر).
+ */
+export type KitSource = "auto" | "written" | "edited";
+export type PublishKit = { version: 1; generatedBy: KitSource; updatedAt: string; long: LongKit; shorts: ShortKit[] };
+
+/** مصدر الحزمة عند الحفظ من الاستوديو: الآلية تصير «معدّلة»، وأي قيمة أخرى غير معروفة (ومنها القديمة) تصير «مكتوبة». */
+export const savedKitSource = (v: unknown): Exclude<KitSource, "auto"> => (v === "auto" || v === "edited" ? "edited" : "written");
+
+/** كل نص في الحزمة بمساره، فيه أثر لأدوات الإنتاج (findTraces): الحفظ يُرفض قبل أن تصل إلى بوابة المحتوى. */
+export const kitTraceHits = (kit: unknown): string[] => {
+  const out: string[] = [];
+  const walk = (v: unknown, at: string) => {
+    if (typeof v === "string") for (const h of findTraces(v)) out.push(`${at || "الحزمة"}: «${h}»`);
+    else if (Array.isArray(v)) v.forEach((x, i) => walk(x, `${at}[${i}]`));
+    else if (v && typeof v === "object") for (const [k, x] of Object.entries(v)) walk(x, at ? `${at}.${k}` : k);
+  };
+  walk(kit, "");
+  return out;
+};
 
 /**
  * قواعد المنصات (مراجعة في أكتوبر 2026). تُستخدم في الفحص داخل الاستوديو.

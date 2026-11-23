@@ -24,7 +24,11 @@ export const quranPathFor = (scriptPath: string) => path.join(path.dirname(scrip
 export const readJson = <T>(file: string): Promise<T | null> => readJsonFile<T>(file);
 
 /** يكتب الخطة بلا نصوص الآيات، كتابة ذرية (ملف مؤقت ثم fsync ثم إعادة تسمية). */
-const writePlanUnlocked = (file: string, plan: Plan) => writeJsonAtomic(file, stripQuran(plan));
+// D198: the cold open's source snapshot exists only in memory for a single-scene render; it is never written
+const writePlanUnlocked = (file: string, plan: Plan) => {
+  const { coldOpenSource: _snapshot, ...kept } = plan;
+  return writeJsonAtomic(file, stripQuran(kept as Plan));
+};
 export const writePlanFile = (file: string, plan: Plan) => withPlanWrite(file, () => writePlanUnlocked(file, plan));
 export const planRevision = (plan: Plan): string => createHash("sha256").update(planRevisionSource(plan)).digest("hex");
 

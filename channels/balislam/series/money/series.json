@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "id": "money",
+  "name": "المال والتأمل",
+  "kind": "category",
+  "description": "رزق وقناعة وعمل",
+  "order": 3,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#B4532F"
+    },
+    "motif": "arches",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "baa"
+      ]
+    }
+  },
+  "template": {
+    "script": {
+      "source": "channel"
+    }
+  }
+}

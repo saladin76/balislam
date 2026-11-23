@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "id": "knowledge",
+  "name": "العلم والتاريخ",
+  "kind": "category",
+  "description": "حضارة وعلماء وسنن كونية",
+  "order": 4,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#B4532F"
+    },
+    "motif": "arches",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "baa"
+      ]
+    }
+  },
+  "template": {
+    "script": {
+      "source": "channel"
+    }
+  }
+}

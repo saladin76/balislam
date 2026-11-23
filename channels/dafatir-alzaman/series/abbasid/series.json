@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "id": "abbasid",
+  "name": "الدولة العباسية",
+  "kind": "series",
+  "description": "من سلاسل «الدول»؛ وفيها «بغداد المدوّرة»",
+  "order": 7,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#E07A3F"
+    },
+    "motif": "stars",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "book"
+      ]
+    }
+  },
+  "template": {},
+  "parent": "duwal"
+}

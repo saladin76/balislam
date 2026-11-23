@@ -11,6 +11,7 @@
 import type { Plan, PlanScene } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 import { sceneSeconds } from "../../plan/duration";
+import { coldOpenCut, coldOpenFrames, coldOpenOf, coldOpenSource } from "../../plan/coldOpen";
 import { normalizeArabic } from "../../script/quranMeta";
 import { measureDiversity } from "./diversity";
 import { measureCraft } from "./craft";
@@ -144,7 +145,16 @@ const sceneText = (s: PlanScene) => bare([s.narration, ...Object.values(s.props 
  * (تقدير يكفي للحكم على أول ربع دقيقة؛ المشهد يُقال بإيقاع واحد).
  */
 export const hookIn = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">): { ok: boolean; text?: string; at?: number } => {
-  let t = 0;
+  // D198: الخطاف المسبق أول ما يُسمع (من الثانية صفر)، ثم الحلقة بعده بمدته
+  const cold = coldOpenOf(plan);
+  const src = cold ? coldOpenSource(plan) : null;
+  const clip = src ? media?.voice[src.id] : undefined;
+  if (cold && src && clip && clip.text === src.narration.trim()) {
+    const cut = coldOpenCut(clip, cold.to, cold.words);
+    const q = cut.text.split(/(?<=[؟?.!۔])\s+/).find((x) => /[؟?]/.test(x));
+    if (q) return { ok: true, text: q.trim(), at: 0 };
+  }
+  let t = coldOpenFrames(plan) / 30;
   // أول سؤال في الحلقة كلها: داخل النافذة ينجح، وبعدها يُذكر موضعه ليُعرف كم يُقدَّم
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
     const text = s.narration ?? "";
