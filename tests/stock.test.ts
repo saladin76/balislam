@@ -9,14 +9,11 @@ import { isOwnerContentPath } from "../scripts/contentPaths.mjs";
 const seeds = ["balislam", "dafatir-alzaman", "zubdat-alkutub"].map((c) => [c, JSON.parse(readFileSync(`channels/${c}/stock.json`, "utf8")) as Stock] as const);
 
 describe("ترتيب النشر وبذوره", () => {
-  it("بذور القنوات الثلاث سليمة: ١٣ أسبوعًا، وتجميد بالإسلام وزبدة الكتب (D211) لا دفاتر الزمن", () => {
+  it("بذور القنوات الثلاث عقد لا تثبيت: الترتيب سليم، وكل خانة بأسبوع ودفعة، ولا حلقة مكررة", () => {
     for (const [c, s] of seeds) {
       expect(stockIssues(s), c).toEqual([]);
-      expect(new Set(s.slots.map((x) => x.week)).size, c).toBe(13);
+      expect(s.slots.length > 0, c).toBe(true);
     }
-    expect(Object.fromEntries(seeds.map(([c, s]) => [c, Boolean(s.frozen)]))).toEqual({ balislam: true, "dafatir-alzaman": false, "zubdat-alkutub": true });
-    const bal = seeds[0]![1];
-    expect(bal.slots.filter((x) => x.batch === 1).map((x) => x.episode)).toEqual(["010", "011", "012", "013"]);
   });
   it("لا تواريخ في الترتيب، ولا حلقة مكررة، ولا أسبوع غير صالح", () => {
     const base: Stock = { version: 1, phase: 1, slots: [{ week: 1, title: "أ", batch: 2, episode: "001" }] };
@@ -45,7 +42,7 @@ describe("المسودة والتجميد يمنعان الإنتاج", () => {
       { number: "100", dir: "100-x", title: "مسودة", status: "مسودة", files: { script: true, research: true, scenes: false, publish: false }, approval: { approved: false } },
     ]);
     expect(v.map((x) => [x.episode, x.exists, x.week, x.day])).toEqual([["003", false, 3, "السبت"], ["100", true, null, "السبت"]]);
-    expect(v.filter(awaitingOwner).map((x) => x.episode)).toEqual(["100"]);
+    expect(v.filter(awaitingOwner).map((x) => x.episode)).toEqual(["100"]); // owner-pin-ok: بيانات مصطنعة في الاختبار، لا محتوى المالك
   });
 });
 
