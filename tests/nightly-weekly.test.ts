@@ -145,14 +145,14 @@ describe("المراجعة الأسبوعية", () => {
     expect(md.match(new RegExp(NO_DATA, "g"))!.length).toBe(3);
     expect(md.match(/\*\*تحسين هذا الأسبوع:\*\*/g)!.length).toBe(1);
   });
-  it("نسبة النقر موزونة بمرات الظهور، وتحسين واحد بالأولوية: الخطاف ثم الغلاف ثم أكبر تسرب ثم الإيقاع", () => {
+  it("نسبة النقر موزونة بمرات الظهور، وتحسين واحد بالأولوية: البداية ثم الغلاف ثم أكبر تسرب ثم الإيقاع", () => {
     const a = (ctr: number, impressions: number) => ({ version: 1 as const, channel: "x", episode: "001", importedAt: "", ctr, impressions });
     const lowCtr = reviewChannel({ id: "x", name: "x", episodes: [{ episode: "001", title: "t", analytics: a(2, 1000) }, { episode: "002", title: "t", analytics: a(5, 3000) }] });
     expect(lowCtr.ctr).toBeCloseTo(4.25, 6);
     const ret = (early: boolean) => ({ duration: 600, at30: early ? 60 : 90, start: 100, average: 40, earlyFix: early,
       early: { from: 3, to: 8, drop: early ? 30 : 5, estimated: false }, biggest: { from: 200, to: 212, drop: 9, sceneId: "c1-s20", estimated: false } });
     const hook = reviewChannel({ id: "x", name: "x", episodes: [{ episode: "001", title: "t", analytics: a(2, 10), retention: ret(true) }] });
-    expect(hook.improvement).toMatch(/^الخطاف/);
+    expect(hook.improvement).toMatch(/^البداية/);
     expect(reviewChannel({ id: "x", name: "x", episodes: [{ episode: "001", title: "t", analytics: a(2, 10), retention: ret(false) }] }).improvement).toMatch(/^الغلاف/);
     const drop = reviewChannel({ id: "x", name: "x", episodes: [{ episode: "001", title: "t", analytics: a(6, 10), retention: ret(false) }] });
     expect(drop.improvement).toMatch(/^أكبر تسرب/);
