@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api } from "../api";
+import { OwnerText } from "../ui/OwnerText";
 import type { Season, SeasonView } from "../../../src/studio/seasons";
 
 /**
@@ -37,11 +38,11 @@ const SeasonCard: React.FC<{ v: SeasonView; onSaved: () => void }> = ({ v, onSav
     <article className={`group season-card is-${v.state}`} data-season={v.id}>
       <h4>{v.name} {ar(v.hijriYear)}هـ <small>{v.state === "running" ? "جارٍ الآن" : v.state === "past" ? "انتهى" : countdown(v.daysToStart, "")}</small></h4>
       <p className="help">
-        {hijriText(v.hijri.from)}{v.hijri.to !== v.hijri.from ? ` – ${hijriText(v.hijri.to)}` : ""} · {arDate(v.gregorian.from)}{v.gregorian.to !== v.gregorian.from ? ` – ${arDate(v.gregorian.to)}` : ""} (حساب أم القرى؛ البداية الفعلية برؤية الهلال)
+        {hijriText(v.hijri.from)}{v.hijri.to !== v.hijri.from ? ` – ${hijriText(v.hijri.to)}` : ""} | {arDate(v.gregorian.from)}{v.gregorian.to !== v.gregorian.from ? ` – ${arDate(v.gregorian.to)}` : ""} | حساب أم القرى، والبداية الفعلية برؤية الهلال
       </p>
       <p className={late ? "warn" : ""}>
         <strong>جاهز قبل:</strong> {arDate(v.readyBy)} — {v.state === "upcoming" ? countdown(v.daysToReady, "فات الموعد") : "—"}
-        {v.readyBy !== v.ruleReadyBy && <small className="help"> · قاعدة الأسابيع الستة: {arDate(v.ruleReadyBy)}{v.readyByNote ? ` · ${v.readyByNote}` : ""}</small>}
+        {v.readyBy !== v.ruleReadyBy && <small className="help"> | قاعدة الأسابيع الستة: {arDate(v.ruleReadyBy)}{v.readyByNote ? ` | ${v.readyByNote}` : ""}</small>}
       </p>
       {slots.length > 0 && (
         <table className="season-slots">
@@ -61,7 +62,7 @@ const SeasonCard: React.FC<{ v: SeasonView; onSaved: () => void }> = ({ v, onSav
       {(v.shorts ?? []).map((s) => <p key={s.name} className="help">شورتس يومية: «{s.name}» — {ar(s.count)} مقطعًا{s.status ? ` (${s.status})` : ""}</p>)}
       {v.note && <p className="help">{v.note}</p>}
       {dirty && <button type="button" className="btn primary small" onClick={save}>احفظ حلقات الموسم</button>}
-      {msg && <small role="status"> {msg}</small>}
+      {msg && <small role="status"> <OwnerText text={msg} /></small>}
     </article>
   );
 };
@@ -71,12 +72,12 @@ export const ChannelSeasons: React.FC = () => {
   const [err, setErr] = useState("");
   const load = () => api.seasons().then(setData, (e) => setErr((e as Error).message));
   useEffect(() => { void load(); }, []);
-  if (err) return <p className="warn">{err}</p>;
+  if (err) return <p className="warn" role="alert"><OwnerText text={err} /></p>;
   if (!data) return <p className="help">جارٍ التحميل…</p>;
   if (!data.seasons.length) return <p className="help">لا مواسم في جدول هذه القناة بعد (`seasons.json`).</p>;
   return (
     <div className="seasons">
-      {data.issues.length > 0 && <ul className="warn">{data.issues.map((x) => <li key={x}>{x}</li>)}</ul>}
+      {data.issues.length > 0 && <ul className="warn">{data.issues.map((x) => <li key={x}><OwnerText text={x} /></li>)}</ul>}
       {data.seasons.filter((s) => s.state !== "past").map((v) => <SeasonCard key={`${v.id}:${JSON.stringify(v.episodes)}`} v={v} onSaved={load} />)}
     </div>
   );
