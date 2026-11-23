@@ -90,7 +90,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
   const sh = typeof view === "number" ? kit.shorts[view] : undefined;
   const issues = kitIssues(kit, { starts: sceneStarts, ...titleCtx });
   const blocking = issues.filter((i) => i.level === "error").length;
-  const source = kit.generatedBy === "claude" ? "كتبها Claude لهذه الحلقة" : kit.generatedBy === "edited" ? "معدّلة منك" : "نسخة آلية من السكريبت";
+  const source = kit.generatedBy === "written" ? "مكتوبة لهذه الحلقة" : kit.generatedBy === "edited" ? "معدّلة منك" : "نسخة آلية من السكريبت";
 
   return (
     <div className="render-box kit">
