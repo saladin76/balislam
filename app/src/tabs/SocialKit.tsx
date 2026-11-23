@@ -163,7 +163,6 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
         </div>
       ) : sh ? (
         <>
-          <Field label="الخطاف: أول ثانيتين على الشاشة" value={sh.hook} onChange={(v) => setShort(view as number, { hook: v })} hint="هذا ما يقرر هل يكمل المشاهد" />
           <div className="kit-grid three">
             <div className="kit-col">
               <h4>يوتيوب شورتس</h4>

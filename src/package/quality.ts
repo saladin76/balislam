@@ -6,7 +6,7 @@ import { normalizeArabic } from "../script/quranMeta";
 import type { PublishKit } from "./social";
 import { thumbnailIssues, type ThumbScene } from "./thumbnails";
 import { resolveChapters, type SceneStarts } from "./chapters";
-import { isDuaTitle, isEpisodeUrl, isQuestionTitle } from "./shortsLink";
+import { isDuaTitle, isEpisodeUrl, isQuestionTitle, questionFrom } from "./shortsLink";
 import { formulaProblem, TITLE_FORMULAS } from "./titleFormula";
 
 /** العنوان ≤ ٦٠ حرفًا (قرار المالك ٢١ نوفمبر): ما بعدها يُقص في نتائج البحث والاقتراحات وعلى الهاتف. */
@@ -64,7 +64,7 @@ export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: Thumb
   const err = (where: string, message: string, suggestion?: string) => out.push({ level: "error", where, message, suggestion });
   const warn = (where: string, message: string, suggestion?: string) => out.push({ level: "warning", where, message, suggestion });
 
-  const title = (where: string, t: string, fallback: string) => {
+  const title = (where: string, t: string, fallback = "") => {
     if (!t.trim()) return err(where, "العنوان فارغ.", fallback || undefined);
     if (isGenericTitle(t)) err(where, `العنوان «${t}» عام جدًا لا يقول شيئًا وحده.`, fallback || undefined);
     for (const c of CLICKBAIT) if (n(t).includes(c)) warn(where, `في العنوان إثارة لا تليق بهوية القناة («${t}»).`);
@@ -120,7 +120,9 @@ export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: Thumb
   const shortTitles = new Map<string, number>();
   for (const s of kit.shorts) {
     const w = `الشورت ${s.chapter}`;
-    title(`${w}: العنوان`, s.youtube.title, s.hook.replace(/[.،]$/, ""));
+    // الاقتراح سؤال من نص الشورت نفسه (لا خانة خطاف بعد D207: السؤال في العنوان وحده)
+    const asked = questionFrom(s.youtube.description);
+    title(`${w}: العنوان`, s.youtube.title, asked ?? "");
     const k = n(s.youtube.title);
     if (k && shortTitles.has(k)) err(`${w}: العنوان`, `العنوان نفسه في الشورت ${shortTitles.get(k)}؛ كل شورت يحتاج عنوانه.`);
     shortTitles.set(k, s.chapter);
@@ -128,7 +130,7 @@ export const kitIssues = (kit: PublishKit, ctx: { title?: string; scenes?: Thumb
     if (s.youtube.title.trim() && !isQuestionTitle(s.youtube.title))
       warn(`${w}: العنوان`, isDuaTitle(s.youtube.title)
         ? `«${s.youtube.title}» دعاء لا يُحوَّل إلى سؤال؛ اختر للشورت عنوانًا سؤالًا عن معناه، أو مقطعًا آخر.`
-        : `ليس سؤالًا؛ عنوان كل شورت سؤال ينتهي بـ«؟».`, s.hook && isQuestionTitle(s.hook) ? s.hook : undefined);
+        : `ليس سؤالًا؛ عنوان كل شورت سؤال ينتهي بـ«؟».`, asked);
     text(`${w}: وصف يوتيوب`, s.youtube.description);
     text(`${w}: إنستجرام`, s.instagram.caption);
     text(`${w}: فيسبوك`, s.facebook.caption);

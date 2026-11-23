@@ -47,7 +47,6 @@ export type LongKit = {
 };
 export type ShortKit = {
   chapter: number;
-  hook: string;
   youtube: { title: string; description: string; hashtags: string[] };
   instagram: { caption: string; hashtags: string[] };
   facebook: { caption: string; hashtags: string[] };
@@ -83,6 +82,13 @@ export type KitSource = "auto" | "written" | "edited";
 export type PublishKit = { version: 1; generatedBy: KitSource; updatedAt: string; long: LongKit; shorts: ShortKit[] };
 
 /** مصدر الحزمة عند الحفظ من الاستوديو: الآلية تصير «معدّلة»، وأي قيمة أخرى غير معروفة (ومنها القديمة) تصير «مكتوبة». */
+/**
+ * لا خطاف في الشورتس (D207، التعريف: docs/dafatir-alzaman/07-decisions.md؛ قرار المالك ٢٣ نوفمبر): الشورت يبدأ بجملة الحلقة
+ * طبيعيًا والسؤال في العنوان وحده. حزمة قديمة فيها `hook` تُقرأ كما هي، وتُحذف الخانة عند الحفظ.
+ */
+export const withoutShortHooks = <K extends { shorts?: unknown }>(kit: K): K => (Array.isArray(kit.shorts)
+  ? { ...kit, shorts: kit.shorts.map((s) => { if (!s || typeof s !== "object") return s; const { hook: _hook, ...rest } = s as Record<string, unknown>; return rest; }) }
+  : kit);
 export const savedKitSource = (v: unknown): Exclude<KitSource, "auto"> => (v === "auto" || v === "edited" ? "edited" : "written");
 
 /** كل نص في الحزمة بمساره، فيه أثر لأدوات الإنتاج (findTraces): الحفظ يُرفض قبل أن تصل إلى بوابة المحتوى. */
@@ -247,7 +253,6 @@ export const generatePublishKit = (plan: Plan, script: string, media: EpisodeMed
     const ask = q && q !== first && !isGenericTitle(q) ? q : "ما رأيك؟ اكتب في التعليقات.";
     return {
       chapter: c.number,
-      hook: clip(first, 90),
       youtube: { title, description: `${clip(first, 140)}\n\n${EPISODE_LINK_TOKEN}\n\n${tags.slice(0, 3).map(hashtag).join(" ")}`, hashtags: tags.slice(0, 3).map(hashtag) },
       instagram: { caption: `${clip(first, 240)}\n\n${clip(value, 300)}\n\n${ask}\n\nاحفظه لترجع له، وأرسله لمن يحتاجه.`, hashtags: tags.slice(0, 5).map(hashtag) },
       facebook: { caption: `${clip(first, 240)}\n\n${ask}\n\n${EPISODE_LINK_TOKEN}`, hashtags: tags.slice(0, 2).map(hashtag) },
@@ -309,8 +314,6 @@ export const kitToMarkdown = (kit: PublishKit, title: string, chapters = ""): st
   for (const s of kit.shorts) {
     out.push(
       `## الشورت ${s.chapter}`,
-      "",
-      `**الخطاف (أول ثانيتين):** ${s.hook}`,
       "",
       "### يوتيوب شورتس",
       `**العنوان:** ${s.youtube.title}`,

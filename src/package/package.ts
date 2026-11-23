@@ -24,6 +24,15 @@ import type { PublishKit } from "./social";
 import { sceneStartsFor } from "./chapters";
 import { THUMB_KIND_LABEL, THUMB_ON_HOLD, conceptOrder, isSacredScene, renderableConcepts, thumbnailIssues } from "./thumbnails";
 
+/** عنوان الشورت من حزمة النشر (publish.json ← shorts، بالترتيب نفسه)، أو عنوان المقطع في الخطة؛ بلا حزمة ولا عنوان: لا شيء */
+export const shortTitleFor = async (scriptPath: string, seg: { n: number; title?: string }): Promise<string | undefined> => {
+  const kitFile = path.join(path.dirname(scriptPath), "publish.json");
+  let kit: Pick<PublishKit, "shorts"> | null = null;
+  try { kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) as PublishKit : null; } catch { kit = null; }
+  const fromKit = kit?.shorts?.find((s) => s.chapter === seg.n)?.youtube?.title?.trim();
+  return fromKit || seg.title?.trim() || undefined;
+};
+
 export type PackageOptions = {
   episode: string;
   /** بلا رندر فيديو (الوصف والترجمة والصور فقط) */
@@ -180,7 +189,9 @@ export const packageEpisode = async (opts: PackageOptions) => {
         const sp = segmentPlan(plan, seg);
         log(`الشورت ${n} من ${shorts.length} بجودة: ${q.label}`);
         // الشورت القديم: قسمه من الخطة كما كان؛ والمقطع المختار: مشاهده وحدها، والبوابات على الخطة كاملة
-        const f = await renderEpisode({ episode: ep, orientation: "portrait", ...(seg.chapter !== undefined ? { chapter: seg.chapter } : { segment: { sceneIds: seg.sceneIds } }), quality, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n} من ${shorts.length}`) });
+        // تكملة D207: لا خطاف؛ سؤال الشورت (عنوانه في حزمة النشر) عنوانًا هادئًا على الشاشة
+        const shortTitle = await shortTitleFor(scriptPath, seg);
+        const f = await renderEpisode({ episode: ep, orientation: "portrait", ...(seg.chapter !== undefined ? { chapter: seg.chapter } : { segment: { sceneIds: seg.sceneIds } }), ...(shortTitle ? { shortTitle } : {}), quality, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n} من ${shorts.length}`) });
         files.push(path.basename(f));
         motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait", await exemptForRender(sp.plan, media, sp.chapter)) });
       }
