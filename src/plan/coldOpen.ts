@@ -65,3 +65,21 @@ export const coldOpenIssues = (plan: Pick<Plan, "chapters" | "coldOpen" | "coldO
     out.push(`الخطاف المسبق: القطع عند ${c.to} ث ليس في الوقفة بعد «${cut.words[cut.words.length - 1]?.word ?? ""}»؛ اجعله بين ${lastEnd} و${next?.start ?? lastEnd + 0.5} ث في التسجيل المستعمل.`);
   return out;
 };
+
+/**
+ * The plan a scene cut (or its 4K cover still) is rendered from, and the plan its media is collected from (D198, D196 v6).
+ * The first scene of the episode carries the channel intro slot and the cold open, with the cold open's source scene attached
+ * as a snapshot (the plan keeps only the rendered scenes) and its recording and page-turn collected with it. Any other scene
+ * drops both, so its frame 0 is its own first frame (a later scene's cover moment is never shifted by an empty slot).
+ */
+export const cutPlans = (full: Plan, ids: string[], sceneDraft = true): { plan: Plan; mediaPlan: Plan } => {
+  const opensEpisode = full.chapters[0]?.scenes[0]?.id === ids[0];
+  const source = opensEpisode ? coldOpenSource(full) : null;
+  const plan: Plan = { ...full, ...(sceneDraft && !opensEpisode ? { intro: false, coldOpen: undefined } : {}),
+    ...(source ? { coldOpenSource: source } : {}),
+    chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => ids.includes(s.id)) })).filter((c) => c.scenes.length) };
+  const mediaPlan: Plan = source
+    ? { ...plan, chapters: [...plan.chapters, { number: -1, title: "", scenes: [{ ...source, id: `${source.id}`, sfx: [...source.sfx, { id: "page-turn", at: 0 }] }] }] }
+    : plan;
+  return { plan, mediaPlan };
+};
