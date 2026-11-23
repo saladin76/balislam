@@ -178,6 +178,30 @@ export const currentSceneCutsForPreFinal = async (
   });
 };
 
+/**
+ * D199: each scene's CURRENT cut bytes exactly as «معاينة قبل النهائية» would take them (the approved or in-review preview
+ * whose bytes match, otherwise a ready draft bound to its current inputs; null if none), plus whether it is already approved
+ * unconditionally and whether it waits for its recitation. Read-only and never throws for a missing cut.
+ */
+export const currentCutStates = async (
+  episode: string,
+): Promise<{ id: string; approved: boolean; currentSha256: string | null; recitationPending: boolean }[]> => {
+  assertSceneOwner();
+  return withState(episode, async (doc, current) => {
+    const out = [];
+    for (const scene of doc.state.scenes) {
+      const bytes = await optionalSha(sceneFile(current.scriptPath, scene.id));
+      const reviewed = (scene.status === "approved" || scene.status === "in_review") && scene.previewSha256 === bytes;
+      const ok = Boolean(bytes) && (reviewed || await draftOf(doc, current.scriptPath, scene.id, scene.sourceSha256, bytes!) === "ready");
+      out.push({ id: scene.id,
+        approved: scene.status === "approved" && !scene.approval?.recitationPending && scene.approval?.previewSha256 === scene.previewSha256,
+        currentSha256: ok ? bytes : null,
+        recitationPending: Boolean(current.recitationPending[scene.id]) });
+    }
+    return out;
+  });
+};
+
 /** Protect every final-Master queue/CLI/API entrypoint before expensive rendering. */
 export const requireScenesReadyForMaster = async (episode: string): Promise<void> => {
   await withState(episode, async (doc, current) => {

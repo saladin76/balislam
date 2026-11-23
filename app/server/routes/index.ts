@@ -12,6 +12,7 @@ import { handleVoiceRoutes } from "./voice.ts";
 import { handleJobRoutes } from "./jobs.ts";
 import { handlePaceRoutes } from "./pace.ts";
 import { handleQualityRoutes } from "./quality.ts";
+import { handleNightlyRoutes } from "./nightly.ts";
 
 /**
  * مسارات الاستوديو بحسب المسؤولية (العمل ٨): كل ملف يتولى مساراته ويعيد true، وإلا يمر الطلب إلى التالي ثم إلى
@@ -21,7 +22,7 @@ import { handleQualityRoutes } from "./quality.ts";
 const HANDLERS = [
   handleMaintenanceRoutes, handleOverviewRoutes, handleEpisodeTrashRoutes, handlePreparationRoutes, handlePublishRoutes,
   handleLabRoutes, handlePreviewRoutes, handleSeriesRoutes, handleChannelRoutes, handleVoiceRoutes, handleJobRoutes, handlePaceRoutes,
-  handleQualityRoutes,
+  handleQualityRoutes, handleNightlyRoutes,
 ];
 
 export const handleStudioRoutes = async (ctx: RouteCtx): Promise<boolean> => {

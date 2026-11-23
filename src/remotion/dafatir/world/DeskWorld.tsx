@@ -38,13 +38,13 @@ export const WORLD_COLORS = {
   goldLight: "#F3C98B", lapis: "#26619C", seaDeep: "#35284D", verdigris: "#7A7F4E", dusk: "#2A1E3F", silver: "#F3E9DA", brassDark: "#5A4632",
   wax: "#F8EEDB", flame: "#E07A3F",
 } as const;
-const K = WORLD_COLORS;
+export const K = WORLD_COLORS;
 
 const clamp01 = (x: number) => Math.min(1, Math.max(0, x));
-const span = (t: number, a: number, d: number) => clamp01((t - a) / d);
+export const span = (t: number, a: number, d: number) => clamp01((t - a) / d);
 
 // ——— الرّق: ألياف وبقع قِدم من صورة CC0 حقيقية وحواف أغمق ———
-const parchment = (g: CanvasRenderingContext2D, w: number, h: number, seed: number, age: CanvasImageSource | null) => {
+export const parchment = (g: CanvasRenderingContext2D, w: number, h: number, seed: number, age: CanvasImageSource | null) => {
   g.fillStyle = K.parchment; g.fillRect(0, 0, w, h);
   if (age) { g.save(); g.globalCompositeOperation = "multiply"; g.globalAlpha = 0.32; g.drawImage(age, (seed * 97) % 300, (seed * 53) % 300, 700, 700, 0, 0, w, h); g.restore(); }
   g.save(); g.globalAlpha = 0.05; g.strokeStyle = K.ink;
@@ -59,7 +59,7 @@ const parchment = (g: CanvasRenderingContext2D, w: number, h: number, seed: numb
 };
 
 /** مسار بنسبة p من طوله */
-const pathTo = (g: CanvasRenderingContext2D, pts: [number, number][], p: number) => {
+export const pathTo = (g: CanvasRenderingContext2D, pts: [number, number][], p: number) => {
   const segs = pts.slice(1).map((q, i) => Math.hypot(q[0] - pts[i]![0], q[1] - pts[i]![1]));
   let left = segs.reduce((a, b) => a + b, 0) * p;
   g.beginPath(); g.moveTo(...pts[0]!);
@@ -70,7 +70,7 @@ const pathTo = (g: CanvasRenderingContext2D, pts: [number, number][], p: number)
   }
 };
 /** حبر يتشرب: الخط نفسه، وهالة مموّهة حوله تتسع مع الزمن (absorb ٠–١) كما يسري الحبر في الألياف */
-const ink = (g: CanvasRenderingContext2D, pts: [number, number][], p: number, width: number, color: string, absorb: number) => {
+export const ink = (g: CanvasRenderingContext2D, pts: [number, number][], p: number, width: number, color: string, absorb: number) => {
   if (p <= 0) return;
   g.save(); g.lineCap = "round"; g.lineJoin = "round"; g.strokeStyle = color;
   if (absorb > 0) { g.filter = `blur(${2 + absorb * 4}px)`; g.globalAlpha = 0.28 * absorb; g.lineWidth = width * (1.6 + absorb); pathTo(g, pts, p); g.stroke(); }
@@ -78,7 +78,7 @@ const ink = (g: CanvasRenderingContext2D, pts: [number, number][], p: number, wi
   g.restore();
 };
 /** غسيل لوني بطبقات شفافة بحواف غير منتظمة */
-const wash = (g: CanvasRenderingContext2D, poly: [number, number][], color: string, p: number, seed: number) => {
+export const wash = (g: CanvasRenderingContext2D, poly: [number, number][], color: string, p: number, seed: number) => {
   if (p <= 0) return;
   const cx = poly.reduce((a, q) => a + q[0], 0) / poly.length, cy = poly.reduce((a, q) => a + q[1], 0) / poly.length;
   g.save(); g.fillStyle = color; g.filter = "blur(3px)";
@@ -91,7 +91,7 @@ const wash = (g: CanvasRenderingContext2D, poly: [number, number][], color: stri
 };
 
 // ——— صفحة الخريطة (الجنوب فوق) ———
-const MAP_W = 1536, MAP_H = 2048;
+export const MAP_W = 1536, MAP_H = 2048;
 /** دائرة بغداد على الخريطة (للقطع بالشكل إلى المدينة المدوّرة) */
 export const BAGHDAD_PX = { x: MAP_W / 2 + 290, y: 1600, r: 70 };
 const drawMap = (g: CanvasRenderingContext2D, t: number, age: CanvasImageSource | null) => {
@@ -144,8 +144,8 @@ const drawText = (g: CanvasRenderingContext2D, age: CanvasImageSource | null) =>
   g.fillText("بُنيت", 0, 0); g.fillText("سنة ١٤٥", 0, 130); g.fillText("على دجلة", 0, 260); g.restore();
 };
 
-const canvasOf = (w: number, h: number) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return [c, c.getContext("2d")!] as const; };
-const texOf = (c: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
+export const canvasOf = (w: number, h: number) => { const c = document.createElement("canvas"); c.width = w; c.height = h; return [c, c.getContext("2d")!] as const; };
+export const texOf = (c: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t; };
 
 /** الوثيقة: سطور حقيقية، والسطر المنطوق يُكتب ويتشرب، والختم بأثر ناقص كالضغط الحقيقي */
 const drawDoc = (g: CanvasRenderingContext2D, w: number, h: number, t: number, age: CanvasImageSource | null) => {
@@ -176,7 +176,7 @@ const drawDoc = (g: CanvasRenderingContext2D, w: number, h: number, t: number, a
 };
 
 /** الإسطرلاب: نحاس محفور مطعّم بالفضة، وأثر استعمال (خدوش وبقع اتساخ حول المحور) */
-const drawAstro = (g: CanvasRenderingContext2D, n: number, yearShown: number) => {
+export const drawAstro = (g: CanvasRenderingContext2D, n: number, yearShown: number, label = "١٤٥ هـ", base = 100) => {
   const c = n / 2;
   const brass = g.createRadialGradient(c, c, 60, c, c, c);
   brass.addColorStop(0, K.goldLight); brass.addColorStop(0.7, K.gold); brass.addColorStop(1, K.brassDark);
@@ -188,38 +188,38 @@ const drawAstro = (g: CanvasRenderingContext2D, n: number, yearShown: number) =>
   const inlay = (draw: () => void, wDark: number, wSilver: number) => { g.strokeStyle = K.inkDark; g.lineWidth = wDark; draw(); g.strokeStyle = K.silver; g.lineWidth = wSilver; draw(); };
   inlay(() => { g.beginPath(); g.arc(c, c, c - 40, 0, Math.PI * 2); g.stroke(); }, 14, 7);
   inlay(() => { g.beginPath(); g.arc(c, c, c - 190, 0, Math.PI * 2); g.stroke(); }, 12, 6);
-  for (let y = 100; y <= 200; y += 5) {
-    const a = ((y - 100) / 100) * Math.PI * 1.6 - Math.PI * 0.8 - Math.PI / 2, long = y % 25 === 0;
+  for (let y = base; y <= base + 100; y += 5) {
+    const a = ((y - base) / 100) * Math.PI * 1.6 - Math.PI * 0.8 - Math.PI / 2, long = y % 25 === 0;
     inlay(() => { g.beginPath(); g.moveTo(c + (c - 40) * Math.cos(a), c + (c - 40) * Math.sin(a)); g.lineTo(c + (c - (long ? 120 : 80)) * Math.cos(a), c + (c - (long ? 120 : 80)) * Math.sin(a)); g.stroke(); }, long ? 12 : 8, long ? 6 : 4);
     if (long) { g.save(); g.translate(c + (c - 158) * Math.cos(a), c + (c - 158) * Math.sin(a)); g.rotate(a + Math.PI / 2); g.font = "bold 78px Amiri"; g.textAlign = "center"; g.fillStyle = K.inkDark; g.fillText(y.toLocaleString("ar-EG"), 3, 30); g.fillStyle = K.silver; g.fillText(y.toLocaleString("ar-EG"), 0, 27); g.restore(); }
   }
   for (let k = 1; k <= 4; k++) inlay(() => { g.beginPath(); g.ellipse(c, c + 40 * k, 90 * k, 60 * k, 0, Math.PI, Math.PI * 2); g.stroke(); }, 8, 4);
-  if (yearShown > 0) { g.save(); g.globalAlpha = yearShown; g.textAlign = "center"; g.font = "bold 104px Amiri"; g.fillStyle = K.inkDark; g.fillText("١٤٥ هـ", c + 3, c + 248); g.fillStyle = K.silver; g.fillText("١٤٥ هـ", c, c + 245); g.restore(); }
+  if (yearShown > 0) { g.save(); g.globalAlpha = yearShown; g.textAlign = "center"; g.font = "bold 104px Amiri"; g.fillStyle = K.inkDark; g.fillText(label, c + 3, c + 248); g.fillStyle = K.silver; g.fillText(label, c, c + 245); g.restore(); }
 };
 
-const useCanvasTex = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, deps: unknown[]) =>
+export const useCanvasTex = (w: number, h: number, draw: (g: CanvasRenderingContext2D) => void, deps: unknown[]) =>
   // eslint-disable-next-line react-hooks/exhaustive-deps
   useMemo(() => { const [c, g] = canvasOf(w, h); draw(g); return texOf(c); }, deps);
 
 // ——— المكان ———
-const ATLAS_AT: V3 = [-0.65, 0, 0.25];
-const DOC_AT: V3 = [2.05, 0, 0.55];
-const ASTRO_AT: V3 = [0.95, 0.06, -1.35];
-const CITY_AT: V3 = [-2.55, 0, 1.25];
+export const ATLAS_AT: V3 = [-0.65, 0, 0.25];
+export const DOC_AT: V3 = [2.05, 0, 0.55];
+export const ASTRO_AT: V3 = [0.95, 0.06, -1.35];
+export const CITY_AT: V3 = [-2.55, 0, 1.25];
 /** بغداد على الخريطة في إحداثيات العالم (صفحة اليمين ١٫٢٦×١٫٦٨) */
 export const BAGHDAD_WORLD: V3 = [ATLAS_AT[0] + 0.64 + (BAGHDAD_PX.x / MAP_W - 0.5) * 1.26, 0.046, ATLAS_AT[2] + (BAGHDAD_PX.y / MAP_H - 0.5) * 1.68];
 export const CITY_R = 0.62;
 
-/** طوب لبن بمقياس المدينة: نسخة من الخامة بتكرار يناسب كل سطح (الطوبة نحو ثلث ارتفاع السور) */
+/** طوب لبن بمقياس المدينة: نسخة من الخامة بتكرار يناسب كل سطح */
 const useBrick = (src: THREE.Texture[] | null, rx: number, ry: number) => useMemo(() => {
   if (!src) return null;
   return src.map((t, i) => {
-    // اللبن طين مجفف بالشمس: أقل تشبعًا من الآجر المحروق، فتُخفف الخامة قبل استعمالها (الخريطة اللونية وحدها)
+    // اللبن طين مجفف بالشمس: أقل تشبعًا من الآجر المحروق، والملاط بين المداميك أوضح (تباين أعلى)، فتُعالج الخريطة اللونية وحدها
     let c: THREE.Texture = t.clone();
     const img = t.image as (CanvasImageSource & { width: number; height: number }) | undefined;
     if (i === 0 && img?.width) {
       const cv = document.createElement("canvas"); cv.width = img.width; cv.height = img.height; const g = cv.getContext("2d")!;
-      g.filter = "saturate(0.4) brightness(1.08)"; g.drawImage(img, 0, 0);
+      g.filter = "saturate(0.4) brightness(1.08) contrast(1.2)"; g.drawImage(img, 0, 0);
       c = new THREE.CanvasTexture(cv); c.colorSpace = THREE.SRGBColorSpace;
     }
     c.wrapS = c.wrapT = THREE.RepeatWrapping; c.repeat.set(rx, ry); c.needsUpdate = true; return c;
@@ -227,48 +227,84 @@ const useBrick = (src: THREE.Texture[] | null, rx: number, ry: number) => useMem
 }, [src, rx, ry]);
 /** سور سميك بمقطع مستطيل يدور حول المركز (لا أسطوانة رقيقة): وجهه الخارجي وأعلاه وداخله طوب لبن */
 const wallGeo = (r: number, thick: number, hh: number) => new THREE.LatheGeometry([new THREE.Vector2(r - thick, 0), new THREE.Vector2(r, 0), new THREE.Vector2(r, hh), new THREE.Vector2(r - thick, hh), new THREE.Vector2(r - thick, 0)], 128);
-export const CITY_WALLS = [{ r: CITY_R, hh: 0.11, thick: 0.035, merlons: 72 }, { r: CITY_R * 0.78, hh: 0.15, thick: 0.03, merlons: 56 }] as const;
+/**
+ * السوران: الخارجي أقصر بأبراج نصف دائرية على مسافات (تُترك عند الأبواب)، والداخلي أعلى؛ ولكل سور إيقاع شرفات مختلف
+ * (كل شرفة رابعة أو خامسة أعرض)، فلا تتكرر الكتلة نفسها حول المدينة.
+ */
+export const CITY_WALLS = [
+  { r: CITY_R, hh: 0.11, thick: 0.035, merlons: 84, accent: 4, towers: 20 },
+  { r: CITY_R * 0.78, hh: 0.15, thick: 0.03, merlons: 60, accent: 5, towers: 0 },
+] as const;
+/** زاوية قريبة من طريق أو باب (على القطرين) */
+const nearGate = (a: number, w: number) => Math.abs((((a - Math.PI / 4) % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2) - 0) < w || Math.abs(((((a - Math.PI / 4) % (Math.PI / 2)) + Math.PI / 2) % (Math.PI / 2)) - Math.PI / 2) < w;
+/** حتمي ٠–١ */
+const h01 = (i: number, k: number) => ((Math.sin(i * 127.1 + k * 311.7) * 43758.5453) % 1 + 1) % 1;
+/**
+ * بيوت الربض بين السورين: مجموعات غير منتظمة لا صفوف مكعبات — مساحات وأطوال مختلفة، وأسطح مستوية بستائر (حاجز السطح)،
+ * وبعضها دور بفناء في وسطه، وتُترك الطرق الأربعة. مطلية بالطين (خامة اللبن بتكرار صغير جدًا: لياسة لا مداميك).
+ */
+export const cityHouses = () => {
+  const out: { x: number; z: number; rot: number; w: number; d: number; h: number; court: boolean }[] = [];
+  for (let i = 0; i < 64; i++) {
+    const a = (i / 64) * Math.PI * 2 + h01(i, 1) * 0.05;
+    if (nearGate(a, 0.1)) continue;
+    const n = 1 + Math.floor(h01(i, 2) * 3);
+    for (let k = 0; k < n; k++) {
+      const rr = CITY_R * (0.82 + 0.12 * h01(i, k + 3)), aa = a + (h01(i, k + 7) - 0.5) * 0.06;
+      out.push({ x: rr * Math.cos(aa), z: rr * Math.sin(aa), rot: -aa + (h01(i, k + 11) - 0.5) * 0.25, w: 0.035 + 0.05 * h01(i, k + 13), d: 0.03 + 0.04 * h01(i, k + 17), h: 0.025 + 0.05 * h01(i, k + 19) ** 1.6, court: h01(i, k + 23) > 0.62 });
+    }
+  }
+  return out;
+};
 
-/** المدينة المدوّرة (القطعة المخصوصة لهذه الحلقة): خندق لازوردي، وسوران من طوب لبن بشرفاتهما، وأربعة أبواب على القطرين، والقصر والقبة في القلب */
-const RoundCity: React.FC<{ wood: THREE.Texture[]; brick: THREE.Texture[]; rise: number }> = ({ wood, brick, rise }) => {
-  const wallTex = useBrick(brick, 26, 2), smallTex = useBrick(brick, 0.35, 0.35);
+/** المدينة المدوّرة (القطعة المخصوصة لهذه الحلقة): خندق لازوردي، وسوران من طوب لبن بشرفاتهما وأبراجهما، وأربعة أبواب بقباب مذهّبة، والقصر وقبته الخضراء وحده في القلب */
+export const RoundCity: React.FC<{ wood: THREE.Texture[]; brick: THREE.Texture[]; rise: number }> = ({ wood, brick, rise }) => {
+  const wallTex = useBrick(brick, 30, 2.4), blockTex = useBrick(brick, 0.5, 0.5), plasterTex = useBrick(brick, 0.08, 0.08);
   const geos = useMemo(() => CITY_WALLS.map((w) => wallGeo(w.r, w.thick, w.hh)), []);
-  const mud = (tx: THREE.Texture[] | null) => <meshStandardMaterial map={tx?.[0]} normalMap={tx?.[1]} normalScale={new THREE.Vector2(0.8, 0.8)} color={K.parchment} roughness={0.95} />;
+  const houses = useMemo(cityHouses, []);
+  const mud = (tx: THREE.Texture[] | null, n = 0.35) => <meshStandardMaterial map={tx?.[0]} normalMap={tx?.[1]} normalScale={new THREE.Vector2(n, n)} color={K.parchment} roughness={0.88} />;
   const y = Math.max(0.001, rise);
   return (
     <group position={CITY_AT}>
       <mesh position={[0, 0.03, 0]} receiveShadow castShadow><cylinderGeometry args={[CITY_R + 0.22, CITY_R + 0.25, 0.06, 96]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} color="#c9b49a" /></mesh>
       <mesh position={[0, 0.062, 0]} rotation={[-Math.PI / 2, 0, 0]}><ringGeometry args={[CITY_R + 0.04, CITY_R + 0.12, 96]} /><meshStandardMaterial color={K.lapis} roughness={0.25} /></mesh>
-      {/* السوران يرتفعان من الأرض مع «المدوّرة»، وعليهما الشرفات */}
+      {/* السوران يرتفعان من الأرض مع «المدوّرة»، وعليهما الشرفات بإيقاع مختلف لكل سور، وعلى الخارجي أبراج */}
       <group position={[0, 0.06, 0]} scale={[1, y, 1]}>
         {CITY_WALLS.map((w, i) => (
           <group key={i}>
             <mesh geometry={geos[i]} castShadow receiveShadow>{mud(wallTex)}</mesh>
             {Array.from({ length: w.merlons }, (_, k) => {
-              const a = (k / w.merlons) * Math.PI * 2;
-              return <mesh key={k} position={[(w.r - w.thick / 2) * Math.cos(a), w.hh + 0.011, (w.r - w.thick / 2) * Math.sin(a)]} rotation={[0, -a, 0]} castShadow>
-                <boxGeometry args={[w.thick * 0.9, 0.022, ((Math.PI * 2 * w.r) / w.merlons) * 0.55]} />{mud(smallTex)}</mesh>;
+              const a = (k / w.merlons) * Math.PI * 2, big = k % w.accent === 0, step = (Math.PI * 2 * w.r) / w.merlons;
+              return <mesh key={k} position={[(w.r - w.thick / 2) * Math.cos(a), w.hh + (big ? 0.014 : 0.01), (w.r - w.thick / 2) * Math.sin(a)]} rotation={[0, -a, 0]} castShadow>
+                <boxGeometry args={[w.thick * 0.9, big ? 0.028 : 0.02, step * (big ? 0.7 : 0.45)]} />{mud(blockTex)}</mesh>;
+            })}
+            {Array.from({ length: w.towers }, (_, k) => {
+              const a = ((k + 0.5) / w.towers) * Math.PI * 2;
+              if (nearGate(a, 0.14)) return null;
+              return <mesh key={`t${k}`} position={[(w.r + 0.012) * Math.cos(a), (w.hh + 0.025) / 2, (w.r + 0.012) * Math.sin(a)]} castShadow receiveShadow><cylinderGeometry args={[0.028, 0.032, w.hh + 0.025, 20]} />{mud(blockTex)}</mesh>;
             })}
           </group>
         ))}
-        {/* الأبواب الأربعة: برج بطوب اللبن وقبة خضراء */}
+        {/* الأبواب الأربعة: برج بطوب اللبن وقبة مذهّبة (الخضراء للقصر وحده) */}
         {[0, 1, 2, 3].map((k) => {
           const a = Math.PI / 4 + (k * Math.PI) / 2;
           return (
             <group key={k} position={[CITY_R * Math.cos(a), 0, CITY_R * Math.sin(a)]} rotation={[0, -a, 0]}>
-              <mesh position={[0, 0.09, 0]} castShadow receiveShadow><boxGeometry args={[0.1, 0.18, 0.15]} />{mud(smallTex)}</mesh>
-              <mesh position={[0, 0.18, 0]} castShadow><sphereGeometry args={[0.05, 16, 8, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.5} /></mesh>
+              <mesh position={[0, 0.09, 0]} castShadow receiveShadow><boxGeometry args={[0.1, 0.18, 0.15]} />{mud(blockTex)}</mesh>
+              <mesh position={[0, 0.18, 0]} castShadow><sphereGeometry args={[0.05, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.gold} metalness={0.6} roughness={0.38} /></mesh>
             </group>
           );
         })}
-        {/* البيوت والأسواق بين السورين: كتل طوب لبن بأسطح مستوية وأحجام حتمية، تُترك فيها الطرق الأربعة */}
-        {Array.from({ length: 2 }, (_, ring) => Array.from({ length: 34 }, (__, i) => {
-          const a = (i / 34) * Math.PI * 2 + ring * 0.09;
-          if (Math.abs(((a - Math.PI / 4) % (Math.PI / 2) + Math.PI / 2) % (Math.PI / 2)) < 0.12) return null; // الطرق
-          const rr = CITY_R * (0.84 + ring * 0.08), hh = 0.04 + ((i * 7 + ring * 3) % 5) * 0.012, ww = 0.05 + ((i * 3) % 3) * 0.01;
-          return <mesh key={`${ring}-${i}`} position={[rr * Math.cos(a), hh / 2, rr * Math.sin(a)]} rotation={[0, -a, 0]} castShadow receiveShadow><boxGeometry args={[ww, hh, 0.05]} />{mud(smallTex)}</mesh>;
-        }))}
-        <mesh position={[0, 0.09, 0]} castShadow><boxGeometry args={[0.2, 0.18, 0.2]} />{mud(smallTex)}</mesh>
+        {/* بيوت الربض: مجموعات غير منتظمة بأسطح مستوية وحواجز، وبعضها دور بفناء */}
+        {houses.map((hs, i) => (
+          <group key={i} position={[hs.x, 0, hs.z]} rotation={[0, hs.rot, 0]}>
+            <mesh position={[0, hs.h / 2, 0]} castShadow receiveShadow><boxGeometry args={[hs.w, hs.h, hs.d]} />{mud(plasterTex, 0.2)}</mesh>
+            {/* حاجز السطح: حافة أعلى قليلًا حول السطح المستوي */}
+            <mesh position={[0, hs.h + 0.003, 0]} castShadow><boxGeometry args={[hs.w, 0.006, hs.d]} />{mud(plasterTex, 0.2)}</mesh>
+            <mesh position={[0, hs.h + 0.0062, 0]} rotation={[-Math.PI / 2, 0, 0]}><planeGeometry args={[hs.w * (hs.court ? 0.5 : 0.8), hs.d * (hs.court ? 0.5 : 0.8)]} /><meshStandardMaterial color={hs.court ? K.brassDark : K.gold} roughness={0.95} /></mesh>
+          </group>
+        ))}
+        <mesh position={[0, 0.09, 0]} castShadow><boxGeometry args={[0.2, 0.18, 0.2]} />{mud(blockTex)}</mesh>
         <mesh position={[0, 0.18, 0]} castShadow><sphereGeometry args={[0.1, 32, 16, 0, Math.PI * 2, 0, Math.PI / 2]} /><meshStandardMaterial color={K.verdigris} roughness={0.4} metalness={0.3} /></mesh>
       </group>
       {[0, 1].map((k) => <mesh key={k} position={[0, 0.063, 0]} rotation={[-Math.PI / 2, 0, Math.PI / 4 + (k * Math.PI) / 2]}><planeGeometry args={[CITY_R * 2, 0.03]} /><meshStandardMaterial color={K.brassDark} /></mesh>)}
@@ -277,7 +313,7 @@ const RoundCity: React.FC<{ wood: THREE.Texture[]; brick: THREE.Texture[]; rise:
 };
 
 /** كتاب بجلد حقيقي وجامة مذهّبة بارزة */
-const LeatherBook: React.FC<{ ts: THREE.Texture[] }> = ({ ts }) => {
+export const LeatherBook: React.FC<{ ts: THREE.Texture[] }> = ({ ts }) => {
   const emboss = useCanvasTex(512, 640, (g) => {
     g.fillStyle = "#000"; g.fillRect(0, 0, 512, 640); g.strokeStyle = "#fff"; g.lineWidth = 10; g.strokeRect(36, 36, 440, 568);
     g.save(); g.translate(256, 320);
@@ -298,7 +334,7 @@ const LeatherBook: React.FC<{ ts: THREE.Texture[] }> = ({ ts }) => {
 };
 
 /** محبرة زجاج حقيقية (ينكسر فيها الضوء) فيها حبر داكن، وقلم قصب */
-const Inkwell: React.FC = () => (
+export const Inkwell: React.FC = () => (
   <group position={[-2.35, 0, -1.15]}>
     <mesh position={[0, 0.17, 0]} castShadow><cylinderGeometry args={[0.2, 0.25, 0.34, 64]} /><meshPhysicalMaterial color={K.silver} transmission={0.92} thickness={0.35} ior={1.5} roughness={0.06} clearcoat={1} attenuationColor={K.verdigris} attenuationDistance={1.2} /></mesh>
     <mesh position={[0, 0.12, 0]}><cylinderGeometry args={[0.17, 0.21, 0.2, 48]} /><meshStandardMaterial color={K.inkDark} roughness={0.05} /></mesh>
@@ -308,9 +344,9 @@ const Inkwell: React.FC = () => (
 );
 
 /** شمعة: شمع ولهب يرتعش */
-const CANDLE_AT: V3 = [-1.75, 0, -1.55];
-const Candle: React.FC<{ t: number }> = ({ t }) => {
-  const f = flicker(t, { depth: 0.22, rate: 7, seed: 41 });
+export const CANDLE_AT: V3 = [-1.75, 0, -1.55];
+export const Candle: React.FC<{ t: number; still?: [number, number][] }> = ({ t, still = [] }) => {
+  const f = flicker(t, { depth: 0.22, rate: 7, seed: 41 }, still);
   return (
     <group position={CANDLE_AT}>
       <mesh position={[0, 0.03, 0]} castShadow><cylinderGeometry args={[0.16, 0.18, 0.06, 32]} /><meshStandardMaterial color={K.brassDark} metalness={0.7} roughness={0.35} /></mesh>
@@ -338,7 +374,7 @@ export const worldShots = (): Shot[] => {
   ];
 };
 
-const camOfShot = (s: Shot, t: number): CamState & { focus: number } => {
+export const camOfShot = (s: Shot, t: number): CamState & { focus: number } => {
   const p = Math.pow(ease(span(t, s.a, s.b - s.a)), s.push ?? 1);
   const L = (x: number, y: number) => x + (y - x) * p;
   const c = { target: [L(s.from.target[0], s.to.target[0]), L(s.from.target[1], s.to.target[1]), L(s.from.target[2], s.to.target[2])] as V3, yaw: L(s.from.yaw, s.to.yaw), pitch: L(s.from.pitch, s.to.pitch), dist: L(s.from.dist, s.to.dist), fov: L(s.from.fov, s.to.fov) };

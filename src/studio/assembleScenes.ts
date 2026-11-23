@@ -8,7 +8,7 @@ import path from "node:path";
 import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
-import { writeFile, rm, stat, rename, mkdir } from "node:fs/promises";
+import { writeFile, rm, stat, rename, mkdir, readFile } from "node:fs/promises";
 import config from "../../config.json";
 import { loadPlan } from "../plan/io";
 import { collectMedia } from "../plan/collect";
@@ -213,9 +213,10 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
     loudness: { target: loud.target, gain: loud.gain }, program };
 };
 
-const writeSeamsRecord = async (scriptPath: string, published: string, joined: Awaited<ReturnType<typeof joinSceneCuts>>, slot = "episode") => {
+const writeSeamsRecord = async (scriptPath: string, published: string, joined: Awaited<ReturnType<typeof joinSceneCuts>>, slot = "episode",
+  extra: Pick<SeamsRecord, "sceneSha256" | "fileSha256"> = {}) => {
   const st = await stat(published);
-  const rec: SeamsRecord = { version: 1, size: st.size, mtimeMs: st.mtimeMs, ...joined };
+  const rec: SeamsRecord = { version: 1, size: st.size, mtimeMs: st.mtimeMs, ...joined, ...extra };
   const file = seamsRecordFile(scriptPath, slot);
   const tmp = `${file}.${randomUUID()}.tmp`;
   await writeFile(tmp, JSON.stringify(rec, null, 1) + "\n", { mode: 0o600 });
@@ -255,7 +256,11 @@ export const assemblePreFinalPreview = async (
       title: scriptVersesAreCitations(scriptPath) ? "نسخة قبل النهائية (للمشاهدة فقط)" : "نسخة قبل النهائية — بلا تلاوات (للمشاهدة فقط)",
       note: `كل المشاهد الحالية بالترتيب، معتمدة أو مسودات${pending.length ? `؛ ${pending.length} آية صامتة «التلاوة تُضاف لاحقًا»` : ""}. ليست اعتمادًا ولا تجميعًا ولا Master.`,
     });
-    await writeSeamsRecord(scriptPath, saved.file, joined, PRE_FINAL_SLOT).catch(() => undefined);
+    // D199: which cut of each scene is inside this file, and the file's fingerprint (the watch record is keyed by it)
+    const { createHash } = await import("node:crypto");
+    const fileSha256 = createHash("sha256").update(await readFile(saved.file)).digest("hex");
+    await writeSeamsRecord(scriptPath, saved.file, joined, PRE_FINAL_SLOT,
+      { sceneSha256: Object.fromEntries(cuts.map((c) => [c.sceneId, c.sha256])), fileSha256 }).catch(() => undefined);
     return { file: saved.file, version: saved.version, scenes: cuts.length, recitationPending: pending };
   } finally {
     await Promise.allSettled([rm(manifest, { force: true }), rm(tempVideo, { force: true })]);

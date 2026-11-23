@@ -3,6 +3,7 @@ import { INK_SHOTS } from "../remotion/zubdat/shots";
 import { HZ_META } from "../remotion/dafatir/horizon/meta";
 import { SHOTS } from "../remotion/illus/shots";
 import { LIB_UI } from "../remotion/dafatir/lib/meta";
+import { RAHHALA_CITIES, RAHHALA_SHOTS } from "../remotion/dafatir/world/shots";
 import { INK_UI } from "../remotion/zubdat/kitSlots";
 import { cueNamesAr } from "./sceneCues";
 import type { MatchMode, ShotUi } from "./sceneSlots";
@@ -423,6 +424,39 @@ export const templateDefs: TemplateDef[] = [
       { key: "items", label: "العلامات أو الشواهد", type: "textarea", help: "سطر لكل عنصر: «كلمة = نص». في الخط الزمني تسبق «؟» الكلمة للفجوة بلا سجل. في الشواهد النص اسم الرسمة: tool (أداة)، home (مسكن)، food (طعام)، settle (استقرار)، burial (دفن)، art (فن) (ويجوز «= الرسمة = وسم»)" },
       { key: "limit", label: "حدود الشاهد", type: "text" },
       { key: "limitWord", label: "كلمة حدود الشاهد", type: "text", ui: "anchor", match: "prefix", slot: "حدود الشاهد", fallbackFrom: "limit" },
+    ],
+  },
+  {
+    // «مكتب الرحّالة» (D194): عالم دفاتر الزمن ثلاثي الأبعاد قالبًا للحلقات الجديدة (D190، D191). كل حدث لحظة نطق كلمته،
+    // ولا يُرسم ما لم تحدده الحقول (الفراغ أفضل من عنصر خاطئ). التوثيق: docs/dafatir-alzaman/03-tools.md
+    id: "rahhala-desk",
+    nameAr: "مكتب الرحّالة",
+    useAr: "دفاتر الزمن: مكتب رحّالة حقيقي ثلاثي الأبعاد (خشب وجلد ورقّ قديم وشمعة وشمس نافذة): الإسطرلاب يدور إلى السنة، أو الحبر يرسم الطريق على الخريطة، أو المدينة المدوّرة ترتفع، أو وثيقة تُكتب وتُختم، أو المكتب كله ختامًا",
+    summaryAr: "مكتب الرحّالة: سنة على الإسطرلاب، أو طريق على الخريطة، أو مدينة ترتفع، أو وثيقة تُختم، كل حدث لحظة نطق كلمته.",
+    shots: Object.fromEntries(Object.entries(RAHHALA_SHOTS).map(([k, v]) => [k, { title: v.nameAr, fields: v.fields }])),
+    shotFields: [],
+    implemented: true,
+    baseSeconds: 7,
+    minSeconds: 3,
+    fields: [
+      { key: "shot", label: "اللقطة", type: "select", ui: "shot", options: Object.entries(RAHHALA_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
+      { key: "year", label: "السنة (رقم، مثل ١٤٥)", type: "text" },
+      { key: "era", label: "التقويم", type: "select", options: [{ value: "", label: "هجري (هـ)" }, { value: "م", label: "ميلادي (م)" }] },
+      { key: "yearWord", label: "كلمة ظهور السنة", type: "text", ui: "anchor", match: "prefix", slot: "ظهور السنة" },
+      { key: "mapTitle", label: "عنوان الخريطة (اختياري)", type: "text" },
+      { key: "water", label: "اسم الماء (نهر أو بحر، اختياري، باللازورد)", type: "text" },
+      { key: "fromPlace", label: "مكان البداية", type: "text" },
+      { key: "fromWord", label: "كلمة مكان البداية", type: "text", ui: "anchor", match: "prefix", slot: "مكان البداية", fallbackFrom: "fromPlace" },
+      { key: "toPlace", label: "مكان الوصول", type: "text" },
+      { key: "toWord", label: "كلمة مكان الوصول", type: "text", ui: "anchor", match: "prefix", slot: "مكان الوصول", fallbackFrom: "toPlace" },
+      { key: "city", label: "القطعة المخصوصة", type: "select", options: [{ value: "", label: "بلا" }, ...Object.entries(RAHHALA_CITIES).map(([value, label]) => ({ value, label }))] },
+      { key: "cityWord", label: "كلمة ارتفاع المدينة", type: "text", ui: "anchor", match: "prefix", slot: "ارتفاع المدينة" },
+      { key: "docTitle", label: "عنوان الوثيقة", type: "text" },
+      { key: "docLines", label: "سطور الوثيقة (مفصولة بـ |، حتى أربعة)", type: "textarea", help: "نص تاريخي موثّق في research.md، لا نص آية أبدًا" },
+      { key: "docWrite", label: "السطر الذي يُكتب لحظة نطقه", type: "text", help: "منطوق حرفيًا في جملة المشهد" },
+      { key: "docWord", label: "كلمة كتابة السطر", type: "text", ui: "anchor", match: "prefix", slot: "كتابة السطر", fallbackFrom: "docWrite" },
+      { key: "stamp", label: "نص الختم (قصير، مثل سنة)", type: "text" },
+      { key: "stampWord", label: "كلمة الختم", type: "text", ui: "anchor", match: "prefix", slot: "الختم" },
     ],
   },
   {
