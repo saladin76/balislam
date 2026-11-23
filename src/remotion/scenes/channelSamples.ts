@@ -7,6 +7,17 @@
  */
 export const channelSamples: Record<string, Record<string, Record<string, unknown>>> = {
   "dafatir-alzaman": {
+    // «مكتب الرحّالة» (D194): الطريق من الكوفة إلى بغداد على خريطة رقّ، بمحتوى القناة نفسها
+    "rahhala-desk": {
+      shot: "map",
+      mapTitle: "صورة العراق",
+      water: "دجلة",
+      fromPlace: "الكوفة",
+      fromWord: "الكوفة",
+      toPlace: "بغداد",
+      toWord: "ببغداد",
+      narration: "خرج أبو جعفر المنصور من الكوفة يرتاد موضعًا لمدينته، فسار شمالًا على ضفاف دجلة، حتى نزل عند قرية صغيرة تُعرف ببغداد.",
+    },
     "big-question": {
       eyebrow: "السؤال",
       question: "كيف صارت بغداد مقصد العلماء؟",

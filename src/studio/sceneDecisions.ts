@@ -44,7 +44,8 @@ export const decideSceneProduction = async (episode: string,
         command.seamsChecked.some((x) => typeof x !== "string" || x.length > 160))) ||
       (command.note !== undefined && (typeof command.note !== "string" || command.note.length > 4000)) ||
       (command.tone !== undefined && (typeof command.tone !== "string" || command.tone.length > 32 ||
-        command.action !== "correct-scene")))
+        command.action !== "correct-scene")) ||
+      (command.viaPreFinal !== undefined && (!hex64(command.viaPreFinal) || command.action !== "approve-scene")))
     throw Error("Malformed scene review command.");
   // بطاقة الجودة (المرحلة A): لا إذن نشر وفي بطاقة النسخة النهائية ✗ أو بند لم يُقس
   if (command.action === "grant-publish") {
@@ -174,6 +175,9 @@ export const decideSceneProduction = async (episode: string,
       at, by, resultSha256,
       note: (command.action === "approve-scene" && command.sceneId && current.recitationPending[command.sceneId]
         ? "اعتماد مشروط بالتلاوة — " : "") + (command.note?.trim() || "تأكيد مراجعة المالك"),
+      // D199: an approval given after watching the scene in full in the pre-final says so in the signed log
+      ...(command.action === "approve-scene" && command.viaPreFinal
+        ? { via: { kind: "prefinal-watched" as const, prefinalSha256: command.viaPreFinal } } : {}),
     }];
     const saved = sign({ version: 1, state: next, revision: doc.revision + 1,
       history, previewEpochs, previewInputs: doc.previewInputs, assemblyEpoch, masterEpoch });

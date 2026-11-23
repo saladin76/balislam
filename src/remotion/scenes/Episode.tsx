@@ -26,7 +26,7 @@ import { FrozenScene, TransitionContext, TransitionIn, type TransitionCtx } from
 import { useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { sceneAdvanceFrames, seamAudio, seamPlan, seamVolumeAt, type SeamAudio } from "../../plan/seams";
-import { isAmbience, sceneSacredSpans, sfxGainAt, speechSpans } from "../../plan/sfxMix";
+import { isAmbience, sceneSacredSpans, sfxGainAt, sfxTrim, speechSpans } from "../../plan/sfxMix";
 import { sfxFileNames } from "../../plan/sfxVariants";
 
 export type EpisodeProps = {
@@ -191,7 +191,7 @@ export const SceneAudio: React.FC<{ scene: PlanScene; media: EpisodeMedia; seam?
         return live.map((x, i) => (
           <Sequence key={`${x.id}-${i}`} from={Math.round(x.at * fps)} name={`مؤثر ${x.id}`}>
             <Audio src={mediaSrc(media, `sfx/${x.file}`)}
-              volume={(f: number) => config.audio.sfxVolume * sfxGainAt(x.at + f / fps, sacred, speech, isAmbience(x.id))} />
+              volume={(f: number) => config.audio.sfxVolume * sfxTrim(x.gainDb) * sfxGainAt(x.at + f / fps, sacred, speech, isAmbience(x.id))} />
           </Sequence>
         ));
       })()}

@@ -5,6 +5,7 @@ import { C, Dusk, VerseCard, VersePageContext, prog } from "../dafatir/horizon/k
 import { Book, ChapterHead, NEUTRAL, SceneCloseContext, parseCam } from "../dafatir/horizon/book";
 import { HZ_SCENES } from "../dafatir/horizon/episode001";
 import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../dafatir/horizon/meta";
+import { activeTime, breathAt, breathBeats, breathStill } from "../dafatir/horizon/breath";
 import { buildTimeline, timelineFromWords, type Timeline } from "../dafatir/horizon/timeline";
 import { VERSE_PLACEHOLDER } from "../../plan/quranText";
 import { pageLetterBudget, pageOpacity, pageWindows, versePages } from "../../quran/versePages";
@@ -90,17 +91,28 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
     : tl.words.length && !meta.minEnd ? Math.max(lastWord, vw ? vw[1] : 0) : undefined;
   const pr = props as unknown as Record<string, string | undefined>;
   const verseShow = vw ? prog(t, vw[0] - 0.05, vw[0] + 0.55) * (1 - prog(t, dur - 0.75, dur - 0.15)) : 0;
+  // الكاميرا الحية (breath.ts): إعادة تأطير عند كل عبارة، ورجوع إلى الإطار الأول قبل القطع، وخلفية أبطأ بعكسه، والسكون المقصود ثابت
+  const breath = React.useMemo(() => {
+    const wins = breathStill(tl, dur, Boolean(meta.still), vw);
+    return { wins, beats: breathBeats(tl, dur, wins), total: activeTime(dur, wins) };
+  },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [props.narration, props.narrationTimings, dur, meta.still, vw?.[0], vw?.[1]]);
+  // الانجراف الدائم بالزمن الفعّال (يسكن في السكون المقصود)، ولا انجراف في مشهد ساكن كله
+  const cam = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
   return (
     <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless>
       <AbsoluteFill style={{ overflow: "hidden" }}>
-        <Dusk />
+        <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
         <SceneCloseContext.Provider value={close}>
           <VersePageContext.Provider value={vw && verseShow > 0 ? <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} /> : null}>
+            <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
             {stale ? <HorizonWordsOnly t={t} tl={tl} dur={dur} exit={exit} head={props.head} /> : (
               <ShotGuard resetKey={`${shot}|${props.narration ?? ""}`} fallback={<HorizonWordsOnly t={t} tl={tl} dur={dur} exit={exit} head={props.head} />}>
                 <Comp t={t} tl={tl} dur={dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
               </ShotGuard>
             )}
+            </AbsoluteFill>
           </VersePageContext.Provider>
         </SceneCloseContext.Provider>
       </AbsoluteFill>

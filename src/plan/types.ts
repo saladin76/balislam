@@ -3,7 +3,8 @@ import type { Domain, ThemeId } from "../../brand/themes";
 import type { Overlays } from "../../brand/identity/index";
 
 /** مؤثر صوتي داخل مشهد: at بالثواني من بداية المشهد. */
-export type PlanSfx = { id: string; at: number };
+/** مؤثر في المشهد: موضعه بالثواني، وخفض اختياري بالديسيبل (٠ إلى −١٨) لمؤثر يقترب من صوت الراوي (بطاقة الجودة، الخلط) */
+export type PlanSfx = { id: string; at: number; gainDb?: number };
 
 export type PlanScene = {
   /** ثابت لا يتغير عند إعادة التوليد: c<الفصل>-s<الترتيب> */
