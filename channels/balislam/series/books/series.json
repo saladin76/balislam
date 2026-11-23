@@ -1,9 +1,9 @@
 {
   "version": 1,
   "id": "books",
-  "name": "كتب إسلامية",
+  "name": "العبادة الواعية",
   "kind": "category",
-  "description": "خلاصة كتاب تراثي أو معاصر",
+  "description": "الصلاة والذكر والصيام والدعاء: كيف تُعاش لا كيف تُؤدّى فقط",
   "order": 5,
   "status": "active",
   "identity": {
@@ -30,5 +30,40 @@
     "script": {
       "source": "channel"
     }
-  }
+  },
+  "derived": {
+    "channel": "balislam",
+    "accent": "#B4532F",
+    "accentBase": "#B4532F",
+    "onAccent": "#EFE4D3",
+    "paper": "#EFE4D3",
+    "ink": "#0E1A2B",
+    "card": {
+      "bg": "#0E1A2B",
+      "ink": "#EFE4D3"
+    },
+    "motif": "arches",
+    "fonts": {
+      "heading": "El Messiri",
+      "body": "IBM Plex Sans Arabic",
+      "wordmark": "Readex Pro"
+    },
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "base": "baa",
+      "parts": [
+        "baa"
+      ]
+    },
+    "clamped": []
+  },
+  "episodes": 0
 }
