@@ -8,6 +8,7 @@ import "./scene-production.css";
 import { useChannel } from "../../../src/channel/context";
 import { versesAreCitations } from "../../../src/quran/citation";
 import { OwnerText } from "../ui/OwnerText";
+import { PreFinalApproveWatched, usePreFinalWatch } from "./PreFinalWatch";
 
 const ar = (n: number) => num(n);
 
@@ -38,6 +39,8 @@ export const PreFinalPanel: React.FC<{
   const [msg, setMsg] = useState("");
 
   const [order, setOrder] = useState<string[]>(orderProp ?? []);
+  // D199: what is really played of this pre-final, and «اعتمد المشاهد التي شاهدتها كاملة»
+  const watch = usePreFinalWatch(episodeId, channelId);
   const load = async () => {
     const [p, r, w] = await Promise.all([
       recitationsOnly ? Promise.resolve(null) : api.preFinal(episodeId, channelId).catch(() => null),
@@ -67,6 +70,7 @@ export const PreFinalPanel: React.FC<{
   };
   const makePreFinal = () => guard("prefinal", async () => {
     const r = await api.makePreFinal(episodeId, channelId);
+    void watch.reload();
     setMsg(`جُمعت المشاهد (${countAr(r.scenes, SCENES)})${r.recitationPending.length ? `؛ آيات صامتة بانتظار تلاوتها: ${ar(r.recitationPending.length)}` : ""}.`);
   });
   const verses = recs?.verses ?? [];
@@ -91,7 +95,12 @@ export const PreFinalPanel: React.FC<{
         </div>
       </div>
       {pre?.preview ? (
-        <FramePlayer key={`${pre.entry?.version ?? 0}`} src={api.previewUrl(episodeId, pre.preview)} label={cited ? "المعاينة قبل النهائية" : "المعاينة قبل النهائية بلا تلاوات"} />
+        <>
+          <FramePlayer key={`${pre.entry?.version ?? 0}`} src={api.previewUrl(episodeId, pre.preview)} label={cited ? "المعاينة قبل النهائية" : "المعاينة قبل النهائية بلا تلاوات"}
+            onTimeUpdate={watch.handlers.onTimeUpdate} onSeeking={watch.handlers.onSeeking} onPause={watch.handlers.onPause} />
+          <PreFinalApproveWatched episodeId={episodeId} channelId={channelId} order={order} view={watch.view}
+            onDone={() => { void watch.reload(); void load(); onChanged?.(); }} />
+        </>
       ) : null}
       </>}
 

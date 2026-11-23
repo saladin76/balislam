@@ -6,6 +6,7 @@ import { stagesOf } from "./HomeTab";
 import { arDigits, episodeTitle, num } from "../ui/format";
 import { useScrollLock } from "../ui/scrollLock";
 import { OwnerText } from "../ui/OwnerText";
+import { NightlyPanel } from "./NightlyPanel";
 
 /**
  * «غرفة العمليات»: القنوات كلها في شاشة واحدة.
@@ -15,7 +16,7 @@ import { OwnerText } from "../ui/OwnerText";
  * - التنوّع: تنبيه إن تكرر أسلوب الحلقة السابقة في القناة نفسها.
  */
 
-export type OpsSection = "week" | "pipeline" | "ideas";
+export type OpsSection = "week" | "pipeline" | "ideas" | "night";
 
 /** Focused subsections preserve the underlying calendar, pipeline and idea-bank components. */
 export const OpsSectionNav: React.FC<{ active: OpsSection; onSelect: (section: OpsSection) => void }> = ({ active, onSelect }) => (
@@ -23,6 +24,7 @@ export const OpsSectionNav: React.FC<{ active: OpsSection; onSelect: (section: O
     <button type="button" aria-controls="ops-week" aria-pressed={active === "week"} onClick={() => onSelect("week")}>الجدول الأسبوعي</button>
     <button type="button" aria-controls="ops-pipeline" aria-pressed={active === "pipeline"} onClick={() => onSelect("pipeline")}>خط الإنتاج</button>
     <button type="button" aria-controls="ops-ideas" aria-pressed={active === "ideas"} onClick={() => onSelect("ideas")}>بنك الأفكار</button>
+    <button type="button" aria-controls="ops-night" aria-pressed={active === "night"} onClick={() => onSelect("night")}>الليل والأسبوع</button>
   </nav>
 );
 
@@ -261,6 +263,11 @@ export const OpsRoom: React.FC<{
             {[...warnings].map(([k, w]) => <div key={k}>⚠ <b>{data.find((d) => k.startsWith(`${d.channel.id}/`))?.channel.name} {arDigits(k.split("/")[1] ?? "")}</b>: {w}</div>)}
           </div>
         ) : null}
+      </section>
+
+      {/* الطابور الليلي والمراجعة الأسبوعية (D191) */}
+      <section id="ops-night" className="ops-sec" hidden={section !== "night"}>
+        {section === "night" ? <NightlyPanel /> : null}
       </section>
 
       {/* بنك الأفكار */}
