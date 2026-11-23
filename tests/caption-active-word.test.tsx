@@ -89,12 +89,24 @@ describe("الترجمة الهادئة (قرار المالك ٢٢ نوفمبر
     for (const v of ["pill", "paper", "cinema", "dusk"] as const) {
       const html = render(words[6]!.start + 6, v);
       expect(html, v).toContain("background:transparent");
-      expect(html, v).toMatch(/text-shadow:0 1px 2px rgba/);
+      expect(html, v).toMatch(/text-shadow:(0 1px 2px rgba|1\.5px 0px 0 rgba)/);
+      // تكملة D192 (خطاف «دفاتر الزمن 001»): النص الفاتح بحدّ داكن رفيع من ثمانية ظلال، فيُقرأ على ورق الدفتر الفاتح
+      if (v !== "paper") expect((html.match(/px 0 rgba\(0,0,0,0\.8\)/g) ?? []).length, v).toBeGreaterThanOrEqual(8);
       expect(html, v).not.toMatch(/border-radius/);
     }
   });
 
   it("لا ترجمة قبل أول كلمة", () => {
     expect(render(5)).toBe("");
+  });
+});
+
+describe("ترجمة «خط الأفق» تتكيف مع ما خلفها (طلب المالك ٢٢ نوفمبر)", () => {
+  it("المشهد يطلب الشكل المتكيف، والطبقة الحاوية تمزجه بالفرق فيصير حبرًا داكنًا على الورق ونورًا على الليل", async () => {
+    const { readFileSync } = await import("node:fs");
+    expect(readFileSync("src/remotion/scenes/HorizonShot.tsx", "utf8")).toContain('captionVariant="adaptive"');
+    const shell = readFileSync("src/remotion/scenes/SceneShell.tsx", "utf8");
+    expect(shell).toContain('capVariant === "adaptive" ? { mixBlendMode: "difference" as const }');
+    expect(readFileSync("src/remotion/scenes/CaptionBar.tsx", "utf8")).toContain('variant === "adaptive" ? { color: "#FFFFFF", textShadow: "none" }');
   });
 });

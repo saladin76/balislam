@@ -85,7 +85,10 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   // الاستشهاد البصري: البطاقة على الصفحة من كلمتها، والخروج لا يبدأ قبل انتهاء زمن قراءتها
   const vw = verseWindow(props as unknown as Record<string, string | undefined>, tl);
   const lastWord = tl.words.length ? tl.words[tl.words.length - 1]!.e : 0;
-  const close = tl.words.length && !meta.minEnd ? Math.max(lastWord, vw ? vw[1] : 0) : undefined;
+  // D198: الخطاف المسبق يقطع المشهد عند closeAt فيبدأ خروجه (قلب الصفحة) هناك، لا عند آخر كلمة في نصه
+  const closeAt = Number((props as unknown as Record<string, string | undefined>).closeAt);
+  const close = Number.isFinite(closeAt) && closeAt > 0 ? closeAt
+    : tl.words.length && !meta.minEnd ? Math.max(lastWord, vw ? vw[1] : 0) : undefined;
   const pr = props as unknown as Record<string, string | undefined>;
   const verseShow = vw ? prog(t, vw[0] - 0.05, vw[0] + 0.55) * (1 - prog(t, dur - 0.75, dur - 0.15)) : 0;
   // الكاميرا الحية (breath.ts): إعادة تأطير عند كل عبارة، ورجوع إلى الإطار الأول قبل القطع، وخلفية أبطأ بعكسه، والسكون المقصود ثابت
@@ -98,7 +101,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   // الانجراف الدائم بالزمن الفعّال (يسكن في السكون المقصود)، ولا انجراف في مشهد ساكن كله
   const cam = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
   return (
-    <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless>
+    <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless captionVariant="adaptive">
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
         <SceneCloseContext.Provider value={close}>
