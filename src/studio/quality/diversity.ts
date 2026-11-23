@@ -29,6 +29,8 @@ export const COMPOSITION_FIELDS: Record<string, CompositionFields> = {
   // دفاتر الزمن: كل لقطة مصمَّمة، ووضعها (mode/kind) يغيّر تكوينها
   "horizon-shot": { shot: [], layout: ["mode", "kind"] },
   "ink-shot": { shot: [], layout: ["mode", "kind"] },
+  // مكتب الرحّالة: كل لقطة (الإسطرلاب، الخريطة، المدينة، الوثيقة، المكتب) تكوين، والقطعة المخصوصة تكوين
+  "rahhala-desk": { shot: [], layout: ["shot", "city"] },
 };
 
 /**

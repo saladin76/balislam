@@ -20,6 +20,7 @@ import { BoardStory, boardStorySample, boardStorySampleEn, boardStorySeconds } f
 import { SketchBoard, sketchBoardSample, sketchBoardSampleEn, sketchBoardSeconds } from "./SketchBoard";
 import { InkShot, inkShotSample, inkShotSampleEn, inkShotSeconds } from "./InkShot";
 import { HorizonShot, horizonShotSample, horizonShotSampleEn, horizonShotSeconds } from "./HorizonShot";
+import { RahhalaDesk, rahhalaDeskSample, rahhalaDeskSampleEn, rahhalaDeskSeconds } from "../dafatir/world/RahhalaDesk";
 import { InkMeaning, inkMeaningSample, inkMeaningSampleEn, inkMeaningSeconds } from "./InkMeaning";
 import { GlowStory, glowStorySample, glowStorySampleEn, glowStorySeconds } from "./GlowStory";
 import { Summary, summarySample, summarySampleEn, summarySeconds } from "./Summary";
@@ -54,6 +55,7 @@ export const sceneCatalog: Entry[] = [
   { id: "motion-story", component: MotionStory, sample: motionStorySample, sampleEn: motionStorySampleEn, seconds: motionStorySeconds },
   { id: "ink-shot", component: InkShot, sample: inkShotSample, sampleEn: inkShotSampleEn, seconds: inkShotSeconds },
   { id: "horizon-shot", component: HorizonShot, sample: horizonShotSample, sampleEn: horizonShotSampleEn, seconds: horizonShotSeconds },
+  { id: "rahhala-desk", component: RahhalaDesk, sample: rahhalaDeskSample, sampleEn: rahhalaDeskSampleEn, seconds: rahhalaDeskSeconds },
   { id: "ink-meaning", component: InkMeaning, sample: inkMeaningSample, sampleEn: inkMeaningSampleEn, seconds: inkMeaningSeconds },
   { id: "sketch-board", component: SketchBoard, sample: sketchBoardSample, sampleEn: sketchBoardSampleEn, seconds: sketchBoardSeconds },
   { id: "kinetic-text", component: KineticText, sample: kineticTextSample, sampleEn: kineticTextSampleEn, seconds: kineticTextSeconds },

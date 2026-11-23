@@ -17,6 +17,7 @@ import { Summary } from "./Summary";
 import { GlowStory } from "./GlowStory";
 import { InkShot } from "./InkShot";
 import { HorizonShot, HorizonVerse } from "./HorizonShot";
+import { RahhalaDesk } from "../dafatir/world/RahhalaDesk";
 import { InkMeaning } from "./InkMeaning";
 import { SketchBoard } from "./SketchBoard";
 import { BoardStory } from "./BoardStory";
@@ -143,6 +144,8 @@ const SceneTemplate: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId
       return <InkShot {...base} {...p} />;
     case "horizon-shot":
       return <HorizonShot {...base} {...p} />;
+    case "rahhala-desk":
+      return <RahhalaDesk {...base} {...p} />;
     case "ink-meaning":
       return <InkMeaning {...base} {...p} />;
     case "sketch-board":
