@@ -3,6 +3,7 @@ import { BigQuestion } from "./BigQuestion";
 import { CharacterTalk } from "./CharacterTalk";
 import { VerseCard } from "./VerseCard";
 import { BasmalaOnScreen } from "./BasmalaOnScreen";
+import { ReviewerCreditLine } from "./ReviewerCredit";
 import { showsBasmalaOverlay } from "../../quran/onScreen";
 export { showsBasmalaOverlay };
 import { Placeholder } from "./Placeholder";
@@ -55,11 +56,14 @@ type Common = { themeId: ThemeId; orientation: Orientation; eyebrow?: string; ti
 export const SceneFromPlan: React.FC<{ scene: PlanScene } & Common> = (props) => {
   const { scene } = props;
   const template = <SceneTemplate {...props} />;
-  if (!showsBasmalaOverlay(scene)) return template;
+  // «راجعها علميًا» (src/package/reviewer.ts): على شاشة النهاية وحدها، وبإذن مكتوب مسجّل للحلقة
+  const credit = scene.props?.reviewerCredit?.trim();
+  if (!showsBasmalaOverlay(scene) && !credit) return template;
   return (
     <>
       {template}
-      <BasmalaOnScreen narration={scene.narration} timings={props.timings} themeId={props.themeId} orientation={props.orientation} />
+      {showsBasmalaOverlay(scene) && <BasmalaOnScreen narration={scene.narration} timings={props.timings} themeId={props.themeId} orientation={props.orientation} />}
+      {credit && <ReviewerCreditLine text={credit} themeId={props.themeId} orientation={props.orientation} />}
     </>
   );
 };

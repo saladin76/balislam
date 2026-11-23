@@ -125,6 +125,26 @@ export const saveShortsSelection = async (episode: string, shorts: PlanShort[] |
   });
 };
 
+/**
+ * «راجعها علميًا» في آخر الفيديو: يكتب سطر المراجع (أو يحذفه) في `props.reviewerCredit` لشاشة النهاية وحدها
+ * (src/package/reviewer.ts). تغيّره يعيد فتح ذلك المشهد وحده للمراجعة (تغيّرت بصمته)، كأي تعديل في مشهد.
+ * لا يكتب شيئًا إن لم يتغير السطر. تحت قفل الخطة نفسه (D110).
+ */
+export const saveReviewerCredit = async (episode: string, line: string | null): Promise<{ changed: boolean; sceneId: string | null }> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const file = planPathFor(scriptPath);
+  return withPlanWrite(file, async () => {
+    const current = await readJson<Plan>(file);
+    if (!current) return { changed: false, sceneId: null };
+    const { withClosingCredit } = await import("../package/reviewer");
+    const r = withClosingCredit(current, line);
+    if (!r.changed) return r;
+    await copyFile(file, lastPlanBackupFor(scriptPath));
+    await writePlanUnlocked(file, current);
+    return r;
+  });
+};
+
 export type RegenerateOptions = {
   /**
    * الكتابة فوق خطة مصمَّمة (`isDesignedPlan`) ممنوعة ضمنيًا. لا تُمرَّر إلا بقرار صريح من المالك

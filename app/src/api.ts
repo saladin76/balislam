@@ -20,6 +20,7 @@ import type { PaceCommand, PaceStatus, RefreshResult } from "../../src/voice/pac
 import type { QualityCard, CardTarget } from "../../src/studio/quality/card";
 import type { PreFinalWatchView } from "../../src/studio/preFinalApprove";
 import type { LibraryRead } from "../../src/library/libraryData";
+import type { Season, SeasonView } from "../../src/studio/seasons";
 import type { Book, Scholar } from "../../src/library/shared";
 export type { LibraryRead };
 export type QualityCardRead = QualityCard & { exists: boolean; measuring: boolean };
@@ -420,6 +421,9 @@ export const api = {
   library: () => call<LibraryRead>("/api/library"),
   saveScholar: (scholar: Scholar) => call<{ ok: boolean }>(`/api/library/scholars/${scholar.id}`, { method: "PUT", json: { scholar } }),
   saveBook: (book: Book) => call<{ ok: boolean }>(`/api/library/books/${book.id}`, { method: "PUT", json: { book } }),
+  /** مواسم السنة الهجرية (عمود «بالإسلام»، عاشرًا/٦) */
+  seasons: () => call<{ today: string; seasons: SeasonView[]; issues: string[] }>("/api/seasons"),
+  saveSeason: (season: Season) => call<{ ok: boolean }>(`/api/seasons/${season.id}`, { method: "PUT", json: { season } }),
   saveSeries: (series: SeriesConfig) => call<{ ok: boolean; series: SeriesConfig; derived: DerivedSeriesIdentity }>(`/api/series/${series.id}`, { method: "PUT", json: { series } }),
   deleteSeries: (id: string) => call<{ ok: boolean }>(`/api/series/${id}`, { method: "DELETE" }),
   moveEpisodeToSeries: (id: string, episode: string) => call<{ ok: boolean }>(`/api/series/${id}/episodes`, { method: "POST", json: { episode } }),

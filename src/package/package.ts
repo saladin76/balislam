@@ -95,8 +95,10 @@ export const packageEpisode = async (opts: PackageOptions) => {
   const real = { sceneSeconds: (await realEpisodeTimings(scriptPath, plan)).sceneSeconds };
   // فصول يوتيوب التي اختارها المالك (publish.json ← long.chapters): من حدود المشاهد الحقيقية في الملف المجمَّع
   const kitPath = path.join(path.dirname(scriptPath), "publish.json");
-  const marks = existsSync(kitPath) ? ((JSON.parse(await readFile(kitPath, "utf8")) as PublishKit).long.chapters ?? undefined) : undefined;
-  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, channel, real, marks));
+  const savedKit = existsSync(kitPath) ? (JSON.parse(await readFile(kitPath, "utf8")) as PublishKit) : null;
+  const marks = savedKit?.long.chapters ?? undefined;
+  // «راجعها علميًا» بإذن مكتوب مسجّل لهذه الحلقة وحدها (src/package/reviewer.ts)
+  await writeFile(path.join(dir, "youtube.md"), buildYoutubeText(plan, script, media, channel, real, marks, savedKit?.long.reviewer));
   await writeFile(path.join(dir, "publish-checklist.md"), publishChecklist(plan, hasVoice, channel));
   await writeFile(path.join(dir, `${id}-episode.${lang}.srt`), buildSrt(plan, scenesOf({ plan }).map((x) => x.scene), media, identity));
   if (stage === "shorts") {

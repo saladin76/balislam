@@ -19,6 +19,7 @@ import { THUMB_KIND_LABEL, conceptOrder, type ThumbnailConcept } from "./thumbna
 import { EPISODE_LINK_TOKEN, questionFrom, resolveEpisodeLink } from "./shortsLink";
 import { chapterMarksText, sceneStartsFor, type ChapterMark } from "./chapters";
 import { isGenericTitle, repeatedSentences, truncation } from "./quality";
+import { withReviewerLine, type ReviewerCredit } from "./reviewer";
 
 export type Platform = "youtube" | "youtubeShorts" | "instagram" | "facebook";
 
@@ -41,6 +42,8 @@ export type LongKit = {
   chapters?: ChapterMark[];
   /** قائمة التشغيل من سلسلة الحلقة (plan.series) */
   playlist?: string;
+  /** «راجعها علميًا»: اسم المراجع، ولا يظهر في الوصف ولا في آخر الفيديو إلا بإذنه المكتوب لهذه الحلقة (src/package/reviewer.ts) */
+  reviewer?: ReviewerCredit;
 };
 export type ShortKit = {
   chapter: number;
@@ -64,11 +67,12 @@ export const chaptersText = (plan: Plan, media?: EpisodeMedia, channel?: Channel
  * الوصف كما يُنشر: {{الفصول}} يُستبدل بالفصول. وصف بلا الرمز (حزمة قديمة لنص متصل) وفيه فصول: تُضاف بعد فقرته الأولى،
  * فلا تضيع فصول اختارها المالك لأن الحزمة كُتبت قبلها. وبلا فصول لا يبقى سطر فارغ زائد.
  */
-export const resolveDescription = (desc: string, chapters: string) => {
+export const resolveDescription = (desc: string, chapters: string, reviewer?: ReviewerCredit) => {
   const out = desc.includes(CHAPTERS_TOKEN)
     ? desc.replace(CHAPTERS_TOKEN, chapters)
     : chapters ? desc.replace(/^([\s\S]*?)(\n\n|$)/, (_, first: string, sep: string) => `${first}\n\n${chapters}${sep}`) : desc;
-  return out.replace(/\n{3,}/g, "\n\n").trim();
+  // «راجعها علميًا» بإذن مكتوب مسجّل لهذه الحلقة وحدها؛ وبلا إذن لا يتغير الوصف
+  return withReviewerLine(out.replace(/\n{3,}/g, "\n\n").trim(), reviewer);
 };
 
 /**
@@ -286,7 +290,7 @@ export const kitToMarkdown = (kit: PublishKit, title: string, chapters = ""): st
     ...(L.playlist ? ["", `### قائمة التشغيل`, L.playlist] : []),
     "",
     "### الوصف",
-    b(resolveDescription(L.description, chapters)),
+    b(resolveDescription(L.description, chapters, L.reviewer)),
     "",
     "### الوسوم (Tags)",
     b(L.tags.join(", ")),
