@@ -56,7 +56,7 @@ export const LIB_UI: Record<string, { fields: string[]; library: true }> = {
   "lib-term": { fields: ["term", "termWord", "sub", "subWord", "kind", "source", "sourceWord", "note", "noteWord"], library: true },
   "lib-gloss": { fields: ["ref", "matn", "matnWord", "matnLabel", "matnSource", "tafsir", "tafsirWord", "tafsirLabel", "tafsirSource", "note", "noteWord"], library: true },
   "lib-compare": { fields: ["title", "titleWord", "aLabel", "aText", "aWord", "bLabel", "bText", "bWord", "verdict", "verdictText", "verdictWord"], library: true },
-  "lib-timeline": { fields: ["items", "title"], library: true },
+  "lib-timeline": { fields: ["items", "title", "titleWord"], library: true },
   "lib-evidence": { fields: ["items", "limit", "limitWord"], library: true },
   "lib-names": { fields: ["mode", "wordWord", "allWord", "emptyWord", "toWord", "ref"], library: true },
   "lib-descent": { fields: ["fallWord", "landWord", "pathWord", "term", "termWord", "safeWord", "ref"], library: true },

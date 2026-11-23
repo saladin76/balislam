@@ -6,6 +6,57 @@
   "themeId": "warm",
   "channel": "dafatir-alzaman",
   "lang": "ar",
+  "tone": "warm",
+  "overlays": {
+    "captions": true,
+    "motif": true,
+    "watermark": true,
+    "chapterLabel": false
+  },
+  "updatedAt": "2026-11-23T04:56:22.636Z",
+  "intro": false,
+  "shorts": [
+    {
+      "from": "c1-s5",
+      "to": "c1-s6",
+      "title": "متى بدأت قصة الإنسان على الأرض؟"
+    },
+    {
+      "from": "c1-s10",
+      "to": "c1-s11",
+      "title": "لماذا سألت الملائكة عن خلق آدم؟"
+    },
+    {
+      "from": "c1-s14",
+      "to": "c1-s17",
+      "title": "ما الأسماء التي علّمها الله آدم؟"
+    },
+    {
+      "from": "c1-s19",
+      "to": "c1-s21",
+      "title": "هل كان إبليس من الملائكة؟"
+    },
+    {
+      "from": "c1-s22",
+      "to": "c1-s23",
+      "title": "لماذا رفض إبليس السجود لآدم؟"
+    },
+    {
+      "from": "c1-s28",
+      "to": "c1-s29",
+      "title": "لم يحدد القرآن نوع الشجرة.. فما العبرة؟"
+    },
+    {
+      "from": "c1-s33",
+      "to": "c1-s35",
+      "title": "ما الفرق بين معصية آدم ومعصية إبليس؟"
+    },
+    {
+      "from": "c1-s40",
+      "to": "c1-s41",
+      "title": "أين هبط آدم؟ القرآن لم يحدد المكان"
+    }
+  ],
   "chapters": [
     {
       "number": 1,
@@ -202,7 +253,8 @@
           "sfx": [
             {
               "id": "page-turn",
-              "at": 0
+              "at": 0,
+              "gainDb": -4
             }
           ],
           "edited": true
@@ -293,11 +345,10 @@
           "narration": "وقد بيّن القرآن سبب امتناعه عن السجود.",
           "line": 84,
           "props": {
-            "shot": "verse-tag",
+            "shot": "lib-gloss",
             "ref": "الأعراف · ١٢",
-            "tagWord": "القرآن",
-            "lead": "سبب امتناعه",
-            "leadWord": "سبب"
+            "note": "سبب امتناعه عن السجود",
+            "noteWord": "سبب"
           },
           "sfx": [],
           "edited": true,
@@ -449,7 +500,10 @@
             "verseY": "650"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "captionSpell": {
+            "يصر": "يُصِرَّ"
+          }
         },
         {
           "id": "c1-s34",
@@ -457,9 +511,8 @@
           "narration": "وفي سورة البقرة، أخبرنا الله أن آدم تلقى من ربه كلمات، فتاب عليه.",
           "line": 136,
           "props": {
-            "shot": "verse-tag",
-            "tagWord": "البقرة",
-            "ref": "البقرة ٣٧"
+            "shot": "verse-intro",
+            "ref": "البقرة · ٣٧"
           },
           "sfx": [],
           "edited": true
@@ -475,7 +528,8 @@
           "sfx": [
             {
               "id": "page-turn",
-              "at": 0
+              "at": 0,
+              "gainDb": -4
             }
           ],
           "edited": true
@@ -486,14 +540,10 @@
           "narration": "ثم تنتقل بنا القصة إلى حدث آخر أخبرنا به القرآن الكريم. الهبوط إلى الأرض.",
           "line": 146,
           "props": {
-            "shot": "lib-term",
-            "term": "الهبوط إلى الأرض",
-            "termWord": "الهبوط",
-            "kind": "text",
-            "source": "حدث آخر",
-            "sourceWord": "القصة",
-            "sub": "أخبرنا به القرآن الكريم",
-            "subWord": "أخبرنا"
+            "shot": "lib-timeline",
+            "items": "القصة = في الجنة\nالهبوط = الهبوط إلى الأرض",
+            "title": "أخبرنا به القرآن الكريم",
+            "titleWord": "أخبرنا"
           },
           "sfx": [],
           "edited": true
@@ -643,7 +693,8 @@
           "sfx": [
             {
               "id": "page-turn",
-              "at": 0
+              "at": 0,
+              "gainDb": -4
             }
           ],
           "edited": true
@@ -662,13 +713,9 @@
       ]
     }
   ],
-  "tone": "warm",
-  "overlays": {
-    "captions": true,
-    "motif": true,
-    "watermark": true,
-    "chapterLabel": false
-  },
-  "updatedAt": "2026-11-22T16:28:42.185Z",
-  "intro": false
+  "coldOpen": {
+    "scene": "c1-s5",
+    "words": 6,
+    "to": 3.5
+  }
 }

@@ -40,6 +40,12 @@ export const speechSpans = (scene: PlanScene, media: Pick<EpisodeMedia, "voice">
 const edge = (t: number, w: Window, ramp: number) => (t >= w.from && t <= w.to ? 0 : Math.min(1, Math.min(Math.abs(t - w.from), Math.abs(t - w.to)) / ramp));
 
 /** معامل علو المؤثر عند الثانية t من أول المشهد */
+/** خفض المؤثر الثابت (gainDb في الخطة) كمضاعف خطي: بين ٠ و−١٨ ديسيبل؛ القيم خارجها تُقص، ولا رفع أبدًا */
+export const SFX_TRIM_MIN_DB = -18;
+export const sfxTrim = (gainDb?: number): number => {
+  const g = Number.isFinite(gainDb) ? Math.min(0, Math.max(SFX_TRIM_MIN_DB, gainDb as number)) : 0;
+  return Math.pow(10, g / 20);
+};
 export const sfxGainAt = (t: number, sacred: Window[], speech: Window[], ambience: boolean): number => {
   let g = 1;
   for (const w of sacred) g = Math.min(g, edge(t, w, SFX_MIX.ramp));

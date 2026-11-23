@@ -28,7 +28,7 @@ export { reconcileSceneLedger } from "./sceneLedgerState";
 export type { SceneDraft } from "./sceneLedgerState";
 export {
   OWNER_AUTH_ERROR, isOwnerAuthError, assertSceneOwner, assertSceneNotAwaitingChange, assertSceneRenderAllowed,
-  assertCurrentSceneRenderAllowed, recordSceneRenderEvidence, approvedSceneCutsForAssembly, currentSceneCutsForPreFinal,
+  assertCurrentSceneRenderAllowed, recordSceneRenderEvidence, approvedSceneCutsForAssembly, currentSceneCutsForPreFinal, currentCutStates,
   requireScenesReadyForMaster, requireSceneMasterReady, requirePublishAllowed, publishHandoffFacts, requireScriptApproved,
   requireScriptAndStoryboardApproved, requireScenesProducible, requireSceneProductionReady, NO_MASTER_MESSAGE, MASTER_NOT_APPROVED_MESSAGE,
 } from "./sceneGates";
