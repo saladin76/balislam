@@ -77,6 +77,15 @@ for (const file of files) {
         const { checkPaceDoc } = await import("../src/voice/pace.ts");
         for (const e of checkPaceDoc(data)) failures.push(`${file}: ${e}`);
       }
+      // D206: سجل العلماء وسجل الكتب بصيغتهما وبوابة الاختيار (لا اعتماد لعالم عليه خلاف بلا تقرير متخصص) وبلا آثار
+      if (/\/library\/(scholars|books)\.json$/.test(file)) {
+        const { registryIssues } = await import("../src/library/registry.ts");
+        const isScholars = file.endsWith("/scholars.json");
+        const sibling = (name: string) => { try { return JSON.parse(readFileSync(path.join(path.dirname(abs), name), "utf8")); } catch { return null; } };
+        const errs = (x: unknown) => registryIssues(isScholars ? x as never : sibling("scholars.json"), isScholars ? sibling("books.json") : x as never);
+        const added = fresh(errs(data), old ? errs(old) : []);
+        for (const a of added) failures.push(`${file}: ${a}`);
+      }
       if (file.endsWith("/publish.json")) {
         const hits = (v: unknown) => strings(v).flatMap((s) => findTraces(s));
         const added = fresh([...new Set(hits(data))], old ? [...new Set(hits(old))] : []);

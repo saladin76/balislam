@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "books": [
+    {
+      "id": "muwatta",
+      "title": "الموطأ",
+      "scholar": "malik",
+      "author": "الإمام مالك بن أنس",
+      "edition": { "publisher": "", "year": "", "editor": "", "note": "الطبعة المعتمدة تُختار قبل أول جزء (المرجع: التعمق، «الكتاب يُقرأ من طبعته المعتمدة»)." },
+      "parts": null,
+      "series": "muwatta"
+    },
+    {
+      "id": "awwal-marra-osalli",
+      "title": "أول مرة أصلي وكان للصلاة طعم آخر",
+      "author": "د. خالد أبو شادي",
+      "edition": { "publisher": "دار الراية للنشر والتوزيع", "year": "1431هـ / 2010م", "editor": "", "note": "الطبعة الرابعة، وفق صفحة الحقوق (research.md للحلقة 001)." },
+      "parts": 3,
+      "series": "series"
+    }
+  ]
+}
