@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { api, type LibraryRead } from "../api";
+import { OwnerText } from "../ui/OwnerText";
 import { playlistText, type Playlist } from "../../../src/library/playlists";
 import { REVIEW_AR, REVIEW_STATES, type ReviewState, type Scholar } from "../../../src/library/shared";
 
@@ -44,7 +45,7 @@ const ScholarRow: React.FC<{ s: Scholar; onSaved: () => void }> = ({ s, onSaved 
           {REVIEW_STATES.map((x) => <option key={x} value={x}>{REVIEW_AR[x]}</option>)}
         </select>
         {s.review.doctrinalDispute ? <small className="s45-note"> عليه خلاف عقدي: لا اعتماد بلا تقرير</small> : null}
-        {err ? <small className="s45-note" role="alert"> {err}</small> : null}
+        {err ? <small className="s45-note" role="alert"> <OwnerText text={err} /></small> : null}
       </td>
       <td>{s.intro ? `${s.intro.channel === "dafatir-alzaman" ? "دفاتر الزمن" : s.intro.channel} ${s.intro.episode}` : "لم تُحدد"}</td>
     </tr>
@@ -56,7 +57,7 @@ export const LibraryPlaylists: React.FC<{ episodeId: string }> = ({ episodeId })
   const [err, setErr] = useState("");
   const load = () => api.library().then(setLib, (e: Error) => setErr(e.message));
   useEffect(() => { void load(); }, []);
-  if (err) return <p className="s45-note">{err}</p>;
+  if (err) return <p className="s45-note" role="alert"><OwnerText text={err} /></p>;
   if (!lib) return <p className="s45-note">جارٍ التحميل…</p>;
   return (
     <div className="s45-sec">
