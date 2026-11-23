@@ -7,6 +7,7 @@ import { sceneFrames } from "../../plan/duration";
 import { recitationFrameSchedule } from "../../quran/recitationTimeline";
 import { emptyMedia, type EpisodeMedia } from "../../plan/media";
 import { SceneFromPlan } from "./components";
+import { CaptionSpellContext } from "./CaptionBar";
 import { toFrames } from "./timing";
 import { ChannelIntro, introFramesFor, introKindFor } from "./ChannelIntro";
 import type { Orientation } from "./types";
@@ -167,7 +168,8 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
           const p = i > 0 && all[i - 1]!.chapter.number === c.number ? all[i - 1]!.scene : undefined;
           const n = i < all.length - 1 && all[i + 1]!.chapter.number === c.number ? all[i + 1]!.scene : undefined;
           const timings = visualNarrationTimings(sc, media, props.timingMode);
-          return <SceneFromPlan scene={sc} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, c)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={p} next={n} />;
+          const shot = <SceneFromPlan scene={sc} themeId={plan.themeId} orientation={orientation} eyebrow={chapterEyebrow(props.channel, lang.strings.chapter, c)} timings={timings} media={media} episodeOverlays={plan.overlays} prev={p} next={n} />;
+          return sc.captionSpell ? <CaptionSpellContext.Provider value={sc.captionSpell}>{shot}</CaptionSpellContext.Provider> : shot;
         };
         // الانتقال (الأمر 011): يُطبَّق فقط إن كان صالحًا لهذا الزوج؛ وبدونه يبقى السلوك القائم حرفيًا
         const tIn = prev && !isRecitedVerse(scene, media) && !isRecitedVerse(prev, media)
