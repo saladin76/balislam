@@ -229,10 +229,10 @@ export const clayGeometry = () => {
 };
 export const useClayHandful = () => useMemo(clayGeometry, []);
 /** لون الطين الحقيقي (الجولة ٤): رمادي مغرّي لا بني الشوكولاتة؛ من رؤوس الشبكة وحدها، والخامة للنتوء والخشونة فقط */
-export const CLAY_TINT = mixC(K.earth, K.clay, 0.25);
+export const CLAY_TINT = mixC(K.earth, K.sand, 0.4);
 /** مادة الطين: لمعة بلل خفيفة (طبقة لامعة نصف خشنة) فوق طين مطفأ، لا سطح شوكولاتة لامع */
 export const ClayMaterial: React.FC<{ tex: THREE.Texture[] | null }> = ({ tex }) => (
-  <meshPhysicalMaterial vertexColors color={CLAY_TINT} normalMap={tex?.[1]} normalScale={new THREE.Vector2(0.7, 0.7)} roughnessMap={tex?.[2]} roughness={0.85} clearcoat={0.35} clearcoatRoughness={0.38} />
+  <meshPhysicalMaterial vertexColors color={CLAY_TINT} normalMap={tex?.[1]} normalScale={new THREE.Vector2(0.7, 0.7)} roughnessMap={tex?.[2]} roughness={0.9} clearcoat={0.22} clearcoatRoughness={0.45} />
 );
 /** فتات الطين حول الكومة: كتل صغيرة غير منتظمة (بذرة ثابتة) */
 export const CLAY_CRUMBS: [number, number, number][] = [[0.17, -0.05, 0.016], [-0.15, 0.11, 0.012], [0.05, 0.19, 0.01], [-0.2, -0.12, 0.014], [0.22, 0.12, 0.009]];
@@ -368,7 +368,7 @@ export const StoneLinesLab: React.FC = () => {
         {/* بلاطتان من حجر حقيقي عليهما الختمان */}
         {/* الختمان يُضغطان في الرمل نفسه (أُزيلت البلاطتان: كانتا صندوقًا غير مفهوم، ملاحظة المالك على v2) */}
         <ProofStamp word="ثابت" at={[-1.9, groundH(-1.9, 3.2) + 0.012, 3.2]} press={span(t, stampK.a, 0.3)} lift={span(t, stampK.a + 0.35, 0.4)} ready={ready} size={0.3} tilt={0.3} />
-        <ProofStamp word="تقدير" at={[-3.0, groundH(-3.0, -0.4) + 0.012, -0.4]} press={span(t, proofK.a, 0.3)} lift={span(t, proofK.a + 0.35, 0.4)} ready={ready} size={0.38} ink={K.soil} tilt={-0.2} />
+        <ProofStamp word="تقدير" at={[-3.0, groundH(-3.0, -0.4) + 0.012, -0.4]} press={span(t, proofK.a, 0.3)} lift={span(t, proofK.a + 0.35, 0.4)} ready={ready} size={0.42} ink={K.soil} tilt={0.5} />
         {/* حفنة الطين المبلل على حافة الماء (القطعة المخصوصة): موجودة من البداية، ساكنة كلها */}
         {(() => {
           const [x, z] = CLAY_AT, y = groundH(x, z);
