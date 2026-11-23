@@ -30,6 +30,8 @@ export const CONTENT_PATH_RES = [
   /^channels\/[a-z0-9-]+\/series\/[^/]+\/series\.json$/,
   // سجل العلماء وسجل الكتب (D206): «زبدة الكتب» صاحبتهما، و«دفاتر الزمن» تقرؤهما
   /^channels\/zubdat-alkutub\/library\/(scholars|books)\.json$/,
+  // مواسم السنة الهجرية لكل قناة (عمود «بالإسلام»، عاشرًا/٦)
+  /^channels\/[a-z0-9-]+\/seasons\.json$/,
   // إعدادات الاستوديو العامة (الأسرار في .env لا هنا)
   /^config\.json$/,
 ];
