@@ -182,15 +182,15 @@ describe("الختم وحزمة النشر", () => {
     }
     expect(renderToStaticMarkup(React.createElement(SeriesBadge, { d: deriveSeriesIdentity("balislam", { thumbnail: { badge: "none" } }), name: "س" }))).toBe("");
   });
-  it("D196 v7: علامة صغيرة في الركن «الاسم · الرقم» بلون القناة، لا شريط بعرض الغلاف ولو كان الختم المحفوظ «band»", () => {
-    expect(seriesMarkLabel("البدايات", 1)).toBe("البدايات · ١");
+  it("D196 v7–v8: علامة صغيرة في الركن «الاسم | الرقم» بلون القناة، لا شريط بعرض الغلاف ولو كان الختم المحفوظ «band»", () => {
+    expect(seriesMarkLabel("البدايات", 1)).toBe("البدايات | ١");
     expect(deriveSeriesIdentity("dafatir-alzaman").thumbnail.badge).toBe("corner");
     for (const ch of CHANNELS) for (const badge of ["band", "corner"] as const) {
       const d = deriveSeriesIdentity(ch, { thumbnail: { badge } });
       const html = renderToStaticMarkup(React.createElement(SeriesBadge, { d, name: "البدايات", number: 1 }));
       expect(html).toContain('data-series-badge="corner"');
-      expect(html).toContain('aria-label="البدايات · ١"');
-      expect(html).not.toMatch(/>البدايات · ١</); // النقطة دائرة مرسومة لا محرف يُقرأ صفرًا
+      expect(html).toContain('aria-label="البدايات | ١"');
+      expect(html).toContain(">|<"); expect(html).not.toContain("·"); // خط عمودي لا نقطة تُقرأ صفرًا (v8)
       expect(html).toContain("left:22px");
       expect(html).not.toMatch(/inset-inline-end:0|right:0/);
       expect(html.toUpperCase()).toContain(d.accent.toUpperCase());

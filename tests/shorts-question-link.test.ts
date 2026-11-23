@@ -61,7 +61,7 @@ describe("عنوان سؤال", () => {
 });
 
 const short = (n: number, title: string): PublishKit["shorts"][number] => ({
-  chapter: n, hook: "سؤال يفتح الشورت؟",
+  chapter: n,
   youtube: { title, description: `خطاف الشورت ${n} هنا.\n\n${EPISODE_LINK_TOKEN}\n\n#دفاتر_الزمن`, hashtags: ["#دفاتر_الزمن"] },
   instagram: { caption: `خطاف الشورت ${n} هنا. ما رأيك؟`, hashtags: ["#دفاتر_الزمن"] },
   facebook: { caption: `خطاف الشورت ${n} هنا. ما رأيك؟`, hashtags: ["#دفاتر_الزمن"] },

@@ -1,4 +1,5 @@
 import { seriesPublish } from "../channel/series";
+import { reviewerLine, type ReviewerCredit } from "./reviewer";
 import { parseScript } from "../script/parse";
 import { parseAyahRef, surahNameFor } from "../script/quranMeta";
 import { langPack } from "../i18n/packs";
@@ -57,7 +58,7 @@ export const sourcesBlock = (plan: Plan, script: string, media: EpisodeMedia, ch
 };
 
 /** نص الوصف والعناوين لليوتيوب: الحلقة والشورتس، بالفصول والمصادر والإفصاح. */
-export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, channel: ChannelConfig = defaultChannel, real?: RealTimings, marks?: ChapterMark[]): string => {
+export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia, channel: ChannelConfig = defaultChannel, real?: RealTimings, marks?: ChapterMark[], reviewer?: ReviewerCredit): string => {
   const parsed = parseScript(script);
   const fm = (parsed.frontmatter ?? {}) as { title?: string; alt_titles?: string[] };
   // فصول اختارها المالك (ولو لنص متصل) من حدود المشاهد الحقيقية؛ وإلا الأقسام المعنونة وحدها، ولا فصول لنص متصل
@@ -85,6 +86,9 @@ export const buildYoutubeText = (plan: Plan, script: string, media: EpisodeMedia
     "",
     sources.length ? L.strings.descSources : "",
     ...sources,
+    "",
+    // «راجعها علميًا» بإذن مكتوب مسجّل لهذه الحلقة وحدها (src/package/reviewer.ts)؛ بلا إذن لا سطر
+    reviewerLine(reviewer) ?? "",
     "",
     channel.youtube.footer,
     "",

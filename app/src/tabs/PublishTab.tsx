@@ -235,7 +235,7 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
   const masterState = card.pill;
   const L = kit?.kit.long;
   const kitTitle = L?.titles[0]?.text ?? yt.titles[0] ?? "";
-  const kitDesc = L ? resolveDescription(L.description, kit!.chapters) : yt.description;
+  const kitDesc = L ? resolveDescription(L.description, kit!.chapters, L.reviewer) : yt.description;
 
   return (
     <div className="s45-page s45-publish">

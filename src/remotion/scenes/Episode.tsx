@@ -25,6 +25,8 @@ import { fontFamilies } from "../../../brand/fonts";
 import { sceneAdvanceFrames, seamAudio, seamPlan, seamVolumeAt, type SeamAudio } from "../../plan/seams";
 import { isAmbience, sceneSacredSpans, sfxGainAt, sfxTrim, speechSpans } from "../../plan/sfxMix";
 import { sfxFileNames } from "../../plan/sfxVariants";
+import { intendedStillness } from "../../render/stillnessSpans";
+import { ShortTitle } from "./ShortTitle";
 
 export type EpisodeProps = {
   plan: Plan;
@@ -47,6 +49,11 @@ export type EpisodeProps = {
    * own median loudness (EBU R128, src/studio/narrationLoudness.ts). Never on a recitation; absent = 1.
    */
   narrationGain?: Record<string, number>;
+  /**
+   * الشورت وحده (تكملة D207): سؤاله (عنوانه في حزمة النشر) عنوانًا هادئًا على الشاشة، غائبًا في كل نافذة سكون مقصود
+   * (src/remotion/scenes/ShortTitle.tsx). لا يُرسم في الحلقة العرضية.
+   */
+  shortTitle?: string;
 };
 
 /** Small studio tag on a draft verse scene (never in a Master: renderEpisode refuses draftMarks there). */
@@ -147,6 +154,7 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
   const lang = langPack(plan.lang ?? props.channel?.language);
   return (
     <Providers identity={props.identity} channel={props.channel} lang={lang.code}>
+    <>
     <Series>
       {(() => {
         const kind = introKindFor(props.channel, plan, props.chapter);
@@ -205,6 +213,11 @@ export const Episode: React.FC<EpisodeProps> = (props) => {
         );
       }); })()}
     </Series>
+    {orientation === "portrait" && props.shortTitle?.trim() ? (
+      <ShortTitle text={props.shortTitle}
+        quiet={intendedStillness(plan, introFramesFor(props.channel, plan, props.chapter) / config.video.fps, media, props.chapter)} />
+    ) : null}
+    </>
     </Providers>
   );
 };
