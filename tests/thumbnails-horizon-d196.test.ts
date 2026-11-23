@@ -109,22 +109,20 @@ describe("D196 v5: الأغلفة من رندر 4K — Master، ثم لقطة 4K
     expect(stillFrameAt(40, 900)).toBe(899);
     expect(stillFrameAt(-1, 900)).toBe(0);
   });
-  it("D196 v6: غلاف في لحظة الخطاف المسبق يُرسم بالخطاف نفسه، ومشهد لاحق يبدأ من إطاره الأول بلا خانة خطاف فارغة", async () => {
+  it("D196 v6 (بعد D207): لقطة الغلاف من خطة المشهد نفسه، والمشهد اللاحق يبدأ من إطاره الأول ولا خطاف في أي قناة", async () => {
     const { sceneCutPlan } = await import("../src/package/sceneStill");
-    const { cutPlans, coldOpenSource, coldOpenFrames } = await import("../src/plan/coldOpen");
+    const { cutPlans } = await import("../src/plan/sceneCut");
     const s = (id: string) => ({ id, template: "x", narration: "", props: {}, sfx: [] });
     const full = { title: "t", coldOpen: { scene: "c1-s3", words: 6, to: 3.5 },
       chapters: [{ number: 1, title: "a", scenes: [s("c1-s1"), s("c1-s2"), s("c1-s3")] }] } as never;
-    // أول الحلقة: الخطاف ومصدره (لقطة من المشهد اللاحق) ملحقان، وتسجيله يُجمع معه، فلا تكون الخانة سوداء
-    const first = sceneCutPlan(full, "c1-s1")!;
-    expect(coldOpenSource(first)?.id).toBe("c1-s3");
-    expect(coldOpenFrames(first)).toBeGreaterThan(0);
-    expect(cutPlans(full, ["c1-s1"]).mediaPlan.chapters.flatMap((c) => c.scenes.map((x) => x.id))).toContain("c1-s3");
-    // مشهد لاحق: لا خطاف ولا مقدمة، فلحظة الغلاف (atSeconds) من بداية المشهد نفسه
+    // أول الحلقة: المشهد وحده (لا مصدر خطاف ملحق ولو بقي حقل قديم في الخطة)
+    expect(cutPlans(full, ["c1-s1"]).mediaPlan.chapters.flatMap((c) => c.scenes.map((x) => x.id))).toEqual(["c1-s1"]);
+    // مشهد لاحق: لا مقدمة، فلحظة الغلاف (atSeconds) من بداية المشهد نفسه
     const later = sceneCutPlan(full, "c1-s2")!;
-    expect(coldOpenFrames(later)).toBe(0);
     expect((later as { intro?: unknown }).intro).toBe(false);
     expect(cutPlans(full, ["c1-s2"]).mediaPlan.chapters.flatMap((c) => c.scenes.map((x) => x.id))).toEqual(["c1-s2"]);
+    const { existsSync } = await import("node:fs");
+    expect(existsSync(path.join(import.meta.dirname, "..", "src/plan/coldOpen.ts"))).toBe(false);
   });
   it("قاعدة القرآن في رأس قواعد الأغلفة، ولا غلاف «وعود كاذبة» في الكود", async () => {
     const code = await readFile(path.join(import.meta.dirname, "..", "src/package/thumbnails.ts"), "utf8");

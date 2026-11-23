@@ -9,7 +9,7 @@ import path from "node:path";
 import os from "node:os";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import type { Plan } from "../plan/types";
-import { cutPlans } from "../plan/coldOpen";
+import { cutPlans } from "../plan/sceneCut";
 import config from "../../config.json";
 
 /** The one-scene plan exactly as the scene's AV cut is rendered from it (cutPlans, shared with src/render/shotsPreview.ts). */
@@ -25,8 +25,7 @@ export const sceneStill4k = async (episode: string, sceneId: string, at: number)
   const { loadPlan } = await import("../plan/io");
   const full = await loadPlan(episode);
   if (!full || !sceneCutPlan(full, sceneId)) return null;
-  // D196 v6: the same plan and media plan as the cut, so the first scene's cold open (D198) is drawn with its source and
-  // recording, and a later scene starts at its own frame 0 (no empty cold-open slot shifting the moment).
+  // D196 v6: the same plan and media plan as the cut, so a later scene starts at its own frame 0.
   const { plan, mediaPlan } = cutPlans(full, [sceneId]);
   const { prepareRenderMedia } = await import("../plan/collect");
   const { createIsolatedRenderBundle, browserExecutable } = await import("../render/bundle");

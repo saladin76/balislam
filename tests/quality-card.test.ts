@@ -10,7 +10,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { runWithChannel } from "../src/channel";
 import type { Plan, PlanScene } from "../src/plan/types";
 import { parseEbur128, measureLoudness } from "../src/studio/quality/audio";
-import { audioItems, buildCard, cardRefusal, hookIn, is4k, scriptItems, type FileMeasurements } from "../src/studio/quality/card";
+import { audioItems, buildCard, cardRefusal, is4k, scriptItems, type FileMeasurements } from "../src/studio/quality/card";
 import { assertQualityForFinal, assertQualityForPublish, measureTarget, qualityCard, qualityGateOn, readMeasurement } from "../src/studio/quality/measure";
 
 const root = path.join(import.meta.dirname, "..");
@@ -53,17 +53,13 @@ describe("بطاقة الجودة: البنود", () => {
     expect([i.status, i.reason]).toEqual(["fail", expect.stringContaining("1:02–1:06")]);
   });
 
-  it("الخطاف: سؤال يبدأ نطقه في أول ١٥ ث (موضعه في مشهد طويل بنسبة حروفه)", () => {
-    expect(hookIn(planOf(scene("a", "في سوق صغير وقف رجلان."), scene("b", "كيف تعرف أنك على حق؟")))).toMatchObject({ ok: true, at: 5 });
-    const late = planOf(scene("a", "جملة أولى طويلة. ".repeat(10), { durationSec: 20 }), scene("b", "لماذا؟"));
-    expect(hookIn(late).ok).toBe(false);
-    const inside = planOf(scene("a", `${"كلام ".repeat(30)}أليس كذلك؟ ${"كلام ".repeat(30)}`, { durationSec: 30 }));
-    expect(hookIn(inside).ok).toBe(true); // يبدأ عند نحو ١٥٫٠ ث من ٣٠
+  it("لا بند خطاف في البطاقة لأي قناة (D207: لا خطاف، الحلقة تبدأ من أول السكريبت)", () => {
+    expect(scriptItems(planOf(scene("a", "في سوق صغير وقف رجلان.")), undefined).map((i) => i.id)).not.toContain("hook");
   });
 
   it("التوثيق ودعوة التعليق والإحالة للعلم ولا تمنع (قرار المالك ١٠ نوفمبر حتى يقرر غيره)", () => {
     const items = scriptItems(planOf(scene("a", "لماذا؟")), undefined, { total: 5, open: 2 });
-    expect(items.map((i) => [i.id, i.status])).toEqual([["hook", "pass"], ["arabic", "later"], ["citations", "warn"], ["comment-cta", "warn"], ["referral", "warn"]]);
+    expect(items.map((i) => [i.id, i.status])).toEqual([["arabic", "later"], ["citations", "warn"], ["comment-cta", "warn"], ["referral", "warn"]]);
     const withCta = scriptItems(planOf(scene("a", "لماذا؟"), scene("end", "", { template: "end-screen", props: { prompt: "شاركنا رأيك في التعليقات" } }), scene("b", "نلتقي في الحلقة القادمة")));
     expect(withCta.filter((i) => ["comment-cta", "referral"].includes(i.id)).map((i) => i.status)).toEqual(["pass", "pass"]);
   });
@@ -75,8 +71,9 @@ describe("بطاقة الجودة: البنود", () => {
     expect(none.blockers.some((b) => b.includes("لم يُقس"))).toBe(true);
     const pass = buildCard({ target: "assembly", plan: p, measured: { ...good, ...stamp } });
     expect([pass.blocks, pass.blockers]).toEqual([false, []]);
-    const noHook = buildCard({ target: "master", plan: planOf(scene("a", "جملة بلا سؤال.")), measured: { ...good, ...stamp } });
-    expect(cardRefusal(noHook, "publish")).toMatch(/لا يُمنح إذن النشر[\s\S]*السكريبت — خطاف/);
+    // D207: حلقة بلا سؤال في أولها لا تُمنع (لا بند خطاف)
+    const noQuestion = buildCard({ target: "master", plan: planOf(scene("a", "جملة بلا سؤال.")), measured: { ...good, ...stamp } });
+    expect(cardRefusal(noQuestion, "publish") ?? "").not.toMatch(/خطاف/);
   });
 
   it("البوابة على جهاز المالك دائمًا؛ في الاختبار تُطفأ إلا بطلب صريح", () => {
@@ -146,7 +143,7 @@ describe("بطاقة الجودة: القياس على ملفات حقيقية �
       expect(await readMeasurement(path.join(ep, "script.md"), "assembly")).toBeNull(); // القياس القديم لا يصلح لملف جديد
       await expect(assertQualityForFinal("001")).resolves.toBeUndefined();
       const card = await qualityCard("001", "assembly");
-      expect(card.sections.flatMap((s) => s.items).filter((i) => i.status === "pass").map((i) => i.id)).toEqual(expect.arrayContaining(["loudness", "true-peak", "head-silence", "interactivity", "hook"]));
+      expect(card.sections.flatMap((s) => s.items).filter((i) => i.status === "pass").map((i) => i.id)).toEqual(expect.arrayContaining(["loudness", "true-peak", "head-silence", "interactivity"]));
     });
   }, 120_000);
 
@@ -170,7 +167,7 @@ describe("bal quality (البطاقة نصًا)", () => {
     const t = cardText(buildCard({ target: "assembly", plan: planOf(scene("a", "جملة.")), measured: null }));
     expect(t).toContain("بطاقة الجودة — الحلقة المجمّعة (لم تُقس بعد)");
     expect(t).toMatch(/… علو الحلقة — المطلوب/);
-    expect(t).toMatch(/✗ خطاف في أول ١٥ ثانية/);
+    expect(t).not.toMatch(/خطاف/);
     expect(t).toMatch(/تمنع \(\d+\):/);
   });
 });
