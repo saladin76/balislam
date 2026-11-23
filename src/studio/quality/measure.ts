@@ -4,7 +4,7 @@
  * «اصنع النسخة النهائية» على بطاقة الحلقة المجمّعة، وإذن النشر على بطاقة النسخة النهائية.
  */
 import path from "node:path";
-import { readFile, rename, stat, writeFile } from "node:fs/promises";
+import { readFile, readdir, rename, stat, writeFile } from "node:fs/promises";
 import { randomUUID } from "node:crypto";
 import { loadPlan } from "../../plan/io";
 import { collectMedia } from "../../plan/collect";
@@ -20,6 +20,7 @@ import { checkMix, measureMixLevels } from "./mix";
 import config from "../../../config.json";
 import { assemblyStillness, measureInteractivity } from "./interactivity";
 import { buildCard, cardRefusal, type CardTarget, type FileMeasurements, type QualityCard } from "./card";
+import { compareWithSeries, seriesIdOf, type SeriesDiffReport, type SeriesEpisode } from "./seriesDiff";
 import type { PublishKit } from "../../package/social";
 import { packagingCard, shortsCard } from "../../package/qualityCard";
 import { sceneStartsFor } from "../../package/chapters";
@@ -114,6 +115,25 @@ const readyItems = async (scriptPath: string, plan: Plan, media: Omit<EpisodeMed
   } catch { return undefined; }
 };
 
+/**
+ * D204: حلقات السلسلة نفسها قبل هذه الحلقة، من خطط المجلدات المجاورة في القناة (رقم الحلقة أصغر)، قراءةً فقط؛
+ * ومعمل القوالب (9xx) والإعلان (000) خارجها. null عند تعذّر القراءة.
+ */
+export const seriesComparison = async (scriptPath: string, plan: Plan): Promise<SeriesDiffReport | null> => {
+  try {
+    const dir = path.dirname(scriptPath), root = path.dirname(dir), me = path.basename(dir);
+    const id = seriesIdOf(plan);
+    const earlier: SeriesEpisode[] = [];
+    for (const d of (await readdir(root)).filter((x) => /^\d{3}-/.test(x) && x < me && !/^(000|9\d\d)-/.test(x)).sort()) {
+      try {
+        const p = JSON.parse(await readFile(path.join(root, d, "plan.json"), "utf8")) as Plan;
+        if (Array.isArray(p.chapters) && seriesIdOf(p) === id) earlier.push({ id: d.slice(0, 3), plan: p });
+      } catch { /* حلقة بلا خطة: لا تُقارن */ }
+    }
+    return compareWithSeries(plan, earlier);
+  } catch { return null; }
+};
+
 /** البطاقة الحالية: النهائية إن وُجدت، وإلا المجمّعة (target يفرض أحدهما) */
 export const qualityCard = async (episode: string, target?: CardTarget): Promise<QualityCard & { exists: boolean; measuring: boolean }> => {
   const scriptPath = await resolveScriptPath(episode);
@@ -122,7 +142,7 @@ export const qualityCard = async (episode: string, target?: CardTarget): Promise
   if (!plan) throw Error("لا توجد خطة للحلقة.");
   const media = await collectMedia(episode, plan);
   const measured = await readMeasurement(scriptPath, t);
-  const card = buildCard({ target: t, plan, media, measured, citations: await citationCount(scriptPath), ready: await readyItems(scriptPath, plan, media) });
+  const card = buildCard({ target: t, plan, media, measured, citations: await citationCount(scriptPath), ready: await readyItems(scriptPath, plan, media), series: await seriesComparison(scriptPath, plan) });
   return { ...card, exists: Boolean(await fileStamp(targetFile(scriptPath, t))), measuring: await isMeasuring(episode, t) };
 };
 

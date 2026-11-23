@@ -15,6 +15,7 @@ import { coldOpenCut, coldOpenFrames, coldOpenOf, coldOpenSource } from "../../p
 import { normalizeArabic } from "../../script/quranMeta";
 import { measureDiversity } from "./diversity";
 import { measureCraft } from "./craft";
+import { seriesDiffIssues, type SeriesDiffReport } from "./seriesDiff";
 import { INTERACTIVITY_MIN, type InteractivityReport } from "./interactivity";
 import { MIX_MIN, type MixReport } from "./mix";
 
@@ -114,7 +115,17 @@ export const pictureItems = (m: FileMeasurements | null, target: CardTarget, pla
  * «الحِرفة» (قرار المالك ٢٢ نوفمبر): بنود تُقاس من الخطة، «للعلم» لا تمنع حتى يحدد المالك حدودها؛ وما تحقق فيه
  * المعيار كله (كل مشهد متحرك، ولا لقطة مكررة) يظهر ✓.
  */
-export const craftItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">): CardItem[] => {
+/** «الاختلاف عن الحلقة السابقة في السلسلة» (D204): تنبيه لا يمنع؛ وأول حلقة في سلسلتها ✓ */
+export const seriesDiffItem = (r?: SeriesDiffReport | null): CardItem => {
+  const base = { id: "craft-series", label: "الاختلاف عن الحلقة السابقة في السلسلة", need: "افتتاح مختلف، ونصف التكوينات جديدة، ولا قوالب بالترتيب نفسه (D204)" };
+  if (!r) return { ...base, status: "later", reason: "تُقارن حين تُقرأ حلقات السلسلة." };
+  if (!r.previous) return { ...base, status: "pass", value: "لا حلقة سابقة في السلسلة" };
+  const issues = seriesDiffIssues(r);
+  const value = `مقارنة بالحلقة ${r.previous}: ${ar(Math.round(r.newShare * 100), 0)}٪ تكوينات جديدة (${ar(r.newCount, 0)} من ${ar(r.total, 0)})`;
+  return issues.length ? { ...base, status: "warn", value, reason: `${issues.join("؛ ")}. للعلم حتى يحدد المالك الحد (لا يمنع).` } : { ...base, status: "pass", value };
+};
+
+export const craftItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">, series?: SeriesDiffReport | null): CardItem[] => {
   const c = measureCraft(plan, media);
   const pct = c.scenes ? Math.round((c.cameraMoving / c.scenes) * 100) : 100;
   const note = "للعلم حتى يحدد المالك الحد (لا يمنع).";
@@ -128,6 +139,7 @@ export const craftItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "rec
     { id: "craft-repeat", label: "عدم تكرار اللقطة", need: "لا لقطة مرتين في الحلقة", value: c.repeatedShots.length ? `${ar(c.repeatedShots.length, 0)} لقطة مكررة` : "لا تكرار",
       status: c.repeatedShots.length ? "warn" : "pass",
       ...(c.repeatedShots.length ? { reason: `${note} ${c.repeatedShots.slice(0, 3).map((x) => x.scenes.join(" = ")).join("، ")}${c.repeatedShots.length > 3 ? "، …" : ""}` } : {}) },
+    ...(series === undefined ? [] : [seriesDiffItem(series)]),
   ];
 };
 
@@ -210,12 +222,14 @@ export const buildCard = (input: {
   measured: (FileMeasurements & { file: { size: number; mtimeMs: number }; at: string }) | null;
   citations?: { total: number; open: number };
   ready?: { packaging: ReadyItems; shorts: ReadyItems };
+  /** D204: المقارنة بالحلقة السابقة في السلسلة (null: لم تُقرأ) */
+  series?: SeriesDiffReport | null;
 }): QualityCard => {
   const m = input.measured;
   const sections: CardSection[] = [
     { id: "audio", label: "الصوت", items: audioItems(m) },
     { id: "picture", label: "الصورة", items: pictureItems(m, input.target, input.plan) },
-    { id: "craft", label: "الحِرفة", items: craftItems(input.plan, input.media) },
+    { id: "craft", label: "الحِرفة", items: craftItems(input.plan, input.media, input.series) },
     { id: "script", label: "السكريبت", items: scriptItems(input.plan, input.media, input.citations) },
     { id: "packaging", label: "التغليف", items: packagingItems(input.ready?.packaging) },
     { id: "shorts", label: "الشورتس", items: shortsItems(input.ready?.shorts) },
