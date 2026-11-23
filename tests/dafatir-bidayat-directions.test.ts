@@ -52,8 +52,8 @@ describe("«البدايات»: عالم واحد «خطوط على الأرض»
     expect(strip(world)).not.toMatch(/swash\(t\)|offset\.set\(t /);
   });
   it("(٢) خامات حجر ورمل وطبقات حقيقية من Poly Haven (CC0)، مسجلة بمصدرها، وموجودة في public", () => {
-    const ids = [...world.matchAll(/"(dafatir-bid-[a-z-]+)"/g)].map((m) => m[1]!);
-    expect(new Set(ids).size).toBe(12);
+    const ids = [...world.matchAll(/"(dafatir-bid-[a-z0-9-]+)"/g)].map((m) => m[1]!);
+    expect(new Set(ids).size).toBe(21);
     for (const id of ids) {
       const a = ASSETS.find((x) => x.id === id);
       expect(a, id).toBeTruthy();
@@ -63,6 +63,22 @@ describe("«البدايات»: عالم واحد «خطوط على الأرض»
     }
     // لا حجارة منخفضة الأضلاع (عشرون وجهًا)
     expect(strip(world)).not.toMatch(/IcosahedronGeometry/);
+  });
+  it("الجولة ٣: رمل شاحب فاتح (حبر داكن عليه)، وحجارة حقيقية متنوعة لا يتشابه منها اثنان، وحفنة طين تُقرأ طينًا", async () => {
+    const m = await import("../src/remotion/dafatir/bidayat/StoneLines");
+    expect(m.SAND_INK).toBe(0.5);
+    expect(world).toMatch(/uPale/);
+    // أنواع الحجارة كلها حاضرة، ولا يتجاور نوعان متماثلان كثيرًا، ولا حجران بالشبكة نفسها
+    const geos = Array.from({ length: 30 }, (_, i) => m.stoneGeometry(i, 31));
+    expect(new Set(geos.map((g) => g.kind)).size).toBe(m.STONE_KINDS.length);
+    const sig = geos.map((g) => { const p = g.g.attributes.position!; return [g.minY, g.maxY, p.getX(7), p.getZ(91)].map((x) => x.toFixed(4)).join(","); });
+    expect(new Set(sig).size).toBe(sig.length);
+    // الحجر المكسور: وجه مسطح (رؤوس كثيرة على مستوى القطع)، لا كرة منفوخة
+    expect(world).toMatch(/chips/);
+    // الطين: أثر أصابع ولون رطب إلى حافة أجف، ولمعة بلل، وحلقة رطوبة وفتات
+    const clay = m.clayGeometry();
+    expect(clay.attributes.color).toBeTruthy();
+    for (const re of [/clearcoat=/, /useDampRing\(\)/, /CLAY_CRUMBS\.map/, /fingers/]) expect(world, String(re)).toMatch(re);
   });
   it("خيط الزمن وعقدته، و«ثابت» و«رواية» و«تقدير» و«لا نعلم»، وطبقات تحت الرمل، وصوت مع كل حركة", () => {
     for (const re of [/<RedThread /, /knot=\{p\(knotK\)\}/, /"ثابت"/, /"رواية"/, /"تقدير"/, /"لا نعلم"/, /LAYERS\.map/, /<DepthOfField /, /SFX\("stamp"\)/, /<BidCaption /]) expect(world, String(re)).toMatch(re);

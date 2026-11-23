@@ -11,13 +11,18 @@
  * - الماء يفيض حول الحلزون عند «حياة»، ودوائر الحجارة قرى عند «القرى»، والكبيرة ببابها عند «المدن»، و«تقدير» عند «القديمة».
  * - جملة الذكر «خلق اللهُ آدمَ من طين»: حفنة طين مبلل على حافة الماء (القطعة المخصوصة)، بسكون تام: لا يتحرك فيها شيء، ولا
  *   الماء ولا الموج ولا الشمس ولا الترجمة، فالإطار فيها واحد بايتًا ببايت.
- * الخامات: Poly Haven (CC0): حجر «Dry Riverbed Rock»، ورمل «Coast Sand 01»، ورمل مبلول «Damp Sand»، وطبقات «Excavated Soil Wall».
+ * الخامات: Poly Haven (CC0): حجر «Dry Riverbed Rock» و«Rock Boulder Dry» و«Rock Boulder Cracked»، ورمل «Coast Sand 01» (مُفتَّح إلى
+ * رمل شاطئ شاحب، الجولة ٣)، ورمل مبلول «Damp Sand»، وطبقات «Excavated Soil Wall».
+ * الجولة ٣ (قرار المالك): رمل فاتح لا بني ترابي، وحجارة شاطئ ونهر حقيقية (مسطحة ومزوّاة ومكسورة الحواف ومشقوقة، بعضها نصف
+ * مدفون بظل تلامس، ولا حجران متشابهان)، وحفنة طين مبلل تُقرأ طينًا: كومة غير منتظمة بأثر أصابع وطيات، ولمعة بلل، وحافة أجفّ
+ * أفتح، وحلقة رطوبة داكنة في الرمل تحتها، وفتات صغير حولها.
  * لا تصوير لأحد (المرجع، خامسًا/٤).
  */
 import React, { useMemo } from "react";
 import { Audio, Sequence, continueRender, delayRender, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { Reflector } from "three/examples/jsm/objects/Reflector.js";
+import { mergeVertices } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 import { DepthOfField, Stage3D, ease, lightsAt, noise1, orbit, safeKeys, useAssetTextures, type Light } from "../../three";
 import { CaptionProbe, captionRows, measureCaption, wordTones, type ProbeGrid } from "../../three/captionProbe";
 import { RedrawWhenReady } from "../archive/ArchiveLab";
@@ -49,28 +54,69 @@ export const swash = (te: number) => 0.006 * Math.sin(te * 1.25) + 0.0025 * Math
 export const sunAt = (t: number) => effTime(Math.min(t, BID_SEC)) / effTime(BID_SEC);
 
 /** عتبة الحبر الداكن في هذا العالم: ما فوقها خلفية فاتحة (الرمل والسماء الفاتحة) */
-export const SAND_INK = 0.38;
+export const SAND_INK = 0.5;
 /** حفنة الطين المبلل (القطعة المخصوصة): على حافة الماء بعد الفيضان، موجودة من أول الحلقة فلا تظهر في جملة الذكر */
 export const CLAY_AT: [number, number] = [2.35, -0.05];
 
-/** حجر حقيقي: كرة كثيفة مشوهة بضوضاء ثابتة البذرة، مسطحة من أسفل، بمقاييس مختلفة (لا حجران متطابقان) */
-const useStones = (n: number, seed: number) => useMemo(() => Array.from({ length: n }, (_, i) => {
-  const g = new THREE.SphereGeometry(1, 40, 28);
-  // القطب إلى الجانب: لا تلتف الخامة دوامةً على أعلى الحجر
-  g.rotateX(Math.PI / 2); g.rotateY((i * 2.399) % (Math.PI * 2));
-  const pos = g.attributes.position!;
-  const ax = 0.95 + 0.35 * (noise1(seed + 11, i * 1.3) + 1) / 2, ay = 0.6 + 0.3 * (noise1(seed + 13, i * 1.7) + 1) / 2, az = 0.8 + 0.3 * (noise1(seed + 17, i * 2.3) + 1) / 2;
+/** أنواع الحجارة (الجولة ٣): مسطح، ومزوّى، ونهري مستدير، ومستطيل، ومشقوق نصفين؛ يتناوب النوع فلا يتجاور حجران متشابهان */
+export const STONE_KINDS = ["flat", "angular", "river", "long", "split"] as const;
+export type StoneKind = (typeof STONE_KINDS)[number];
+export const RING_KINDS: readonly StoneKind[] = ["angular", "river", "long"];
+/**
+ * حجر شاطئ حقيقي: شبكة كثيفة تُزاح بضوضاء متعددة الطبقات، ثم «تُكسر» حوافه بمستويات قطع (وجوه مسطحة كالحجر المكسور)،
+ * ومقياس وشكل مختلفان لكل نوع وكل حجر؛ والمشقوق نصف حجر بوجه مستوٍ. بذرة ثابتة: الحجر نفسه في كل إطار.
+ */
+export const stoneGeometry = (i: number, seed: number, kinds: readonly StoneKind[] = STONE_KINDS) => {
+  const r = (k: number) => (noise1(seed + k, i * 1.37 + 0.5) + 1) / 2;
+  const kind: StoneKind = kinds[(i * 3 + Math.floor(r(1) * 2)) % kinds.length]!;
+  let g: THREE.BufferGeometry = new THREE.SphereGeometry(1, 72, 48);
+  g.deleteAttribute("normal");
+  g = mergeVertices(g);
+  const [ax, ay, az] = kind === "flat" ? [1.05 + 0.4 * r(2), 0.32 + 0.14 * r(3), 0.85 + 0.3 * r(4)]
+    : kind === "long" ? [1.45 + 0.35 * r(2), 0.45 + 0.15 * r(3), 0.6 + 0.15 * r(4)]
+    : kind === "river" ? [1.0 + 0.2 * r(2), 0.55 + 0.15 * r(3), 0.85 + 0.2 * r(4)]
+    : [0.9 + 0.3 * r(2), 0.6 + 0.25 * r(3), 0.8 + 0.3 * r(4)];
+  // مستويات الكسر: المزوّى ٤–٥، والمشقوق مستوى عمودي يقطعه نصفين، وغيرها ١–٢ (حافة مثلومة)
+  const chips: { n: THREE.Vector3; d: number }[] = [];
+  const nChips = kind === "angular" ? 4 + Math.floor(r(5) * 2) : kind === "split" ? 1 : 1 + Math.floor(r(6) * 2);
+  for (let c = 0; c < nChips; c++) {
+    const th = r(10 + c) * Math.PI * 2, ph = (r(20 + c) - 0.35) * 1.4;
+    chips.push({ n: new THREE.Vector3(Math.cos(th) * Math.cos(ph), Math.sin(ph), Math.sin(th) * Math.cos(ph)).normalize(), d: kind === "angular" ? 0.55 + 0.2 * r(30 + c) : 0.72 + 0.15 * r(30 + c) });
+  }
+  if (kind === "split") chips[0] = { n: new THREE.Vector3(Math.cos(r(40) * 6.28), 0, Math.sin(r(40) * 6.28)), d: 0.05 + 0.15 * r(41) };
+  const pos = g.attributes.position!, v = new THREE.Vector3();
+  const smooth = kind === "river" ? 0.5 : 1;
   for (let k = 0; k < pos.count; k++) {
-    const x = pos.getX(k), y = pos.getY(k), z = pos.getZ(k);
-    const f = 1 + 0.16 * n2(seed + i * 3, x * 0.9 + y, z * 0.9 - y) + 0.04 * n2(seed + i * 5 + 1, x * 3, z * 3 + y);
-    pos.setXYZ(k, x * f * ax, Math.max(-0.4, y * f * ay), z * f * az);
+    v.set(pos.getX(k), pos.getY(k), pos.getZ(k));
+    const f = 1 + smooth * (0.2 * n2(seed + i * 3, v.x * 1.1 + v.y, v.z * 1.1 - v.y) + 0.07 * n2(seed + i * 5 + 1, v.x * 3.2, v.z * 3.2 + v.y * 2) + 0.02 * n2(seed + i * 7 + 2, v.x * 9, v.z * 9 + v.y * 5));
+    v.multiplyScalar(f);
+    for (const ch of chips) { const s = v.dot(ch.n); if (s > ch.d) v.addScaledVector(ch.n, -(s - ch.d) * 0.97); }
+    pos.setXYZ(k, v.x * ax, Math.max(-0.42 * ay, v.y * ay), v.z * az);
   }
   g.computeVertexNormals();
-  const s = 0.085 + 0.06 * (noise1(seed + 40, i * 2.1) + 1) / 2;
-  // لون الحجر يتنوع حول خامته (مضاعِف خفيف من ألوان الهوية)
-  const tint = new THREE.Color(K.paper).lerp(new THREE.Color([K.pale, K.light, K.sand][i % 3]!), 0.1 + 0.15 * (noise1(seed + 50, i) + 1) / 2).multiplyScalar(1.25);
-  return { g, s, rot: noise1(seed + 70, i) * Math.PI, tint };
-}), [n, seed]);
+  g.computeBoundingBox();
+  return { g, kind, minY: g.boundingBox!.min.y, maxY: g.boundingBox!.max.y };
+};
+/** خامة الحجر (٣ مجموعات Poly Haven) ولونه وميله ودفنه: لا حجران متطابقان */
+const useStones = (n: number, seed: number, maxSink = 0.45, kinds: readonly StoneKind[] = STONE_KINDS) => useMemo(() => Array.from({ length: n }, (_, i) => {
+  const r = (k: number) => (noise1(seed + 60 + k, i * 2.11 + 0.3) + 1) / 2;
+  const { g, kind, minY, maxY } = stoneGeometry(i, seed, kinds);
+  const s = (kind === "flat" ? 0.1 : 0.075) + 0.075 * r(0);
+  // ألوان حجر حقيقية: رمادي بارد، ومغرة، وداكن، وكريمي، حول خامته (مضاعِف خفيف)
+  const base = [new THREE.Color(K.haze).lerp(new THREE.Color(K.paper), 0.45), new THREE.Color(K.light), new THREE.Color(K.earth).lerp(new THREE.Color(K.sand), 0.45), new THREE.Color(K.paper)][Math.floor(r(1) * 4) % 4]!;
+  const tint = base.clone().lerp(new THREE.Color(K.pale), 0.2 * r(2)).multiplyScalar(1.05 + 0.25 * r(3));
+  // نصف مدفون أحيانًا (٢٠–٤٥٪ من ارتفاعه تحت الرمل)، وإلا يستقر على سطحه
+  const sink = Math.min(maxSink, r(4) > 0.55 ? 0.2 + 0.25 * r(5) : 0.04);
+  return { g, s, tex: i % 3, rot: noise1(seed + 70, i) * Math.PI, tilt: [(r(6) - 0.5) * 0.35, (r(7) - 0.5) * 0.35] as [number, number], tint, minY, height: maxY - minY, sink };
+}), [n, seed, maxSink, kinds]);
+/** ظل التلامس تحت الحجر: قرص داكن متدرج على الرمل (يثبّت الحجر في الأرض) */
+const useContactShadow = () => useMemo(() => {
+  const S = 128, c = document.createElement("canvas"); c.width = c.height = S;
+  const g = c.getContext("2d")!, gr = g.createRadialGradient(S / 2, S / 2, 4, S / 2, S / 2, S / 2);
+  gr.addColorStop(0, "rgba(42,30,20,0.75)"); gr.addColorStop(0.55, "rgba(42,30,20,0.35)"); gr.addColorStop(1, "rgba(42,30,20,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  return new THREE.CanvasTexture(c);
+}, []);
 
 /** الطبقات تحت الرمل (من الأعلى): سمكها ولونها، وختم «درجة الثبوت» بجوار كل طبقة */
 export const LAYERS: { h: number; tint: string; word: "ثابت" | "رواية" | "لا نعلم" }[] = [
@@ -145,17 +191,67 @@ const WallStamp: React.FC<{ word: "ثابت" | "رواية" | "لا نعلم"; a
   );
 };
 
-/** حفنة طين مبلل: كتلة مكورة بأثر أصابع (غمازات)، لامعة قليلًا؛ ساكنة كلها */
-const useClayHandful = () => useMemo(() => {
-  const g = new THREE.SphereGeometry(1, 64, 40), pos = g.attributes.position!;
-  const dents: [number, number, number][] = [[0.55, 0.55, 0.3], [0.1, 0.7, 0.55], [-0.45, 0.6, 0.35], [0.3, 0.4, -0.7], [-0.35, 0.45, -0.55]];
+/**
+ * حفنة طين مبلل (القطعة المخصوصة، الجولة ٣): كومة مسطحة غير منتظمة الحافة، عليها أثر ثلاث أصابع متوازية وإبهام، وطيات حيث
+ * انضغط الطين، ولون رطب داكن في أعلاها يفتح نحو حافة أجفّ؛ ولمعة بلل (طبقة لامعة) في المادة. ساكنة كلها.
+ */
+export const clayGeometry = () => {
+  // قطبا الكرة إلى الجانبين (لا انقباض في أعلى الكومة حيث تتلاقى خطوط الشبكة)
+  let g: THREE.BufferGeometry = new THREE.SphereGeometry(1, 256, 128).rotateZ(Math.PI / 2);
+  // الإحداثيات تبقى (خامة الطين)، ودمج الرؤوس لا يدمج حواف الخياطة فلا شق في الشبكة لأن الإزاحة دالة في الموضع
+  g.deleteAttribute("normal");
+  g = mergeVertices(g);
+  const pos = g.attributes.position!, v = new THREE.Vector3();
+  const fingers = [-0.26, 0, 0.26];
+  // طين رطب: لون الطين نفسه أعمق قليلًا (لا بني الشوكولاتة)، وحافة أجفّ أفتح مائلة إلى الرمل
+  // لون الطين من خامته (Poly Haven)، ورؤوس الشبكة تُعتمه رطبًا في الأعلى وتفتحه أجفّ عند الحافة
+  const wet = new THREE.Color(1.15, 0.92, 0.8), dry = new THREE.Color(1.55, 1.3, 1.1);
+  // شقوق الحافة الجافة: أخاديد شعاعية رفيعة عند أسفل الكومة (بذرة ثابتة)
+  const cracks = Array.from({ length: 11 }, (_, i) => (noise1(181, i * 2.7) + 1) * Math.PI);
+  const col = new Float32Array(pos.count * 3);
   for (let k = 0; k < pos.count; k++) {
-    const v = new THREE.Vector3(pos.getX(k), pos.getY(k), pos.getZ(k));
-    let f = 1 + 0.12 * n2(171, v.x * 2 + v.y, v.z * 2 - v.y) + 0.03 * n2(173, v.x * 7, v.z * 7 + v.y * 3);
-    for (const [dx, dy, dz] of dents) { const d = v.distanceTo(new THREE.Vector3(dx, dy, dz)); f -= 0.22 * Math.exp(-(d * d) / 0.05); }
-    pos.setXYZ(k, v.x * f * 1.3, Math.max(-0.15, v.y * f * 0.5), v.z * f * 1.05);
+    v.set(pos.getX(k), pos.getY(k), pos.getZ(k));
+    const ang = Math.atan2(v.z, v.x);
+    // حافة غير منتظمة، وطيات حول الكومة
+    let f = 1 + 0.16 * n2(171, Math.cos(ang) * 1.6, Math.sin(ang) * 1.6) + 0.05 * Math.sin(ang * 5 + v.y * 6) * (1 - Math.abs(v.y)) + 0.03 * n2(173, v.x * 6, v.z * 6 + v.y * 3) + 0.012 * n2(177, v.x * 22, v.z * 22 + v.y * 9);
+    // أثر الأصابع: أخاديد طويلة متوازية على الأعلى (عرضها ٠٫١٢، طولها ٠٫٥)، والإبهام غمازة على الجانب
+    if (v.y > 0) for (const off of fingers) { const along = v.x * 0.94 + v.z * 0.34 - 0.05, across = -v.x * 0.34 + v.z * 0.94 - off; f -= 0.34 * v.y * Math.exp(-((along / 0.55) ** 2 + (across / 0.085) ** 2)); }
+    { const d2 = (v.x + 0.7) ** 2 + (v.y - 0.25) ** 2 + (v.z - 0.35) ** 2; f -= 0.22 * Math.exp(-d2 / 0.06); }
+    // الطين المعصور يبرز بين الأصابع وعند طرف الكفّ: انتفاخ غير متماثل
+    { const d2 = (v.x - 0.75) ** 2 + (v.y - 0.1) ** 2 + (v.z + 0.3) ** 2; f += 0.14 * Math.exp(-d2 / 0.12); }
+    { const rim = Math.max(0, 1 - Math.abs(v.y + 0.05) / 0.35);
+      for (const c of cracks) { let d = Math.abs(ang - c); d = Math.min(d, Math.PI * 2 - d); f -= 0.07 * rim * Math.exp(-((d / 0.022) ** 2)); } }
+    v.multiplyScalar(f);
+    const y = Math.max(-0.12, v.y * 0.48);
+    pos.setXYZ(k, v.x * 1.25, y, v.z * 1.05);
+    // رطب داكن في الأعلى، وأجفّ أفتح عند الحافة السفلى
+    const dryness = Math.min(1, Math.max(0, (0.1 - y) / 0.2));
+    const c = wet.clone().lerp(dry, dryness * 0.85);
+    col[k * 3] = c.r; col[k * 3 + 1] = c.g; col[k * 3 + 2] = c.b;
   }
+  g.setAttribute("color", new THREE.BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return g;
+};
+const useClayHandful = () => useMemo(clayGeometry, []);
+/** فتات الطين حول الكومة: كتل صغيرة غير منتظمة (بذرة ثابتة) */
+export const CLAY_CRUMBS: [number, number, number][] = [[0.17, -0.05, 0.016], [-0.15, 0.11, 0.012], [0.05, 0.19, 0.01], [-0.2, -0.12, 0.014], [0.22, 0.12, 0.009]];
+const useCrumbs = () => useMemo(() => CLAY_CRUMBS.map((_, i) => {
+  let g: THREE.BufferGeometry = new THREE.SphereGeometry(1, 18, 12); g.deleteAttribute("normal"); g = mergeVertices(g);
+  const pos = g.attributes.position!;
+  for (let k = 0; k < pos.count; k++) { const x = pos.getX(k), y = pos.getY(k), z = pos.getZ(k), f = 1 + 0.3 * n2(191 + i, x * 2 + y, z * 2); pos.setXYZ(k, x * f, Math.max(-0.3, y * f * 0.6), z * f); }
   g.computeVertexNormals(); return g;
+}), []);
+/** حلقة الرطوبة تحت الطين: الرمل حولها أدكن (ماء الطين يتشربه الرمل) */
+const useDampRing = () => useMemo(() => {
+  const S = 256, c = document.createElement("canvas"); c.width = c.height = S;
+  const g = c.getContext("2d")!, gr = g.createRadialGradient(S / 2, S / 2, 10, S / 2, S / 2, S / 2);
+  gr.addColorStop(0, "rgba(70,44,30,0.8)"); gr.addColorStop(0.6, "rgba(70,44,30,0.6)"); gr.addColorStop(1, "rgba(70,44,30,0)");
+  g.fillStyle = gr; g.fillRect(0, 0, S, S);
+  // حافة غير منتظمة (بذرة ثابتة)
+  g.globalCompositeOperation = "destination-out";
+  for (let i = 0; i < 90; i++) { const a = (i * 137.5 * Math.PI) / 180, rr = 95 + ((i * 37) % 30); g.globalAlpha = 0.25; g.beginPath(); g.arc(S / 2 + Math.cos(a) * rr, S / 2 + Math.sin(a) * rr, 8 + (i % 7), 0, Math.PI * 2); g.fill(); }
+  return new THREE.CanvasTexture(c);
 }, []);
 
 export const StoneLinesLab: React.FC = () => {
@@ -166,9 +262,16 @@ export const StoneLinesLab: React.FC = () => {
   const still = BID_STILL;
   const te = effTime(t);
   const path = useMemo(stonePath, []);
-  const lineStones = useStones(path.length, 31);
-  const ringStones = useStones(CIRCLES.reduce((n, c) => n + c.n, 0), 57);
-  const stoneTex = useAssetTextures(["dafatir-bid-stone-diff", "dafatir-bid-stone-nor", "dafatir-bid-stone-rough"], [0.22, 0.22]);
+  // الخط والحلزون في الماء الضحل: دفن خفيف فلا يغرق الحلزون تحت الماء ويبقى مقروءًا من علٍ (سميثسون)
+  const lineStones = useStones(path.length, 31, 0.1);
+  // دوائر القرى: لا مشقوق ولا مسطح (كانا يبدوان أصدافًا، ملاحظة المالك)؛ حجارة كتلية متنوعة
+  const ringStones = useStones(CIRCLES.reduce((n, c) => n + c.n, 0), 57, 0.45, RING_KINDS);
+  const stoneTex1 = useAssetTextures(["dafatir-bid-stone-diff", "dafatir-bid-stone-nor", "dafatir-bid-stone-rough"], [0.22, 0.22]);
+  const stoneTex2 = useAssetTextures(["dafatir-bid-stone2-diff", "dafatir-bid-stone2-nor", "dafatir-bid-stone2-rough"], [0.3, 0.3]);
+  const stoneTex3 = useAssetTextures(["dafatir-bid-stone3-diff", "dafatir-bid-stone3-nor", "dafatir-bid-stone3-rough"], [0.3, 0.3]);
+  const stoneTex = stoneTex1 && stoneTex2 && stoneTex3 ? [stoneTex1, stoneTex2, stoneTex3] : null;
+  const contact = useContactShadow(), damp = useDampRing(), crumbs = useCrumbs();
+  const clayTex = useAssetTextures(["dafatir-bid-clay-diff", "dafatir-bid-clay-nor", "dafatir-bid-clay-rough"], [4, 2]);
   const sandTex = useAssetTextures(["dafatir-bid-sand-diff", "dafatir-bid-sand-nor", "dafatir-bid-sand-rough"], [28, 18]);
   const wetTex = useAssetTextures(["dafatir-bid-wetsand-diff", "dafatir-bid-wetsand-nor", "dafatir-bid-wetsand-rough"], [32, 20]);
   const strataTex = useAssetTextures(["dafatir-bid-strata-diff", "dafatir-bid-strata-nor", "dafatir-bid-strata-rough"], [8, 0.35]);
@@ -201,6 +304,20 @@ export const StoneLinesLab: React.FC = () => {
     for (let i = 0; i < pos.count; i++) { const x = pos.getX(i), z = -pos.getY(i); pos.setZ(i, groundH(x, z)); }
     g.computeVertexNormals(); return g;
   }, []);
+  // الجولة ٣ (قرار المالك): رمل شاطئ شاحب فاتح بخامته الحقيقية: لون الخامة يُعاد إلى الشحوب حول متوسطها (تبقى حبيباتها
+  // ونتوؤها)، بدل ضرب لونها الأوسط البني في لون الورق
+  const sandMat = useMemo(() => {
+    const m = new THREE.MeshStandardMaterial({ roughness: 0.97, side: THREE.DoubleSide });
+    m.onBeforeCompile = (sh) => {
+      // ذهبي فاتح (ملاحظة المالك على v2: لا أبيض رمادي ولا بني ترابي)
+      sh.uniforms.uPale = { value: new THREE.Color(K.light).lerp(new THREE.Color(K.pale), 0.3) };
+      sh.uniforms.uMean = { value: new THREE.Color(0x83725d) };
+      sh.fragmentShader = sh.fragmentShader.replace("#include <common>", "#include <common>\nuniform vec3 uPale;\nuniform vec3 uMean;")
+        .replace("#include <map_fragment>", "#ifdef USE_MAP\nvec4 sd = texture2D( map, vMapUv );\ndiffuseColor.rgb *= uPale * mix( vec3( 1.0 ), sd.rgb / uMean, 0.55 );\n#endif");
+    };
+    return m;
+  }, []);
+  if (sandTex) { sandMat.map = sandTex[0]!; sandMat.normalMap = sandTex[1]!; sandMat.needsUpdate = !sandMat.userData.ok; sandMat.userData.ok = true; }
   // ثقب في الرمل فوق المقطع ليُرى من تحته (يُخفى من أعلى بلوح الرمل نفسه: الكاميرا لا تنظر إليه من فوق إلا في اللقطة الثالثة قبل النزول)
   const wetUniform = useMemo(() => ({ value: 0 }), []);
   wetUniform.value = level;
@@ -239,7 +356,7 @@ export const StoneLinesLab: React.FC = () => {
   const [probe, setProbe] = React.useState<ProbeGrid | null>(null);
   const onProbe = React.useCallback((g: ProbeGrid) => setProbe((q) => (q?.frame === g.frame ? q : g)), []);
   const waiting = React.useRef<{ frame: number; h: number } | null>(null);
-  const texReady = Boolean(stoneTex && sandTex && wetTex && strataTex);
+  const texReady = Boolean(stoneTex && sandTex && wetTex && strataTex && clayTex);
   if (lineNow && ready && texReady && probe?.frame !== frame && waiting.current?.frame !== frame) {
     if (waiting.current) continueRender(waiting.current.h);
     waiting.current = { frame, h: delayRender(`قياس ما خلف الترجمة ${frame}`) };
@@ -251,10 +368,18 @@ export const StoneLinesLab: React.FC = () => {
   // لفرق ضئيل في لحظة القراءة، ويأخذ الرمل حبرًا داكنًا بهالة فاتحة (قرار المالك: «حبر داكن على الرمل الفاتح»)
   const tones = useMemo(() => (lineNow && ready && probe?.frame === frame
     ? wordTones(lineNow.text, { bin: probe.bin, lum: probe.lum.map((r) => r.map((v) => (v > SAND_INK ? 0.9 : 0.1))) }, width, measureCaption) : []), [lineNow?.text, probe, frame, width, ready]); // eslint-disable-line react-hooks/exhaustive-deps
-  const stoneMat = (tint: THREE.Color) => {
+  const stoneMat = (tint: THREE.Color, set = 0) => {
     if (!stoneTex) return <meshStandardMaterial color={tint} roughness={0.9} />;
-    return <meshStandardMaterial color={tint} map={stoneTex[0]!} normalMap={stoneTex[1]!} normalScale={new THREE.Vector2(0.55, 0.55)} roughnessMap={stoneTex[2]!} />;
+    const tx = stoneTex[set]!;
+    return <meshStandardMaterial color={tint} map={tx[0]!} normalMap={tx[1]!} normalScale={new THREE.Vector2(0.8, 0.8)} roughnessMap={tx[2]!} />;
   };
+  // حجر في مكانه: نصف مدفون أو مستقر، بميله، وظل تلامس تحته
+  const stoneAt = (key: string, st: ReturnType<typeof useStones>[number], x: number, z: number, scale: number, drop: number) => (
+    <group key={key}>
+      <mesh geometry={st.g} position={[x, groundH(x, z) + (-st.minY - st.sink * st.height) * scale + drop, z]} rotation={[st.tilt[0], st.rot, st.tilt[1]]} scale={scale} castShadow={drop < 0.12} receiveShadow>{stoneMat(st.tint, st.tex)}</mesh>
+      {drop < 0.02 && <mesh position={[x, groundH(x, z) + 0.008, z]} rotation={[-Math.PI / 2, 0, st.rot]} renderOrder={1}><planeGeometry args={[scale * 2.9, scale * 2.3]} /><meshBasicMaterial map={contact} transparent depthWrite={false} toneMapped={false} polygonOffset polygonOffsetFactor={-4} /></mesh>}
+    </group>
+  );
   // الطبقات: ارتفاع أعلاها تحت سطح المقطع
   let ly = topY;
   let ri = 0;
@@ -273,7 +398,7 @@ export const StoneLinesLab: React.FC = () => {
         {/* الرمل الجاف، ثم المبلول فوقه عند الحافة */}
         <mesh geometry={ground} rotation={[-Math.PI / 2, 0, 0]} receiveShadow>
           {/* الرمل الجاف مطفأ (بلا خريطة خشونة): لا لمعات على حبيباته؛ والخامة تبقى في اللون والنتوء */}
-          {sandTex ? <meshStandardMaterial map={sandTex[0]!} normalMap={sandTex[1]!} roughness={0.97} color={K.paper} side={THREE.DoubleSide} /> : <meshStandardMaterial color={K.pale} roughness={0.95} />}
+          {sandTex ? <primitive object={sandMat} attach="material" /> : <meshStandardMaterial color={K.pale} roughness={0.95} />}
         </mesh>
         <mesh geometry={ground} rotation={[-Math.PI / 2, 0, 0]} position={[0, 0.0015, 0]} material={wetMat} receiveShadow />
         {/* الماء: مرآة بانعكاس السماء والحجارة، وسطح شفاف بلون الماء ونسيج موج */}
@@ -303,9 +428,7 @@ export const StoneLinesLab: React.FC = () => {
         {path.map(([x, z], i) => {
           const q = ease(span(line * path.length, i, 1.4));
           const st = lineStones[i]!;
-          return q > 0 ? (
-            <mesh key={i} geometry={st.g} position={[x, groundH(x, z) + st.s * 0.22 + (1 - q) * 0.6, z]} rotation={[0, st.rot, 0]} scale={st.s} castShadow receiveShadow>{stoneMat(st.tint)}</mesh>
-          ) : null;
+          return q > 0 ? stoneAt(`l${i}`, st, x, z, st.s, (1 - q) * 0.6) : null;
         })}
         {/* دوائر الحجارة: ثلاث قرى عند «القرى»، والكبيرة ببابها عند «المدن» */}
         {CIRCLES.map((cc, ci) => Array.from({ length: cc.n }, (_, k) => {
@@ -314,20 +437,31 @@ export const StoneLinesLab: React.FC = () => {
           if (cc.gap && Math.abs(((a + Math.PI) % (Math.PI * 2)) - Math.PI) < cc.gap / 2) return null;
           const prog = ci < 3 ? ease(span(t, villageK.a + ci * 0.15 + k * 0.02, 0.4)) : ease(span(t, cityK.a + k * 0.025, 0.4));
           const x = cc.x + Math.cos(a) * cc.r, z = cc.z + Math.sin(a) * cc.r;
-          return prog > 0 ? (
-            <mesh key={`${ci}-${k}`} geometry={st.g} position={[x, groundH(x, z) + st.s * 0.2 + (1 - prog) * 0.5, z]} rotation={[0, st.rot, 0]} scale={st.s * (ci < 3 ? 0.8 : 1.1)} castShadow receiveShadow>{stoneMat(st.tint)}</mesh>
-          ) : null;
+          return prog > 0 ? stoneAt(`${ci}-${k}`, st, x, z, st.s * (ci < 3 ? 0.8 : 1.1), (1 - prog) * 0.5) : null;
         }))}
         <RedThread points={path.slice(0, 12).map(([x, z], i) => { const ox = 0.16 + 0.07 * Math.sin(i * 1.7); return [x + ox, groundH(x + ox, z) + 0.012, z + 0.06] as V3; })} p={Math.min(1, line * 1.9)} knot={p(knotK)} knotAt={0.5} radius={0.012} />
         {/* بلاطتان من حجر حقيقي عليهما الختمان */}
-        <mesh position={[-1.9, groundH(-1.9, 3.2) + 0.03, 3.2]} rotation={[0, 0.3, 0]} receiveShadow castShadow><boxGeometry args={[0.95, 0.06, 0.72]} />{stoneMat(new THREE.Color(K.paper))}</mesh>
-        <ProofStamp word="ثابت" at={[-1.9, groundH(-1.9, 3.2) + 0.061, 3.2]} press={span(t, stampK.a, 0.3)} lift={span(t, stampK.a + 0.35, 0.4)} ready={ready} size={0.3} tilt={0.3} />
-        <mesh position={[-3.0, groundH(-3.0, -0.4) + 0.03, -0.4]} rotation={[0, -0.2, 0]} receiveShadow castShadow><boxGeometry args={[0.85, 0.06, 0.66]} />{stoneMat(new THREE.Color(K.paper))}</mesh>
-        <ProofStamp word="تقدير" at={[-3.0, groundH(-3.0, -0.4) + 0.061, -0.4]} press={span(t, proofK.a, 0.3)} lift={span(t, proofK.a + 0.35, 0.4)} ready={ready} size={0.27} ink={K.ink} tilt={-0.2} />
+        {/* الختمان يُضغطان في الرمل نفسه (أُزيلت البلاطتان: كانتا صندوقًا غير مفهوم، ملاحظة المالك على v2) */}
+        <ProofStamp word="ثابت" at={[-1.9, groundH(-1.9, 3.2) + 0.012, 3.2]} press={span(t, stampK.a, 0.3)} lift={span(t, stampK.a + 0.35, 0.4)} ready={ready} size={0.3} tilt={0.3} />
+        <ProofStamp word="تقدير" at={[-3.0, groundH(-3.0, -0.4) + 0.012, -0.4]} press={span(t, proofK.a, 0.3)} lift={span(t, proofK.a + 0.35, 0.4)} ready={ready} size={0.27} ink={K.ink} tilt={-0.2} />
         {/* حفنة الطين المبلل على حافة الماء (القطعة المخصوصة): موجودة من البداية، ساكنة كلها */}
-        <mesh geometry={clay} position={[CLAY_AT[0], groundH(CLAY_AT[0], CLAY_AT[1]) + 0.04, CLAY_AT[1]]} rotation={[0, 0.6, 0]} scale={0.11} castShadow receiveShadow>
-          <meshStandardMaterial color={mixC(K.clay, K.light, 0.25)} map={wetTex?.[0]} roughness={0.5} normalMap={wetTex?.[1]} normalScale={new THREE.Vector2(0.9, 0.9)} />
-        </mesh>
+        {(() => {
+          const [x, z] = CLAY_AT, y = groundH(x, z);
+          return (
+            <group>
+              <mesh position={[x, y + 0.014, z]} rotation={[-Math.PI / 2, 0, 0.4]} renderOrder={1}><planeGeometry args={[0.66, 0.56]} /><meshStandardMaterial map={damp} transparent roughness={0.22} depthWrite={false} polygonOffset polygonOffsetFactor={-4} /></mesh>
+              <mesh geometry={clay} position={[x, y + 0.012, z]} rotation={[0, 0.6, 0]} scale={0.13} castShadow receiveShadow>
+                {/* لمعة البلل: طبقة لامعة فوق طين خشن قليلًا، ولون الرطوبة من رؤوس الشبكة */}
+                <meshPhysicalMaterial vertexColors map={clayTex?.[0]} normalMap={clayTex?.[1]} normalScale={new THREE.Vector2(0.5, 0.5)} roughnessMap={clayTex?.[2]} roughness={0.75} clearcoat={0.55} clearcoatRoughness={0.3} clearcoatRoughnessMap={clayTex?.[2]} />
+              </mesh>
+              {CLAY_CRUMBS.map(([dx, dz, r], i) => (
+                <mesh key={i} geometry={crumbs[i]!} position={[x + dx, y + r * 0.35, z + dz]} rotation={[0, i * 1.3, 0]} scale={r} castShadow receiveShadow>
+                  <meshStandardMaterial map={clayTex?.[0]} color={mixC(K.paper, K.light, 0.3)} roughness={0.8} />
+                </mesh>
+              ))}
+            </group>
+          );
+        })()}
         </>)}
         {/* القياس بعد اكتمال الخطوط والخامات وحده: قراءة إطار بألوان بديلة قبل تحميل الخامات تقلب نبرة الترجمة */}
         {ready && texReady ? <CaptionProbe frame={frame} rows={rows} onProbe={onProbe} /> : null}
