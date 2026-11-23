@@ -161,11 +161,15 @@ const camOf = (c: BidCut, t: number, still: Window[]): CamState & { focus: numbe
 export const bidMarkPlace = (shot: BidShotId, setup = 0) => {
   const c = BID_SETUPS[shot][setup % 2]!.from, pos = orbit(c);
   const dx = c.target[0] - pos[0], dz = c.target[2] - pos[2], len = Math.hypot(dx, dz) || 1;
-  const d = Math.min(0.72 * len, 6.0), ux = dx / len, uz = dz / len;
+  const ux = dx / len, uz = dz / len;
+  // على الرمل الجاف وحده: يقترب من الكاميرا حتى يكون فوق أعلى الماء بوضوح (لا كلمة تحت الماء)
+  let d = Math.min(0.72 * len, 4.5);
+  while (d > 1 && groundH(pos[0] + ux * d, pos[2] + uz * d) < waterLevel(1) + 0.015) d -= 0.25;
   const markAt: [number, number] = [pos[0] + ux * d, pos[2] + uz * d];
   const markW = Math.min(3.0, Math.max(0.7, d * 0.5));
   // يسار الشاشة: عمودي على اتجاه النظر
-  const stampAt: [number, number] = [markAt[0] + uz * markW * 0.7, markAt[1] - ux * markW * 0.7];
+  // الختم إلى يسار الكلمة وأبعد منها قليلًا (فوقها في الكادر، لا تحت الترجمة ولا خارج الإطار)
+  const stampAt: [number, number] = [markAt[0] + uz * markW * 0.42 + ux * markW * 0.45, markAt[1] - ux * markW * 0.42 + uz * markW * 0.45];
   return { markAt, markW, stampAt, markRot: Math.atan2(-ux, -uz) };
 };
 
@@ -327,7 +331,7 @@ export const BidayatScene: React.FC<BidayatProps> = (props) => {
   // الكلمة والختم في زاوية القطع الذي تقع فيه لحظتهما، فيُريان حين يُكتبان (ويبقيان في مكانهما بعده)
   const setupAt = (e?: BidEvent) => (e ? Math.max(0, cuts.findIndex((c) => e.a >= c.a && e.a < c.b)) : 0);
   const { markAt, markW, markRot } = bidMarkPlace(shot, setupAt(ev("mark")));
-  const { stampAt } = bidMarkPlace(shot, setupAt(ev("stamp")));
+  const { stampAt, markRot: stampRot } = bidMarkPlace(shot, setupAt(ev("stamp")));
   const sentence = (() => {
     // الترجمة سطر هادئ (جملة جملة) بلا مستطيل (D187، D192)، بنبرة اللقطة
     if (props.captions === false || !words.length) return null;
@@ -402,7 +406,7 @@ export const BidayatScene: React.FC<BidayatProps> = (props) => {
           {(shot === "verse" || shot === "words") && (
             <group>
               {/* لوح حجر فاتح (حجر جيري): نتوء الخامة وخشونتها بلا لونها الداكن، فيُقرأ الحبر عليه */}
-              <mesh geometry={slab} position={[SX, yAt(SX, SZ) + 0.04, SZ]} castShadow receiveShadow><meshStandardMaterial color={mixC(K.pale, K.light, 0.3)} normalMap={tex.stone[0]![1]!} normalScale={new THREE.Vector2(1.4, 1.4)} roughness={1} /></mesh>
+              <mesh geometry={slab} position={[SX, yAt(SX, SZ) + 0.04, SZ]} castShadow receiveShadow><meshStandardMaterial color={mixC(K.sand, K.pale, 0.45)} normalMap={tex.stone[0]![1]!} normalScale={new THREE.Vector2(0.5, 0.5)} roughness={1} /></mesh>
               {shot === "verse" && <mesh position={[SX, yAt(SX, SZ) + 0.125, SZ]} rotation={[-Math.PI / 2, 0, 0]} renderOrder={2}><planeGeometry args={[2.0, 1.25]} /><meshStandardMaterial map={verseTex} transparent roughness={0.95} depthWrite={false} polygonOffset polygonOffsetFactor={-6} /></mesh>}
               {shot === "words" && items.map((_, i) => {
                 const e = ev(`item${i}`); const q = e ? ease(span(t, e.a, 0.5)) : 0;
@@ -450,11 +454,11 @@ export const BidayatScene: React.FC<BidayatProps> = (props) => {
             {stoneAt("start", pathStones[0]!, twoPaths()[0][0]![0], twoPaths()[0][0]![1], 0.17, 0)}
             {away.map(([x, z], i) => { const q = ease(span(prog("a") * away.length, i, 1.3)); const st = pathStones[1 + i]!; return q > 0 ? stoneAt(`pa${i}`, st, x, z, st.s * 0.9, (1 - q) * 0.5) : null; })}
             {back.map(([x, z], i) => { const q = ease(span(prog("b") * back.length, i, 1.3)); const st = pathStones[1 + away.length + i]!; return q > 0 ? stoneAt(`pb${i}`, st, x, z, st.s * 0.9, (1 - q) * 0.5) : null; })}
-            {prog("a") > 0.6 && decal("la", abTex, away[0]![0] - 0.75, away[0]![1] - 0.35, 1.1, yAt(away[0]![0] - 0.75, away[0]![1] - 0.35) + 0.03, 0, 0, 3, span(prog("a"), 0.6, 0.4))}
-            {prog("b") > 0.6 && decal("lb", abTex, away[0]![0] + 0.75, away[0]![1] - 0.35, 1.1, yAt(away[0]![0] + 0.75, away[0]![1] - 0.35) + 0.03, 0, 1, 3, span(prog("b"), 0.6, 0.4))}
+            {prog("a") > 0.6 && decal("la", abTex, away[0]![0] - 0.55, away[0]![1] - 0.55, 1.1, yAt(away[0]![0] - 0.55, away[0]![1] - 0.55) + 0.03, 0, 0, 3, span(prog("a"), 0.6, 0.4))}
+            {prog("b") > 0.6 && decal("lb", abTex, away[0]![0] + 0.75, away[0]![1] - 0.55, 1.1, yAt(away[0]![0] + 0.75, away[0]![1] - 0.55) + 0.03, 0, 1, 3, span(prog("b"), 0.6, 0.4))}
           </>)}
           {p.mark && markQ > 0 && decal("mark", markTex, markAt[0], markAt[1], markW, yAt(markAt[0], markAt[1]) + 0.03, markRot)}
-          {stampWord && stE && <ProofStamp word={stampWord} at={[stampAt[0], yAt(stampAt[0], stampAt[1]) + 0.012, stampAt[1]]} press={span(t, stE.a, 0.3)} lift={span(t, stE.a + 0.35, 0.4)} ready={ready} size={0.36} ink={stampWord === "ثابت" ? K.ribbon : K.soil} tilt={0.2} />}
+          {stampWord && stE && <ProofStamp word={stampWord} at={[stampAt[0], yAt(stampAt[0], stampAt[1]) + 0.012, stampAt[1]]} press={span(t, stE.a, 0.3)} lift={span(t, stE.a + 0.35, 0.4)} ready={ready} size={0.5} ink={stampWord === "ثابت" ? K.ribbon : K.soil} tilt={stampRot} />}
         </>)}
       </Stage3D>
       {/* صوت المكان، ومع كل حركة صوتها (D158) */}
