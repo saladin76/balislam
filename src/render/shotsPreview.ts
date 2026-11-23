@@ -12,7 +12,7 @@ import { VERSE_PLACEHOLDER } from "../plan/quranText";
 import { sceneFrames } from "../plan/duration";
 import { resolveScriptPath } from "../script/episodes";
 import type { Plan } from "../plan/types";
-import { coldOpenIssues, coldOpenSource } from "../plan/coldOpen";
+import { coldOpenIssues, cutPlans } from "../plan/coldOpen";
 import type { EpisodeMedia } from "../plan/media";
 import { renderEpisode } from "./episode";
 import { scriptVersesAreCitations } from "../quran/citationChannel";
@@ -65,20 +65,12 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   const sceneDraft = /^scene-[a-z0-9-]+-av$/.test(opts.slot);
   // A scene cut carries the channel intro only if it opens the episode: the assembly concatenates the cuts,
   // so it then holds one intro at the start exactly like the Master, not one per scene (funnel audit, D36).
-  const opensEpisode = full.chapters[0]?.scenes[0]?.id === ids[0];
-  // D198: the cold open lives in the same slot as the intro, so the first cut carries it too; its source scene
-  // (later in the episode) is attached as a snapshot because the plan below keeps only the rendered scenes.
-  const source = opensEpisode ? coldOpenSource(full) : null;
-  const plan: Plan = { ...full, ...(sceneDraft && !opensEpisode ? { intro: false, coldOpen: undefined } : {}),
-    ...(source ? { coldOpenSource: source } : {}),
-    chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => ids.includes(s.id)) })).filter((c) => c.scenes.length) };
+  // A scene cut carries the channel intro and the D198 cold open only if it opens the episode (cutPlans, src/plan/coldOpen.ts):
+  // the assembly concatenates the cuts, so it then holds one intro at the start exactly like the Master (funnel audit, D36).
+  const { plan, mediaPlan } = cutPlans(full, ids, sceneDraft);
   const draftMode = Boolean(opts.allowPendingRecitation && sceneDraft);
-  // Only reviewed, owner-attached recordings are ever used; a draft simply leaves a missing one silent.
-  // The cold open's source recording is collected with the rendered scenes (the same file, never a new one).
-  // …and its page-turn sound (D158: a sound with the turn), collected like any scene's effect, never generated.
-  const mediaPlan: Plan = source
-    ? { ...plan, chapters: [...plan.chapters, { number: -1, title: "", scenes: [{ ...source, id: `${source.id}`, sfx: [...source.sfx, { id: "page-turn", at: 0 }] }] }] }
-    : plan;
+  // Only reviewed, owner-attached recordings are ever used; a draft simply leaves a missing one silent. The cold open's source
+  // recording and its page-turn (D158) are collected with the rendered scenes through mediaPlan (never a new recording).
   const media = draftMode
     ? await prepareRenderMedia(episode, mediaPlan, { requireApprovedQuran: false })
     : await prepareRenderMedia(episode, mediaPlan, { requireApprovedQuran: true });

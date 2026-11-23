@@ -9,6 +9,12 @@
  * - الصورة لا تكرر العنوان: كلمات الغلاف لا تكون كلها من عنوان واحد من عناوين الحلقة؛
  * - لا غلافان بالنص نفسه، والسؤال ينتهي بـ«؟»، ولا أثر لأدوات الإنتاج ولا إثارة رخيصة؛
  * - غلاف المشهد من مشهد في الخطة، وليس مشهد آية أو بسملة أو دعاء أو حديث (توقير).
+ * - بؤرة اللقطة (`focus`) لا تقطع نصًا من المشهد عند حافة الغلاف: كل كلمة في اللقطة داخل الإطار كلها أو خارجه كلها
+ *   (يُراجَع بالعين عند اختيار البؤرة؛ لا فحص آلي لموضع النص داخل صورة المشهد).
+ * - لا غلاف يشطب كلمات من القرآن أو يقطعها بخط أو علامة، ولو كانت على لسان إبليس أو غيره (قرار المالك ٢٣ نوفمبر:
+ *   «لا نشطب كلمات من القرآن»؛ أُلغي لذلك غلاف «وعود كاذبة» لـ001 وفيه «ملكين» و«من الخالدين» من الأعراف ٢٠ مشطوبتين).
+ *   يُراجَع بالعين عند اختيار اللقطة؛ لا فحص آلي لما في صورة المشهد.
+ * - اللقطة من رندر 4K (D196 v5): Master الحالي، وإلا لقطة 4K للمشهد نفسه (`pickFrameSource` في `thumbnailFrame.ts`).
  * المرجع: youtube-agent-skill (yt-package).
  */
 import { normalizeArabic } from "../script/quranMeta";
@@ -27,6 +33,15 @@ export const THUMB_ON_HOLD: Partial<Record<ThumbKind, string>> = {
   question: "موقوف حتى يختار المالك اتجاه القناة البصري (KI-120)",
 };
 
+/**
+ * رفع الإيقاف بالاتجاه المعتمد (D196، قرار المالك ٢٢ نوفمبر: «الأغلفة الثلاثة الآن، الاتجاه معتمد»): أسلوب «دفتر الأفق»
+ * لدفاتر الزمن له تصميم «مشهد» و«سؤال» يتبعه (src/remotion/Thumbnail.tsx)، فلا إيقاف له. الأساليب الأخرى موقوفة كما هي
+ * حتى يُعتمد اتجاه قناتها.
+ */
+export const THUMB_STYLES_RELEASED = ["horizon"] as const;
+export const thumbHoldFor = (style?: string): Partial<Record<ThumbKind, string>> =>
+  style && (THUMB_STYLES_RELEASED as readonly string[]).includes(style) ? {} : THUMB_ON_HOLD;
+
 /** أقصى عدد كلمات على الصورة (قرار المالك). */
 export const THUMB_MAX_WORDS = 3;
 
@@ -34,10 +49,12 @@ export type ThumbnailConcept = {
   kind: ThumbKind;
   /** الكلمات على الصورة: ثلاث على الأكثر */
   text: string;
-  /** غلاف «مشهد»: المشهد الذي تُؤخذ منه اللقطة */
+  /** المشهد الذي تُؤخذ منه اللقطة: لازم لغلاف «مشهد»، واختياري للعنوان والسؤال في «دفتر الأفق» (D196: الأغلفة من صور الحلقة) */
   sceneId?: string;
-  /** غلاف «مشهد»: لحظة اللقطة بالثواني من بداية المشهد؛ إن غابت تُختار آليًا (`frameTimeFor`) */
+  /** لحظة اللقطة بالثواني من بداية المشهد؛ إن غابت تُختار آليًا (`frameTimeFor`) */
   atSeconds?: number;
+  /** بؤرة العنصر في الإطار (٠–١) والتكبير عليه (١–٤)، فيملأ العنصر الغلاف */
+  focus?: { x: number; y: number; zoom: number; bottom?: number };
 };
 
 export type ThumbIssue = { level: "error" | "warning"; where: string; message: string; suggestion?: string };
@@ -97,9 +114,11 @@ export const thumbnailIssues = (concepts: ThumbnailConcept[] | undefined, ctx: T
       if (seen.has(k)) err(where, `النص نفسه في غلاف «${THUMB_KIND_LABEL[seen.get(k)!]}»؛ كل غلاف فكرة مختلفة.`);
       seen.set(k, c.kind);
     }
-    if (c.kind === "scene") {
-      if (!c.sceneId) err(where, "اختر المشهد الذي تُؤخذ منه اللقطة.");
-      else if (ctx.scenes) {
+    if (c.kind === "scene" && !c.sceneId) err(where, "اختر المشهد الذي تُؤخذ منه اللقطة.");
+    if (c.focus && !(c.focus.x >= 0 && c.focus.x <= 1 && c.focus.y >= 0 && c.focus.y <= 1 && c.focus.zoom >= 1 && c.focus.zoom <= 4 && (c.focus.bottom === undefined || (c.focus.bottom >= 0.5 && c.focus.bottom <= 1))))
+      err(where, "بؤرة اللقطة غير صالحة (المركز بين ٠ و١، والتكبير بين ١ و٤).");
+    if (c.sceneId) {
+      if (ctx.scenes) {
         const s = sceneById.get(c.sceneId);
         if (!s) err(where, `المشهد ${c.sceneId} ليس في خطة الحلقة.`);
         else if (s.sacred) err(where, `المشهد ${c.sceneId} مشهد آية أو بسملة أو دعاء؛ لا يُستعمل غلافًا.`);
@@ -149,8 +168,9 @@ export const frameTimeFor = (durationSec: number, at?: number): number => {
 export const conceptOrder = (concepts: ThumbnailConcept[]) =>
   THUMB_KINDS.map((k) => concepts.find((c) => c.kind === k)).filter((c): c is ThumbnailConcept => Boolean(c));
 
-/** ما يُرسم الآن وما هو موقوف (KI-120)، بترتيب الملفات الثابت. */
-export const renderableConcepts = (concepts: ThumbnailConcept[]) => {
+/** ما يُرسم الآن وما هو موقوف (KI-120)، بترتيب الملفات الثابت؛ style أسلوب مصغّرة القناة (brand.thumbnail). */
+export const renderableConcepts = (concepts: ThumbnailConcept[], style?: string) => {
+  const hold = thumbHoldFor(style);
   const all = conceptOrder(concepts);
-  return { render: all.filter((c) => !THUMB_ON_HOLD[c.kind]), held: all.filter((c) => THUMB_ON_HOLD[c.kind]) };
+  return { render: all.filter((c) => !hold[c.kind]), held: all.filter((c) => hold[c.kind]) };
 };

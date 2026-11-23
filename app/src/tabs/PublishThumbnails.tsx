@@ -8,7 +8,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { api } from "../api";
 import { arDigits } from "../ui/format";
 import {
-  THUMB_KIND_LABEL, THUMB_KINDS, THUMB_MAX_WORDS, THUMB_ON_HOLD, conceptOrder, isSacredScene, suggestThumbnails, thumbnailIssues, thumbnailWords,
+  THUMB_KIND_LABEL, THUMB_KINDS, THUMB_MAX_WORDS, conceptOrder, thumbHoldFor, isSacredScene, suggestThumbnails, thumbnailIssues, thumbnailWords,
   type ThumbKind, type ThumbnailConcept,
 } from "../../../src/package/thumbnails";
 
@@ -16,7 +16,7 @@ type SceneOpt = { id: string; narration: string; sacred: boolean };
 
 const HINT: Record<ThumbKind, string> = {
   title: "كلمة الغلاف بخط القناة وعنصرها: فكرة لا يقولها العنوان",
-  scene: "لقطة حقيقية من مشهد معتمد؛ الكلمات اختيارية",
+  scene: "لقطة حقيقية من مشهد معتمد؛ الكلمات اختيارية (وفي «دفتر الأفق» لكل غلاف لقطته من الحلقة)",
   question: "سؤال الحلقة بلا إجابة، ينتهي بـ«؟»",
 };
 
@@ -28,11 +28,14 @@ export const ThumbnailConcepts: React.FC<{
 }> = ({ episodeId, value, titles, onChange }) => {
   const [scenes, setScenes] = useState<SceneOpt[] | null>(null);
   const [title, setTitle] = useState("");
+  // D196: أسلوب مصغّرة القناة المعتمد اتجاهه («دفتر الأفق») لا إيقاف لغلافيه
+  const [thumbStyle, setThumbStyle] = useState<string | undefined>(undefined);
   useEffect(() => {
     let live = true;
     api.episode(episodeId).then((d) => {
       if (!live) return;
       setTitle(d.plan.title);
+      setThumbStyle(d.channel?.brand?.thumbnail);
       setScenes(d.plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, narration: s.narration, sacred: isSacredScene(s) })));
     }).catch(() => live && setScenes([]));
     return () => { live = false; };
@@ -74,11 +77,11 @@ export const ThumbnailConcepts: React.FC<{
               <span className="spacer" />
               <span className="help" style={{ color: n > THUMB_MAX_WORDS ? "var(--err)" : undefined }}>{arDigits(n)}/{arDigits(THUMB_MAX_WORDS)} كلمات</span>
             </label>
-            {THUMB_ON_HOLD[c.kind] ? <span className="help" data-testid={`thumb-hold-${c.kind}`}>⏸ {THUMB_ON_HOLD[c.kind]}: اكتب كلماته الآن، ويُرسم بعد اختيار الاتجاه.</span> : null}
+            {thumbHoldFor(thumbStyle)[c.kind] ? <span className="help" data-testid={`thumb-hold-${c.kind}`}>⏸ {thumbHoldFor(thumbStyle)[c.kind]}: اكتب كلماته الآن، ويُرسم بعد اختيار الاتجاه.</span> : null}
             <input type="text" aria-label={`كلمات غلاف ${THUMB_KIND_LABEL[c.kind]}`} value={c.text} onChange={(e) => set(c.kind, { text: e.target.value })} />
-            {c.kind === "scene" ? (
+            {c.kind === "scene" || thumbStyle === "horizon" ? (
               <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <select aria-label="مشهد اللقطة" value={c.sceneId ?? ""} onChange={(e) => set("scene", { sceneId: e.target.value || undefined })}>
+                <select aria-label={`مشهد لقطة غلاف ${THUMB_KIND_LABEL[c.kind]}`} value={c.sceneId ?? ""} onChange={(e) => set(c.kind, { sceneId: e.target.value || undefined })}>
                   <option value="">اختر المشهد…</option>
                   {(scenes ?? []).filter((s) => !s.sacred).map((s) => (
                     <option key={s.id} value={s.id}>{s.id} — {s.narration.length > 44 ? `${s.narration.slice(0, 44)}…` : s.narration}</option>
@@ -86,9 +89,22 @@ export const ThumbnailConcepts: React.FC<{
                 </select>
                 <label className="help">
                   لحظة اللقطة (ث){" "}
-                  <input type="number" min={0} step={0.1} style={{ width: 80 }} aria-label="لحظة اللقطة بالثواني" value={c.atSeconds ?? ""} placeholder="آليًا"
-                    onChange={(e) => set("scene", { atSeconds: e.target.value === "" ? undefined : Number(e.target.value) })} />
+                  <input type="number" min={0} step={0.1} style={{ width: 80 }} aria-label={`لحظة لقطة غلاف ${THUMB_KIND_LABEL[c.kind]} بالثواني`} value={c.atSeconds ?? ""} placeholder="آليًا"
+                    onChange={(e) => set(c.kind, { atSeconds: e.target.value === "" ? undefined : Number(e.target.value) })} />
                 </label>
+                {/* D196 v2: بؤرة العنصر في اللقطة (المركز ٠–١ والتكبير ١–٤) فيملأ الغلاف */}
+                {(["x", "y", "zoom"] as const).map((k) => (
+                  <label key={k} className="help">
+                    {k === "x" ? "المركز أفقيًا" : k === "y" ? "المركز رأسيًا" : "التكبير"}{" "}
+                    <input type="number" min={k === "zoom" ? 1 : 0} max={k === "zoom" ? 4 : 1} step={0.05} style={{ width: 64 }} aria-label={`${k} لبؤرة غلاف ${THUMB_KIND_LABEL[c.kind]}`}
+                      value={c.focus?.[k] ?? ""} placeholder={k === "zoom" ? "١" : "٠٫٥"}
+                      onChange={(e) => {
+                        const v = e.target.value === "" ? undefined : Number(e.target.value);
+                        const f = { x: 0.5, y: 0.4, zoom: 1, ...(c.focus ?? {}), [k]: v };
+                        set(c.kind, { focus: v === undefined && !c.focus ? undefined : { x: f.x ?? 0.5, y: f.y ?? 0.4, zoom: f.zoom ?? 1, ...(c.focus?.bottom ? { bottom: c.focus.bottom } : {}) } });
+                      }} />
+                  </label>
+                ))}
               </div>
             ) : null}
             {mine.map((x, k) => (

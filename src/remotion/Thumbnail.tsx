@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill } from "remotion";
+import { AbsoluteFill, Img } from "remotion";
 import { useTheme } from "../../brand/identity/index";
 import { fontFamilies } from "../../brand/fonts";
 import { Element } from "../../brand/elements/Element";
@@ -15,10 +15,13 @@ import type { SeriesStamp } from "../channel/series";
 import { SeriesBadge } from "./series/SeriesArt";
 
 /**
- * غلاف من الأغلفة الثلاثة (src/package/thumbnails.ts). يُرسم «عنوان» وحده بأسلوب مصغّرة القناة المعتمد وكلمته؛
- * «مشهد» و«سؤال» موقوفان حتى يختار المالك اتجاه القناة البصري (KI-120)، فلا تصميم لهما هنا.
+ * غلاف من الأغلفة الثلاثة (src/package/thumbnails.ts). «عنوان» بأسلوب مصغّرة القناة المعتمد وكلمته في كل القنوات.
+ * «مشهد» و«سؤال» لهما تصميم بأسلوب «دفتر الأفق» وحده (D196، اتجاه دفاتر الزمن معتمد)؛ وفي الأساليب الأخرى موقوفان
+ * (KI-120) حتى يُعتمد اتجاه قناتها. «مشهد» لقطة حقيقية من فيديو المشهد المعتمد (image: data URI من thumbnailFrame.ts).
  */
-export type ThumbConceptProp = { kind: "title"; text: string };
+/** بؤرة اللقطة: مركز العنصر في الإطار (٠–١) والتكبير عليه (≥١)، فيملأ العنصر الغلاف */
+export type ThumbFocus = { x: number; y: number; zoom: number; /** أدنى جزء ظاهر من الإطار (٠٫٥–١)؛ الافتراضي يخفي شريط الترجمة المحروق، ويُرفع للحظة بلا ترجمة */ bottom?: number };
+export type ThumbConceptProp = { kind: "title" | "scene" | "question"; text: string; image?: string; focus?: ThumbFocus };
 export type ThumbnailProps = { themeId: ThemeId; title: string; highlight?: string; element?: string; concept?: ThumbConceptProp; /** اسم الكتاب (book في رأس السكريبت): شارة التنبيه في مصغّرة زبدة الكتب */ book?: string; identity?: Identity; channel?: ChannelInfo; lang?: string;
   /** سلسلة الحلقة (plan.series): شارتها بأسلوب القناة فوق المصغّرة نفسها؛ غيابها = مصغّرة القناة كما هي */
   series?: Pick<SeriesStamp, "identity" | "name" | "number" | "kind" | "template"> };
@@ -38,8 +41,11 @@ const ThumbnailInner: React.FC<Omit<ThumbnailProps, "identity" | "channel" | "la
   const style = useChannel().brand?.thumbnail ?? "circle";
   // الأغلفة الثلاثة: «عنوان» بأسلوب مصغّرة القناة المعتمد وكلمته؛ «سؤال» و«مشهد» موقوفان (KI-120)
   const signature = (p: Inner) => (style === "mihrab" ? <MihrabThumb {...p} /> : style === "horizon" ? <HorizonThumb {...p} /> : style === "highlighter" ? <HighlighterThumb {...p} /> : <CircleThumb {...p} />);
-  if (concept && concept.kind !== "title") throw new Error(`غلاف «${concept.kind}» موقوف حتى يختار المالك اتجاه القناة (KI-120).`);
+  if (concept && concept.kind !== "title" && style !== "horizon") throw new Error(`غلاف «${concept.kind}» موقوف حتى يختار المالك اتجاه القناة (KI-120).`);
   const body = !concept ? signature(props)
+    : style === "horizon" && concept.kind === "scene" ? <HorizonSceneThumb {...props} words={concept.text} image={concept.image} focus={concept.focus} />
+    : style === "horizon" && concept.kind === "question" ? <HorizonQuestionThumb {...props} words={concept.text} image={concept.image} focus={concept.focus} />
+    : style === "horizon" && concept.image ? <HorizonTitleFrameThumb {...props} words={concept.text} image={concept.image} focus={concept.focus} />
     : signature({ ...props, title: concept.text, highlight: concept.text.split(/\s+/).filter(Boolean).slice(-1).join(" ") });
   if (!series || series.template?.thumbnail?.layout === "channel" || series.identity.thumbnail.badge === "none") return body;
   return <AbsoluteFill>{body}<SeriesBadge d={series.identity} name={series.name} number={series.kind === "series" ? series.number : undefined} /></AbsoluteFill>;
@@ -180,6 +186,99 @@ const HorizonThumb: React.FC<Inner> = ({ title, highlight, element }) => {
         <ChannelLogo theme={t} size={64} tile={false} />
         <span style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: 34, color: "#2B1E14" }}><ChannelName /></span>
       </div>
+    </AbsoluteFill>
+  );
+};
+
+/** نسبة أسفل لقطة المشهد التي يشغلها شريط الترجمة في فيديو المشهد (CaptionBar)؛ لا تظهر على الغلاف */
+export const SCENE_CAPTION_BAND = 0.24;
+const INK = "#2B1E14", PARCH = "#EADBC0", RED = "#D7372B", RED_DARK = "#7E2A22", CREAM = "#F3E9DA";
+
+/**
+ * اللقطة الحقيقية مقصوصة على عنصرها (D196 بعد ملاحظة المالك ٢٢ نوفمبر): تكبير على بؤرة العنصر فيملأ المساحة،
+ * ولا يظهر شريط الترجمة المحروق أسفل الإطار (SCENE_CAPTION_BAND). الصورة ١٩٢٠×١٠٨٠ كفيديو المشهد.
+ */
+export const focusBox = (W: number, H: number, f: ThumbFocus = { x: 0.5, y: 0.4, zoom: 1 }) => {
+  const scale = Math.max(1, f.zoom) * Math.max(W / 1920, H / 1080);
+  const iw = 1920 * scale, ih = 1080 * scale;
+  const usable = ih * Math.min(1, Math.max(0.5, f.bottom ?? 1 - SCENE_CAPTION_BAND));
+  const left = Math.min(0, Math.max(W - iw, W / 2 - f.x * iw));
+  const top = Math.min(0, Math.max(H - usable, H / 2 - f.y * ih));
+  return { iw, ih, left, top };
+};
+const FramePhoto: React.FC<{ image?: string; focus?: ThumbFocus; w: number; h: number; element?: string }> = ({ image, focus, w, h, element }) => {
+  const t = useTheme("paper");
+  const b = focusBox(w, h, focus);
+  return (
+    <div data-testid="thumb-frame" style={{ position: "absolute", inset: 0, overflow: "hidden", background: PARCH }}>
+      {image ? <Img src={image} style={{ position: "absolute", left: b.left, top: b.top, width: b.iw, height: b.ih, display: "block" }} />
+        : <div style={{ width: "100%", height: "100%", display: "grid", placeItems: "center" }}><Element id={element && hasElement(element) ? element : "scroll"} theme={t} size={Math.min(w, h) * 0.6} /></div>}
+    </div>
+  );
+};
+const Mark: React.FC<{ light?: boolean }> = ({ light }) => {
+  const t = useTheme(light ? "night" : "paper");
+  return (
+    <div style={{ position: "absolute", top: 22, insetInlineEnd: 26, display: "flex", alignItems: "center", gap: 10 }}>
+      <ChannelLogo theme={t} size={52} tile={false} />
+      <span style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: 28, color: light ? CREAM : INK }}><ChannelName /></span>
+    </div>
+  );
+};
+
+/**
+ * دفاتر الزمن — غلاف «عنوان» من صورة الحلقة (D196 v2): العنصر يملأ يسار الغلاف (٦٢٪)، والكلمات على ورق الدفتر الصافي يمينه
+ * بحبر داكن كبير جدًا؛ خط حبر فاصل وشريط التاريخ الأحمر عند رأس العمود. لا سماء ولا تدرّج ولا نجوم.
+ */
+const HorizonTitleFrameThumb: React.FC<Inner & { words: string; image?: string; focus?: ThumbFocus }> = ({ words, image, focus, element }) => {
+  const w = words.trim();
+  return (
+    <AbsoluteFill style={{ direction: useLang().dir, overflow: "hidden", background: PARCH }}>
+      <div style={{ position: "absolute", left: 0, top: 0, width: 800, height: 720 }}><FramePhoto image={image} focus={focus} w={800} h={720} element={element} /></div>
+      <div style={{ position: "absolute", left: 800, top: 0, width: 8, height: 720, background: INK }} />
+      <svg width={1280} height={720} style={{ position: "absolute", inset: 0 }}><path d="M1160 0 H1212 V120 L1186 100 L1160 120 Z" fill={RED} stroke={RED_DARK} strokeWidth={3} /></svg>
+      <div data-testid="thumb-title-words" style={{ position: "absolute", left: 830, right: 40, top: 130, bottom: 60, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: w.length > 9 ? 128 : 150, lineHeight: 1.12, color: INK, textAlign: "center" }}>{w}</div>
+      </div>
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * دفاتر الزمن — غلاف «مشهد» (D196 v2): اللقطة الحقيقية تملأ الغلاف كله مكبّرة على عنصرها، والكلمات على شريط التاريخ الأحمر
+ * الصلب أسفله بلون الورق (تباين عالٍ بلا ظل ولا تدرّج).
+ */
+const HorizonSceneThumb: React.FC<Inner & { words: string; image?: string; focus?: ThumbFocus }> = ({ words, image, focus, element }) => {
+  const w = words.trim();
+  return (
+    <AbsoluteFill style={{ direction: useLang().dir, overflow: "hidden", background: PARCH }}>
+      <FramePhoto image={image} focus={focus} w={1280} h={w ? 560 : 720} element={element} />
+      {w ? (
+        <div data-testid="thumb-scene-band" style={{ position: "absolute", left: 0, right: 0, bottom: 0, height: 160, background: RED, borderTop: `6px solid ${RED_DARK}`, display: "flex", alignItems: "center", justifyContent: "center" }}>
+          <div style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: 118, lineHeight: 1, color: CREAM }}>{w}</div>
+        </div>
+      ) : null}
+      <Mark />
+    </AbsoluteFill>
+  );
+};
+
+/**
+ * دفاتر الزمن — غلاف «سؤال» (D196 v2): العنصر في أعلى الغلاف مكبّرًا، وتحته ورق الدفتر الصافي والسؤال بحبر داكن كبير جدًا
+ * و«؟» بأحمر شريط التاريخ. فكرة ثالثة مختلفة: الصورة سؤال، والكلمات سؤال.
+ */
+const HorizonQuestionThumb: React.FC<Inner & { words: string; image?: string; focus?: ThumbFocus }> = ({ words, image, focus, element }) => {
+  const q = words.trim().replace(/[؟?]\s*$/, "");
+  return (
+    <AbsoluteFill style={{ direction: useLang().dir, overflow: "hidden", background: PARCH }}>
+      <div style={{ position: "absolute", left: 0, top: 0, width: 1280, height: 440 }}><FramePhoto image={image} focus={focus} w={1280} h={440} element={element} /></div>
+      <div style={{ position: "absolute", left: 0, right: 0, top: 440, height: 7, background: INK }} />
+      <div data-testid="thumb-question" style={{ position: "absolute", left: 40, right: 40, top: 447, bottom: 0, display: "flex", alignItems: "center", justifyContent: "center" }}>
+        <div style={{ fontFamily: "'Amiri', serif", fontWeight: 700, fontSize: q.length > 10 ? 150 : 170, lineHeight: 1, color: INK, textAlign: "center" }}>
+          {q}<span style={{ color: RED }}>؟</span>
+        </div>
+      </div>
+      <Mark />
     </AbsoluteFill>
   );
 };
