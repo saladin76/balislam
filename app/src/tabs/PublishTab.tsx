@@ -1,4 +1,5 @@
 import { SocialKit } from "./SocialKit";
+import { LibraryPlaylists } from "./LibraryPlaylists";
 import { ShortsPicker } from "./ShortsPicker";
 import { shortFileNumber, sortShortFiles } from "../../../src/plan/shorts";
 import { DriveHandoffCard, driveOwnsPrimary, driveView } from "./DriveHandoff";
@@ -358,6 +359,10 @@ export const PublishTab: React.FC<{ episodeId: string; hasVoiceKeys: boolean; on
               <button type="button" className="btn ghost small" disabled={running} onClick={() => void start("thumbnails")}>{thumbs.length ? "أعد صنع الأغلفة" : "اصنع الأغلفة"}</button>
               <span className="s45-note">من «حزمة الانتشار ← الأغلفة الثلاثة»: يُرسم ١ «عنوان» الآن؛ ٢ «مشهد» و٣ «سؤال» بعد اختيار المالك اتجاه القناة (KI-120).</span>
             </div>
+          </More>
+
+          <More label="المكتبة: موضع الحلقة وقوائم التشغيل">
+            <LibraryPlaylists episodeId={episodeId} />
           </More>
 
           <More label="حزمة الانتشار لكل منصة">

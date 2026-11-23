@@ -1,0 +1,18 @@
+{
+  "version": 1,
+  "scholars": [
+    {
+      "id": "malik",
+      "name": "الإمام مالك بن أنس",
+      "died": { "hijri": 179, "gregorian": 795 },
+      "place": "المدينة",
+      "field": "الحديث والفقه",
+      "review": {
+        "state": "not-started",
+        "doctrinalDispute": false,
+        "note": "أول عالم في رف «تراثنا» (اختيار ٢٣ نوفمبر): «الموطأ» من أقدم الكتب الكبرى التي وصلت كاملة. تمر حلقاته كلها بمراجعة متخصص قبل الصوت."
+      },
+      "series": "imam-malik"
+    }
+  ]
+}

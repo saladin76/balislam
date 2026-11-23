@@ -19,6 +19,9 @@ import { ownerText, planOrder } from "../../src/i18n/sceneNames";
 import type { PaceCommand, PaceStatus, RefreshResult } from "../../src/voice/paceApply";
 import type { QualityCard, CardTarget } from "../../src/studio/quality/card";
 import type { PreFinalWatchView } from "../../src/studio/preFinalApprove";
+import type { LibraryRead } from "../../src/library/libraryData";
+import type { Book, Scholar } from "../../src/library/shared";
+export type { LibraryRead };
 export type QualityCardRead = QualityCard & { exists: boolean; measuring: boolean };
 import type { LexiconCommand, SentenceCommand, SentencesRead, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
 export type { LexiconCommand, SentenceCommand, SentencesRead, SentenceRow, SentenceScene, ToneImpact, WordFixOutcome } from "../../src/voice/sentenceVoice";
@@ -413,6 +416,10 @@ export const api = {
   episodes: () => call<EpisodeSummary[]>("/api/episodes"),
   createEpisode: (b: { episode: string; slug: string; domain: string; title: string; series?: string }) => call("/api/episodes", { method: "POST", json: b }),
   series: () => call<SeriesRead>("/api/series"),
+  /** المكتبة (D206): السجلان، ومواضع الحلقات، وقوائم التشغيل التلقائية */
+  library: () => call<LibraryRead>("/api/library"),
+  saveScholar: (scholar: Scholar) => call<{ ok: boolean }>(`/api/library/scholars/${scholar.id}`, { method: "PUT", json: { scholar } }),
+  saveBook: (book: Book) => call<{ ok: boolean }>(`/api/library/books/${book.id}`, { method: "PUT", json: { book } }),
   saveSeries: (series: SeriesConfig) => call<{ ok: boolean; series: SeriesConfig; derived: DerivedSeriesIdentity }>(`/api/series/${series.id}`, { method: "PUT", json: { series } }),
   deleteSeries: (id: string) => call<{ ok: boolean }>(`/api/series/${id}`, { method: "DELETE" }),
   moveEpisodeToSeries: (id: string, episode: string) => call<{ ok: boolean }>(`/api/series/${id}/episodes`, { method: "POST", json: { episode } }),
