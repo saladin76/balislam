@@ -98,7 +98,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   // الانجراف الدائم بالزمن الفعّال (يسكن في السكون المقصود)، ولا انجراف في مشهد ساكن كله
   const cam = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
   return (
-    <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless>
+    <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless captionVariant="adaptive">
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
         <SceneCloseContext.Provider value={close}>

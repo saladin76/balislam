@@ -19,7 +19,7 @@ const useCaptionWord = () => {
  * ملوّن (أسلوب تيك توك ممنوع). الكلمات تُقسم أسطرًا ثابتة تُقطع بعد علامة الوقف أو حين يبلغ السطر حده، والسطر لا
  * يتغير حتى تبدأ أول كلمة في التالي، ويظهر بتلاشٍ قصير. في الشورت يرتفع فوق منطقة أزرار المنصات.
  */
-export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean; variant?: "pill" | "cinema" | "paper" | "dusk" }> = ({ timings, portrait, variant = "pill" }) => {
+export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean; variant?: "pill" | "cinema" | "paper" | "dusk" | "adaptive" }> = ({ timings, portrait, variant = "pill" }) => {
   const frame = useCurrentFrame();
   const shown = useCaptionWord();
   const fontSize = useSize("caption", portrait ? "portrait" : "landscape");
@@ -32,7 +32,8 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
   const fade = Math.min(1, Math.max(0, (frame - timings[line[0]!]!.start + 1) / FADE_FRAMES));
   // قرار المالك ٢٢ نوفمبر: بلا مستطيل خلف الترجمة في القنوات الثلاث، نص بظل خفيف فقط. نص فاتح بظل داكن ناعم،
   // وعلى ورق «دفاتر الزمن» الفاتح حبر داكن بهالة فاتحة؛ والظل يُعدّ للقراءة لا للزينة (بلا توهج ولا ألوان)
-  const look = variant === "paper"
+  // adaptive: أبيض صافٍ بلا ظل؛ مزج «الفرق» على الطبقة الحاوية (SceneShell) يقلبه حبرًا داكنًا على الورق الفاتح
+  const look = variant === "adaptive" ? { color: "#FFFFFF", textShadow: "none" } : variant === "paper"
     ? { color: "#4A2E1F", textShadow: CAPTION_SHADOW.light }
     : { color: variant === "dusk" ? "#F1E4CB" : variant === "cinema" ? "#F4EEE2" : "#FFFFFF", textShadow: CAPTION_SHADOW.dark };
   return (
@@ -60,7 +61,9 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
 
 /** ظل الترجمة الخفيف (بلا مستطيل): ظل قريب يحدد الحرف، وظل أوسع خافت يفصله عن الصورة */
 export const CAPTION_SHADOW = {
-  dark: "0 1px 2px rgba(0,0,0,0.75), 0 0 10px rgba(0,0,0,0.45)",
+  // حدّ داكن رفيع من ثمانية ظلال (١٫٥ بكسل) ثم ظل ناعم: يُقرأ النص الفاتح على ورق الدفتر الفاتح وعلى الليل معًا،
+  // بلا مستطيل (D192) — ملاحظة الخطاف في «دفاتر الزمن 001»: الظل الخفيف وحده ضاع على الصفحة.
+  dark: [[1.5, 0], [-1.5, 0], [0, 1.5], [0, -1.5], [1.1, 1.1], [-1.1, 1.1], [1.1, -1.1], [-1.1, -1.1]].map(([x, y]) => `${x}px ${y}px 0 rgba(0,0,0,0.8)`).join(", ") + ", 0 2px 6px rgba(0,0,0,0.55), 0 0 14px rgba(0,0,0,0.35)",
   light: "0 1px 2px rgba(255,255,255,0.7), 0 0 10px rgba(255,255,255,0.5)",
 } as const;
 
