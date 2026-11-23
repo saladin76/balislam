@@ -101,19 +101,30 @@ export const SeriesSting: React.FC<{ stamp: Pick<SeriesStamp, "identity" | "name
 };
 
 /** شارة السلسلة على الصورة المصغّرة 1280×720: «band» شريط أعلى الصورة، «corner» لسان في الزاوية */
+/**
+ * علامة السلسلة على الغلاف (D196 v7، قرار المالك ٢٣ نوفمبر: «استبدله بعلامة صغيرة في الركن «البدايات · ١» بلون القناة، لا
+ * شريطًا بعرض الغلاف»): علامة صغيرة في الركن الأعلى الأيسر (بعيدًا عن جهة القراءة والعنوان)، بلون السلسلة المشتق من لوحة
+ * القناة وخطها: الاسم ثم نقطة وسطى ثم الرقم. «band» القديم في الأختام المحفوظة يُرسم علامةً كذلك، فلا شريط بعرض الغلاف أبدًا.
+ */
+export const seriesMarkLabel = (name: string, number?: number) => (number ? `${name} · ${number.toLocaleString("ar-EG")}` : name);
 export const SeriesBadge: React.FC<{ d: DerivedSeriesIdentity; name: string; number?: number }> = ({ d, name, number }) => {
   if (d.thumbnail.badge === "none") return null;
-  const label = number ? `${name}، ${number.toLocaleString("ar-EG")}` : name;
   const shape = d.emblem.base === "horizon-book"
-    ? { clipPath: "polygon(0 0, 100% 0, 96% 50%, 100% 100%, 0 100%)" } // شريط التاريخ
-    : d.emblem.base === "highlighter-z" ? { borderRadius: 4 } : { borderRadius: 999, border: `3px solid ${d.paper}` };
-  const box: React.CSSProperties = d.thumbnail.badge === "band"
-    ? { position: "absolute", top: 0, insetInlineStart: 0, insetInlineEnd: 0, height: 64, background: d.accent, color: d.onAccent, display: "flex", alignItems: "center", gap: 14, padding: "0 40px" }
-    : { position: "absolute", top: 28, insetInlineEnd: 36, background: d.accent, color: d.onAccent, display: "flex", alignItems: "center", gap: 12, padding: "6px 26px 8px", ...shape };
+    ? { clipPath: "polygon(0 0, 100% 0, 94% 50%, 100% 100%, 0 100%)", paddingInlineEnd: 30 } // طرف شريط التاريخ
+    : d.emblem.base === "highlighter-z" ? { borderRadius: 4 } : { borderRadius: 999 };
   return (
-    <div style={{ ...box, direction: "rtl", fontFamily: font(d), fontWeight: d.title.weight === "bold" ? 700 : 400, fontSize: 36, lineHeight: 1 }} data-series-badge={d.thumbnail.badge}>
-      <SeriesEmblem d={{ ...d, accent: d.onAccent, paper: d.accent }} size={40} />
-      <span>{label}</span>
+    <div
+      style={{ position: "absolute", top: 22, left: 22, background: d.accent, color: d.onAccent, display: "flex", alignItems: "center", gap: 8,
+        padding: "6px 16px 8px", direction: "rtl", fontFamily: font(d), fontWeight: d.title.weight === "bold" ? 700 : 400, fontSize: 34, lineHeight: 1,
+        boxShadow: "0 2px 0 rgba(0,0,0,0.18)", ...shape }}
+      data-series-badge="corner"
+    >
+      <SeriesEmblem d={{ ...d, accent: d.onAccent, paper: d.accent }} size={34} />
+      {/* النقطة الوسطى دائرة مرسومة بمسافتين: «·» محرفًا بجوار رقم عربي تُقرأ صفرًا («البدايات ١٠») */}
+      <span aria-label={seriesMarkLabel(name, number)} style={{ display: "flex", alignItems: "center" }}>
+        <span>{name}</span>
+        {number ? <><span style={{ width: 9, height: 9, borderRadius: 999, background: d.onAccent, margin: "4px 13px 0", display: "inline-block" }} /><span>{number.toLocaleString("ar-EG")}</span></> : null}
+      </span>
     </div>
   );
 };
