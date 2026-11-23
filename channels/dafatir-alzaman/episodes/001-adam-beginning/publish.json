@@ -1,7 +1,7 @@
 {
   "version": 1,
   "generatedBy": "edited",
-  "updatedAt": "2026-11-23T04:56:30.354Z",
+  "updatedAt": "2026-11-23T08:30:24.507Z",
   "long": {
     "titles": [
       {
@@ -78,8 +78,8 @@
         "atSeconds": 14,
         "focus": {
           "x": 0.39,
-          "y": 0.42,
-          "zoom": 1.35
+          "y": 0.39,
+          "zoom": 1.15
         }
       }
     ]

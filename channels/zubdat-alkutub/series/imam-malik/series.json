@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "id": "imam-malik",
+  "name": "الإمام مالك",
+  "kind": "category",
+  "parent": "turathna",
+  "description": "سلسلة العالِم: التعريف (مشترك مع دفاتر الزمن)، وخريطة كتبه، و«الموطأ»، والخاتمة. ت ١٧٩هـ. حالة المراجعة: لم تبدأ",
+  "order": 1,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#111111"
+    },
+    "motif": "ruled",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "card"
+      ]
+    }
+  },
+  "template": {}
+}
