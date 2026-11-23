@@ -4,6 +4,7 @@ import { HZ_META } from "../remotion/dafatir/horizon/meta";
 import { SHOTS } from "../remotion/illus/shots";
 import { LIB_UI } from "../remotion/dafatir/lib/meta";
 import { RAHHALA_CITIES, RAHHALA_SHOTS } from "../remotion/dafatir/world/shots";
+import { ALLEY_SHOTS } from "../remotion/balislam/world/shots";
 import { INK_UI } from "../remotion/zubdat/kitSlots";
 import { cueNamesAr } from "./sceneCues";
 import type { MatchMode, ShotUi } from "./sceneSlots";
@@ -457,6 +458,30 @@ export const templateDefs: TemplateDef[] = [
       { key: "docWord", label: "كلمة كتابة السطر", type: "text", ui: "anchor", match: "prefix", slot: "كتابة السطر", fallbackFrom: "docWrite" },
       { key: "stamp", label: "نص الختم (قصير، مثل سنة)", type: "text" },
       { key: "stampWord", label: "كلمة الختم", type: "text", ui: "anchor", match: "prefix", slot: "الختم" },
+    ],
+  },
+  {
+    // «الحارة» (D200): عالم «بالإسلام» ثلاثي الأبعاد (مسرح ورق) قالبًا للحلقات الجديدة. كل حدث لحظة نطق كلمته، والجملة
+    // التي فيها ذكر الله أو دعاء أو آية ساكنة كلها. التوثيق: docs/balislam/06-decisions.md (D200)
+    id: "alley-world",
+    nameAr: "الحارة",
+    useAr: "بالإسلام: مسرح ورق ثلاثي الأبعاد لحارة مصرية (أقواس وبيوت وفوانيس وسلال وأثواب، وشمس عصر تُلقي ظل كل طبقة): الدكاكين تنزل في السوق، أو شخصيتان بلا وجوه تدخلان وتتكلمان بإيماءة، أو الفوانيس تُضاء، أو الحارة كلها ختامًا",
+    summaryAr: "الحارة: سوق ينزل، أو شخصيتان تتكلمان بإيماءة، أو فوانيس تُضاء، كل حدث لحظة نطق كلمته.",
+    shots: Object.fromEntries(Object.entries(ALLEY_SHOTS).map(([k, v]) => [k, { title: v.nameAr, fields: v.fields }])),
+    shotFields: [],
+    implemented: true,
+    baseSeconds: 7,
+    minSeconds: 3,
+    fields: [
+      { key: "shot", label: "اللقطة", type: "select", ui: "shot", options: Object.entries(ALLEY_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
+      { key: "setting", label: "المكان", type: "select", options: [{ value: "", label: "الحارة" }, { value: "market", label: "السوق (بدكاكين)" }] },
+      { key: "figures", label: "عدد الشخصيات", type: "select", options: [{ value: "2", label: "اثنتان" }, { value: "1", label: "واحدة" }] },
+      { key: "stallWord", label: "كلمة نزول الدكاكين", type: "text", ui: "anchor", match: "prefix", slot: "نزول الدكاكين" },
+      { key: "enterWord", label: "كلمة دخول الشخصيات", type: "text", ui: "anchor", match: "prefix", slot: "دخول الشخصيات" },
+      { key: "speakWord", label: "كلمة الكلام (يد ممدودة براحة مفتوحة)", type: "text", ui: "anchor", match: "prefix", slot: "الكلام" },
+      { key: "selfWord", label: "كلمة «معي» (الكف إلى الصدر، للشخصية الثانية)", type: "text", ui: "anchor", match: "prefix", slot: "الكف إلى الصدر" },
+      { key: "lightWord", label: "كلمة إضاءة الفوانيس", type: "text", ui: "anchor", match: "prefix", slot: "إضاءة الفوانيس" },
+      { key: "sounds", label: "المؤثرات", type: "select", options: [{ value: "", label: "مع كل حركة" }, { value: "off", label: "بلا مؤثرات" }] },
     ],
   },
   {
