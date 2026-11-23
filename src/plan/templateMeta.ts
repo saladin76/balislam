@@ -35,6 +35,8 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   "horizon-shot": { family: "explain", only: ["dafatir-alzaman"] },
   // «مكتب الرحّالة» (D194): العالم ثلاثي الأبعاد قالبًا للحلقات الجديدة (D191)
   "rahhala-desk": { family: "story", only: ["dafatir-alzaman"] },
+  "alley-world": { family: "story", only: ["balislam"] },
+  "jazari-machine": { family: "explain", only: ["zubdat-alkutub"] },
   symbolic: { family: "explain" },
   "big-question": { family: "text" },
   "kinetic-text": { family: "text", only: ["balislam"] },

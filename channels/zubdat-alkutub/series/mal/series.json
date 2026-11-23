@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "mal",
+  "name": "المال والعمل",
+  "kind": "category",
+  "description": "المال والعمل والإنجاز، بلا مبالغات",
+  "order": 5,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#111111"
+    },
+    "motif": "ruled",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "card"
+      ]
+    }
+  },
+  "template": {}
+}

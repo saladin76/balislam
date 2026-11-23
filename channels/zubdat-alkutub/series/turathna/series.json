@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "turathna",
+  "name": "تراثنا",
+  "kind": "category",
+  "description": "أمهات كتب التراث العربي والإسلامي بلغة اليوم، بالترتيب الزمني",
+  "order": 2,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#111111"
+    },
+    "motif": "ruled",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "card"
+      ]
+    }
+  },
+  "template": {}
+}
