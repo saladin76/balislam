@@ -6,6 +6,7 @@ import { useTheme } from "../../../brand/identity/index";
 import { LogoMark, emblemNamesAr, type EmblemId } from "../../../brand/logo/Logo";
 import { ChannelBrand } from "./ChannelBrand";
 import { ChannelIdentity } from "./ChannelIdentity";
+import { ChannelSeasons } from "./Seasons";
 import { approvedIdentity, reservedEmblems } from "../../../brand/identity/approved";
 import type { Identity } from "../../../brand/identity/index";
 import { versesAreCitations } from "../../../src/quran/citation";
@@ -192,6 +193,11 @@ export const ChannelTab: React.FC<{ onCreated: (id: string) => void; onSaved: ()
           <label className="field"><span>وسوم القناة</span><TagsInput id="ch-tags" value={c.youtube.tags} onChange={(tags) => set({ youtube: { ...c.youtube, tags } })} /></label>
           <label className="field"><span>وقت النشر والمنطقة الزمنية</span><input id="ch-time" type="text" dir="ltr" placeholder="19:00 Asia/Riyadh" aria-describedby="ch-time-help" value={c.youtube.postingTime} onChange={(e) => set({ youtube: { ...c.youtube, postingTime: e.target.value } })} /><small className="help" id="ch-time-help">الصيغة المقترحة: 19:00 Asia/Riyadh. يُحفظ وقت النشر كإعداد للقناة ولا ينشر تلقائيًا.</small></label>
           <label className="field"><span>توقيع القناة (سطر ثابت في آخر كل وصف)</span><textarea id="ch-footer" rows={3} value={c.youtube.footer ?? ""} onChange={(e) => set({ youtube: { ...c.youtube, footer: e.target.value } })} /></label>
+        </section>
+
+        <section id="channel-seasons" className="group channel-settings-section ch-wide">
+          <h3>مواسم السنة <small>المواسم المتفق عليها بالتقويم الهجري، وموعد «جاهز قبل» (ستة أسابيع على الأقل)، وحلقات كل موسم</small></h3>
+          <ChannelSeasons />
         </section>
 
         <div id="channel-brand" className="channel-brand-slot"><ChannelBrand c={c} set={set} identity={identity} /></div>
