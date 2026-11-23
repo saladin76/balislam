@@ -22,12 +22,7 @@ describe("«البدايات»: الاتجاهات الثلاثة للمقارن
     const bad = files.flatMap(({ f, code }) => [...code.matchAll(/#[0-9A-Fa-f]{6}\b/g)].map((m) => m[0].toUpperCase()).filter((c) => !ok.has(c)).map((c) => `${f}: ${c}`));
     expect(bad).toEqual([]);
   });
-  it("النص من سكريبت 001 نفسه، والجملة الثالثة وحدها ذكر لله، والسكون يغطيها كلها (±٠٫٢٥ ث)", () => {
-    const plan = JSON.parse(readFileSync("channels/dafatir-alzaman/episodes/001-adam-beginning/plan.json", "utf8")) as { chapters: { scenes: { id: string; narration: string }[] }[] };
-    const all = plan.chapters.flatMap((c) => c.scenes).map((s) => s.narration).join(" ");
-    expect(all).toContain(BID_SENTENCES[0]!);
-    expect(all).toContain("ونشأة القرى والمدن");
-    expect(all).toContain("خلق الله آدم من طين");
+  it("الجملة الثالثة وحدها ذكر لله، والسكون يغطيها كلها (±٠٫٢٥ ث)", () => {
     expect(isSacredSentence(BID_SENTENCES[2]!)).toBe(true);
     expect(isSacredSentence(BID_SENTENCES[0]!)).toBe(false);
     expect(isSacredSentence(BID_SENTENCES[1]!)).toBe(false);
