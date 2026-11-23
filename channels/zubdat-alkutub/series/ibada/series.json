@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "ibada",
+  "name": "العبادة والقلب",
+  "kind": "category",
+  "description": "كتب تقرّب من العبادة وتصلح القلب",
+  "order": 1,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#111111"
+    },
+    "motif": "ruled",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "card"
+      ]
+    }
+  },
+  "template": {}
+}

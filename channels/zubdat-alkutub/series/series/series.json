@@ -31,5 +31,6 @@
     "publish": {
       "titlePattern": "{series} | الحلقة {n}: {title}"
     }
-  }
+  },
+  "parent": "ibada"
 }
