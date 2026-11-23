@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "usra",
+  "name": "الأسرة والتربية",
+  "kind": "category",
+  "description": "الزواج والأبوة والعلاقات",
+  "order": 4,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#111111"
+    },
+    "motif": "ruled",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "card"
+      ]
+    }
+  },
+  "template": {}
+}

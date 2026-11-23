@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "nafs",
+  "name": "النفس والتفكير",
+  "kind": "category",
+  "description": "علم النفس والعادات والتفكير، بميزان قيمنا",
+  "order": 3,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#111111"
+    },
+    "motif": "ruled",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "card"
+      ]
+    }
+  },
+  "template": {}
+}
