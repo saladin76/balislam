@@ -91,6 +91,17 @@ for (const file of files) {
         const added = fresh([...new Set(hits(data))], old ? [...new Set(hits(old))] : []);
         for (const a of added) failures.push(`${file}: أثر لأدوات الإنتاج في نص النشر — «${a}» (القاعدة الأولى).`);
       }
+      // «راجعها علميًا»: الإذن المسجّل مكتمل (الاسم، والتاريخ، والنطاق، وتأكيد الإذن المكتوب)
+      if (file.endsWith("/publish.json")) {
+        const { reviewerIssues } = await import("../src/package/reviewer.ts");
+        const errs = (x: any) => reviewerIssues(x?.long?.reviewer);
+        for (const a of fresh(errs(data), old ? errs(old) : [])) failures.push(`${file}: ${a}`);
+      }
+      // مواسم السنة الهجرية (عمود «بالإسلام»، عاشرًا/٦): المواسم المتفق عليها وحدها، وتواريخ سليمة، وبلا آثار
+      if (/^channels\/[^/]+\/seasons\.json$/.test(file)) {
+        const { seasonsIssues } = await import("../src/studio/seasons.ts");
+        for (const a of fresh(seasonsIssues(data as never), old ? seasonsIssues(old) : [])) failures.push(`${file}: ${a}`);
+      }
     } else if (file.endsWith("/tashkeel.md")) {
       // D132: the voweled copy is sent to the voice only; a broken or empty file never reaches main
       const { checkTashkeelText } = await import("../src/voice/tashkeelFile.ts");

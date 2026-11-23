@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { isGenericTitle, kitIssues, repeatedSentences, truncation } from "../src/package/quality";
-import type { PublishKit } from "../src/package/social";
+import { withoutShortHooks, type PublishKit } from "../src/package/social";
 
 const kit = (patch: (k: PublishKit) => void = () => {}): PublishKit => {
   const k: PublishKit = {
@@ -9,7 +9,7 @@ const kit = (patch: (k: PublishKit) => void = () => {}): PublishKit => {
     updatedAt: "",
     long: { titles: [{ text: "كيف تعرف أنك على حق؟", angle: "" }], description: "وصف الحلقة كاملًا هنا.", tags: ["الحق", "التفكير"], hashtags: ["#بالإسلام"], pinnedComment: "ما الفكرة التي توقفت عندها؟", thumbnailTexts: [], facebook: "شاهد الحلقة كاملة وشاركنا رأيك." },
     shorts: [
-      { chapter: 1, hook: "هل ترى الحقيقة فعلًا؟", youtube: { title: "هل ترى الحقيقة فعلًا؟", description: "سؤال الحلقة الأول.", hashtags: ["#الحق"] }, instagram: { caption: "سؤال يستحق التأمل اليوم. ما رأيك؟", hashtags: ["#الحق"] }, facebook: { caption: "ما رأيك في هذا السؤال؟", hashtags: [] } },
+      { chapter: 1, youtube: { title: "هل ترى الحقيقة فعلًا؟", description: "هل ترى الحقيقة كما هي فعلًا؟ سؤال الحلقة الأول.", hashtags: ["#الحق"] }, instagram: { caption: "سؤال يستحق التأمل اليوم. ما رأيك؟", hashtags: ["#الحق"] }, facebook: { caption: "ما رأيك في هذا السؤال؟", hashtags: [] } },
     ],
   };
   patch(k);
@@ -45,5 +45,14 @@ describe("فحص جودة حزمة النشر", () => {
   it("عنوانا شورتين متطابقان خطأ", () => {
     const issues = kitIssues(kit((k) => k.shorts.push({ ...k.shorts[0]!, chapter: 2 })));
     expect(issues.some((i) => i.level === "error" && i.message.includes("في الشورت 1"))).toBe(true);
+  });
+  it("D207: لا خانة خطاف في الشورتس؛ الحزمة القديمة تُقرأ وتُحذف خانتها عند الحفظ، والاقتراح سؤال من نص الشورت", () => {
+    const old = kit((k) => Object.assign(k.shorts[0]!, { hook: "خطاف قديم" }));
+    const saved = withoutShortHooks(old);
+    expect(Object.keys(saved.shorts[0]!)).not.toContain("hook");
+    expect(saved.shorts[0]!.youtube.title).toBe("هل ترى الحقيقة فعلًا؟");
+    expect(kitIssues(old).filter((i) => i.level === "error")).toEqual([]);
+    const generic = kitIssues(kit((k) => (k.shorts[0]!.youtube.title = "لماذا؟"))).find((x) => x.where.includes("الشورت 1: العنوان"));
+    expect(generic?.suggestion).toBe("هل ترى الحقيقة كما هي فعلًا؟");
   });
 });

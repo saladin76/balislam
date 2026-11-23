@@ -31,6 +31,8 @@ export type RenderEpisodeOptions = {
    * وكل البوابات تُفحص على الخطة كاملة كما هي.
    */
   segment?: { sceneIds: string[] };
+  /** الشورت وحده (تكملة D207): سؤاله من حزمة النشر عنوانًا هادئًا على الشاشة (src/remotion/scenes/ShortTitle.tsx) */
+  shortTitle?: string;
   outFile?: string;
   /** master لكل ما يُنشر (4K)، وpreview للمعاينات (الافتراضي) */
   quality?: Quality;
@@ -200,6 +202,7 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     : (await (await import("../studio/narrationLoudness")).narrationLoudness(scriptPath, plan, media)).gain;
   const inputProps = { plan: shown.plan, orientation: opts.orientation, chapter: shown.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel),
     ...(narrationGain && Object.keys(narrationGain).length ? { narrationGain } : {}),
+    ...(opts.orientation === "portrait" && opts.shortTitle?.trim() ? { shortTitle: opts.shortTitle.trim() } : {}),
     ...(opts.draftMarks?.pendingRecitation.length ? { draftMarks: { pendingRecitation: opts.draftMarks.pendingRecitation } } : {}) };
   const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
   const q = qualitySpec(opts.quality ?? "preview");

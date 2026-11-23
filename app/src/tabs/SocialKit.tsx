@@ -9,6 +9,7 @@ import { ChapterMarks } from "./PublishChapters";
 import { isEpisodeUrl, isQuestionTitle, resolveEpisodeLink } from "../../../src/package/shortsLink";
 import { TITLE_FORMULAS, formulaProblem } from "../../../src/package/titleFormula";
 import { chapterMarksText, type SceneStarts } from "../../../src/package/chapters";
+import { REVIEWER_LABEL, reviewerLine, type ReviewerCredit } from "../../../src/package/reviewer";
 
 const copy = (text: string, done: (m: string) => void) => {
   navigator.clipboard.writeText(text).then(() => done("نُسخ")).catch(() => done("تعذّر النسخ"));
@@ -146,7 +147,7 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
                 checks={[...checkTitle(t.text, "youtube", keywords), ...(titleCtx.channel && TITLE_FORMULAS[titleCtx.channel] ? [{ ok: !formulaProblem(titleCtx.channel, t.text, titleCtx), label: `صيغة القناة «${TITLE_FORMULAS[titleCtx.channel]!.name}»` }] : [])]}
               />
             ))}
-            <Field label="الوصف" rows={12} value={L.description} onChange={(v) => setLong({ description: v })} copyText={resolveDescription(L.description, chapters)} checks={checkDescription(resolveDescription(L.description, chapters), keywords, L.hashtags)} hint={L.description.includes(CHAPTERS_TOKEN) ? `أول سطرين يظهران قبل «المزيد». ${CHAPTERS_TOKEN} يُستبدل بتوقيت الفصول عند النسخ${estimated ? " — التوقيتات الآن تقديرية من الخطة، وتُحسب من المشاهد المعتمدة بعد التجميع (هذه الملاحظة لا تظهر في النص المنشور)" : ""}` : "أول سطرين يظهران قبل «المزيد»."} />
+            <Field label="الوصف" rows={12} value={L.description} onChange={(v) => setLong({ description: v })} copyText={resolveDescription(L.description, chapters, L.reviewer)} checks={checkDescription(resolveDescription(L.description, chapters, L.reviewer), keywords, L.hashtags)} hint={L.description.includes(CHAPTERS_TOKEN) ? `أول سطرين يظهران قبل «المزيد». ${CHAPTERS_TOKEN} يُستبدل بتوقيت الفصول عند النسخ${estimated ? " — التوقيتات الآن تقديرية من الخطة، وتُحسب من المشاهد المعتمدة بعد التجميع (هذه الملاحظة لا تظهر في النص المنشور)" : ""}` : "أول سطرين يظهران قبل «المزيد»."} />
             <Field label="رابط الحلقة على يوتيوب" dir="ltr" value={L.episodeUrl ?? ""} onChange={(v) => setLong({ episodeUrl: v.trim() || undefined })}
               hint="بعد نشر الحلقة: يدخل وصف كل شورت (يوتيوب وفيسبوك)" checks={L.episodeUrl ? [{ ok: isEpisodeUrl(L.episodeUrl), label: "رابط فيديو يوتيوب" }] : undefined} />
             <ChapterMarks episodeId={episodeId} value={L.chapters} starts={sceneStarts} onChange={(chapters) => setLong({ chapters })} />
@@ -155,13 +156,13 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
           <div className="kit-col">
             <Field label="هاشتاجات الوصف" value={tagsText(L.hashtags)} onChange={(v) => setLong({ hashtags: parseTags(v) })} hint="أول 3 تظهر فوق العنوان" />
             <Field label="تعليق مثبّت" rows={4} value={L.pinnedComment} onChange={(v) => setLong({ pinnedComment: v })} hint="يفتح النقاش في أول ساعة" />
+            <ReviewerBlock value={L.reviewer} onChange={(reviewer) => setLong({ reviewer })} />
             <ThumbnailConcepts episodeId={episodeId} value={L.thumbnails} titles={L.titles.map((t) => t.text)} onChange={(thumbnails) => setLong({ thumbnails })} />
             <Field label="فيسبوك: منشور الحلقة" rows={8} value={L.facebook} onChange={(v) => setLong({ facebook: v })} checks={checkCaption(L.facebook, parseTags(L.facebook.match(/#\S+/g)?.join(" ") ?? ""), "facebook", keywords)} />
           </div>
         </div>
       ) : sh ? (
         <>
-          <Field label="الخطاف: أول ثانيتين على الشاشة" value={sh.hook} onChange={(v) => setShort(view as number, { hook: v })} hint="هذا ما يقرر هل يكمل المشاهد" />
           <div className="kit-grid three">
             <div className="kit-col">
               <h4>يوتيوب شورتس</h4>
@@ -197,5 +198,45 @@ export const SocialKit: React.FC<{ episodeId: string; onKit?: (kit: PublishKit, 
         </>
       ) : null}
     </div>
+  );
+};
+
+/**
+ * «راجعها علميًا» (src/package/reviewer.ts): اسم المراجع المتخصص، ولا يظهر في الوصف ولا في آخر الفيديو إلا بعد تسجيل
+ * إذنه المكتوب لهذه الحلقة (التاريخ، وما يشمله، وتأكيدك أن الإذن عندك). تغيير الاسم يلغي الإذن المسجّل.
+ */
+const ReviewerBlock: React.FC<{ value?: ReviewerCredit; onChange: (r: ReviewerCredit | undefined) => void }> = ({ value, onChange }) => {
+  const [name, setName] = useState(value?.name ?? "");
+  const [date, setDate] = useState(value?.permission?.date ?? "");
+  const [scope, setScope] = useState(value?.permission?.scope ?? "الأدلة والأحكام في الحلقة");
+  const [confirmed, setConfirmed] = useState(false);
+  const line = reviewerLine(value);
+  const commitName = () => {
+    const n = name.trim();
+    if (n === (value?.name ?? "")) return;
+    onChange(n ? { name: n } : undefined); // اسم جديد = إذن جديد
+  };
+  return (
+    <fieldset className="group reviewer-credit">
+      <legend>{REVIEWER_LABEL} <small>اسم المراجع في الوصف وآخر الفيديو، بإذنه المكتوب لهذه الحلقة وحدها</small></legend>
+      <label className="field"><span>اسم المراجع</span><input type="text" value={name} onChange={(e) => setName(e.target.value)} onBlur={commitName} /></label>
+      {line ? (
+        <p>
+          <strong>الإذن مسجّل</strong> ({value!.permission!.date}، {value!.permission!.scope}). يظهر: «{line}».{" "}
+          <button type="button" className="btn ghost small" onClick={() => onChange({ name: value!.name })}>ألغِ الإذن</button>
+        </p>
+      ) : (
+        <>
+          <label className="field"><span>تاريخ الإذن المكتوب</span><input type="date" dir="ltr" value={date} onChange={(e) => setDate(e.target.value)} /></label>
+          <label className="field"><span>ما يشمله الإذن</span><input type="text" value={scope} onChange={(e) => setScope(e.target.value)} /></label>
+          <label className="field"><input type="checkbox" checked={confirmed} onChange={(e) => setConfirmed(e.target.checked)} /> <span>عندي إذن مكتوب منه بذكر اسمه في هذه الحلقة</span></label>
+          <button type="button" className="btn small" disabled={!name.trim() || !date || !scope.trim() || !confirmed}
+            onClick={() => onChange({ name: name.trim(), permission: { date, scope: scope.trim(), writtenConfirmed: true, recordedAt: new Date().toISOString() } })}>
+            سجّل الإذن
+          </button>
+          <small className="help"> بلا إذن مسجّل لا يظهر الاسم في أي مكان.</small>
+        </>
+      )}
+    </fieldset>
   );
 };

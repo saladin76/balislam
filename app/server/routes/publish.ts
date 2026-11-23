@@ -54,12 +54,20 @@ export const handlePublishRoutes = async (ctx: RouteCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { kit } = await readBody(req);
       if (!kit?.long || !Array.isArray(kit.shorts)) return send(res, 400, { error: "حزمة الانتشار غير مكتملة؛ لم تُحفظ." }), true;
-      const saved = { ...kit, generatedBy: social.savedKitSource(kit.generatedBy), updatedAt: new Date().toISOString() };
+      const saved = { ...social.withoutShortHooks(kit), generatedBy: social.savedKitSource(kit.generatedBy), updatedAt: new Date().toISOString() };
       // القاعدة الأولى: لا يُكتب أثر لأدوات الإنتاج في publish.json (بوابة المحتوى ترفضه بعدها فيتوقف الحفظ الآلي كله)
       const traces: string[] = social.kitTraceHits(saved);
       if (traces.length) return send(res, 400, { error: `في نصوص النشر أثر لأدوات الإنتاج؛ لم تُحفظ: ${traces.join("، ")}` }), true;
+      // «راجعها علميًا»: الاسم لا يظهر إلا بإذن مكتوب مسجّل لهذه الحلقة (src/package/reviewer.ts)
+      const reviewer = await load("/src/package/reviewer.ts");
+      const r = saved.long?.reviewer;
+      if (r?.permission && !r.permission.recordedAt) r.permission.recordedAt = new Date().toISOString();
+      const rIssues: string[] = reviewer.reviewerIssues(r);
+      if (rIssues.length) return send(res, 400, { error: `لم تُحفظ: ${rIssues.join(" ")}` }), true;
       await writeFile(file, JSON.stringify(saved, null, 2) + "\n");
-      return send(res, 200, { ok: true }), true;
+      // وآخر الفيديو: السطر نفسه على شاشة النهاية (أو يُحذف منها)؛ تغيّره يعيد فتح ذلك المشهد وحده
+      const credit = await io.saveReviewerCredit(ep, reviewer.reviewerLine(r));
+      return send(res, 200, { ok: true, ...(credit.changed ? { reopened: credit.sceneId } : {}) }), true;
     }
     if (req.method === "POST" && parts[3] === "regenerate") {
       const kit = await build();
