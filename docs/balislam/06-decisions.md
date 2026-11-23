@@ -295,7 +295,7 @@
 
 ## 2026-11-23 — قوالب «البدايات» لدفاتر الزمن في الملفات المشتركة (D209، التعريف: docs/dafatir-alzaman/07-decisions.md)
 
-- `src/studio/quality/diversity.ts` يعرف حقول تكوين القوالب الخمسة `bidayat-*`، و`src/remotion/scenes/components.tsx` و`catalog.ts` و`channelSamples.ts` تسجلها لدفاتر الزمن وحدها (`templateMeta`). لا تغيير في قوالب هذه القناة ولا في مكتبتها.
+- `src/studio/quality/diversity.ts` يعرف حقول تكوين القوالب الخمسة `bidayat-*`، و`src/remotion/scenes/components.tsx` و`catalog.ts` و`channelSamples.ts` تسجلها، وهي لدفاتر الزمن وحدها في `src/plan/templateMeta.ts`. لا تغيير في قوالب هذه القناة ولا في مكتبتها.
 
 ## 2026-11-23 — «الاختلاف عن الحلقة السابقة في السلسلة» في بطاقة الجودة (D204، التعريف: docs/dafatir-alzaman/07-decisions.md)
 
