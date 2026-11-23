@@ -91,7 +91,7 @@ export const ALLEY_CHARACTERS: AlleyCharacter[] = [
   {
     id: "attar", name: "عم صابر", role: "العطّار", scale: 0.97, shoulder: 0.11, waist: 0.12, hem: 0.19, stoop: 0,
     ink: BAA.emerald, headInk: "#D9B08C", wearInk: BAA.paper, head: "turban",
-    arm: { shoulder: 0.9, elbow: 1.1, wrist: 0.2 },
+    arm: { shoulder: 0.45, elbow: 1.75, wrist: 0.3 },
     // حزام ذهبي بطرف متدلٍّ، وصدرية قصيرة
     layers: () => [
       { shapes: [poly([[-0.125, 0.4], [0.125, 0.4], [0.12, 0.44], [-0.12, 0.44]]), poly([[0.05, 0.4], [0.075, 0.4], [0.085, 0.29], [0.06, 0.29]])], ink: BAA.gold, z: 0.008 },
@@ -103,7 +103,7 @@ export const ALLEY_CHARACTERS: AlleyCharacter[] = [
   {
     id: "haddad", name: "عم فتحي", role: "الحدّاد", scale: 1.02, shoulder: 0.15, waist: 0.12, hem: 0.16, stoop: 0,
     ink: BAA.night, headInk: "#B98B66", wearInk: BAA.copper, head: "taqiya",
-    arm: { shoulder: 0.35, elbow: 1.6, wrist: 0.1 },
+    arm: { shoulder: 0.12, elbow: 0.15, wrist: 0 },
     // مريلة جلد نحاسية بحزام الرقبة
     layers: () => [
       { shapes: [poly([[-0.105, 0.06], [0.105, 0.06], [0.095, 0.56], [-0.095, 0.56]]), poly([[-0.06, 0.56], [-0.045, 0.56], [-0.025, 0.67], [-0.04, 0.67]]), poly([[0.045, 0.56], [0.06, 0.56], [0.04, 0.67], [0.025, 0.67]])], ink: BAA.copper, z: 0.008 },
@@ -120,8 +120,8 @@ export const ALLEY_CHARACTERS: AlleyCharacter[] = [
     arm: { shoulder: 0.32, elbow: -0.15, wrist: 0 },
     // عكاز بمقبض معقوف إلى جوارها (على الأرض)
     layers: () => {
-      const crook = new THREE.Shape(); crook.absarc(0.205, 0.43, 0.035, Math.PI, 0, true); crook.lineTo(0.255, 0.43); crook.absarc(0.205, 0.43, 0.05, 0, Math.PI, false); crook.lineTo(0.17, 0.43);
-      return [{ shapes: [poly([[0.165, 0], [0.178, 0], [0.178, 0.43], [0.165, 0.43]]), crook], ink: "#8A5A3C", z: 0.012 }];
+      const crook = new THREE.Shape(); crook.absarc(0.205, 0.31, 0.035, Math.PI, 0, true); crook.lineTo(0.255, 0.31); crook.absarc(0.205, 0.31, 0.05, 0, Math.PI, false); crook.lineTo(0.17, 0.31);
+      return [{ shapes: [poly([[0.165, 0], [0.178, 0], [0.178, 0.31], [0.165, 0.31]]), crook], ink: "#8A5A3C", z: 0.012 }];
     },
   },
   {
@@ -149,7 +149,7 @@ export const ALLEY_CHARACTERS: AlleyCharacter[] = [
   {
     id: "jara", name: "أم هالة", role: "الجارة", scale: 0.95, shoulder: 0.105, waist: 0.11, hem: 0.19, stoop: 0,
     ink: BAA.gold, headInk: "#C99B77", wearInk: BAA.copper, head: "scarf",
-    arm: { shoulder: 2.75, elbow: -0.55, wrist: 0.2 },
+    arm: { shoulder: 2.2, elbow: 1.3, wrist: 0.4 },
     // طاولة عيش على الرأس: صينية مستديرة وأرغفة عليها
     layers: () => [
       { shapes: [ellipse(0, 0.9, 0.13, 0.018)], ink: "#8A5A3C", z: 0.012 },
@@ -162,7 +162,7 @@ const legsShapes = () => [poly([[-0.07, 0], [-0.015, 0], [-0.02, 0.33], [-0.065,
 const shoes = () => [ellipse(-0.05, 0.012, 0.04, 0.014), ellipse(0.05, 0.012, 0.04, 0.014)];
 
 /** شخصية واحدة على المسرح (وحدة «ارتفاع الشخصية = ١» مضروبة في 2.6 كشخصيتي النموذج) */
-export const AlleyFigure: React.FC<{ c: AlleyCharacter; x: number; flip?: boolean; tex: THREE.Texture; nor?: THREE.Texture }> = ({ c, x, flip = false, tex, nor }) => {
+export const AlleyFigure: React.FC<{ c: AlleyCharacter; x: number; z?: number; flip?: boolean; tex: THREE.Texture; nor?: THREE.Texture }> = ({ c, x, z = 0, flip = false, tex, nor }) => {
   const parts = useMemo(() => {
     const hw = headwear(c.head);
     return {
@@ -174,7 +174,7 @@ export const AlleyFigure: React.FC<{ c: AlleyCharacter; x: number; flip?: boolea
   const k = 2.6 * c.scale;
   const sh = new THREE.Vector2(c.shoulder - 0.02, 0.63);
   return (
-    <group position={[x, 0, 0]} scale={[flip ? -k : k, k, 1]}>
+    <group position={[x, 0, z]} scale={[flip ? -k : k, k, 1]}>
       {c.legs && <><Paper shapes={legsShapes()} ink={BAA.night} tex={tex} nor={nor} shift={[0.008, -0.006]} z={-0.004} /><Paper shapes={shoes()} ink={BAA.copper} tex={tex} nor={nor} shift={[0.005, -0.004]} /></>}
       <Paper shapes={[parts.lower]} ink={c.ink} tex={tex} nor={nor} shift={[0.01, -0.008]} />
       {/* الجذع والرأس والذراع تميل معًا حول الخصر (انحناء الجدة) */}
@@ -213,13 +213,13 @@ export const AlleyCharactersLab: React.FC<{ who: string }> = ({ who }) => {
   const paper = usePaper(11);
   const list = who === "all" ? ALLEY_CHARACTERS : ALLEY_CHARACTERS.filter((c) => c.id === who);
   const group = list.length > 1;
-  const target: V3 = group ? [0, 1.55, 0] : [0, 1.35, 0];
-  const c = { target, yaw: group ? 0 : -8, pitch: 3, dist: group ? 12.5 : 5.2, fov: group ? 36 : 32 };
+  const target: V3 = group ? [0, 1.75, 1.6] : [0, 1.35, 0];
+  const c = { target, yaw: group ? 0 : -8, pitch: 3, dist: group ? 13.5 : 5.2, fov: group ? 36 : 32 };
   const cam = { position: orbit(c), target, fov: c.fov, focus: c.dist };
   if (!nor) return null;
-  const extra = list.map((ch, i) => <AlleyFigure key={ch.id} c={ch} x={group ? -6.25 + i * 2.5 : 0} flip={group ? i >= 3 : false} tex={paper} nor={nor[0]} />);
+  const extra = list.map((ch, i) => <AlleyFigure key={ch.id} c={ch} x={group ? -5.0 + i * 2.0 : 0} z={group ? 2.0 : 0} flip={group ? i >= 3 : false} tex={paper} nor={nor[0]} />);
   return (
-    <AlleyStage t={t} width={width} height={height} cam={cam} aperture={group ? 0.004 : 0.012} still={LIGHTS_STILL} calm={0} nor={nor}
+    <AlleyStage t={t} width={width} height={height} cam={cam} aperture={group ? 0.0015 : 0.012} still={LIGHTS_STILL} calm={0} nor={nor}
       market={group ? null : 1} settle={0} figures={0} enter={0} wobA={0} wobB={0} pose1={{ shoulder: 0, elbow: 0, wrist: 0 }} pose2={{ shoulder: 0, elbow: 0, wrist: 0 }} lit={7} extra={extra} />
   );
 };
