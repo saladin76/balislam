@@ -156,12 +156,6 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
     requireApprovedQuran: opts.quality === "master",
   }));
   assertRenderMediaOwnership(scriptPath, media);
-  // D198: الخطاف المسبق لا يُرندر إلا بتسجيل المشهد المصدر نفسه وقطع بعد نهاية كلمة (لا نص بلا صوت ولا كلمة مبتورة)
-  if (!opts.chapter && plan.coldOpen) {
-    const { coldOpenIssues } = await import("../plan/coldOpen");
-    const issues = coldOpenIssues(plan, media.voice);
-    if (issues.length) throw new Error(issues.join("\n"));
-  }
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
   if (opts.quality === "master") {
     const scriptPath = await resolveScriptPath(opts.episode);

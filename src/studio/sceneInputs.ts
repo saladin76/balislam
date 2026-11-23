@@ -81,10 +81,6 @@ export const sourceNow = async (episode: string): Promise<CurrentInput> => {
         rec?.approvedAt ?? null, rec?.rightsEvidence ?? null,
         // الآية/البسملة على الشاشة (١٥ نوفمبر): يُعاد فتح المشهد الذي تغيّر عرضه وحده؛ غيره بصمته كما كانت
         ...(onScreen[scene.id] ? [onScreen[scene.id]] : []),
-        // D198: the cold open is inside the first cut, so setting/changing it (or its source recording) re-opens that scene
-        // alone; without a cold open every fingerprint is exactly as before.
-        ...(plan.coldOpen && scene.id === scenes[0]!.id
-          ? [["cold-open", plan.coldOpen.scene, plan.coldOpen.to, voice[plan.coldOpen.scene]?.text ?? null, voice[plan.coldOpen.scene]?.hash ?? null]] : []),
         ...(engine[scene.id]?.length ? [["remote-engine", ...engine[scene.id]!]] : [])])),
     });
   }

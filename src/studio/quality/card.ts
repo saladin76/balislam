@@ -10,8 +10,6 @@
  */
 import type { Plan, PlanScene } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
-import { sceneSeconds } from "../../plan/duration";
-import { coldOpenCut, coldOpenFrames, coldOpenOf, coldOpenSource } from "../../plan/coldOpen";
 import { normalizeArabic } from "../../script/quranMeta";
 import { measureDiversity } from "./diversity";
 import { measureCraft } from "./craft";
@@ -24,7 +22,6 @@ export const LOUDNESS_TOLERANCE = 1;
 export const TRUE_PEAK_MAX = -1;
 /** سكوت البداية المسموح (KI-091 يقص ما فوقه في التجميع) */
 export const HEAD_SILENCE_MAX = 0.6;
-export const HOOK_WINDOW_SEC = 15;
 
 export type ItemStatus = "pass" | "fail" | "unmeasured" | "warn" | "later";
 /** stage "publish": يمنع إذن النشر وحده (التغليف والشورتس تُصنع من النسخة النهائية وبعد نشرها)، لا صنع النسخة النهائية */
@@ -152,46 +149,11 @@ const REFERRAL = /الحلقه (القادمه|التاليه|السابقه|ا�
 /** نص كل ما يظهر أو يُقال في المشهد (التعليق وحقوله النصية) */
 const sceneText = (s: PlanScene) => bare([s.narration, ...Object.values(s.props ?? {})].join(" "));
 
-/**
- * الخطاف: سؤال للمشاهد يبدأ نطقه في أول ١٥ ث من الفيديو. موضع الجملة في المشهد بنسبة موضع حروفها من نص المشهد
- * (تقدير يكفي للحكم على أول ربع دقيقة؛ المشهد يُقال بإيقاع واحد).
- */
-export const hookIn = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">): { ok: boolean; text?: string; at?: number } => {
-  // D198: الخطاف المسبق أول ما يُسمع (من الثانية صفر)، ثم الحلقة بعده بمدته
-  const cold = coldOpenOf(plan);
-  const src = cold ? coldOpenSource(plan) : null;
-  const clip = src ? media?.voice[src.id] : undefined;
-  if (cold && src && clip && clip.text === src.narration.trim()) {
-    const cut = coldOpenCut(clip, cold.to, cold.words);
-    const q = cut.text.split(/(?<=[؟?.!۔])\s+/).find((x) => /[؟?]/.test(x));
-    if (q) return { ok: true, text: q.trim(), at: 0 };
-  }
-  let t = coldOpenFrames(plan) / 30;
-  // أول سؤال في الحلقة كلها: داخل النافذة ينجح، وبعدها يُذكر موضعه ليُعرف كم يُقدَّم
-  for (const s of plan.chapters.flatMap((c) => c.scenes)) {
-    const text = s.narration ?? "";
-    const d = sceneSeconds(s, media);
-    let pos = 0;
-    for (const sentence of text.split(/(?<=[؟?.!۔])\s+/)) {
-      const at = Math.round((t + (text.length ? (pos / text.length) * d : 0)) * 10) / 10;
-      if (/[؟?]/.test(sentence)) return { ok: at < HOOK_WINDOW_SEC, text: sentence.trim(), at };
-      pos += sentence.length + 1;
-    }
-    t += d;
-  }
-  return { ok: false };
-};
-
 export const scriptItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">, citations?: { total: number; open: number }): CardItem[] => {
-  const hook = hookIn(plan, media);
   const all = plan.chapters.flatMap((c) => c.scenes);
   const cta = all.some((s) => COMMENT_CTA.test(sceneText(s)));
   const ref = all.some((s) => REFERRAL.test(sceneText(s)));
   return [
-    { id: "hook", label: "خطاف في أول ١٥ ثانية", need: "سؤال للمشاهد في أول ١٥ ث", status: hook.ok ? "pass" : "fail",
-      ...(hook.ok ? { value: `«${hook.text!.slice(0, 60)}»` }
-        : { ...(hook.text ? { value: `أول سؤال عند نحو ${ar(hook.at!, 0)} ث` } : {}),
-            reason: `لا سؤال للمشاهد في أول ١٥ ثانية من الكلام (قرار المالك ٢: سؤال في البداية)${hook.text ? `؛ أول سؤال «${hook.text.slice(0, 60)}» يأتي بعدها: قدّمه أو أضف سؤالًا قبله` : ""}.` }) },
     later("arabic", "فحص العربي", "بلا أخطاء", "فحص العربي (المهمة ٦)"),
     { id: "citations", label: "الاستشهادات موثقة", need: "كل استشهاد موثّق في سجل التوثيق",
       ...(!citations || !citations.total ? { status: "warn", reason: "لا سجل توثيق لهذه الحلقة على هذا الجهاز." }
