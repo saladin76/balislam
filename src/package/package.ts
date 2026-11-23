@@ -227,6 +227,8 @@ export const thumbCtx = (plan: Plan) => ({
  * يرسم الأغلفة في out/package: `<id>-thumbnail-1.png` عنوان، و`-2` مشهد، و`-3` سؤال (الترتيب ثابت لكل فكرة).
  * يحذف أي غلاف قديم قبلها فلا يبقى ملف من فكرة سابقة. يرفض قبل أي رسم إن كانت الأغلفة لا تحقق قواعدها.
  */
+const FRAME_FROM_LABEL = { master: "من Master", still: "من لقطة 4K للمشهد", cut: "من فيديو المشهد 1080 (تعذّرت لقطة 4K)" } as const;
+
 export const renderThumbnailSet = async (o: { scriptPath: string; script: string; plan: Plan; dir: string; id: string; lang: string; onProgress?: (m: string) => void }): Promise<string[]> => {
   const log = o.onProgress ?? (() => {});
   const { plan, dir, id } = o;
@@ -269,10 +271,12 @@ export const renderThumbnailSet = async (o: { scriptPath: string; script: string
     // D196 v2: الأغلفة من صور الحلقة نفسها — اللقطة من فيديو المشهد الذي شاهده المالك واعتمده، لا رسم جديد؛
     // «مشهد» بلا فيديو لا يُرسم، والعنوان والسؤال بلا لقطة يُرسمان بعنصرهما
     if (c.sceneId) {
-      const frame = await sceneFrameDataUri(o.scriptPath, c.sceneId, c.atSeconds, master);
+      const sceneId = c.sceneId;
+      const frame = await sceneFrameDataUri(o.scriptPath, sceneId, c.atSeconds, master,
+        (at) => import("./sceneStill").then((m) => m.sceneStill4k(path.basename(path.dirname(o.scriptPath)).slice(0, 3), sceneId, at)));
       if (!frame && c.kind === "scene") { log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: لا فيديو للمشهد ${c.sceneId} بعد؛ أنتجه في «٢ المشاهد» ثم اصنع الأغلفة. لم يُرسم.`); continue; }
       if (frame) concept = { kind: c.kind, text, image: frame.uri, ...(c.focus ? { focus: c.focus } : {}) };
-      log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]}${frame ? `: ${c.sceneId} عند ${frame.at} ث${frame.from === "master" ? " من Master" : ""}` : ""})…`);
+      log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]}${frame ? `: ${c.sceneId} عند ${frame.at} ث، ${FRAME_FROM_LABEL[frame.from]}` : ""})…`);
     } else if (c.kind === "scene") { log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: اختر مشهده أولًا. لم يُرسم.`); continue; }
     else log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]})…`);
     out.push(path.basename(await renderThumbnail({ ...base, title: plan.title, concept }, path.join(dir, `${id}-thumbnail-${n}.png`))));

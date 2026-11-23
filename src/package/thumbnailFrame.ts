@@ -4,7 +4,10 @@
  * never a generated image. JPEG at the cut's own size, handed to the thumbnail still as a data URI; nothing is written
  * beside the episode.
  * D196 v4: once the 4K Master exists and is newer than the scene's cut, the same moment is taken from the Master instead
- * (the same approved picture at four times the pixels), so a zoomed cover stays sharp. Before the Master: the 1080p cut.
+ * (the same approved picture at four times the pixels), so a zoomed cover stays sharp.
+ * D196 v5 (owner 23 Nov: «والثلاثة من رندر 4K»): before a current Master, a 4K still of the scene at the same moment
+ * (src/package/sceneStill.ts, the cut's own plan, media and props at scale 2). The 1080p cut is the last resort only,
+ * when the still cannot be rendered. Order: `pickFrameSource`.
  */
 import path from "node:path";
 import os from "node:os";
@@ -39,22 +42,32 @@ export const masterSceneStart = (ids: string[], sceneSeconds: Record<string, num
 export const useMasterFrame = (o: { masterMtimeMs?: number; cutMtimeMs: number; start: number | null }) =>
   o.masterMtimeMs !== undefined && o.masterMtimeMs > o.cutMtimeMs && o.start !== null;
 
+export type FrameSource = "master" | "still" | "cut";
+/** Master when current, else the 4K still when it rendered, else the scene's own 1080p cut. */
+export const pickFrameSource = (o: { masterUsable: boolean; still: boolean }): FrameSource =>
+  o.masterUsable ? "master" : o.still ? "still" : "cut";
+
 export type MasterSource = { file: string; ids: string[]; sceneSeconds: Record<string, number>; introSeconds: number };
 
 /** The scene's frame as a JPEG data URI, or null when the scene has no cut on disk yet (the thumbnail then shows its element). */
-export const sceneFrameDataUri = async (scriptPath: string, sceneId: string, atSeconds?: number, master?: MasterSource): Promise<{ uri: string; at: number; from: "master" | "cut" } | null> => {
+export const sceneFrameDataUri = async (scriptPath: string, sceneId: string, atSeconds?: number, master?: MasterSource,
+  /** renders the 4K still at `at` seconds into the cut (null when it cannot) — asked only when no current Master */
+  still?: (at: number) => Promise<string | null>): Promise<{ uri: string; at: number; from: FrameSource } | null> => {
   const video = sceneCutFile(scriptPath, sceneId);
   if (!/^[\w-]+$/.test(sceneId) || !existsSync(video)) return null;
   const { parseFile } = await import("music-metadata");
   const seconds = async (f: string) => (await parseFile(f, { duration: true }).catch(() => null))?.format.duration ?? 0;
   const at = frameTimeFor(await seconds(video), atSeconds);
-  let source = video, seek = at, from: "master" | "cut" = "cut";
+  let source = video, seek = at, masterUsable = false;
   if (master && existsSync(master.file)) {
     const start = masterSceneStart(master.ids, master.sceneSeconds, sceneId, await seconds(master.file), master.introSeconds);
     if (useMasterFrame({ masterMtimeMs: (await stat(master.file)).mtimeMs, cutMtimeMs: (await stat(video)).mtimeMs, start })) {
-      source = master.file; seek = start! + at; from = "master";
+      source = master.file; seek = start! + at; masterUsable = true;
     }
   }
+  const stillUri = !masterUsable && still ? await still(at) : null;
+  const from = pickFrameSource({ masterUsable, still: Boolean(stillUri) });
+  if (from === "still") return { uri: stillUri!, at, from };
   const dir = await mkdtemp(path.join(os.tmpdir(), "bal-thumb-"));
   try {
     const out = path.join(dir, "frame.jpg");

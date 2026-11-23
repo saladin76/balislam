@@ -85,3 +85,32 @@ describe("D196 v4: لقطة الغلاف من Master الـ4K حين يكون أ
     expect(useMasterFrame({ masterMtimeMs: 2, cutMtimeMs: 1, start: null })).toBe(false);
   });
 });
+
+describe("D196 v5: الأغلفة من رندر 4K — Master، ثم لقطة 4K للمشهد، ثم فيديو المشهد آخرًا", () => {
+  it("ترتيب المصدر", async () => {
+    const { pickFrameSource } = await import("../src/package/thumbnailFrame");
+    expect(pickFrameSource({ masterUsable: true, still: true })).toBe("master");
+    expect(pickFrameSource({ masterUsable: true, still: false })).toBe("master");
+    expect(pickFrameSource({ masterUsable: false, still: true })).toBe("still");
+    expect(pickFrameSource({ masterUsable: false, still: false })).toBe("cut");
+  });
+  it("لقطة 4K من خطة المشهد نفسها كما يُرندر فيديوه: مشهد واحد، والمقدمة فقط إن كان أول الحلقة", async () => {
+    const { sceneCutPlan, stillFrameAt } = await import("../src/package/sceneStill");
+    const s = (id: string) => ({ id, template: "x", narration: "", props: {} });
+    const full = { title: "t", chapters: [{ number: 1, title: "a", scenes: [s("c1-s1"), s("c1-s2")] }, { number: 2, title: "b", scenes: [s("c2-s1")] }] } as never;
+    const first = sceneCutPlan(full, "c1-s1")!;
+    expect(first.chapters.flatMap((c) => c.scenes.map((x) => x.id))).toEqual(["c1-s1"]);
+    expect("intro" in first && (first as { intro?: unknown }).intro === false).toBe(false);
+    const later = sceneCutPlan(full, "c2-s1")!;
+    expect(later.chapters.map((c) => c.number)).toEqual([2]);
+    expect((later as { intro?: unknown }).intro).toBe(false);
+    expect(sceneCutPlan(full, "nope")).toBeNull();
+    expect(stillFrameAt(14, 900)).toBe(420);
+    expect(stillFrameAt(40, 900)).toBe(899);
+    expect(stillFrameAt(-1, 900)).toBe(0);
+  });
+  it("قاعدة القرآن في رأس قواعد الأغلفة، ولا غلاف «وعود كاذبة» في الكود", async () => {
+    const code = await readFile(path.join(import.meta.dirname, "..", "src/package/thumbnails.ts"), "utf8");
+    expect(code).toContain("لا غلاف يشطب كلمات من القرآن");
+  });
+});
