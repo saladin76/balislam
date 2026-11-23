@@ -34,9 +34,17 @@ export const DepthOfField: React.FC<{ focus: number; aperture: number; maxblur?:
   return null;
 };
 
-/** ذرات غبار في حجم الشعاع (صندوق مائل من النافذة إلى المكتب)؛ ثابتة الموضع لكل بذرة، تنجرف مع t */
-export const BeamDust: React.FC<{ t: number; count?: number; from: [number, number, number]; to: [number, number, number]; radius: number; color: string; still?: Window[]; seed?: number }> =
-  ({ t, count = 90, from, to, radius, color, still = [], seed = 5 }) => {
+/** هل تُرسم الذرة: لا ذرة أقرب إلى العدسة من lens.near (تصير قرصًا مموّهًا كبيرًا خارج عمق الميدان) */
+export const dustVisible = (pos: { x: number; y: number; z: number }, lens: { at: [number, number, number]; near: number }) =>
+  Math.hypot(pos.x - lens.at[0], pos.y - lens.at[1], pos.z - lens.at[2]) >= lens.near;
+
+/**
+ * ذرات غبار في حجم الشعاع (صندوق مائل من النافذة إلى المكتب)؛ ثابتة الموضع لكل بذرة، تنجرف مع t.
+ * lens (اختياري): موضع الكاميرا وأدنى مسافة منها؛ الذرة الأقرب لا تُرسم، لأن عمق الميدان يكبّرها قرصًا أبيض
+ * مموّهًا أمام العدسة (ملاحظة المالك على «آلات الجزري» ٢٣ نوفمبر: «النقطة البيضاء أسفل يسار الكادر الأول»).
+ */
+export const BeamDust: React.FC<{ t: number; count?: number; from: [number, number, number]; to: [number, number, number]; radius: number; color: string; still?: Window[]; seed?: number; lens?: { at: [number, number, number]; near: number } }> =
+  ({ t, count = 90, from, to, radius, color, still = [], seed = 5, lens }) => {
     const base = useMemo(() => Array.from({ length: count }, (_, i) => ({
       k: (noise1(seed, i * 1.7) + 1) / 2, a: noise1(seed + 1, i * 2.3) * Math.PI, r: Math.abs(noise1(seed + 2, i * 3.1)) * radius, s: 0.0025 + Math.abs(noise1(seed + 3, i)) * 0.004,
     })), [count, radius, seed]);
@@ -51,6 +59,7 @@ export const BeamDust: React.FC<{ t: number; count?: number; from: [number, numb
         {base.map((p, i) => {
           const k = (p.k + dt * 0.012) % 1, a = p.a + dt * 0.15;
           const pos = new THREE.Vector3(...from).addScaledVector(dir, k).addScaledVector(side, Math.cos(a) * p.r).addScaledVector(up, Math.sin(a) * p.r + noise1(seed + 9, i + dt * 0.3) * 0.04);
+          if (lens && !dustVisible(pos, lens)) return null;
           return <mesh key={i} geometry={geo} position={pos} scale={p.s}><meshBasicMaterial color={color} transparent opacity={0.4} toneMapped={false} /></mesh>;
         })}
       </group>

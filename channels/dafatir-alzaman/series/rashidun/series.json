@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "rashidun",
+  "name": "الخلفاء الراشدون",
+  "kind": "series",
+  "description": "أبو بكر وعمر وعثمان وعلي رضي الله عنهم (~١٠ حلقات)، بمنهج أهل السنة",
+  "order": 5,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#E07A3F"
+    },
+    "motif": "stars",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "book"
+      ]
+    }
+  },
+  "template": {}
+}

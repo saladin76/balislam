@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "hadarat",
+  "name": "الحضارات",
+  "kind": "series",
+  "description": "العالم بعد الطوفان: حضارات متزامنة ومقارنات (~١٨ حلقة)",
+  "order": 2,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#E07A3F"
+    },
+    "motif": "stars",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "book"
+      ]
+    }
+  },
+  "template": {}
+}

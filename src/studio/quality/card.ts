@@ -11,6 +11,7 @@
 import type { Plan, PlanScene } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 import { sceneSeconds } from "../../plan/duration";
+import { coldOpenCut, coldOpenFrames, coldOpenOf, coldOpenSource } from "../../plan/coldOpen";
 import { normalizeArabic } from "../../script/quranMeta";
 import { measureDiversity } from "./diversity";
 import { measureCraft } from "./craft";
@@ -117,13 +118,15 @@ export const craftItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "rec
   const c = measureCraft(plan, media);
   const pct = c.scenes ? Math.round((c.cameraMoving / c.scenes) * 100) : 100;
   const note = "للعلم حتى يحدد المالك الحد (لا يمنع).";
+  // D158، قرار المالك (٢٣ نوفمبر): حد المؤثرات المتزامنة يبقى للعلم ولا يمنع حتى نرى ٣ حلقات
+  const sfxNote = "للعلم ولا يمنع حتى نرى ٣ حلقات (قرار المالك ٢٣ نوفمبر).";
   return [
     { id: "craft-camera", label: "مشاهد فيها حركة كاميرا", need: "حركة كاميرا مسبَّبة في كل مشهد", value: `${ar(pct, 0)}٪ (${ar(c.cameraMoving, 0)} من ${ar(c.scenes, 0)})`,
       status: pct === 100 ? "pass" : "warn", ...(pct === 100 ? {} : { reason: note }) },
     { id: "craft-sizes", label: "أحجام اللقطات في الدقيقة", need: "واسعة ومتوسطة وقريبة وتفاصيل",
       ...(c.sizesPerMinute === null ? { status: "warn" as const, reason: "قوالب الحلقة لا تعلن حجم لقطاتها (props.shotSize) بعد." }
         : { status: "warn" as const, value: `${ar(c.sizesPerMinute)} حجم في الدقيقة (${ar(c.sizesDeclared, 0)} مشهدًا معلنًا)`, reason: note }) },
-    { id: "craft-sfx", label: "مؤثرات متزامنة مع الحركة", need: "صوت مع كل حركة (D158)", value: `${ar(c.syncedSfx, 0)}`, status: "warn", reason: note },
+    { id: "craft-sfx", label: "مؤثرات متزامنة مع الحركة", need: "صوت مع كل حركة (D158)", value: `${ar(c.syncedSfx, 0)}`, status: "warn", reason: sfxNote },
     { id: "craft-repeat", label: "عدم تكرار اللقطة", need: "لا لقطة مرتين في الحلقة", value: c.repeatedShots.length ? `${ar(c.repeatedShots.length, 0)} لقطة مكررة` : "لا تكرار",
       status: c.repeatedShots.length ? "warn" : "pass",
       ...(c.repeatedShots.length ? { reason: `${note} ${c.repeatedShots.slice(0, 3).map((x) => x.scenes.join(" = ")).join("، ")}${c.repeatedShots.length > 3 ? "، …" : ""}` } : {}) },
@@ -142,7 +145,16 @@ const sceneText = (s: PlanScene) => bare([s.narration, ...Object.values(s.props 
  * (تقدير يكفي للحكم على أول ربع دقيقة؛ المشهد يُقال بإيقاع واحد).
  */
 export const hookIn = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">): { ok: boolean; text?: string; at?: number } => {
-  let t = 0;
+  // D198: الخطاف المسبق أول ما يُسمع (من الثانية صفر)، ثم الحلقة بعده بمدته
+  const cold = coldOpenOf(plan);
+  const src = cold ? coldOpenSource(plan) : null;
+  const clip = src ? media?.voice[src.id] : undefined;
+  if (cold && src && clip && clip.text === src.narration.trim()) {
+    const cut = coldOpenCut(clip, cold.to, cold.words);
+    const q = cut.text.split(/(?<=[؟?.!۔])\s+/).find((x) => /[؟?]/.test(x));
+    if (q) return { ok: true, text: q.trim(), at: 0 };
+  }
+  let t = coldOpenFrames(plan) / 30;
   // أول سؤال في الحلقة كلها: داخل النافذة ينجح، وبعدها يُذكر موضعه ليُعرف كم يُقدَّم
   for (const s of plan.chapters.flatMap((c) => c.scenes)) {
     const text = s.narration ?? "";

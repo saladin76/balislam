@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "duwal",
+  "name": "الدول",
+  "kind": "category",
+  "description": "سلسلة لكل دولة، والدول المتزامنة",
+  "order": 6,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#E07A3F"
+    },
+    "motif": "stars",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "book"
+      ]
+    }
+  },
+  "template": {}
+}

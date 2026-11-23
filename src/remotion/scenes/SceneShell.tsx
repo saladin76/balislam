@@ -167,7 +167,7 @@ type ShellProps = SceneBase & {
   background?: string;
   /** ألوان شارة عنوان الفصل على تلك الخلفية */
   eyebrowColors?: { text: string; border: string };
-  captionVariant?: "pill" | "cinema" | "paper" | "dusk";
+  captionVariant?: "pill" | "cinema" | "paper" | "dusk" | "adaptive";
   /** طول الإظلام في آخر المشهد (0 = قطع مباشر إلى مشهد يكمله) */
   exitFrames?: number;
   /** المشهد يرسم الدفتر بنفسه (خط الأفق): بلا غلاف الدفتر الثابت حوله */
@@ -200,6 +200,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
     const n = parseInt(h, 16);
     return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255) < 110;
   })();
+  const capVariant = captionVariant === "adaptive" ? "adaptive" : notebook ? (darkBg ? "adaptive" : "paper") : captionVariant;
 
   return (
     <AbsoluteFill style={{ backgroundColor: background ?? t.colors.bg, direction: lang.dir, fontFamily: fontFamilies.body, color: t.colors.ink }}>
@@ -240,8 +241,10 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
       </AbsoluteFill>
       {notebook && !frameless ? <NotebookCover w={width} h={height} u={u} /> : null}
       {captions && timings.length ? (
-        <AbsoluteFill style={{ opacity: out }}>
-          <CaptionBar theme={t} timings={timings} portrait={portrait} variant={notebook ? (darkBg ? "dusk" : "paper") : captionVariant} />
+        // «خط الأفق» (والدفتر على الليل): الترجمة تتكيف مع ما خلفها بكسلًا بكسلًا (طلب المالك ٢٢ نوفمبر): أبيض بمزج «الفرق» فيصير
+        // حبرًا داكنًا على ورق الدفتر الفاتح ونورًا دافئًا على الليل، ولو وقع السطر على الاثنين معًا. للدفتر وحده: ألوانه ورق وليل.
+        <AbsoluteFill style={{ opacity: out, ...(capVariant === "adaptive" ? { mixBlendMode: "difference" as const } : {}) }}>
+          <CaptionBar theme={t} timings={timings} portrait={portrait} variant={capVariant} />
         </AbsoluteFill>
       ) : null}
     </AbsoluteFill>

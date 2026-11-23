@@ -50,7 +50,7 @@ export const EP001_META: Record<string, HzMeta> = {
   permit: { nameAr: "الإباحة واسعة، والنهي علامة واحدة بحدّ «لا تقربا»", tail: 1.2, exit: "fade" },
   species: { nameAr: "بطاقة «نوع الشجرة»: فارغة، ثم العبرة", tail: 1.2, exit: "fade" },
   "warn-recall": { nameAr: "تحذير من عداوة الشيطان (قبل آية)", tail: 1.0, exit: "none" },
-  whisper: { nameAr: "الوسوسة خط متموج، والوعدان الكاذبان يُشطبان", tail: 1.2, exit: "fade" },
+  whisper: { nameAr: "الوسوسة خط متموج، والوعدان تحت «زعم» يضمّهما قوس (بلا شطب)", tail: 1.2, exit: "fade" },
   breach: { nameAr: "ثم وقع: ثغرة في حدّ النهي، ثم «فأكلا من الشجرة»", tail: 1.0, exit: "none" },
   "return-line": { nameAr: "الخط العائد: لم يصر بل رجع، ومرجع الدعاء في الأعراف", tail: 1.9, exit: "fade" },
   stances: { nameAr: "موقفان: استكبر وأصر / تاب وأناب، وباب التوبة", tail: 1.6, exit: "turn" },
