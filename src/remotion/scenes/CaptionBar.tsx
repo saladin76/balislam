@@ -7,10 +7,20 @@ import { useSize } from "../../../brand/identity/index";
 import { useChannel } from "../../channel/context";
 import { stripTashkeel } from "../../voice/tashkeel";
 
-/** نص الكلمة على الشاشة: بلا تشكيل إن قررت القناة ذلك (script.captionTashkeel=false)، ونص النطق المشكول لا يتغير */
+/** إملاء المشهد للترجمة (PlanScene.captionSpell)؛ يوفّره Episode لكل مشهد */
+export const CaptionSpellContext = React.createContext<Record<string, string> | undefined>(undefined);
+
+/** الكلمة بإملاء المشهد إن كان يضيف تشكيلًا فقط على الحروف نفسها؛ وإلا الكلمة كما هي (لا تغيير كلمة من الترجمة أبدًا) */
+export const captionSpelled = (w: string, spell?: Record<string, string>): string => {
+  const s = spell?.[w];
+  return s && stripTashkeel(s) === stripTashkeel(w) ? s : w;
+};
+
+/** نص الكلمة على الشاشة: إملاء المشهد، ثم بلا تشكيل إن قررت القناة ذلك (script.captionTashkeel=false)، ونص النطق المشكول لا يتغير */
 const useCaptionWord = () => {
   const plain = useChannel().script?.captionTashkeel === false;
-  return (w: string) => (plain ? stripTashkeel(w) : w);
+  const spell = React.useContext(CaptionSpellContext);
+  return (w: string) => { const s = captionSpelled(w, spell); return plain ? stripTashkeel(s) : s; };
 };
 
 
