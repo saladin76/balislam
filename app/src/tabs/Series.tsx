@@ -382,7 +382,7 @@ const IdentityEditor: React.FC<{ draft: SeriesConfig; setDraft: (s: SeriesConfig
       <fieldset><legend>الافتتاحية والصورة المصغّرة</legend>
         <div className="sr-row">
           <div className="sr-seg" role="radiogroup" aria-label="الافتتاحية">{(["sting", "channel"] as const).map((v) => <button key={v} type="button" role="radio" aria-checked={d.intro === v} onClick={() => set({ intro: v })}>{v === "sting" ? "افتتاحية القناة + بطاقة السلسلة" : "افتتاحية القناة وحدها"}</button>)}</div>
-          <div className="sr-seg" role="radiogroup" aria-label="شارة المصغّرة">{(["band", "corner", "none"] as const).map((v) => <button key={v} type="button" role="radio" aria-checked={d.thumbnail.badge === v} onClick={() => set({ thumbnail: { badge: v } })}>{v === "band" ? "شريط أعلى المصغّرة" : v === "corner" ? "لسان في الزاوية" : "بلا شارة"}</button>)}</div>
+          <div className="sr-seg" role="radiogroup" aria-label="شارة المصغّرة">{(["corner", "none"] as const).map((v) => <button key={v} type="button" role="radio" aria-checked={(d.thumbnail.badge === "band" ? "corner" : d.thumbnail.badge) === v} onClick={() => set({ thumbnail: { badge: v } })}>{v === "corner" ? "علامة صغيرة في الركن" : "بلا شارة"}</button>)}</div>
         </div>
       </fieldset>
       <fieldset><legend>شعار السلسلة (جزء أو جزآن من شعار القناة)</legend>

@@ -255,7 +255,8 @@ export const deriveSeriesIdentity = (channel: ApprovedIdentity & { id?: string }
       ornament: pick(overrides.title?.ornament, ["none", "rule", "motif"] as const, "rule"),
     },
     intro: pick(overrides.intro, ["channel", "sting", "none"] as const, "sting"),
-    thumbnail: { badge: pick(overrides.thumbnail?.badge, ["none", "band", "corner"] as const, "band") },
+    // D196 v7: العلامة في الركن هي الافتراضي؛ «band» يبقى قيمة مقبولة للأختام المحفوظة ويُرسم علامةً في الركن
+    thumbnail: { badge: pick(overrides.thumbnail?.badge, ["none", "band", "corner"] as const, "corner") },
     emblem: { base: a.emblem, parts: parts.length ? parts : allParts.slice(0, 1) },
     clamped,
   };

@@ -1,7 +1,7 @@
 {
   "version": 1,
   "generatedBy": "edited",
-  "updatedAt": "2026-11-23T08:30:24.507Z",
+  "updatedAt": "2026-11-23T18:15:49.810Z",
   "long": {
     "titles": [
       {
@@ -51,11 +51,11 @@
       {
         "kind": "title",
         "text": "متى بدأت؟",
-        "sceneId": "c1-s2",
-        "atSeconds": 3.27,
+        "sceneId": "c1-s5",
+        "atSeconds": 7.5,
         "focus": {
-          "x": 0.5,
-          "y": 0.47,
+          "x": 0.53,
+          "y": 0.52,
           "zoom": 1.6,
           "bottom": 0.78
         }

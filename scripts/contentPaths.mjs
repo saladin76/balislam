@@ -28,6 +28,8 @@ export const CONTENT_PATH_RES = [
   /^channels\/[a-z0-9-]+\/(pronunciations\.json|pronunciation\.json|ideas\.json|calendar\.json|channel\.json|identity\.json)$/,
   // السلاسل والتصنيفات (D71)
   /^channels\/[a-z0-9-]+\/series\/[^/]+\/series\.json$/,
+  // سجل العلماء وسجل الكتب (D206): «زبدة الكتب» صاحبتهما، و«دفاتر الزمن» تقرؤهما
+  /^channels\/zubdat-alkutub\/library\/(scholars|books)\.json$/,
   // إعدادات الاستوديو العامة (الأسرار في .env لا هنا)
   /^config\.json$/,
 ];
