@@ -22,6 +22,7 @@ import { InkShot, inkShotSample, inkShotSampleEn, inkShotSeconds } from "./InkSh
 import { HorizonShot, horizonShotSample, horizonShotSampleEn, horizonShotSeconds } from "./HorizonShot";
 import { RahhalaDesk, rahhalaDeskSample, rahhalaDeskSampleEn, rahhalaDeskSeconds } from "../dafatir/world/RahhalaDesk";
 import { AlleyWorld, alleyWorldSample, alleyWorldSampleEn, alleyWorldSeconds } from "../balislam/world/AlleyWorld";
+import { JazariMachine, jazariMachineSample, jazariMachineSampleEn, jazariMachineSeconds } from "../zubdat/world/JazariMachine";
 import { InkMeaning, inkMeaningSample, inkMeaningSampleEn, inkMeaningSeconds } from "./InkMeaning";
 import { GlowStory, glowStorySample, glowStorySampleEn, glowStorySeconds } from "./GlowStory";
 import { Summary, summarySample, summarySampleEn, summarySeconds } from "./Summary";
@@ -58,6 +59,7 @@ export const sceneCatalog: Entry[] = [
   { id: "horizon-shot", component: HorizonShot, sample: horizonShotSample, sampleEn: horizonShotSampleEn, seconds: horizonShotSeconds },
   { id: "rahhala-desk", component: RahhalaDesk, sample: rahhalaDeskSample, sampleEn: rahhalaDeskSampleEn, seconds: rahhalaDeskSeconds },
   { id: "alley-world", component: AlleyWorld, sample: alleyWorldSample, sampleEn: alleyWorldSampleEn, seconds: alleyWorldSeconds },
+  { id: "jazari-machine", component: JazariMachine, sample: jazariMachineSample, sampleEn: jazariMachineSampleEn, seconds: jazariMachineSeconds },
   { id: "ink-meaning", component: InkMeaning, sample: inkMeaningSample, sampleEn: inkMeaningSampleEn, seconds: inkMeaningSeconds },
   { id: "sketch-board", component: SketchBoard, sample: sketchBoardSample, sampleEn: sketchBoardSampleEn, seconds: sketchBoardSeconds },
   { id: "kinetic-text", component: KineticText, sample: kineticTextSample, sampleEn: kineticTextSampleEn, seconds: kineticTextSeconds },
