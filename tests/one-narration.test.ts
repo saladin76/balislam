@@ -82,6 +82,7 @@ describe("الحلقات الجديدة: القالب سرد واحد، والن
     const kit = generatePublishKit(plan, text, emptyMedia, channel);
     expect(kit.long.description).not.toContain(CHAPTERS_TOKEN);
     expect(kit.long.description).not.toContain("في هذه الحلقة:");
+    for (const sh of kit.shorts) expect(Object.keys(sh)).not.toContain("hook"); // D207: لا خطاف في الشورتس
   });
   it("خطة بأقسام معنونة: قائمة الفصول باقية كما كانت", () => {
     const text = `---\ntitle: "كيف نبدأ؟"\ndomain: psychology\nepisode: "002"\n---\n\n## الفصل 1 · البداية\n\nأ ب ج.\n\n## الفصل 2 · الطريق\n\nد ه و.\n\n## الفصل 3 · الوصول\n\nز ح ط.\n`;

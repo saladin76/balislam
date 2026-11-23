@@ -104,9 +104,9 @@ export const SeriesSting: React.FC<{ stamp: Pick<SeriesStamp, "identity" | "name
 /**
  * علامة السلسلة على الغلاف (D196 v7، قرار المالك ٢٣ نوفمبر: «استبدله بعلامة صغيرة في الركن «البدايات · ١» بلون القناة، لا
  * شريطًا بعرض الغلاف»): علامة صغيرة في الركن الأعلى الأيسر (بعيدًا عن جهة القراءة والعنوان)، بلون السلسلة المشتق من لوحة
- * القناة وخطها: الاسم ثم نقطة وسطى ثم الرقم. «band» القديم في الأختام المحفوظة يُرسم علامةً كذلك، فلا شريط بعرض الغلاف أبدًا.
+ * القناة وخطها: الاسم ثم خط عمودي ثم الرقم («البدايات | ١»، v8: النقطة الوسطى ولو مرسومة دائرةً تُقرأ صفرًا بجوار الرقم العربي). «band» القديم في الأختام المحفوظة يُرسم علامةً كذلك، فلا شريط بعرض الغلاف أبدًا.
  */
-export const seriesMarkLabel = (name: string, number?: number) => (number ? `${name} · ${number.toLocaleString("ar-EG")}` : name);
+export const seriesMarkLabel = (name: string, number?: number) => (number ? `${name} | ${number.toLocaleString("ar-EG")}` : name);
 export const SeriesBadge: React.FC<{ d: DerivedSeriesIdentity; name: string; number?: number }> = ({ d, name, number }) => {
   if (d.thumbnail.badge === "none") return null;
   const shape = d.emblem.base === "horizon-book"
@@ -120,10 +120,10 @@ export const SeriesBadge: React.FC<{ d: DerivedSeriesIdentity; name: string; num
       data-series-badge="corner"
     >
       <SeriesEmblem d={{ ...d, accent: d.onAccent, paper: d.accent }} size={34} />
-      {/* النقطة الوسطى دائرة مرسومة بمسافتين: «·» محرفًا بجوار رقم عربي تُقرأ صفرًا («البدايات ١٠») */}
+      {/* v8 (قرار المالك ٢٣ نوفمبر): خط عمودي لا نقطة، فالنقطة بجوار رقم عربي تُقرأ صفرًا («البدايات ١٠») */}
       <span aria-label={seriesMarkLabel(name, number)} style={{ display: "flex", alignItems: "center" }}>
         <span>{name}</span>
-        {number ? <><span style={{ width: 9, height: 9, borderRadius: 999, background: d.onAccent, margin: "4px 13px 0", display: "inline-block" }} /><span>{number.toLocaleString("ar-EG")}</span></> : null}
+        {number ? <><span style={{ margin: "0 12px", opacity: 0.85 }}>|</span><span>{number.toLocaleString("ar-EG")}</span></> : null}
       </span>
     </div>
   );
