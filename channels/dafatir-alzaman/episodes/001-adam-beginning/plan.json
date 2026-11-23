@@ -13,7 +13,7 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-23T04:56:22.636Z",
+  "updatedAt": "2026-11-23T18:15:01.395Z",
   "intro": false,
   "shorts": [
     {
@@ -713,11 +713,6 @@
       ]
     }
   ],
-  "coldOpen": {
-    "scene": "c1-s5",
-    "words": 6,
-    "to": 3.5
-  },
   "series": {
     "id": "bidayat",
     "name": "البدايات",
