@@ -253,6 +253,15 @@ export const renderThumbnailSet = async (o: { scriptPath: string; script: string
   // KI-120 / D196: «مشهد» و«سؤال» يُرسمان بأسلوب القناة المعتمد اتجاهه («دفتر الأفق»)، وموقوفان في غيره؛ والملف يبقى برقم فكرته
   const { render, held } = renderableConcepts(concepts, loadChannel().brand?.thumbnail);
   const { sceneFrameDataUri } = await import("./thumbnailFrame");
+  // D196 v4: اللقطة من Master الـ4K إن وُجد وكان أحدث من فيديو المشهد (أوضح عند التكبير)، وإلا من فيديو المشهد
+  const master = await (async () => {
+    const { realEpisodeTimings } = await import("./realTimings");
+    const cuts = (await realEpisodeTimings(o.scriptPath, o.plan)).sceneSeconds;
+    if (!cuts) return undefined;
+    const { introFramesFor } = await import("../remotion/scenes/ChannelIntro");
+    return { file: path.join(o.dir, `${o.id}-episode.mp4`), ids: o.plan.chapters.flatMap((c) => c.scenes).map((s) => s.id), sceneSeconds: cuts,
+      introSeconds: introFramesFor(channelInfo(loadChannel()), o.plan) / (await import("../../config.json")).default.video.fps };
+  })();
   for (const c of render) {
     const n = conceptOrder(concepts).indexOf(c) + 1;
     const text = c.text.trim();
@@ -260,10 +269,10 @@ export const renderThumbnailSet = async (o: { scriptPath: string; script: string
     // D196 v2: الأغلفة من صور الحلقة نفسها — اللقطة من فيديو المشهد الذي شاهده المالك واعتمده، لا رسم جديد؛
     // «مشهد» بلا فيديو لا يُرسم، والعنوان والسؤال بلا لقطة يُرسمان بعنصرهما
     if (c.sceneId) {
-      const frame = await sceneFrameDataUri(o.scriptPath, c.sceneId, c.atSeconds);
+      const frame = await sceneFrameDataUri(o.scriptPath, c.sceneId, c.atSeconds, master);
       if (!frame && c.kind === "scene") { log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: لا فيديو للمشهد ${c.sceneId} بعد؛ أنتجه في «٢ المشاهد» ثم اصنع الأغلفة. لم يُرسم.`); continue; }
       if (frame) concept = { kind: c.kind, text, image: frame.uri, ...(c.focus ? { focus: c.focus } : {}) };
-      log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]}${frame ? `: ${c.sceneId} عند ${frame.at} ث` : ""})…`);
+      log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]}${frame ? `: ${c.sceneId} عند ${frame.at} ث${frame.from === "master" ? " من Master" : ""}` : ""})…`);
     } else if (c.kind === "scene") { log(`   غلاف «${THUMB_KIND_LABEL[c.kind]}»: اختر مشهده أولًا. لم يُرسم.`); continue; }
     else log(`الغلاف ${n} (${THUMB_KIND_LABEL[c.kind]})…`);
     out.push(path.basename(await renderThumbnail({ ...base, title: plan.title, concept }, path.join(dir, `${id}-thumbnail-${n}.png`))));

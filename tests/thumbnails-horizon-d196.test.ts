@@ -65,3 +65,23 @@ describe("D196: «دفتر الأفق» يرسم الأغلفة الثلاثة،
     expect(SCENE_CAPTION_BAND).toBeGreaterThan(0.2);
   });
 });
+
+describe("D196 v4: لقطة الغلاف من Master الـ4K حين يكون أحدث من فيديو المشهد", () => {
+  it("بداية المشهد في Master = المقدمة (لا أكثر منها) + أطوال المشاهد قبله", async () => {
+    const { masterSceneStart } = await import("../src/package/thumbnailFrame");
+    const ids = ["a", "b", "c"], cuts = { a: 10, b: 20, c: 5 };
+    expect(masterSceneStart(ids, cuts, "a", 35, 0)).toBe(0);
+    expect(masterSceneStart(ids, cuts, "c", 35, 0)).toBe(30);
+    expect(masterSceneStart(ids, cuts, "c", 38, 3)).toBe(33);
+    expect(masterSceneStart(ids, cuts, "b", 50, 3)).toBe(13);
+    expect(masterSceneStart(ids, cuts, "x", 35, 0)).toBeNull();
+    expect(masterSceneStart(ids, { a: 10, b: 20 }, "a", 35, 0)).toBeNull();
+  });
+  it("Master أقدم من فيديو المشهد (أُعيد المشهد بعده) أو بلا موضع: فيديو المشهد نفسه", async () => {
+    const { useMasterFrame } = await import("../src/package/thumbnailFrame");
+    expect(useMasterFrame({ masterMtimeMs: 2, cutMtimeMs: 1, start: 4 })).toBe(true);
+    expect(useMasterFrame({ masterMtimeMs: 1, cutMtimeMs: 2, start: 4 })).toBe(false);
+    expect(useMasterFrame({ cutMtimeMs: 1, start: 4 })).toBe(false);
+    expect(useMasterFrame({ masterMtimeMs: 2, cutMtimeMs: 1, start: null })).toBe(false);
+  });
+});
