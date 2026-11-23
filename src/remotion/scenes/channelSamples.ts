@@ -1,3 +1,4 @@
+import { bidayatSamples } from "../dafatir/bidayat/BidayatScene";
 /**
  * نماذج معاينة القوالب لكل قناة بمحتواها هي، فلا يرى صاحب «دفاتر الزمن» أو «زبدة الكتب» في مكتبته نماذج قناة أخرى
  * (مثل «لماذا نؤجّل؟» أو «بعين الإسلام»). النموذج العام في catalog.ts من محتوى «بالإسلام»، فكل قالب في مكتبة
@@ -7,6 +8,8 @@
  */
 export const channelSamples: Record<string, Record<string, Record<string, unknown>>> = {
   "dafatir-alzaman": {
+    // «البدايات» (D209): نماذج القوالب الخمسة من سكريبت 001 نفسه
+    ...bidayatSamples,
     // «مكتب الرحّالة» (D194): الطريق من الكوفة إلى بغداد على خريطة رقّ، بمحتوى القناة نفسها
     "rahhala-desk": {
       shot: "map",
