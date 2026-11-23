@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "tamheed",
+  "name": "تمهيد الأرض للإسلام",
+  "kind": "series",
+  "description": "من بعد عيسى عليه السلام إلى قبيل البعثة (~٨ حلقات)",
+  "order": 3,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#E07A3F"
+    },
+    "motif": "stars",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "book"
+      ]
+    }
+  },
+  "template": {}
+}

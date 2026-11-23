@@ -110,7 +110,7 @@ const readyItems = async (scriptPath: string, plan: Plan, media: Omit<EpisodeMed
   try { kit = JSON.parse(await readFile(path.join(path.dirname(scriptPath), "publish.json"), "utf8")) as PublishKit; } catch { return undefined; }
   const scenes = plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, sacred: s.template === "verse-card" || s.template === "dua-board" || isSacredSentence(s.narration) }));
   try {
-    return { packaging: packagingCard(kit, { title: plan.title, scenes, starts: sceneStartsFor(plan, { ...media, base: "", mode: "static" } as EpisodeMedia) }), shorts: shortsCard(kit) };
+    return { packaging: packagingCard(kit, { title: plan.title, scenes, thumbStyle: (await import("../../channel/index")).loadChannel().brand?.thumbnail, starts: sceneStartsFor(plan, { ...media, base: "", mode: "static" } as EpisodeMedia) }), shorts: shortsCard(kit) };
   } catch { return undefined; }
 };
 

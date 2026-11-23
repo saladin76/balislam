@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "sira",
+  "name": "من البعثة إلى الوفاة",
+  "kind": "series",
+  "description": "السيرة النبوية (~٢٠ حلقة) بأعلى درجات التوقير",
+  "order": 4,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#E07A3F"
+    },
+    "motif": "stars",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "book"
+      ]
+    }
+  },
+  "template": {}
+}
