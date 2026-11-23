@@ -8,7 +8,8 @@
  * خاطئ). اللقطة تختار الزاوية وحدها. عند ذكر الله والدعاء: الجملة كلها ساكنة. بلا فسفوري في هذا العالم (D188).
  */
 import React from "react";
-import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { AbsoluteFill, Audio, Sequence, continueRender, delayRender, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
+import { CAPTION_GEOMETRY, captionRows, measureCaption, wordTones, type ProbeGrid } from "../../three/captionProbe";
 import { useBrandFonts } from "../../useBrandFonts";
 import { calmAt, ease, orbit, safeKeys, swing, type CamState, type V3, type Window } from "../../three";
 import { CAPTION_BAND, CAPTION_TONES, anchorAt, captionLine, effectiveTime, sceneWords, stillWindows, type TimedWord } from "../../three/anchors";
@@ -101,10 +102,25 @@ export const JazariMachine: React.FC<JazariMachineProps> = (props) => {
   // الكفّة ممتلئة إن مال الذراع بلا تقطير في هذا المشهد (لا يميل ذراع بكفّة فارغة)
   const fillAt = !drip && tipE ? 1 : 0;
   const line = props.captions === false || !words.length ? null : captionLine(narration, words, t);
+  // نبرة كل كلمة من الإطار المرسوم نفسه: القياس يصل بعد رسم المسرح، فيُنتظر (delayRender) حتى يصل قياس هذا الإطار
+  const captionBottom = props.orientation === "portrait" ? 460 : 56;
+  const rows = React.useMemo(() => captionRows(height, captionBottom), [height, captionBottom]);
+  const [probe, setProbe] = React.useState<ProbeGrid | null>(null);
+  const onProbe = React.useCallback((g: ProbeGrid) => setProbe((p) => (p?.frame === g.frame ? p : g)), []);
+  const waiting = React.useRef<{ frame: number; h: number } | null>(null);
+  if (line && ready && probe?.frame !== frame && waiting.current?.frame !== frame) {
+    if (waiting.current) continueRender(waiting.current.h);
+    waiting.current = { frame, h: delayRender(`قياس ما خلف الترجمة ${frame}`) };
+  }
+  React.useEffect(() => {
+    if (waiting.current && (!line || probe?.frame === waiting.current.frame)) { continueRender(waiting.current.h); waiting.current = null; }
+  });
+  const tones = React.useMemo(() => (line && ready && probe?.frame === frame ? wordTones(line.text, probe, width, measureCaption) : []), [line?.text, probe, frame, width, ready]); // eslint-disable-line react-hooks/exhaustive-deps
   return (
     <SceneShell {...props} captions={false} eyebrow={undefined} motif={false} watermark={false} background={JAZARI.paperDeep} durationInFrames={durationInFrames} exitFrames={0} frameless>
       <MachineStage t={t} width={width} height={height} cam={cam} aperture={cut.aperture} still={still} calm={calm} ready={ready}
-        drip={drip ? { a: drip.a, b: drip.b } : null} fillAt={fillAt} lever={lever} turn={turn} boardSway={boardSway} idea={props.idea ?? ""} tags={jazariTags(props.parts)} captionBand={line ? CAPTION_BAND : 0} />
+        drip={drip ? { a: drip.a, b: drip.b } : null} fillAt={fillAt} lever={lever} turn={turn} boardSway={boardSway} idea={props.idea ?? ""} tags={jazariTags(props.parts)} captionBand={line ? CAPTION_BAND : 0}
+        probe={line ? { frame, rows, onProbe } : undefined} />
       {/* صوت الورشة الخافت، ومع كل حركة صوتها (D158): كل قطرة، وميل الذراع، ودوران الترس والبكرتين، ووصول اللوح */}
       <Audio src={SFX("silence-room")} volume={0.3} loop />
       {drip && Array.from({ length: 40 }, (_, k) => drip.a + (k + 1) * DRIP_PERIOD).filter((x) => x <= drip.b + DRIP_PERIOD).map((x, i) => <Sequence key={`d${i}`} from={Math.round(x * fps)} durationInFrames={12}><Audio src={SFX("water-drop")} volume={0.32 + (i % 3) * 0.06} /></Sequence>)}
@@ -113,9 +129,15 @@ export const JazariMachine: React.FC<JazariMachineProps> = (props) => {
       {turnE && <Sequence from={Math.round(turnE.b * fps)} durationInFrames={15}><Audio src={SFX("tick")} volume={0.5} /></Sequence>}
       {line && (
         <AbsoluteFill style={{ pointerEvents: "none" }}>
-          {/* الترجمة سطر هادئ (جملة جملة) بلا مستطيل (D187، D192)، حبر بهالة فاتحة على ورق المخطوطة والجص */}
-          <div style={{ position: "absolute", bottom: props.orientation === "portrait" ? 460 : 56, left: 40, right: 40, display: "flex", justifyContent: "center" }}>
-            <div style={{ opacity: line.fade, color: JAZARI_SHOTS[shot].caption === "ink" ? JAZARI.ink : JAZARI.paper, textShadow: CAPTION_TONES[JAZARI_SHOTS[shot].caption].textShadow, padding: "8px 28px", fontFamily: "Tajawal", fontWeight: 500, fontSize: 52, direction: "rtl", textAlign: "center" }}>{line.text}</div>
+          {/* الترجمة سطر هادئ (جملة جملة) بلا مستطيل (D187، D192). كل كلمة بنبرة ما خلفها فعلًا في الإطار (قرار المالك ٢٣ نوفمبر):
+              حبر داكن بهالة فاتحة على ورق المخطوطة والجص البيج، ونص فاتح بحد داكن على الخشب؛ والسطر الواحد يقع على الاثنين معًا */}
+          <div style={{ position: "absolute", bottom: captionBottom, left: CAPTION_GEOMETRY.side, right: CAPTION_GEOMETRY.side, display: "flex", justifyContent: "center" }}>
+            <div style={{ opacity: line.fade, padding: `${CAPTION_GEOMETRY.padY}px ${CAPTION_GEOMETRY.padX}px`, fontFamily: "Tajawal", fontWeight: 500, fontSize: CAPTION_GEOMETRY.fontSize, lineHeight: `${CAPTION_GEOMETRY.lineHeight}px`, direction: "rtl", textAlign: "center" }}>
+              {line.text.split(" ").filter(Boolean).map((w, i) => {
+                const tone = tones[i] ?? "ink";
+                return <React.Fragment key={i}>{i ? " " : ""}<span style={{ color: tone === "ink" ? JAZARI.ink : JAZARI.paper, textShadow: CAPTION_TONES[tone].textShadow }}>{w}</span></React.Fragment>;
+              })}
+            </div>
           </div>
         </AbsoluteFill>
       )}

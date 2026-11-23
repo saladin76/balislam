@@ -11,6 +11,7 @@ import { useThree } from "@react-three/fiber";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
+import { CaptionProbe } from "../../three/captionProbe";
 import { BeamDust, DepthOfField, Stage3D, calmAt, ease, lightsAt, orbit, safeKeys, swing, useAssetTextures, type CamState, type Light, type V3, type Window, CAPTION_SHADOW, noise1 } from "../../three";
 import { IDEA, ZSTARTS, ZWORDS, Z_SEC, Z_STILL, zAt } from "./common";
 
@@ -178,6 +179,8 @@ export const MACHINE_LIGHTS: Light[] = [
   { kind: "key", kelvin: 4800, intensity: 2.4, position: [-5, 8, 5] },
 ];
 export const DRIP_PERIOD = 0.42;
+/** أدنى مسافة لذرة الغبار من العدسة، نسبةً إلى مسافة التركيز */
+export const DUST_NEAR = 0.67;
 /** أسماء الأجزاء بالحبر الأحمر بالنسخ (فارغ = لا بطاقة) */
 export type MachineTags = { water?: string; float?: string; cup?: string; gear?: string; pulley?: string };
 export const DEFAULT_TAGS: MachineTags = { water: "الحوض", float: "العوّامة", cup: "الكفّة", gear: "الدولاب", pulley: "البكرة" };
@@ -191,6 +194,8 @@ export type MachineStageProps = {
   lever: number; turn: number; boardSway: number; idea: string; tags: MachineTags;
   /** نطاق الترجمة أسفل الكادر (٠ = بلا قيد): لا بطاقة فيه */
   captionBand?: number;
+  /** قياس ما تحت سطور الترجمة بعد رسم الإطار (captionProbe.tsx)، لتأخذ كل كلمة نبرة ما خلفها */
+  probe?: React.ComponentProps<typeof CaptionProbe>;
 };
 /** مواضع بطاقات الأسماء في الآلة (الحوض فوقه، والكفّة والدولاب فوقهما لا أسفلهما، بعيدًا عن شريط الترجمة) */
 export const TAG_AT: Record<keyof MachineTags, V3> = {
@@ -207,7 +212,7 @@ const TagCard: React.FC<{ at: V3; tex: THREE.Texture; band: number }> = ({ at, t
   return <mesh position={at} rotation={[-0.2, 0, 0]}><planeGeometry args={[1.2, 0.38]} /><meshStandardMaterial map={tex} roughness={0.9} /></mesh>;
 };
 /** آلة الجزري (المشهد كله بلا صوت ولا ترجمة): يستعملها نموذج المقارنة وقالب «آلات الجزري» معًا */
-export const MachineStage: React.FC<MachineStageProps> = ({ t, width, height, cam, aperture, still, calm, ready, drip, fillAt = 0, lever, turn, boardSway, idea: ideaText, tags, captionBand = 0 }) => {
+export const MachineStage: React.FC<MachineStageProps> = ({ t, width, height, cam, aperture, still, calm, ready, drip, fillAt = 0, lever, turn, boardSway, idea: ideaText, tags, captionBand = 0, probe }) => {
   const wood = useAssetTextures(["zubdat-wood-diff", "zubdat-wood-nor"], [3, 2]);
   const wall = useAssetTextures(["zubdat-plaster-nor"], [3, 1.5]);
   const folio = useFolio(ready);
@@ -252,11 +257,13 @@ export const MachineStage: React.FC<MachineStageProps> = ({ t, width, height, ca
   return (
     <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, MACHINE_LIGHTS, still)} background={J.paperDeep} shadows="soft">
       <DepthOfField focus={cam.focus} aperture={aperture} />
+      {probe ? <CaptionProbe {...probe} /> : null}
       <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[30, 20]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} color="#BDBDBD" roughness={0.7} /></mesh>
       <mesh position={[0, 5, -2.2]} receiveShadow><planeGeometry args={[30, 12]} /><meshStandardMaterial normalMap={wall[0]} color={J.paper} roughness={1} /></mesh>
       {/* ورقة المخطوطة مثبتة على الجدار خلف الآلة */}
       <mesh position={[0, 2.9, -2.15]} receiveShadow><planeGeometry args={[8, 4.5]} /><meshStandardMaterial map={folio} roughness={0.95} /></mesh>
-      <BeamDust t={t} from={[-5, 7.5, 4.5]} to={[0, 1.0, 0]} radius={1.0} color={J.paper} count={90} still={still} seed={13} />
+      {/* لا ذرة أمام العدسة أقرب من ثلثي مسافة التركيز: كانت تصير قرصًا أبيض مموّهًا في اللقطات القريبة */}
+      <BeamDust t={t} from={[-5, 7.5, 4.5]} to={[0, 1.0, 0]} radius={1.0} color={J.paper} count={90} still={still} seed={13} lens={{ at: cam.position, near: DUST_NEAR * cam.focus }} />
       {/* الحوض النحاسي المفتوح على عموده، وفيه الماء والعوّامة الخشبية بقضيبها وعلامتها الحمراء */}
       <mesh position={[M.tank.x - 0.2, (M.tank.y - 0.45) / 2, 0]} castShadow><boxGeometry args={[0.16, M.tank.y - 0.45, 0.16]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
       <mesh position={[M.tank.x, M.tank.y, 0]} castShadow material={brass}><cylinderGeometry args={[0.5, 0.42, M.tank.h, 40, 1, true]} /></mesh>

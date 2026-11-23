@@ -72,7 +72,7 @@ describe("قالب «آلات الجزري» (D201)", () => {
   it("صوت لكل حركة فوق صوت الورشة، والترجمة بلا مستطيل، وبلا فسفوري ولا ألوان خارج المخطوطة", () => {
     expect(CODE).toMatch(/SFX\("silence-room"\)/);
     for (const f of ["water-drop", "drop-soft", "gears", "tick", "silence-room"]) expect(() => readFileSync(`public/three/sfx/${f}.mp3`)).not.toThrow();
-    expect(CODE).toMatch(/textShadow: CAPTION_TONES\[JAZARI_SHOTS\[shot\]\.caption\]\.textShadow/);
+    expect(CODE).toMatch(/textShadow: CAPTION_TONES\[tone\]\.textShadow/);
     expect(CODE).not.toMatch(/background: "rgba|borderRadius/);
     expect(CODE).not.toMatch(/fluo|#E8F542/i);
     expect(CODE).not.toMatch(/#[0-9A-Fa-f]{6}\b/);
@@ -80,11 +80,38 @@ describe("قالب «آلات الجزري» (D201)", () => {
 });
 
 describe("مراجعة المنسّق: لون الترجمة حسب ما تحتها، ولا بطاقة في نطاق الترجمة", () => {
-  it("كل لقطة تعلن نبرة الترجمة (حبر على الورق والجص، ونص فاتح على طاولة الخشب)", () => {
-    for (const [id, s] of Object.entries(JAZARI_SHOTS)) expect(["ink", "light"], id).toContain(s.caption);
-    expect([JAZARI_SHOTS.drip.caption, JAZARI_SHOTS.lever.caption, JAZARI_SHOTS.gears.caption]).toEqual(["ink", "ink", "ink"]);
-    expect(JAZARI_SHOTS.machine.caption).toBe("light"); // الواسعة: الترجمة فوق طاولة الخشب الداكنة
+  it("ملاحظة المالك ٢٣ نوفمبر: كل كلمة بنبرة ما خلفها فعلًا في الإطار (حبر داكن على الورق البيج، ونص فاتح على الخشب)", async () => {
+    const { wordTones, captionRows, CAPTION_GEOMETRY, INK_ABOVE } = await import("../src/remotion/three/captionProbe");
+    // خط وهمي: كل حرف ١٠ بكسل والمسافة ١٠؛ الكادر ١٠٠٠ والعمود ١٠ بكسل
+    const measure = (s: string) => s.length * 10;
+    const row = (f: (x: number) => number) => Array.from({ length: 100 }, (_, c) => f(c * 10 + 5));
+    // السطر «أ بب ججج» عرضه ٨٠ ومتوسَّط حول ٥٠٠: «أ» في يمينه [٥٣٠،٥٤٠]، «بب» [٥٠٠،٥٢٠]، «ججج» [٤٦٠،٤٩٠]
+    const half = row((x) => (x >= 500 ? 0.8 : 0.1)); // ورق في النصف الأيمن، وخشب في الأيسر
+    expect(wordTones("أ بب ججج", { bin: 10, lum: [half] }, 1000, measure)).toEqual(["ink", "ink", "light"]);
+    expect(wordTones("أ بب ججج", { bin: 10, lum: [row(() => 0.15)] }, 1000, measure)).toEqual(["light", "light", "light"]);
+    expect(wordTones("أ بب ججج", { bin: 10, lum: [row(() => INK_ABOVE + 0.2)] }, 1000, measure)).toEqual(["ink", "ink", "ink"]);
+    // الالتفاف: السطر الأول أعلى (الصف ١)، والأخير في الصف ٠
+    const long = Array.from({ length: 30 }, () => "كلمات").join(" ");
+    const tones = wordTones(long, { bin: 10, lum: [row(() => 0.1), row(() => 0.9)] }, 1000, measure);
+    expect(tones[0]).toBe("ink"); expect(tones[tones.length - 1]).toBe("light");
+    // صفوف القياس من أسفل الكادر إلى أعلاه، بارتفاع سطر الترجمة
+    expect(captionRows(1080, 56, 2)).toEqual([[1080 - 56 - 8 - 62, 1080 - 56 - 8], [1080 - 56 - 8 - 124, 1080 - 56 - 8 - 62]]);
+    expect(CAPTION_GEOMETRY.lineHeight).toBe(62);
+    // القالب ينتظر قياس الإطار نفسه قبل اللقطة، ويرسم الكلمات بنبرتها، بلا مزج «الفرق»
+    expect(CODE).toMatch(/delayRender\(`قياس ما خلف الترجمة/);
+    expect(CODE).toMatch(/probe=\{line \? \{ frame, rows, onProbe \} : undefined\}/);
     expect(CODE).not.toMatch(/mixBlendMode/);
+    for (const s of Object.values(JAZARI_SHOTS)) expect(s).not.toHaveProperty("caption");
+  });
+  it("ملاحظة المالك ٢٣ نوفمبر: لا ذرة غبار أمام العدسة أقرب من ثلثي مسافة التركيز (كانت قرصًا أبيض أسفل يسار اللقطة الأولى)", async () => {
+    const { dustVisible } = await import("../src/remotion/three/lens");
+    const { DUST_NEAR } = await import("../src/remotion/zubdat/directions/IdeaMachine");
+    expect(DUST_NEAR).toBeCloseTo(0.67, 6);
+    const lens = { at: [0, 0, 3] as [number, number, number], near: DUST_NEAR * 3 };
+    expect(dustVisible({ x: 0, y: 0, z: 2.5 }, lens)).toBe(false); // نصف وحدة أمام العدسة
+    expect(dustVisible({ x: 0, y: 0, z: 0 }, lens)).toBe(true); // عند مستوى التركيز
+    const machine = readFileSync("src/remotion/zubdat/directions/IdeaMachine.tsx", "utf8");
+    expect(machine).toMatch(/lens=\{\{ at: cam\.position, near: DUST_NEAR \* cam\.focus \}\}/);
   });
   it("بطاقات الأسماء فوق أجزائها، وتُخفى إن وقعت في نطاق الترجمة أسفل الكادر", async () => {
     const { TAG_AT } = await import("../src/remotion/zubdat/directions/IdeaMachine");

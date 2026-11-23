@@ -1150,3 +1150,4 @@
 ## 2026-11-23 — قالب «آلات الجزري» لزبدة الكتب في الملفات المشتركة (D201، التعريف: docs/zubdat-alkutub/06-decisions.md)
 
 - `src/studio/quality/diversity.ts` يعرف حقول تكوين القالب `jazari-machine`، و`src/remotion/scenes/channelSamples.ts` نموذجه لزبدة الكتب. لا تغيير في قوالب هذه القناة.
+- ملاحظة المالك ٢٣ نوفمبر: ملف مشترك جديد `src/remotion/three/captionProbe.tsx` (قياس ما خلف سطر الترجمة في الإطار المرسوم ونبرة كل كلمة)، و`BeamDust` في `src/remotion/three/lens.tsx` يقبل `lens` اختياريًا (لا ذرة أقرب من حد للعدسة). يستعملهما «آلات الجزري» وحده الآن؛ لا تغيير في قوالب هذه القناة.
