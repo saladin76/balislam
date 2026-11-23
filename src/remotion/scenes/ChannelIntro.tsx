@@ -10,6 +10,7 @@ import { useTheme } from "../../../brand/identity/index";
 import { H, PageSheet, W } from "../zubdat/inkKit";
 import { SERIES_STING_FRAMES, SeriesSting, stingOn } from "../series/SeriesArt";
 import type { SeriesStamp } from "../../channel/series";
+import { coldOpenFrames } from "../../plan/coldOpen";
 
 /**
  * افتتاحية القناة (بصمتها الثابتة) في أول الحلقة الطويلة فقط، لا في الشورت. الافتتاحيات المعتمدة وحدها:
@@ -29,10 +30,16 @@ export const introKindFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro"> &
  * مدة الافتتاحية: افتتاحية القناة، ومعها بطاقة السلسلة حين خُتمت في الخطة (plan.series). الخطة بلا ختم
  * (كل حلقة قائمة) مدتها كما كانت تمامًا.
  */
-export const introFramesFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro"> & { series?: SeriesStamp }, chapter?: number) => {
+export const channelIntroFramesFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro"> & { series?: SeriesStamp }, chapter?: number) => {
   const k = introKindFor(channel, plan, chapter);
   return k ? introFrames(k) + (stingOn(plan?.series) ? SERIES_STING_FRAMES : 0) : 0;
 };
+/**
+ * كل ما يسبق أول مشهد في الخط الزمني: افتتاحية القناة (وبطاقة السلسلة)، ثم الخطاف المسبق إن كان للحلقة (D198).
+ * الخطة بلا خطاف مدتها كما كانت تمامًا.
+ */
+export const introFramesFor = (channel?: ChannelInfo, plan?: Pick<Plan, "intro" | "coldOpen"> & { series?: SeriesStamp }, chapter?: number) =>
+  channelIntroFramesFor(channel, plan, chapter) + coldOpenFrames(plan, chapter);
 
 
 export const ChannelIntro: React.FC<{ kind: IntroKind; orientation: Orientation; series?: SeriesStamp }> = ({ kind, orientation, series }) => {

@@ -54,7 +54,11 @@ export const handlePublishRoutes = async (ctx: RouteCtx): Promise<boolean> => {
     if (req.method === "PUT") {
       const { kit } = await readBody(req);
       if (!kit?.long || !Array.isArray(kit.shorts)) return send(res, 400, { error: "حزمة الانتشار غير مكتملة؛ لم تُحفظ." }), true;
-      await writeFile(file, JSON.stringify({ ...kit, generatedBy: kit.generatedBy === "auto" ? "edited" : kit.generatedBy, updatedAt: new Date().toISOString() }, null, 2) + "\n");
+      const saved = { ...kit, generatedBy: social.savedKitSource(kit.generatedBy), updatedAt: new Date().toISOString() };
+      // القاعدة الأولى: لا يُكتب أثر لأدوات الإنتاج في publish.json (بوابة المحتوى ترفضه بعدها فيتوقف الحفظ الآلي كله)
+      const traces: string[] = social.kitTraceHits(saved);
+      if (traces.length) return send(res, 400, { error: `في نصوص النشر أثر لأدوات الإنتاج؛ لم تُحفظ: ${traces.join("، ")}` }), true;
+      await writeFile(file, JSON.stringify(saved, null, 2) + "\n");
       return send(res, 200, { ok: true }), true;
     }
     if (req.method === "POST" && parts[3] === "regenerate") {

@@ -578,6 +578,7 @@ const Compare: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
 /**
  * lib-timeline: الأفق نفسه خطًّا زمنيًّا يمتد من اليمين (الأقدم) إلى اليسار، يتقدم إلى كل علامة لحظة نطق مرساها،
  * والكاميرا تتتبعه ثم تتراجع لترى الخط كله. العلامة المسبوقة بـ «؟» فجوة بلا سجل: قطعة متقطعة ودائرة جوفاء بحبر خفيف.
+ * العنوان يظهر في البداية، أو لحظة نطق titleWord إن وُجدت (عنوان هو كلام الجملة نفسه يُكتب حين يُقال).
  */
 const TL_Y = 600;
 const Timeline_: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
@@ -591,6 +592,7 @@ const Timeline_: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   const keys: CamKey[] = items.map((_, i) => ({ a: times[i]! - 0.1, b: times[i]! + 0.6, cx: Math.min(1500, Math.max(420, xs[i]!)), cy: TL_Y - 40, s: 1.3 }));
   keys.push({ a: q.safe(Math.max(end, q.last + 0.2), 0.9), b: q.safe(Math.max(end, q.last + 0.2), 0.9) + 0.9, cx: 960, cy: 520, s: 1 });
   const cam = q.cam(t, { cx: Math.min(1500, xs[0] ?? 1365) + 60, cy: TL_Y - 40, s: 1.22 }, keys);
+  const titleA = p.titleWord ? q.safe(q.at(p.titleWord, 0.1) - 0.05, 0.6) : 0.1;
   const segs = items.map((it, i) => {
     const x0 = i === 0 ? 1720 : xs[i - 1]!;
     const pr = prog(t, times[i]! - 0.1, times[i]! + 0.35);
@@ -625,7 +627,7 @@ const Timeline_: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
       <Ink d={`M${xs[xs.length - 1] ?? 960} ${TL_Y} H200`} w={3} p={tail} c={C.inkSoft} dash={`${6 / Math.max(1, (xs[xs.length - 1] ?? 960) - 200)} ${14 / Math.max(1, (xs[xs.length - 1] ?? 960) - 200)}`} />
       {marks}
       {p.title ? (
-        <SText x={960} y={300} size={50} font="tajawal" weight={700} color={C.ink} o={prog(t, 0.1, 0.6)}>
+        <SText x={960} y={300} size={50} font="tajawal" weight={700} color={C.ink} o={prog(t, titleA, titleA + 0.5)}>
           {p.title}
         </SText>
       ) : null}
