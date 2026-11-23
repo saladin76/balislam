@@ -13,7 +13,7 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-23T04:28:51.316Z",
+  "updatedAt": "2026-11-23T04:56:22.636Z",
   "intro": false,
   "shorts": [
     {
@@ -500,7 +500,10 @@
             "verseY": "650"
           },
           "sfx": [],
-          "edited": true
+          "edited": true,
+          "captionSpell": {
+            "يصر": "يُصِرَّ"
+          }
         },
         {
           "id": "c1-s34",
@@ -709,5 +712,10 @@
         }
       ]
     }
-  ]
+  ],
+  "coldOpen": {
+    "scene": "c1-s5",
+    "words": 6,
+    "to": 3.5
+  }
 }
