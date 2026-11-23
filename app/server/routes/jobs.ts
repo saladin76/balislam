@@ -18,6 +18,14 @@ export const handleJobRoutes = async (ctx: RouteCtx): Promise<boolean> => {
     }
     if (req.method === "POST") {
       const b = await readBody(req);
+      // D213: لا رندر لمسودة ولا في قناة مجمّدة (D211)
+      if (["make", "package", "shorts", "thumbnails", "storyboard-motion"].includes(b?.kind) && EP.test(String(b?.episode ?? ""))) {
+        const { productionBlockFor } = await ctx.load("/src/studio/stockStore.ts");
+        const { resolveScriptPath } = await ctx.load("/src/script/episodes.ts");
+        const sp = await resolveScriptPath(b.episode).catch(() => null);
+        const blocked = sp ? await productionBlockFor(ch, sp) : null;
+        if (blocked) return send(res, 409, { error: blocked }), true;
+      }
       if (b.kind === "make" || b.kind === "package" || b.kind === "shorts") {
         if (!EP.test(b.episode)) return send(res, 400, { error: "رقم الحلقة غير صالح" }), true;
         if (busy.has(`${ch}/${b.episode}`)) return send(res, 409, { error: busyRefusal(`${ch}/${b.episode}`) }), true;

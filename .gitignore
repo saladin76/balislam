@@ -106,3 +106,6 @@ channels/*/episodes/*/seam-checks.local.json.lock
 
 # الفيديو التجميعي (src/package/compilation.ts): فيديو محلي لا يُرفع أبدًا
 channels/*/compilations/
+
+# اعتماد المالك لسكريبت المسودة (D213): محلي موقّع لا يُرفع
+channels/*/episodes/*/script-approval.local.json

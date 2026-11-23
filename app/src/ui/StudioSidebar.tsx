@@ -1,12 +1,12 @@
 import React from "react";
 
-export type StudioSection = "home" | "ops" | "channels" | "review" | "research" | "episode" | "script" | "tashkeel" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs" | "treviews" | "series";
+export type StudioSection = "home" | "ops" | "channels" | "review" | "research" | "episode" | "script" | "tashkeel" | "storyboard" | "voice" | "publish" | "identity" | "library" | "channel" | "settings" | "guide" | "labs" | "treviews" | "series" | "awaiting";
 
 export const SECTION_TITLES: Record<StudioSection, string> = {
   home: "حلقات القناة", ops: "غرفة العمليات", channels: "إدارة القنوات", review: "المراجعة المتكاملة", research: "البحث والتحضير", script: "السكريبت", tashkeel: "النص المشكول",
   storyboard: "الستوري بورد", voice: "صوت الحلقة", episode: "محرر المشاهد", publish: "النشر والتسليم",
   identity: "الهوية البصرية", library: "مكتبة القناة", channel: "إعدادات القناة",
-  settings: "الاتصالات والمفاتيح", guide: "مرجع الاستوديو", labs: "مختبرات الإنتاج", treviews: "المراجعات الفنية", series: "السلسلة",
+  settings: "الاتصالات والمفاتيح", guide: "مرجع الاستوديو", labs: "مختبرات الإنتاج", treviews: "المراجعات الفنية", series: "السلسلة", awaiting: "بانتظارك",
 };
 
 type IconName = "grid" | "monitor" | "layers" | "play" | "library" | "lab" | "review" | "palette" | "sliders" | "plug" | "book" | "menu" | "close";
@@ -41,7 +41,7 @@ export const StudioSidebar: React.FC<{
     <div className="studio-sidebar-heading"><div className="studio-product-mark"><span /><span /><span /></div><div><strong>الاستوديو</strong><small>مساحات عمل مستقلة</small></div><button type="button" className="studio-close-nav" onClick={p.onClose} aria-label="إغلاق القائمة"><StudioIcon name="close" /></button></div>
     <div className="studio-channel-card"><div className="studio-channel-mark">{p.channelMark}</div><div><span>القناة الحالية</span><strong>{p.channelName}</strong></div></div>
     <nav className="studio-sidebar-nav" aria-label="الأقسام الرئيسية للاستوديو">
-      <div className="studio-nav-group"><p>القيادة والمراقبة</p>{item("ops", "monitor")}</div>
+      <div className="studio-nav-group"><p>القيادة والمراقبة</p>{item("ops", "monitor")}{item("awaiting", "review")}</div>
       <div className="studio-nav-group"><p>إنتاج الحلقات</p>{item("home", "grid")}{p.episodeId && item("script", "play", "مساحة الحلقة المفتوحة")}</div>
       <div className="studio-nav-group"><p>إدارة القنوات الثلاث</p>{item("channels", "layers")}{item("identity", "palette", undefined, p.identityDirty ? "تعديلات غير محفوظة" : undefined)}{item("channel", "sliders")}</div>
       <div className="studio-nav-group"><p>المكتبة والمراجعات</p>{item("library", "library")}{p.hasLabs && item("labs", "lab")}{p.hasTechReviews && item("treviews", "review")}</div>

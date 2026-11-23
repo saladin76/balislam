@@ -64,7 +64,7 @@ export const startStudio = async (channel: string): Promise<Studio> => {
   await mkdir(path.join(chDir, "episodes"), { recursive: true });
   // The channel's own settings, identity and lexicons; never its episodes or series (owner content).
   for (const e of await readdir(src, { withFileTypes: true }))
-    if (e.isFile() && /\.json$/.test(e.name)) await cp(path.join(src, e.name), path.join(chDir, e.name));
+    if (e.isFile() && /\.json$/.test(e.name) && e.name !== "stock.json") await cp(path.join(src, e.name), path.join(chDir, e.name));
   await cp(path.join(repo, ".gitignore"), path.join(root, ".gitignore"));
   git(root, ["add", "-A"]);
   git(root, ["commit", "-q", "-m", "channel settings (e2e)"]);

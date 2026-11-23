@@ -8,6 +8,14 @@ import { createEpisode, resolveScriptPath } from "../script/episodes";
 import { projectRoot } from "../config/paths";
 
 const program = new Command();
+/** D213: لا رندر ولا صوت لحلقة «مسودة» ولا في قناة مجمّدة (D211)؛ يخرج برسالة المالك */
+const assertProducible = async (episode: string) => {
+  const { productionBlockFor } = await import("../studio/stockStore");
+  const { currentChannelId } = await import("../channel");
+  const why = await productionBlockFor(currentChannelId(), await resolveScriptPath(episode));
+  if (why) { console.error(why); process.exit(1); }
+};
+
 
 program
   .name("bal")
@@ -301,6 +309,7 @@ program
   .option("--chapter <n>", "فصل واحد فقط (شورت)")
   .option("--master", "بأعلى جودة 4K (الافتراضي معاينة 1080p)")
   .action(async (episode: string, opts: { portrait?: boolean; chapter?: string; master?: boolean }) => {
+    await assertProducible(episode);
     const { renderEpisode } = await import("../render/episode");
     let last = -1;
     const out = await renderEpisode({
@@ -463,6 +472,7 @@ program
   .option("--force", "إعادة توليد كل المشاهد")
   .option("--scene <ids>", "مشاهد محددة مفصولة بفواصل، مثل c2-s1,c4-s3")
   .action(async (episode: string, opts: { dryRun?: boolean; force?: boolean; scene?: string }) => {
+    if (!opts.dryRun) await assertProducible(episode);
     const { elevenLabsFromEnv } = await import("../voice/elevenlabs");
     const { generateVoice } = await import("../voice/generate");
     const client = elevenLabsFromEnv();
@@ -901,6 +911,7 @@ program
   .option("--shorts", "الشورتس/الريلز بأعلى جودة (بعد اعتماد النسخة الأساسية في الاستوديو)")
   .option("--preview", "معاينة سريعة 1080p بدل أعلى جودة (لا تُنشر)")
   .action(async (episode: string, opts: { skipVideo?: boolean; shorts?: boolean; preview?: boolean }) => {
+    await assertProducible(episode);
     const { packageEpisode } = await import("../package/package");
     const r = await packageEpisode({ episode, skipVideo: opts.skipVideo, stage: opts.shorts ? "shorts" : "episode", quality: opts.preview ? "preview" : "master", onProgress: (m) => console.log(m) });
     console.log(`جاهز في ${path.relative(projectRoot, r.dir)}:\n- ${r.files.join("\n- ")}`);
@@ -1011,10 +1022,27 @@ program
   });
 
 program
+  .command("stock-new")
+  .description("بناء المخزون (D213): حلقة «مسودة» جديدة من قالب المخزون (script.md وresearch.md وscenes.md وpublish.draft.json). لا صوت ولا رندر.")
+  .argument("<number>", "رقم الحلقة (ثلاث خانات)")
+  .argument("<slug>", "الاسم المختصر بالحروف اللاتينية الصغيرة والشرطات")
+  .requiredOption("--title <title>", "عنوان الحلقة")
+  .requiredOption("--domain <domain>", "مجال الحلقة من مجالات القناة")
+  .option("--series <series>", "معرّف السلسلة")
+  .action(async (number: string, slug: string, opts: { title: string; domain: string; series?: string }) => {
+    const { scaffoldStockEpisode } = await import("../studio/stockStore");
+    const { currentChannelId } = await import("../channel");
+    const { templatesDir } = await import("../config/paths");
+    const dir = await scaffoldStockEpisode({ channel: currentChannelId(), number, slug, title: opts.title, domain: opts.domain, ...(opts.series ? { series: opts.series } : {}), templatesRoot: templatesDir });
+    console.log(`أُنشئت المسودة: ${path.relative(projectRoot, dir)}`);
+  });
+
+program
   .command("thumbnails")
   .description("الأغلفة الثلاثة وحدها (عنوان، مشهد، سؤال) من publish.json: بلا فيديو ولا صوت ولا مساس بالنسخة النهائية")
   .argument("<episode>", "رقم الحلقة")
   .action(async (episode: string) => {
+    await assertProducible(episode);
     const { makeThumbnails } = await import("../package/package");
     const r = await makeThumbnails(episode, (m) => console.log(m));
     console.log(`جاهز في ${path.relative(projectRoot, r.dir)}:\n- ${r.files.join("\n- ")}`);
@@ -1028,6 +1056,7 @@ program
   .option("--generate-voice", "يولّد الصوت الناقص هنا (يصرف رصيدًا؛ بلا هذا الخيار يُرفض الصوت الناقص ولا يُصرف شيء)")
   .option("--skip-video", "بلا رندر فيديو")
   .action(async (episode: string, opts: { voice?: boolean; generateVoice?: boolean; skipVideo?: boolean }) => {
+    await assertProducible(episode);
     const { makeEpisode } = await import("../package/make");
     const r = await makeEpisode({ episode, noVoice: opts.voice === false, generateVoice: opts.generateVoice === true, skipVideo: opts.skipVideo, onProgress: (m) => console.log(m) });
     console.log(`\nتم. الملفات في ${path.relative(projectRoot, r.dir)}. راجع publish-checklist.md قبل النشر.`);
