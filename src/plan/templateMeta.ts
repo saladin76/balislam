@@ -36,6 +36,12 @@ export const templateMeta: Record<string, { family: TemplateFamily; only?: strin
   // «مكتب الرحّالة» (D194): العالم ثلاثي الأبعاد قالبًا للحلقات الجديدة (D191)
   "rahhala-desk": { family: "story", only: ["dafatir-alzaman"] },
   "alley-world": { family: "story", only: ["balislam"] },
+  // «البدايات» (D209): قوالب سلسلة «البدايات» لدفاتر الزمن على عالمها الخاص
+  "bidayat-shore": { family: "story", only: ["dafatir-alzaman"] },
+  "bidayat-line": { family: "data", only: ["dafatir-alzaman"] },
+  "bidayat-strata": { family: "explain", only: ["dafatir-alzaman"] },
+  "bidayat-clay": { family: "story", only: ["dafatir-alzaman"] },
+  "bidayat-stone": { family: "explain", only: ["dafatir-alzaman"] },
   "jazari-machine": { family: "explain", only: ["zubdat-alkutub"] },
   symbolic: { family: "explain" },
   "big-question": { family: "text" },

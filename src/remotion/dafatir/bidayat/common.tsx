@@ -140,7 +140,9 @@ export const RedThread: React.FC<{ points: V3[]; p: number; knotAt?: number; kno
 };
 
 /** نص الختم على وجه دائري (كانفاس): الكلمة في حلقتين، بحبر واحد كالختم الحقيقي */
-export const useStampFace = (word: "ثابت" | "رواية" | "تقدير" | "لا نعلم", ink: string, ready: boolean, ground = "rgba(0,0,0,0)") =>
+/** كلمات الأختام: درجات الثبوت الأربع (العمود، رابعًا)، و«ظن» لحكم إبليس على الميزان (كنسخة الـ2D المعتمدة) */
+export type StampWord = "ثابت" | "رواية" | "تقدير" | "لا نعلم" | "ظن";
+export const useStampFace = (word: StampWord, ink: string, ready: boolean, ground = "rgba(0,0,0,0)") =>
   React.useMemo(() => {
     const c = document.createElement("canvas"); c.width = c.height = 512;
     const g = c.getContext("2d")!;
@@ -148,11 +150,14 @@ export const useStampFace = (word: "ثابت" | "رواية" | "تقدير" | "�
     g.strokeStyle = ink; g.fillStyle = ink;
     g.lineWidth = 22; g.beginPath(); g.arc(256, 256, 226, 0, Math.PI * 2); g.stroke();
     g.lineWidth = 7; g.beginPath(); g.arc(256, 256, 186, 0, Math.PI * 2); g.stroke();
-    g.font = "700 132px Amiri"; g.textAlign = "center"; g.textBaseline = "middle"; g.direction = "rtl";
+    g.font = `700 ${word.length > 4 ? 128 : 150}px Amiri`; g.textAlign = "center"; g.textBaseline = "middle"; g.direction = "rtl";
     g.fillText(word, 256, 268);
+    // الجولة ٤: حروف أثقل (خط محيط بالحبر نفسه): حروف الأميري الرفيعة كانت تذوب في الرمل عن بعد
+    g.lineWidth = 9; g.lineJoin = "round"; g.strokeText(word, 256, 268);
     // أثر الختم: حواف غير تامة (بذرة ثابتة)
     g.globalCompositeOperation = "destination-out";
-    for (let i = 0; i < 260; i++) { const a = (i * 137.5 * Math.PI) / 180, r = 150 + ((i * 53) % 90); g.globalAlpha = 0.08 + ((i * 31) % 10) / 60; g.beginPath(); g.arc(256 + Math.cos(a) * r, 256 + Math.sin(a) * r, 3 + (i % 5), 0, Math.PI * 2); g.fill(); }
+    // الجولة ٤: أثر أخف (كان يطمس حروف «تقدير» فلا تُقرأ)، وعلى الحلقة الخارجية وحدها لا على الكلمة
+    for (let i = 0; i < 160; i++) { const a = (i * 137.5 * Math.PI) / 180, r = 200 + ((i * 53) % 40); g.globalAlpha = 0.06 + ((i * 31) % 10) / 90; g.beginPath(); g.arc(256 + Math.cos(a) * r, 256 + Math.sin(a) * r, 3 + (i % 5), 0, Math.PI * 2); g.fill(); }
     const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
   }, [word, ink, ground, ready]);
 
@@ -160,7 +165,7 @@ export const useStampFace = (word: "ثابت" | "رواية" | "تقدير" | "�
  * ختم «درجة الثبوت» (المرجع، رابعًا): ختم خشبي يهبط على السطح عند p (٠–١) ويرتفع، ويبقى أثره.
  * press: ٠ فوق، ١ على السطح؛ mark: ظهور الأثر بعد الضغط.
  */
-export const ProofStamp: React.FC<{ word: "ثابت" | "رواية" | "تقدير" | "لا نعلم"; at: V3; press: number; lift: number; ready: boolean; size?: number; ink?: string; tilt?: number }> =
+export const ProofStamp: React.FC<{ word: StampWord; at: V3; press: number; lift: number; ready: boolean; size?: number; ink?: string; tilt?: number }> =
   ({ word, at, press, lift, ready, size = 0.32, ink = K.ribbon, tilt = 0 }) => {
     const seal = useStampFace(word, ink, ready);
     const down = Math.sin(Math.min(1, press) * Math.PI / 2);
@@ -207,19 +212,22 @@ export const bidLine = (t: number): { text: string; fade: number; si: number } |
  */
 /** ظل أقوى للرمل متوسط الإضاءة (قرار المالك: «حبر داكن أو ظل أقوى»): هالة أعرض تحت الحد الرفيع، تُقرأ على هاتف ٦ بوصات */
 export const BID_SHADOW: Record<CaptionTone, string> = {
-  light: "0 0 10px rgba(26,20,36,0.85), 0 0 22px rgba(26,20,36,0.7), 0 2px 4px rgba(26,20,36,0.9)",
-  ink: "0 0 10px rgba(244,233,212,0.9), 0 0 22px rgba(244,233,212,0.7)",
+  light: "0 0 10px rgba(26,20,36,0.9), 0 0 24px rgba(26,20,36,0.75), 0 2px 4px rgba(26,20,36,0.95)",
+  ink: "0 0 8px rgba(244,233,212,0.95), 0 0 18px rgba(244,233,212,0.85), 0 0 34px rgba(244,233,212,0.6)",
 };
-export const BidCaption: React.FC<{ line: ReturnType<typeof bidLine>; tones: CaptionTone[]; name: string; bottom: number }> = ({ line, tones, name, bottom }) => (
+/** حبر الترجمة على الرمل (الجولة ٤): أدكن من حبر الدفتر، فيُقرأ على هاتف ٦ بوصات فوق الرمل الذهبي الفاتح */
+export const BID_CAPTION_INK = K.soil;
+export const BidCaption: React.FC<{ line: { text: string; fade: number } | null; tones: CaptionTone[]; name?: string; bottom: number }> = ({ line, tones, name, bottom }) => (
   <AbsoluteFill style={{ pointerEvents: "none" }}>
-    <div style={{ position: "absolute", top: 22, right: 28, padding: "5px 14px 7px", borderRadius: 8, background: "rgba(42,30,63,0.55)", color: K.paper,
-      fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 20, direction: "rtl" }}>عالم السلسلة · البدايات · {name} · لا يُنشر</div>
+    {/* وسم «للمقارنة» في نماذج الاتجاهات وحدها؛ لا وسم في قوالب الحلقة */}
+    {name && <div style={{ position: "absolute", top: 22, right: 28, padding: "5px 14px 7px", borderRadius: 8, background: "rgba(42,30,63,0.55)", color: K.paper,
+      fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 20, direction: "rtl" }}>عالم السلسلة · البدايات · {name} · لا يُنشر</div>}
     {line && (
       <div style={{ position: "absolute", bottom, left: CAPTION_GEOMETRY.side, right: CAPTION_GEOMETRY.side, display: "flex", justifyContent: "center" }}>
-        <div style={{ opacity: line.fade, padding: `${CAPTION_GEOMETRY.padY}px ${CAPTION_GEOMETRY.padX}px`, fontFamily: "Tajawal", fontWeight: 500, fontSize: CAPTION_GEOMETRY.fontSize, lineHeight: `${CAPTION_GEOMETRY.lineHeight}px`, direction: "rtl", textAlign: "center" }}>
+        <div style={{ opacity: line.fade, padding: `${CAPTION_GEOMETRY.padY}px ${CAPTION_GEOMETRY.padX}px`, fontFamily: "Tajawal", fontWeight: 700, fontSize: CAPTION_GEOMETRY.fontSize, lineHeight: `${CAPTION_GEOMETRY.lineHeight}px`, direction: "rtl", textAlign: "center" }}>
           {line.text.split(" ").filter(Boolean).map((w, i) => {
             const tone = tones[i] ?? "ink";
-            return <React.Fragment key={i}>{i ? " " : ""}<span style={{ color: tone === "ink" ? K.ink : K.paper, textShadow: `${CAPTION_TONES[tone].textShadow}, ${BID_SHADOW[tone]}` }}>{w}</span></React.Fragment>;
+            return <React.Fragment key={i}>{i ? " " : ""}<span style={{ color: tone === "ink" ? BID_CAPTION_INK : K.paper, textShadow: `${CAPTION_TONES[tone].textShadow}, ${BID_SHADOW[tone]}` }}>{w}</span></React.Fragment>;
           })}
         </div>
       </div>

@@ -19,6 +19,7 @@ import { InkShot } from "./InkShot";
 import { HorizonShot, HorizonVerse } from "./HorizonShot";
 import { RahhalaDesk } from "../dafatir/world/RahhalaDesk";
 import { AlleyWorld } from "../balislam/world/AlleyWorld";
+import { BidayatScene } from "../dafatir/bidayat/BidayatScene";
 import { JazariMachine } from "../zubdat/world/JazariMachine";
 import { InkMeaning } from "./InkMeaning";
 import { SketchBoard } from "./SketchBoard";
@@ -150,6 +151,13 @@ const SceneTemplate: React.FC<{ scene: PlanScene } & Common> = ({ scene, themeId
       return <RahhalaDesk {...base} {...p} />;
     case "alley-world":
       return <AlleyWorld {...base} {...p} />;
+    // «البدايات» (D209): خمسة قوالب على عالم واحد، والقالب نفسه يختار لقطاته
+    case "bidayat-shore":
+    case "bidayat-line":
+    case "bidayat-strata":
+    case "bidayat-clay":
+    case "bidayat-stone":
+      return <BidayatScene {...base} {...p} template={scene.template} />;
     case "jazari-machine":
       return <JazariMachine {...base} {...p} />;
     case "ink-meaning":

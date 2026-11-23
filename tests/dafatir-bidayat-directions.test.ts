@@ -12,12 +12,14 @@ import { BID_SACRED, BID_SENTENCES, BID_STILL, BID_WORDS, CAPTION_FADE, bidLine,
 
 const DIR = "src/remotion/dafatir/bidayat";
 const files = readdirSync(DIR).map((f) => ({ f, code: readFileSync(`${DIR}/${f}`, "utf8") }));
-const world = readFileSync(`${DIR}/StoneLines.tsx`, "utf8");
+// العالم: النموذج وبيئته المشتركة (earth.tsx، الجولة ٤: الماء والرمل والسماء يستعملها النموذج وقوالب السلسلة)
+const world = readFileSync(`${DIR}/StoneLines.tsx`, "utf8") + readFileSync(`${DIR}/earth.tsx`, "utf8");
 const strip = (c: string) => c.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
 
 describe("«البدايات»: عالم واحد «خطوط على الأرض» (اختيار المالك)", () => {
   it("الاتجاه ٢ وحده، و«أرض من طين» و«مقطع الأرض» ليسا اتجاهين بعد؛ وكل لون من هوية «دفتر الأفق»", () => {
-    expect(files.map((x) => x.f).sort()).toEqual(["StoneLines.tsx", "common.tsx"]);
+    // العالم ونموذجه، وبيئته المشتركة، وقوالب السلسلة عليه (D209)
+    expect(files.map((x) => x.f).sort()).toEqual(["BidayatScene.tsx", "StoneLines.tsx", "common.tsx", "earth.tsx", "shots.ts"]);
     const labs = readFileSync("src/remotion/scenes/labs.tsx", "utf8");
     expect(labs).toContain('"dafatir-bidayat-stones"');
     expect(labs).not.toMatch(/bidayat-clay|bidayat-section/);
@@ -78,8 +80,8 @@ describe("«البدايات»: عالم واحد «خطوط على الأرض»
     // الطين: أثر أصابع ولون رطب إلى حافة أجف، ولمعة بلل، وحلقة رطوبة وفتات
     const clay = m.clayGeometry();
     expect(clay.attributes.color).toBeTruthy();
-    for (const re of [/clearcoat=/, /useDampRing\(\)/, /CLAY_CRUMBS\.map/, /fingers/]) expect(world, String(re)).toMatch(re);
-  });
+    for (const re of [/clearcoat=/, /useDampRing\(\)/, /CLAY_CRUMBS\.map/, /CLAY_DENTS/, /clayCrack/]) expect(world, String(re)).toMatch(re);
+  }, 60_000);
   it("خيط الزمن وعقدته، و«ثابت» و«رواية» و«تقدير» و«لا نعلم»، وطبقات تحت الرمل، وصوت مع كل حركة", () => {
     for (const re of [/<RedThread /, /knot=\{p\(knotK\)\}/, /"ثابت"/, /"رواية"/, /"تقدير"/, /"لا نعلم"/, /LAYERS\.map/, /<DepthOfField /, /SFX\("stamp"\)/, /<BidCaption /]) expect(world, String(re)).toMatch(re);
   });

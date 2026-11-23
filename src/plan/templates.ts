@@ -6,6 +6,7 @@ import { LIB_UI } from "../remotion/dafatir/lib/meta";
 import { RAHHALA_CITIES, RAHHALA_SHOTS } from "../remotion/dafatir/world/shots";
 import { ALLEY_SHOTS } from "../remotion/balislam/world/shots";
 import { JAZARI_SHOTS } from "../remotion/zubdat/world/shots";
+import { BID_STAMPS, BID_TEMPLATES } from "../remotion/dafatir/bidayat/shots";
 import { INK_UI } from "../remotion/zubdat/kitSlots";
 import { cueNamesAr } from "./sceneCues";
 import type { MatchMode, ShotUi } from "./sceneSlots";
@@ -485,6 +486,44 @@ export const templateDefs: TemplateDef[] = [
       { key: "sounds", label: "المؤثرات", type: "select", options: [{ value: "", label: "مع كل حركة" }, { value: "off", label: "بلا مؤثرات" }] },
     ],
   },
+  // «البدايات» (D209): مجموعة قوالب سلسلة «البدايات» على عالم «خطوط على الأرض» (D203)، لا قالب واحد (عمود السلاسل، D202).
+  // كل حدث لحظة نطق كلمته، والسكون المقصود عند ذكر الله والدعاء ومشهد الآية، ولا تصوير لأحد. التوثيق: docs/dafatir-alzaman/11-directions.md
+  ...Object.entries(BID_TEMPLATES).map(([id, d]): TemplateDef => ({
+    id,
+    nameAr: d.nameAr,
+    useAr: `دفاتر الزمن («البدايات»): ${d.useAr}`,
+    summaryAr: `${d.nameAr}: كل حدث لحظة نطق كلمته، وبلا تصوير لأحد.`,
+    shots: Object.fromEntries(Object.entries(d.shots).map(([k, v]) => [k, { title: v.nameAr, fields: v.fields }])),
+    shotFields: [],
+    implemented: true,
+    baseSeconds: 7,
+    minSeconds: 3,
+    fields: [
+      { key: "shot", label: "اللقطة", type: "select", ui: "shot", options: Object.entries(d.shots).map(([value, v]) => ({ value, label: v.nameAr })) },
+      { key: "sun", label: "الشمس (موضع المشهد في الحلقة: ٠ فجر، ١ ضحى)", type: "text", common: true },
+      { key: "mark", label: "كلمة تُكتب في الرمل (منطوقة حرفيًا في جملة المشهد)", type: "text" },
+      { key: "markWord", label: "كلمة كتابتها", type: "text", ui: "anchor", match: "prefix", slot: "الكتابة في الرمل", fallbackFrom: "mark" },
+      { key: "stamp", label: "ختم «درجة الثبوت»", type: "select", options: [{ value: "", label: "بلا" }, ...BID_STAMPS.map((w) => ({ value: w, label: w }))] },
+      { key: "stampWord", label: "كلمة الختم", type: "text", ui: "anchor", match: "prefix", slot: "الختم" },
+      { key: "lineWord", label: "كلمة بدء وضع الحجارة", type: "text", ui: "anchor", match: "prefix", slot: "بدء الخط" },
+      { key: "knotWord", label: "كلمة عقدة خيط الزمن", type: "text", ui: "anchor", match: "prefix", slot: "العقدة" },
+      { key: "branchWords", label: "كلمات تفرّع الخطوط (مفصولة بـ |)", type: "text" },
+      { key: "villageWord", label: "كلمة القرى", type: "text", ui: "anchor", match: "prefix", slot: "القرى" },
+      { key: "cityWord", label: "كلمة المدن", type: "text", ui: "anchor", match: "prefix", slot: "المدينة" },
+      { key: "descendWord", label: "كلمة النزول تحت الرمل", type: "text", ui: "anchor", match: "prefix", slot: "النزول" },
+      { key: "provenWord", label: "كلمة ختم «ثابت»", type: "text", ui: "anchor", match: "prefix", slot: "ثابت" },
+      { key: "reportWord", label: "كلمة ختم «رواية»", type: "text", ui: "anchor", match: "prefix", slot: "رواية" },
+      { key: "unknownWord", label: "كلمة ختم «لا نعلم»", type: "text", ui: "anchor", match: "prefix", slot: "لا نعلم" },
+      { key: "ref", label: "مرجع الآية (مثل: البقرة · ٣٠)", type: "text", keepIfSet: true },
+      { key: "items", label: "كلمات الحصى", type: "textarea", help: "سطر لكل حصاة: «كلمة = نص»، والنص منطوق في جملة المشهد" },
+      { key: "aText", label: "نص الطرف الأول (كفة أو طريق)", type: "text" },
+      { key: "aWord", label: "كلمة الطرف الأول", type: "text", ui: "anchor", match: "prefix", slot: "الطرف الأول", fallbackFrom: "aText" },
+      { key: "bText", label: "نص الطرف الثاني", type: "text" },
+      { key: "bWord", label: "كلمة الطرف الثاني", type: "text", ui: "anchor", match: "prefix", slot: "الطرف الثاني", fallbackFrom: "bText" },
+      { key: "verdictText", label: "نص الحكم على الميزان", type: "text" },
+      { key: "verdictWord", label: "كلمة الحكم", type: "text", ui: "anchor", match: "prefix", slot: "الحكم" },
+    ],
+  })),
   {
     // «آلات الجزري» (D201): عالم «زبدة الكتب» ثلاثي الأبعاد (الأفكار آلات، بأسلوب مخطوطة الجزري) قالبًا للحلقات الجديدة.
     // كل حدث لحظة نطق كلمته، والفكرة على اللوح وحده، وبلا فسفوري (D188). التوثيق: docs/zubdat-alkutub/06-decisions.md (D201)
