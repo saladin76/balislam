@@ -14,9 +14,7 @@ import { BulaqPressLab } from "../zubdat/directions/BulaqPress";
 import { ReadingRoomLab } from "../zubdat/directions/ReadingRoom";
 import { ZDIR_FPS, zFrames } from "../zubdat/directions/common";
 import { DIR_FPS, dirFrames } from "../balislam/directions/common";
-import { ClayLandLab } from "../dafatir/bidayat/ClayLand";
 import { StoneLinesLab } from "../dafatir/bidayat/StoneLines";
-import { EarthSectionLab } from "../dafatir/bidayat/EarthSection";
 import { BID_FPS, bidFrames } from "../dafatir/bidayat/common";
 
 /**
@@ -37,9 +35,7 @@ export const TemplateLabs: React.FC = () => (
     {/* دفاتر الزمن: «مكتب الرحّالة»، الاتجاهات الثلاثة في عالم واحد (توصية المنسّق ٢٢ نوفمبر)، صامت لا يُنشر */}
     <Composition id="dafatir-world-desk" component={DeskWorldLab} durationInFrames={worldFrames()} fps={WORLD_FPS} width={1920} height={1080} />
     {/* دفاتر الزمن، سلسلة «البدايات»: الاتجاهات الثلاثة لعالمها (D203)، صامتة لا تُنشر ولا قالب قبل اختيار المالك */}
-    <Composition id="dafatir-bidayat-clay" component={ClayLandLab} durationInFrames={bidFrames()} fps={BID_FPS} width={1920} height={1080} />
     <Composition id="dafatir-bidayat-stones" component={StoneLinesLab} durationInFrames={bidFrames()} fps={BID_FPS} width={1920} height={1080} />
-    <Composition id="dafatir-bidayat-section" component={EarthSectionLab} durationInFrames={bidFrames()} fps={BID_FPS} width={1920} height={1080} />
 
     {/* بالإسلام: اتجاهات المقارنة الثلاثة بثري دي (لا قالب قبل اختيار المالك)، صامتة لا تُنشر */}
     <Composition id="balislam-dir-geometry" component={LightGeometryLab} durationInFrames={dirFrames()} fps={DIR_FPS} width={1920} height={1080} />

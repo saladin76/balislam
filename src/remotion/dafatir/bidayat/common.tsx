@@ -1,5 +1,7 @@
 /**
- * «دفاتر الزمن» — سلسلة «البدايات»: ثلاثة اتجاهات لعالمها الخاص بثري دي (قرار المالك ٢٣ نوفمبر، D203).
+ * «دفاتر الزمن» — سلسلة «البدايات»: عالمها الخاص بثري دي (قرار المالك ٢٣ نوفمبر، D203). اختار المالك الاتجاه ٢
+ * «خطوط على الأرض» عالمًا أساسيًا، وأدمج فيه فكرة الاتجاه ٣ (طبقات الأرض تحت رمل المكان نفسه بختم «درجة الثبوت» لكل طبقة)،
+ * وترك الاتجاه ١ («أرض من طين»).
  * المرجع الملزم: «عمود السلاسل» (المرجع الملزم، D202) (سادسًا: «الأرض البكر: طين وماء وسماء وحجر، ضوء فجر، ومجسمات أرض
  * تتشكل؛ صامتة اللون قليلة العناصر»). نماذج صامتة لا تُنشر ولا تُستعمل في حلقة، على عدّة الثري دي المشتركة (D166) وبمعايير
  * «الحِرفة» (D189). المشترك بين الثلاثة كما في المرجع (ثالثًا ورابعًا): خيط الزمن الأحمر بعقدته، وختم «درجة الثبوت».
@@ -9,7 +11,9 @@
 import React from "react";
 import { AbsoluteFill, staticFile } from "remotion";
 import * as THREE from "three";
-import { CAPTION_SHADOW, CAPTION_SHADOW_LIGHT, ease, noise1, type Window } from "../../three";
+import { ease, noise1, type Window } from "../../three";
+import { CAPTION_GEOMETRY } from "../../three/captionProbe";
+import { CAPTION_TONES, type CaptionTone } from "../../three/anchors";
 import { useBrandFonts } from "../../useBrandFonts";
 import { useCanvasFont } from "../archive/ArchiveLab";
 
@@ -17,34 +21,52 @@ import { useCanvasFont } from "../archive/ArchiveLab";
 export const useBidFont = () => useCanvasFont(useBrandFonts());
 
 export const BID_FPS = 30;
-/** نص النموذج من سكريبت 001 نفسه (c1-s39، وc1-s46، وc1-s13): جملتان ثم جملة ذكر لله */
+/**
+ * نص النموذج من سكريبت 001 نفسه: c1-s39، ثم جملة «ما ثبت وما لا نعلم» من c1-s40 (تنزل عندها الكاميرا تحت الرمل)، ثم c1-s46،
+ * ثم جملة ذكر لله (c1-s13) وفيها القطعة المخصوصة: حفنة طين مبلل على الشاطئ بسكون تام.
+ */
 export const BID_SENTENCES = [
   "ومن هنا تتصل قصة آدم عليه السلام بتاريخ البشرية على الأرض.",
+  "لقد اشتهرت في ذلك روايات مختلفة، ولا نعلم نصًا صحيحًا صريحًا يحدد لنا موضع هبوطه على وجه الجزم.",
   "ثم نمضي معًا إلى حياة المجتمعات البشرية القديمة، ونشأة القرى والمدن.",
   "خلق اللهُ آدمَ من طين.",
 ];
+/** رقم جملة الذكر (الأخيرة) */
+export const BID_SACRED = BID_SENTENCES.length - 1;
 export const BID_WORDS: { w: string; s: number; e: number; si: number }[] = (() => {
   const out: { w: string; s: number; e: number; si: number }[] = [];
   // إيقاع راوٍ هادئ: نصف ثانية للكلمة، ووقفة أطول قبل جملة الذكر
   let t = 0.9;
   BID_SENTENCES.forEach((sentence, si) => {
     for (const w of sentence.split(" ")) { out.push({ w, s: t, e: t + 0.42, si }); t += 0.5; }
-    t += si === 1 ? 1.3 : 0.6;
+    t += si === BID_SACRED - 1 ? 1.3 : 0.6;
   });
   return out;
 })();
 const bare = (w: string) => w.replace(/[،.:]/g, "").replace(/[ً-ْ]/g, "");
-export const wordAt = (w: string) => {
-  const x = BID_WORDS.find((y) => bare(y.w) === bare(w));
+/** زمن أول ظهور للكلمة (أو ظهورها رقم n) */
+export const wordAt = (w: string, n = 1) => {
+  const x = BID_WORDS.filter((y) => bare(y.w) === bare(w))[n - 1];
   if (!x) throw Error(`كلمة ليست في النموذج: ${w}`);
   return x.s;
 };
-/** الجملة الثالثة كلها (ذكر الله) سكون مقصود، من قبلها بربع ثانية إلى ما بعدها */
+/** مدة ظهور سطر الترجمة (تلاشٍ قصير) */
+export const CAPTION_FADE = 0.13;
+/**
+ * جملة الذكر كلها سكون مقصود تام (قرار المالك: لا يتحرك شيء فيها، ولا الماء ولا الشمس ولا ظهور الترجمة): النافذة من قبلها
+ * بربع ثانية إلى ما بعدها، وسطرها يكتمل ظهوره قبل النافذة، فالإطار فيها واحد بايتًا ببايت.
+ */
 export const BID_STILL: Window[] = (() => {
-  const s3 = BID_WORDS.filter((w) => w.si === 2);
+  const s3 = BID_WORDS.filter((w) => w.si === BID_SACRED);
   return [[s3[0]!.s - 0.25, s3[s3.length - 1]!.e + 0.25]];
 })();
-export const BID_SEC = Math.ceil(BID_WORDS[BID_WORDS.length - 1]!.e + 2.2);
+/** الزمن «الفعّال»: لا يتقدم داخل نوافذ السكون (الشمس والماء والموج يقفون فيها ويكملون بعدها بلا قفزة) */
+export const effTime = (t: number, still: Window[] = BID_STILL) => {
+  let lost = 0;
+  for (const [s, e] of still) lost += Math.max(0, Math.min(t, e) - s);
+  return t - lost;
+};
+export const BID_SEC = Math.ceil(BID_WORDS[BID_WORDS.length - 1]!.e + 3.2);
 export const bidFrames = () => BID_SEC * BID_FPS;
 
 /** ألوان «دفتر الأفق» المعتمدة وحدها (brand/identity/approved.ts)؛ اللازورد للماء والخرائط فقط */
@@ -73,16 +95,20 @@ export const SFX = (f: string) => staticFile(`three/sfx/${f}.mp3`);
 /** لقطة: حجمها وزمنها وكاميرتها من وإلى وفتحة العدسة؛ الأخيرة تبدأ قبل جملة الذكر ولا تتحرك فيها */
 export type V3 = [number, number, number];
 export type ShotCam = { target: V3; yaw: number; pitch: number; dist: number; fov: number };
-export type BidShot = { id: string; size: "wide" | "medium" | "close" | "detail"; a: number; b: number; from: ShotCam; to: ShotCam; aperture: number };
-/** حدود اللقطات الأربع على الكلام: الأولى حتى «بتاريخ»، والثانية حتى «ثم»، والثالثة حتى قبيل جملة الذكر */
+/** move: مدة حركة الكاميرا من بداية اللقطة (إن غابت فاللقطة كلها)، ثم تثبت */
+export type BidShot = { id: string; size: "wide" | "medium" | "close" | "detail"; a: number; b: number; from: ShotCam; to: ShotCam; aperture: number; move?: number };
+/**
+ * حدود اللقطات على الكلام: الأفق حتى «بتاريخ»، والعقدة حتى «لقد»، وتحت الرمل حتى «موضع»، والشاطئ حتى «ثم»، والقرى حتى
+ * قبيل جملة الذكر بـ٠٫٩ ث، ثم حفنة الطين (تبدأ قبل النافذة وتسكن فيها كلها).
+ */
 export const shotBounds = () => {
-  const s3 = BID_STILL[0]![0] - 0.05;
-  return { s1: wordAt("بتاريخ") - 0.1, s2: wordAt("ثم") - 0.15, s3 };
+  const clay = BID_STILL[0]![0] - 0.9;
+  return { s1: wordAt("بتاريخ") - 0.1, s2: wordAt("لقد") - 0.15, s3: wordAt("موضع") - 0.1, s4: wordAt("ثم") - 0.15, s5: clay };
 };
 export const camOf = (s: BidShot, t: number) => {
   // اللقطة الأخيرة: الكاميرا ساكنة في نافذة الذكر، وتتحرك بعدها فقط
   const [a, b] = s.b > BID_STILL[0]![1] && s.a <= BID_STILL[0]![0] ? [BID_STILL[0]![1] + 0.1, s.b] : [s.a, s.b];
-  const p = ease(span(t, a, b - a));
+  const p = ease(span(t, a, Math.min(b - a, s.move ?? b - a)));
   const L = (x: number, y: number) => x + (y - x) * p;
   return {
     target: [L(s.from.target[0], s.to.target[0]), L(s.from.target[1], s.to.target[1]), L(s.from.target[2], s.to.target[2])] as V3,
@@ -158,65 +184,45 @@ export const ProofStamp: React.FC<{ word: "ثابت" | "رواية" | "تقدي�
     );
   };
 
-/** الترجمة سطر هادئ بلا مستطيل (D187، D192): حبر داكن على فاتح، أو فاتح على داكن، ووسم «للمقارنة» */
-export const BidLine: React.FC<{ t: number; name: string; tone: "ink" | "light" }> = ({ t, name, tone }) => {
-  const si = Math.max(0, ...BID_WORDS.filter((w) => w.s - 0.15 <= t).map((w) => w.si));
-  const words = BID_WORDS.filter((w) => w.si === si);
-  const show = t >= BID_WORDS[0]!.s - 0.15;
-  const fade = Math.min(1, Math.max(0, (t - words[0]!.s + 0.15) / 0.13));
-  const [color, shadow] = tone === "ink" ? [K.ink, CAPTION_SHADOW_LIGHT] : [K.paper, CAPTION_SHADOW];
-  return (
-    <AbsoluteFill style={{ pointerEvents: "none" }}>
-      <div style={{ position: "absolute", top: 22, right: 28, padding: "5px 14px 7px", borderRadius: 8, background: "rgba(42,30,63,0.55)", color: K.paper,
-        fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 20, direction: "rtl" }}>اتجاه للمقارنة · البدايات · {name} · لا يُنشر</div>
-      {show && (
-        <div style={{ position: "absolute", bottom: 56, left: 0, right: 0, display: "flex", justifyContent: "center" }}>
-          <div style={{ opacity: fade, color, textShadow: shadow, padding: "8px 28px", fontFamily: "Amiri", fontWeight: 700, fontSize: 54, direction: "rtl" }}>
-            {words.map((w) => w.w).join(" ")}
-          </div>
+/**
+ * سطر الترجمة عند t: جملة جملة، يظهر بتلاشٍ قصير قبل أول كلماتها. سطر جملة الذكر يكتمل ظهوره قبل نافذة السكون نفسها،
+ * فلا يتغير بكسل واحد داخلها (قرار المالك ٢٣ نوفمبر).
+ */
+export const bidLine = (t: number): { text: string; fade: number; si: number } | null => {
+  const startOf = (si: number) => {
+    const w0 = BID_WORDS.find((w) => w.si === si)!.s - 0.15;
+    // نصف إطار احتياطًا: يكتمل الظهور قبل أول إطار في النافذة
+    return si === BID_SACRED ? Math.min(w0, BID_STILL[0]![0] - CAPTION_FADE - 1 / 60) : w0;
+  };
+  let si = -1;
+  for (let k = 0; k < BID_SENTENCES.length; k++) if (t >= startOf(k)) si = k;
+  if (si < 0) return null;
+  return { text: BID_SENTENCES[si]!, fade: Math.min(1, Math.max(0, (t - startOf(si)) / CAPTION_FADE)), si };
+};
+
+/**
+ * الترجمة سطر هادئ بلا مستطيل (D187، D192)، وكل كلمة بنبرة ما خلفها فعلًا في الإطار (captionProbe، قرار المالك ٢٣ نوفمبر:
+ * «الترجمة مقروءة على الرمل الفاتح»): حبر داكن بهالة فاتحة على الرمل والسماء الفاتحة، ونص فاتح بحد داكن على الماء والطين
+ * والظل. ووسم «للمقارنة» في الأعلى.
+ */
+/** ظل أقوى للرمل متوسط الإضاءة (قرار المالك: «حبر داكن أو ظل أقوى»): هالة أعرض تحت الحد الرفيع، تُقرأ على هاتف ٦ بوصات */
+export const BID_SHADOW: Record<CaptionTone, string> = {
+  light: "0 0 10px rgba(26,20,36,0.85), 0 0 22px rgba(26,20,36,0.7), 0 2px 4px rgba(26,20,36,0.9)",
+  ink: "0 0 10px rgba(244,233,212,0.9), 0 0 22px rgba(244,233,212,0.7)",
+};
+export const BidCaption: React.FC<{ line: ReturnType<typeof bidLine>; tones: CaptionTone[]; name: string; bottom: number }> = ({ line, tones, name, bottom }) => (
+  <AbsoluteFill style={{ pointerEvents: "none" }}>
+    <div style={{ position: "absolute", top: 22, right: 28, padding: "5px 14px 7px", borderRadius: 8, background: "rgba(42,30,63,0.55)", color: K.paper,
+      fontFamily: "IBM Plex Sans Arabic", fontWeight: 500, fontSize: 20, direction: "rtl" }}>عالم السلسلة · البدايات · {name} · لا يُنشر</div>
+    {line && (
+      <div style={{ position: "absolute", bottom, left: CAPTION_GEOMETRY.side, right: CAPTION_GEOMETRY.side, display: "flex", justifyContent: "center" }}>
+        <div style={{ opacity: line.fade, padding: `${CAPTION_GEOMETRY.padY}px ${CAPTION_GEOMETRY.padX}px`, fontFamily: "Tajawal", fontWeight: 500, fontSize: CAPTION_GEOMETRY.fontSize, lineHeight: `${CAPTION_GEOMETRY.lineHeight}px`, direction: "rtl", textAlign: "center" }}>
+          {line.text.split(" ").filter(Boolean).map((w, i) => {
+            const tone = tones[i] ?? "ink";
+            return <React.Fragment key={i}>{i ? " " : ""}<span style={{ color: tone === "ink" ? K.ink : K.paper, textShadow: `${CAPTION_TONES[tone].textShadow}, ${BID_SHADOW[tone]}` }}>{w}</span></React.Fragment>;
+          })}
         </div>
-      )}
-    </AbsoluteFill>
-  );
-};
-
-/** مجرى ماء مسطح على السطح (شريط بعرض w يتبع المنحنى حتى p): ماء لا أنبوب. h(x,z) ارتفاع السطح تحته */
-export const Stream: React.FC<{ path: [number, number][]; p: number; w: number; h: (x: number, z: number) => number; color?: string }> = ({ path, p, w, h, color = K.water }) => {
-  const geo = React.useMemo(() => {
-    if (p <= 0.001) return null;
-    const curve = new THREE.CatmullRomCurve3(path.map(([x, z]) => new THREE.Vector3(x, 0, z)));
-    const n = Math.max(2, Math.round(140 * p)), pts = curve.getPoints(140).slice(0, n + 1);
-    const pos: number[] = [], idx: number[] = [];
-    pts.forEach((q, i) => {
-      const a = pts[Math.max(0, i - 1)]!, b = pts[Math.min(pts.length - 1, i + 1)]!;
-      const tx = b.x - a.x, tz = b.z - a.z, L = Math.hypot(tx, tz) || 1;
-      // يضيق عند المنبع ويتسع نحو المصب
-      const half = (w / 2) * (0.45 + 0.55 * (i / 140));
-      const sx = (-tz / L) * half, sz = (tx / L) * half;
-      for (const s of [-1, 1]) { const x = q.x + sx * s, z = q.z + sz * s; pos.push(x, h(x, z) + 0.008, z); }
-      if (i) { const k = i * 2; idx.push(k - 2, k - 1, k, k - 1, k + 1, k); }
-    });
-    const g = new THREE.BufferGeometry(); g.setAttribute("position", new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx); g.computeVertexNormals(); return g;
-  }, [path, p, w, h]);
-  return geo ? <mesh geometry={geo} receiveShadow><meshStandardMaterial color={color} roughness={0.45} side={THREE.DoubleSide} /></mesh> : null;
-};
-
-/** سور مدينة منخفض: قطع جدار متتابعة على دائرة وباب مفتوح، يرتفع من الأرض بنسبة q */
-export const WallRing: React.FC<{ at: V3; r: number; q: number; color: string; bump?: THREE.Texture; h?: number }> = ({ at, r, q, color, bump, h = 0.09 }) => {
-  if (q <= 0) return null;
-  const n = 28;
-  return (
-    <group position={at}>
-      {Array.from({ length: n }, (_, k) => {
-        const a = (k / n) * Math.PI * 2;
-        if (k === 0 || k === 1) return null; // الباب
-        const len = (2 * Math.PI * r) / n + 0.004;
-        return (
-          <mesh key={k} position={[Math.cos(a) * r, (h * q) / 2, Math.sin(a) * r]} rotation={[0, -a + Math.PI / 2, 0]} scale={[1, Math.max(0.001, q), 1]} castShadow receiveShadow>
-            <boxGeometry args={[len, h, h * 0.45]} /><meshStandardMaterial color={color} bumpMap={bump} bumpScale={0.4} roughness={0.95} />
-          </mesh>
-        );
-      })}
-    </group>
-  );
-};
+      </div>
+    )}
+  </AbsoluteFill>
+);

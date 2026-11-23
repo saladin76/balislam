@@ -63,6 +63,19 @@ export const ASSETS: readonly Asset[] = [
   { id: "dafatir-age-diff", file: "three/dafatir-alzaman/age-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/decrepit_wallpaper", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
   { id: "dafatir-mudbrick-diff", file: "three/dafatir-alzaman/mudbrick-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/brown_brick_02", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
   { id: "dafatir-mudbrick-nor", file: "three/dafatir-alzaman/mudbrick-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/brown_brick_02", license: "CC0", checked: "2026-11-22", channel: "dafatir-alzaman" },
+  // «البدايات» (D203، قرار المالك ٢٣ نوفمبر: «خامات حجر حقيقية من Poly Haven»): CC0، دقة 1k، راجعت polyhaven.com/license وصفحة كل أصل
+  { id: "dafatir-bid-stone-diff", file: "three/dafatir-alzaman/bid-stone-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dry_riverbed_rock", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-stone-nor", file: "three/dafatir-alzaman/bid-stone-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dry_riverbed_rock", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-stone-rough", file: "three/dafatir-alzaman/bid-stone-rough.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/dry_riverbed_rock", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-sand-diff", file: "three/dafatir-alzaman/bid-sand-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/coast_sand_01", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-sand-nor", file: "three/dafatir-alzaman/bid-sand-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/coast_sand_01", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-sand-rough", file: "three/dafatir-alzaman/bid-sand-rough.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/coast_sand_01", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-wetsand-diff", file: "three/dafatir-alzaman/bid-wetsand-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/damp_sand", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-wetsand-nor", file: "three/dafatir-alzaman/bid-wetsand-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/damp_sand", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-wetsand-rough", file: "three/dafatir-alzaman/bid-wetsand-rough.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/damp_sand", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-strata-diff", file: "three/dafatir-alzaman/bid-strata-diff.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/excavated_soil_wall", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-strata-nor", file: "three/dafatir-alzaman/bid-strata-nor.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/excavated_soil_wall", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
+  { id: "dafatir-bid-strata-rough", file: "three/dafatir-alzaman/bid-strata-rough.jpg", kind: "texture", source: "polyhaven", url: "https://polyhaven.com/a/excavated_soil_wall", license: "CC0", checked: "2026-11-23", channel: "dafatir-alzaman" },
 ];
 
 /** مسار الأصل لـ staticFile بمعرّفه (يرفض أصلًا غير مسجل) */

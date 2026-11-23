@@ -1,32 +1,36 @@
 /**
- * «دفاتر الزمن» — سلسلة «البدايات»: الاتجاهات الثلاثة لعالمها (D203، قرار المالك ٢٣ نوفمبر). الألوان من «دفتر الأفق»
- * وحده، وجملة ذكر الله سكون مقصود كله، وفي كل اتجاه خيط الزمن الأحمر وختم «درجة الثبوت»، ولا تصوير لأحد (المرجع، خامسًا/٤)،
- * وأربع لقطات بأحجام مختلفة على كادر ثري دي (D189).
+ * «دفاتر الزمن» — سلسلة «البدايات»: عالمها «خطوط على الأرض» (D203، اختيار المالك ٢٣ نوفمبر، وفيه فكرة «مقطع الأرض»؛
+ * وتُرك «أرض من طين»). الألوان من «دفتر الأفق» وحده، وجملة ذكر الله سكون تام كله، وخيط الزمن الأحمر وأختام «درجة الثبوت»،
+ * ولا تصوير لأحد (المرجع، خامسًا/٤)، ولقطات بأحجام مختلفة على كادر ثري دي (D189)، والنقاط الخمس قبل القالب الكامل.
  */
-import { readdirSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { APPROVED_IDENTITIES } from "../brand/identity/approved";
 import { isSacredSentence } from "../src/plan/sceneCues";
-import { safeKeys } from "../src/remotion/three";
-import { BID_SENTENCES, BID_STILL, BID_WORDS, n2, shotBounds, wordAt } from "../src/remotion/dafatir/bidayat/common";
+import { ASSETS, safeKeys } from "../src/remotion/three";
+import { BID_SACRED, BID_SENTENCES, BID_STILL, BID_WORDS, CAPTION_FADE, bidLine, effTime, n2, shotBounds, wordAt } from "../src/remotion/dafatir/bidayat/common";
 
 const DIR = "src/remotion/dafatir/bidayat";
 const files = readdirSync(DIR).map((f) => ({ f, code: readFileSync(`${DIR}/${f}`, "utf8") }));
-const directions = files.filter((x) => x.f !== "common.tsx");
+const world = readFileSync(`${DIR}/StoneLines.tsx`, "utf8");
+const strip = (c: string) => c.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, "");
 
-describe("«البدايات»: الاتجاهات الثلاثة للمقارنة", () => {
-  it("ثلاثة اتجاهات، وكل لون في الملفات من هوية «دفتر الأفق» المعتمدة", () => {
-    expect(directions.map((x) => x.f).sort()).toEqual(["ClayLand.tsx", "EarthSection.tsx", "StoneLines.tsx"]);
+describe("«البدايات»: عالم واحد «خطوط على الأرض» (اختيار المالك)", () => {
+  it("الاتجاه ٢ وحده، و«أرض من طين» و«مقطع الأرض» ليسا اتجاهين بعد؛ وكل لون من هوية «دفتر الأفق»", () => {
+    expect(files.map((x) => x.f).sort()).toEqual(["StoneLines.tsx", "common.tsx"]);
+    const labs = readFileSync("src/remotion/scenes/labs.tsx", "utf8");
+    expect(labs).toContain('"dafatir-bidayat-stones"');
+    expect(labs).not.toMatch(/bidayat-clay|bidayat-section/);
     const a = APPROVED_IDENTITIES["dafatir-alzaman"]!;
     const ok = new Set([...a.palette.map((p) => p.hex), ...a.signature, ...a.derived].map((x) => x.toUpperCase()));
     const bad = files.flatMap(({ f, code }) => [...code.matchAll(/#[0-9A-Fa-f]{6}\b/g)].map((m) => m[0].toUpperCase()).filter((c) => !ok.has(c)).map((c) => `${f}: ${c}`));
     expect(bad).toEqual([]);
   });
-  it("الجملة الثالثة وحدها ذكر لله، والسكون يغطيها كلها (±٠٫٢٥ ث)", () => {
-    expect(isSacredSentence(BID_SENTENCES[2]!)).toBe(true);
-    expect(isSacredSentence(BID_SENTENCES[0]!)).toBe(false);
-    expect(isSacredSentence(BID_SENTENCES[1]!)).toBe(false);
-    const s3 = BID_WORDS.filter((w) => w.si === 2);
+  it("جملة الذكر الأخيرة وحدها، والسكون يغطيها كلها (±٠٫٢٥ ث)، وجملة «ما ثبت وما لا نعلم» من 001 ليست ذكرًا", () => {
+    expect(BID_SACRED).toBe(BID_SENTENCES.length - 1);
+    expect(isSacredSentence(BID_SENTENCES[BID_SACRED]!)).toBe(true);
+    for (let i = 0; i < BID_SACRED; i++) expect(isSacredSentence(BID_SENTENCES[i]!), BID_SENTENCES[i]).toBe(false);
+    const s3 = BID_WORDS.filter((w) => w.si === BID_SACRED);
     expect(BID_STILL[0]![0]).toBeCloseTo(s3[0]!.s - 0.25, 6);
     expect(BID_STILL[0]![1]).toBeCloseTo(s3[s3.length - 1]!.e + 0.25, 6);
   });
@@ -34,48 +38,70 @@ describe("«البدايات»: الاتجاهات الثلاثة للمقارن
     const k = safeKeys([{ a: wordAt("طين"), b: wordAt("طين") + 0.5, to: 1 }], BID_STILL)[0]!;
     expect(k.a).toBeCloseTo(BID_STILL[0]![1], 6);
   });
-  it("كل اتجاه: خيط الزمن وعقدته، وختما «ثابت» و«تقدير»، وصوت مع كل حركة، والترجمة بلا مستطيل", () => {
-    for (const { f, code } of directions) {
-      for (const re of [/<RedThread /, /knot=\{p\(knotK\)\}/, /"ثابت"/, /"تقدير"/, /<DepthOfField /, /SFX\("stamp"\)/, /<BidLine /]) expect(code, `${f} ${re}`).toMatch(re);
-      expect(code, f).not.toMatch(/background: "rgba\(0|DirFrame/);
+  it("(٥) سكون تام: الزمن الفعّال لا يتقدم في النافذة (الشمس والماء والموج)، وسطر الترجمة مكتمل قبلها ثابت فيها", () => {
+    const [s, e] = BID_STILL[0]!;
+    expect(effTime(s + 0.3)).toBeCloseTo(effTime(e - 0.1), 9);
+    expect(effTime(e + 1) - effTime(e)).toBeCloseTo(1, 9);
+    const a = bidLine(s)!, b = bidLine((s + e) / 2)!, c = bidLine(e)!;
+    for (const x of [a, b, c]) { expect(x.si).toBe(BID_SACRED); expect(x.fade).toBe(1); }
+    expect(bidLine(s - CAPTION_FADE - 1 / 60 - 0.01)!.si).toBe(BID_SACRED - 1);
+  });
+  it("(١)(٣)(٤)(٥) في الكود: نبرة كل كلمة من الإطار، والماء بانعكاس وموج ورمل مبلول، والشمس على مدار الحلقة، وحفنة الطين", () => {
+    for (const re of [/<CaptionProbe /, /wordTones\(/, /delayRender\(/, /new Reflector\(/, /swash\(te\)/, /uLevel/, /sunAt\(t\)/, /useClayHandful\(\)/, /CLAY_AT/]) expect(world, String(re)).toMatch(re);
+    // لا يتحرك الماء ولا الشمس بالزمن المطلق
+    expect(strip(world)).not.toMatch(/swash\(t\)|offset\.set\(t /);
+  });
+  it("(٢) خامات حجر ورمل وطبقات حقيقية من Poly Haven (CC0)، مسجلة بمصدرها، وموجودة في public", () => {
+    const ids = [...world.matchAll(/"(dafatir-bid-[a-z-]+)"/g)].map((m) => m[1]!);
+    expect(new Set(ids).size).toBe(12);
+    for (const id of ids) {
+      const a = ASSETS.find((x) => x.id === id);
+      expect(a, id).toBeTruthy();
+      expect(a!.license).toBe("CC0");
+      expect(a!.source).toBe("polyhaven");
+      expect(existsSync(`public/${a!.file}`), a!.file).toBe(true);
     }
+    // لا حجارة منخفضة الأضلاع (عشرون وجهًا)
+    expect(strip(world)).not.toMatch(/IcosahedronGeometry/);
+  });
+  it("خيط الزمن وعقدته، و«ثابت» و«رواية» و«تقدير» و«لا نعلم»، وطبقات تحت الرمل، وصوت مع كل حركة", () => {
+    for (const re of [/<RedThread /, /knot=\{p\(knotK\)\}/, /"ثابت"/, /"رواية"/, /"تقدير"/, /"لا نعلم"/, /LAYERS\.map/, /<DepthOfField /, /SFX\("stamp"\)/, /<BidCaption /]) expect(world, String(re)).toMatch(re);
   });
   it("لا تصوير لأحد (لا شخص ولا هيئة ولا ظل إنسان)، ولا أدوات القوالب الشائعة ولا عشوائية", () => {
     const banned = [/\bPerson\b|figureShapes|silhouette|armPose/, /boxShadow|drop-shadow/, /backdrop-?[Ff]ilter/, /\bInter\b|Poppins/, /sparkle|lens.?flare|glow|Bloom/i, /spring\(|bounce/i, /@remotion\/transitions/, /Math\.random|Date\.now/, /\b(eye|mouth|nose|face)s?\b/i];
-    expect(files.flatMap(({ f, code }) => banned.filter((re) => re.test(code.replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""))).map((re) => `${f}: ${re}`))).toEqual([]);
+    expect(files.flatMap(({ f, code }) => banned.filter((re) => re.test(strip(code))).map((re) => `${f}: ${re}`))).toEqual([]);
   });
-  it("الضوضاء ثنائية البعد (لا خطوط متوازية على الطين والحجر)", () => {
-    // ضوضاء على مزيج خطي واحد (٠٫٩س + ٠٫٥ع) ثابتة على كل خط يحفظه؛ n2 تتغير على الخط نفسه
+  it("الضوضاء ثنائية البعد", () => {
     const line = [[0, 2], [1, 0.2], [2, -1.6]].map(([x, z]) => n2(3, x!, z!).toFixed(3));
     expect(new Set(line).size).toBe(3);
   });
 });
 
-describe("«البدايات»: أربع لقطات بأحجام مختلفة لكل اتجاه (D189)", () => {
-  const cases: [string, () => Promise<{ id: string; size: string; a: number; b: number }[]>][] = [
-    ["أرض من طين", async () => (await import("../src/remotion/dafatir/bidayat/ClayLand")).clayShots()],
-    ["خطوط على الأرض", async () => (await import("../src/remotion/dafatir/bidayat/StoneLines")).stoneShots()],
-    ["مقطع الأرض", async () => (await import("../src/remotion/dafatir/bidayat/EarthSection")).sectionShots()],
-  ];
-  for (const [name, get] of cases) {
-    it(`${name}: أربعة أحجام بلا تكرار، ٢–٨ ث، والأخيرة تبدأ قبل جملة الذكر وتمتد بعدها`, async () => {
-      const shots = await get();
-      expect(new Set(shots.map((x) => x.size)).size).toBe(4);
-      expect(new Set(shots.map((x) => x.id)).size).toBe(4);
-      for (const x of shots.slice(0, -1)) { expect(x.b - x.a, x.id).toBeGreaterThanOrEqual(2); expect(x.b - x.a, x.id).toBeLessThanOrEqual(8); }
-      const last = shots[shots.length - 1]!;
-      expect(last.a).toBeLessThanOrEqual(BID_STILL[0]![0]);
-      expect(last.b).toBeGreaterThan(BID_STILL[0]![1]);
-      expect(shots[1]!.a).toBeCloseTo(shotBounds().s1, 6);
-    });
-  }
-  it("الحلزون في «خطوط على الأرض» يلتف إلى الداخل، والطين في «أرض من طين» مسطح قبل «الأرض»", async () => {
-    const { stonePath } = await import("../src/remotion/dafatir/bidayat/StoneLines");
+describe("«البدايات»: اللقطات (D189)", () => {
+  it("ست لقطات بأربعة أحجام على الأقل، ٢–٨ ث، والطبقات عند «لقد»، وحفنة الطين تبدأ قبل جملة الذكر وتمتد بعدها", async () => {
+    const { stoneShots, stonePath } = await import("../src/remotion/dafatir/bidayat/StoneLines");
+    const shots = stoneShots();
+    expect(shots.map((x) => x.id)).toEqual(["horizon", "knot", "strata", "shore", "circles", "clay"]);
+    expect(new Set(shots.map((x) => x.size)).size).toBeGreaterThanOrEqual(4);
+    for (const x of shots.slice(0, -1)) { expect(x.b - x.a, x.id).toBeGreaterThanOrEqual(2); expect(x.b - x.a, x.id).toBeLessThanOrEqual(8); }
+    expect(shots[2]!.a).toBeCloseTo(shotBounds().s2, 6);
+    expect(shots[2]!.a).toBeLessThan(wordAt("روايات"));
+    const last = shots[shots.length - 1]!;
+    expect(last.a).toBeLessThan(BID_STILL[0]![0]);
+    expect(last.b).toBeGreaterThan(BID_STILL[0]![1]);
+    // تحت الرمل: الكاميرا تنتهي تحت سطح المكان
+    expect(shots[2]!.to.target[1]).toBeLessThan(0);
     const sp = stonePath().slice(11);
     const r = sp.map(([x, z]) => Math.hypot(x - 0.6, z + 1.6));
     expect(r[r.length - 1]!).toBeLessThan(r[0]! / 3);
-    const { clayHeight } = await import("../src/remotion/dafatir/bidayat/ClayLand");
-    expect(Math.abs(clayHeight(2.4, -1.6, 0))).toBeLessThan(0.02);
-    expect(clayHeight(2.4, -1.6, 1)).toBeGreaterThan(0.6);
+  });
+  it("الشمس من الفجر إلى الضحى، وتقف في السكون", async () => {
+    const { sunAt } = await import("../src/remotion/dafatir/bidayat/StoneLines");
+    const { BID_SEC } = await import("../src/remotion/dafatir/bidayat/common");
+    expect(sunAt(0)).toBe(0);
+    expect(sunAt(BID_SEC)).toBeCloseTo(1, 9);
+    const [s, e] = BID_STILL[0]!;
+    expect(sunAt(s + 0.2)).toBeCloseTo(sunAt(e - 0.05), 9);
+    expect(sunAt(e + 2)).toBeGreaterThan(sunAt(e));
   });
 });

@@ -726,6 +726,7 @@
 ## 2026-11-23 — اتجاهات «البدايات» لدفاتر الزمن (D203، التعريف: docs/dafatir-alzaman/07-decisions.md)
 
 - تسجيل ثلاثة نماذج صامتة في `src/remotion/scenes/labs.tsx` المشترك (`dafatir-bidayat-*`). لا أثر على هذه القناة.
+- بعد اختيار المالك (٢٣ نوفمبر) بقي نموذج واحد `dafatir-bidayat-stones`، وأُضيفت خامات Poly Haven (CC0) لدفاتر الزمن في `src/remotion/three/materials.ts` المشترك (`dafatir-bid-*`). لا أثر على هذه القناة.
 
 ## 2026-11-23 — إملاء الترجمة للمشهد `captionSpell` (مشترك، التعريف: docs/dafatir-alzaman/07-decisions.md)
 
