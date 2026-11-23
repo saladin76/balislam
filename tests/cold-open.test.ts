@@ -53,7 +53,10 @@ describe("الخطاف المسبق (D198)", () => {
     expect(coldOpenIssues(p, {}).join()).toMatch(/لا تسجيل مطابق/);
     // مشهد غير الأول: رندره يحذف coldOpen من خطته، فلا فحص
     expect(coldOpenIssues({ ...p, coldOpen: undefined, chapters: [] }, {})).toEqual([]);
-    expect(readFileSync("src/render/shotsPreview.ts", "utf8")).toContain("{ intro: false, coldOpen: undefined }");
+    // الخطة المشتركة لفيديو المشهد ولقطة غلافه 4K (cutPlans، D196 v6)
+    expect(readFileSync("src/plan/coldOpen.ts", "utf8")).toContain("{ intro: false, coldOpen: undefined }");
+    expect(readFileSync("src/render/shotsPreview.ts", "utf8")).toContain("cutPlans(full, ids, sceneDraft)");
+    expect(readFileSync("src/package/sceneStill.ts", "utf8")).toContain("cutPlans(full, [sceneId])");
   });
   it("بعدد الكلمات: يبقى صحيحًا مع إيقاع أسرع (التسجيل المرندر)، والقطع في الوقفة بعد الكلمة الأخيرة وحده", () => {
     // تسجيل مُسرَّع (D140): الكلمات نفسها بأزمنة أقصر — «لا نملك» تقع قبل ٤٫٢١

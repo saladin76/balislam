@@ -9,15 +9,12 @@ import path from "node:path";
 import os from "node:os";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import type { Plan } from "../plan/types";
+import { cutPlans } from "../plan/coldOpen";
 import config from "../../config.json";
 
-/** The one-scene plan exactly as the scene's AV cut is rendered from it (src/render/shotsPreview.ts). */
-export const sceneCutPlan = (full: Plan, sceneId: string): Plan | null => {
-  if (!full.chapters.some((c) => c.scenes.some((s) => s.id === sceneId))) return null;
-  const opensEpisode = full.chapters[0]?.scenes[0]?.id === sceneId;
-  return { ...full, ...(opensEpisode ? {} : { intro: false }),
-    chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => s.id === sceneId) })).filter((c) => c.scenes.length) };
-};
+/** The one-scene plan exactly as the scene's AV cut is rendered from it (cutPlans, shared with src/render/shotsPreview.ts). */
+export const sceneCutPlan = (full: Plan, sceneId: string): Plan | null =>
+  full.chapters.some((c) => c.scenes.some((s) => s.id === sceneId)) ? cutPlans(full, [sceneId]).plan : null;
 
 /** The composition frame for `at` seconds into the cut (the cut starts at frame 0 of its own composition). */
 export const stillFrameAt = (at: number, durationInFrames: number, fps = config.video.fps) =>
@@ -27,14 +24,16 @@ export const stillFrameAt = (at: number, durationInFrames: number, fps = config.
 export const sceneStill4k = async (episode: string, sceneId: string, at: number): Promise<string | null> => {
   const { loadPlan } = await import("../plan/io");
   const full = await loadPlan(episode);
-  const plan = full && sceneCutPlan(full, sceneId);
-  if (!plan) return null;
+  if (!full || !sceneCutPlan(full, sceneId)) return null;
+  // D196 v6: the same plan and media plan as the cut, so the first scene's cold open (D198) is drawn with its source and
+  // recording, and a later scene starts at its own frame 0 (no empty cold-open slot shifting the moment).
+  const { plan, mediaPlan } = cutPlans(full, [sceneId]);
   const { prepareRenderMedia } = await import("../plan/collect");
   const { createIsolatedRenderBundle, browserExecutable } = await import("../render/bundle");
   const { selectComposition, renderStill } = await import("@remotion/renderer");
   const { channelInfo, loadChannel, loadChannelIdentity } = await import("../channel");
   // A scene draft's media: an unattached recitation stays silent, which a picture never shows anyway.
-  const media = await prepareRenderMedia(episode, plan, { requireApprovedQuran: false });
+  const media = await prepareRenderMedia(episode, mediaPlan, { requireApprovedQuran: false });
   const bundle = await createIsolatedRenderBundle(media);
   const dir = await mkdtemp(path.join(os.tmpdir(), "bal-thumb-4k-"));
   try {
