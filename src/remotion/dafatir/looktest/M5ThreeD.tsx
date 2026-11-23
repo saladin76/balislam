@@ -107,7 +107,8 @@ const RING = (() => {
   return out;
 })();
 
-export const M5ThreeD: React.FC = () => {
+/** bare: بلا ترجمة ولا صوت (طبقة داخل «المزيج») */
+export const M5ThreeD: React.FC<{ bare?: boolean }> = ({ bare }) => {
   useBrandFonts();
   const t = useCurrentFrame() / LT_FPS;
   const v = vt(t);
@@ -145,8 +146,8 @@ export const M5ThreeD: React.FC = () => {
           ))}
         </ThreeCanvas>
       )}
-      <LtCaption t={t} tone="light" />
-      <LtAudio />
+      {!bare && <LtCaption t={t} tone="light" />}
+      {!bare && <LtAudio />}
     </AbsoluteFill>
   );
 };

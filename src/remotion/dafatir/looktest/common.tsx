@@ -27,7 +27,7 @@ export const at = (w: string, n = 1) => {
   throw new Error(`لا كلمة «${w}»`);
 };
 
-const LINES: { a: number; b: number; text: string }[] = [
+export const LINES: { a: number; b: number; text: string }[] = [
   { a: OFF3, b: OFF3 + 7.3, text: "ولكن رحلتنا هذه لا تبدأ من مدينة قديمة، ولا من مملكة نسي الناس اسمها." },
   { a: OFF3 + 7.36, b: OFF3 + 11.62, text: "بل تبدأ من أبي البشر، آدم عليه السلام." },
   { a: OFF4, b: LT_END, text: "أول إنسان خلقه الله سبحانه وتعالى، ومنه ومن زوجه بدأ نسل البشر الذي انتشر في الأرض." },
@@ -41,12 +41,12 @@ export const LtAudio: React.FC = () => (
 );
 
 /** الترجمة نفسها في الطرق كلها (للمقارنة العادلة): جملة كاملة، بلا تلاشٍ، ونبرتها حسب ما خلفها */
-export const LtCaption: React.FC<{ t: number; tone: "ink" | "light" }> = ({ t, tone }) => {
+export const LtCaption: React.FC<{ t: number; tone: "ink" | "light"; bottom?: number }> = ({ t, tone, bottom = 40 }) => {
   const line = LINES.find((l) => t >= l.a && t < l.b);
   if (!line) return null;
   const light = tone === "light";
   return (
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: 40, display: "flex", justifyContent: "center" }}>
+    <div style={{ position: "absolute", left: 0, right: 0, bottom, display: "flex", justifyContent: "center" }}>
       <div style={{ maxWidth: 1600, padding: "6px 26px 10px", direction: "rtl", textAlign: "center", fontFamily: "'IBM Plex Sans Arabic', sans-serif", fontWeight: 600, fontSize: 40, lineHeight: 1.45,
         color: light ? "#F8EEDB" : "#2B1E14", textShadow: light ? "0 0 3px rgba(13,10,20,0.95), 0 0 10px rgba(13,10,20,0.75)" : "0 0 3px rgba(248,238,219,0.95), 0 0 10px rgba(248,238,219,0.8)" }}>{line.text}</div>
     </div>

@@ -33,7 +33,8 @@ const InkLabel: React.FC<{ text: string; p: number; x: number; y: number; size?:
       opacity: fade, textShadow: "0 0 6px rgba(241,228,203,0.9), 0 0 18px rgba(241,228,203,0.6)", clipPath: `inset(-40% 0 -40% ${(1 - p) * 100}%)` }}>{text}</div>
   );
 
-export const M1Archive: React.FC = () => {
+/** bare: بلا ترجمة ولا صوت (طبقة داخل «المزيج») */
+export const M1Archive: React.FC<{ bare?: boolean }> = ({ bare }) => {
   useBrandFonts();
   const t = useCurrentFrame() / LT_FPS;
   const v = vt(t);
@@ -69,8 +70,8 @@ export const M1Archive: React.FC = () => {
         <rect width={1920} height={1080} filter="url(#m1g)" />
       </svg>
       <AbsoluteFill style={{ background: "radial-gradient(ellipse at 50% 48%, rgba(0,0,0,0) 55%, rgba(20,12,6,0.55) 100%)" }} />
-      <LtCaption t={t} tone="light" />
-      <LtAudio />
+      {!bare && <LtCaption t={t} tone="light" />}
+      {!bare && <LtAudio />}
     </AbsoluteFill>
   );
 };

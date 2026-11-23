@@ -21,6 +21,7 @@ import { M1Archive } from "../dafatir/looktest/M1Archive";
 import { M2Mixed } from "../dafatir/looktest/M2Mixed";
 import { M3HandDrawn } from "../dafatir/looktest/M3HandDrawn";
 import { M5ThreeD } from "../dafatir/looktest/M5ThreeD";
+import { M6Mix } from "../dafatir/looktest/M6Mix";
 
 /**
  * تكوينات مختبرات القوالب (المرحلة ٣، تيرمينال C): نماذج يراها المالك قبل أي قالب كامل، ولا تُنشر.
@@ -46,6 +47,7 @@ export const TemplateLabs: React.FC = () => (
     <Composition id="lt-3-handdrawn" component={M3HandDrawn} durationInFrames={LT_FRAMES} fps={LT_FPS} width={1920} height={1080} />
     <Composition id="lt-card" component={LtCard} durationInFrames={60} fps={LT_FPS} width={1920} height={1080} defaultProps={{ n: "١", label: "" }} />
     <Composition id="lt-5-threed" component={M5ThreeD} durationInFrames={LT_FRAMES} fps={LT_FPS} width={1920} height={1080} />
+    <Composition id="lt-6-mix" component={M6Mix} durationInFrames={LT_FRAMES} fps={LT_FPS} width={1920} height={1080} />
     <Composition id="dafatir-bidayat-stones" component={StoneLinesLab} durationInFrames={bidFrames()} fps={BID_FPS} width={1920} height={1080} />
 
     {/* بالإسلام: اتجاهات المقارنة الثلاثة بثري دي (لا قالب قبل اختيار المالك)، صامتة لا تُنشر */}

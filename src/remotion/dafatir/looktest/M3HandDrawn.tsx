@@ -31,7 +31,8 @@ const RAYS = Array.from({ length: 9 }, (_, i) => {
 });
 const WATER = ["M300 640 C 420 636 520 644 640 640", "M1240 652 C 1360 648 1480 656 1620 652", "M520 690 C 700 684 860 694 1040 688", "M980 730 C 1160 724 1300 734 1480 728", "M700 780 C 820 776 920 784 1060 780"];
 
-export const M3HandDrawn: React.FC = () => {
+/** bare: بلا ترجمة ولا صوت (طبقة داخل «المزيج») */
+export const M3HandDrawn: React.FC<{ bare?: boolean }> = ({ bare }) => {
   useBrandFonts();
   const f = useCurrentFrame();
   const t = f / LT_FPS;
@@ -80,8 +81,8 @@ export const M3HandDrawn: React.FC = () => {
           <rect x={1880 - 1800 * wash} y={300} width={1800 * wash} height={400} fill={C.sand} />
         </g>
       </svg>
-      <LtCaption t={t} tone="ink" />
-      <LtAudio />
+      {!bare && <LtCaption t={t} tone="ink" />}
+      {!bare && <LtAudio />}
     </AbsoluteFill>
   );
 };

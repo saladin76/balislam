@@ -69,7 +69,7 @@ export const M2Mixed: React.FC = () => {
   const v = vt(t);
   const cityP = pr(v, at("مدينة") - 0.1, 1.3);
   const kingP = pr(v, at("مملكة") - 0.1, 1.1);
-  const fade = 1 - 0.8 * pr(v, at("نسي"), 1.1);
+  const fade = 1 - 0.9 * pr(v, at("نسي"), 1.1);
   const rise = pr(v, at("بل") - 0.1, 1.5);
   const sand = 0.55 * pr(v, at("البشر"), 3.3);
   const cam = { cx: 960 + 0 * rise, cy: 520 - 20 * rise, s: 1 + 0.05 * pr(v, 0, 12) + 0.08 * rise };
@@ -96,7 +96,7 @@ export const M2Mixed: React.FC = () => {
           <Hourglass sand={sand} />
         </ThreeCanvas>
       )}
-      <LtCaption t={t} tone="light" />
+      <LtCaption t={t} tone="light" bottom={6} />
       <LtAudio />
     </AbsoluteFill>
   );
