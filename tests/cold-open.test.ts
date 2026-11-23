@@ -103,7 +103,8 @@ describe("صورة الخطاف في «خط الأفق» (ملاحظة الما�
   });
   it("«؟» عربية (الانتفاخ يسار، الطرف الحر يمين) بلا قلب مرآة، ولا نص غيرها على الصفحة", () => {
     const code = readFileSync("src/remotion/dafatir/horizon/coldOpenSlot.tsx", "utf8");
-    expect(code).toContain("const HOOK = `M${SLOT.x + 40} 512 C${SLOT.x + 40} 470 ${SLOT.x - 40} 470 ${SLOT.x - 40} 512");
+    // v4: محيط الأميري (U+061F) نفسه، بقلب المحور y وحده (الخط y للأعلى) — المحور x موجب فلا مرآة
+    expect(code).toContain("scale(${QMARK_SCALE} ${-QMARK_SCALE})");
     expect(code).not.toMatch(/scale\(-1 1\)/);
     expect(code).not.toMatch(/<text|WriteText/);
   });
@@ -127,5 +128,24 @@ describe("ترجمة الخطاف متكيفة (طلب المالك: حبر دا
     expect(ep).toContain('<AbsoluteFill style={notebook ? { mixBlendMode: "difference" } : undefined}>');
     expect(ep).toContain('variant={notebook ? "adaptive" : "pill"}');
     expect(readFileSync("src/remotion/scenes/CaptionBar.tsx", "utf8")).toContain('variant === "adaptive" ? { color: "#FFFFFF", textShadow: "none" }');
+  });
+});
+
+describe("D198 v4 (شرطا المالك ٢٣ نوفمبر): «؟» بشكل النسخ، وترجمة الخطاف تُقرأ على هاتف ٦ بوصات", () => {
+  it("«؟» محيط حرف الأميري نفسه (جسم غليظ ورفيع ونقطة)، لا خط بعرض واحد، ويُكتب بقناع على مسار القلم", async () => {
+    const { QMARK_BODY, QMARK_DOT, QMARK_PEN } = await import("../src/remotion/dafatir/horizon/coldOpenSlot");
+    expect(QMARK_BODY.startsWith("M322 519")).toBe(true);
+    expect(QMARK_BODY.endsWith("Z")).toBe(true);
+    expect(QMARK_DOT).toMatch(/^M147 44.*Z$/);
+    expect(QMARK_PEN.startsWith("M")).toBe(true);
+    const code = readFileSync(path.join(import.meta.dirname, "..", "src/remotion/dafatir/horizon/coldOpenSlot.tsx"), "utf8");
+    expect(code).toContain('mask="url(#co-qmark-pen)"');
+    expect(code).not.toMatch(/<Ink d=\{HOOK\}/);
+  });
+  it("ترجمة الخطاف ٧٨ بكسلًا في 1920 (≈١٤٫٦ نقطة على عرض ٣٦٠) ولا تصغر أبدًا عن حجم القناة", async () => {
+    const { COLD_OPEN_CAPTION_PX, coldOpenCaptionScale } = await import("../src/remotion/scenes/Episode");
+    expect(COLD_OPEN_CAPTION_PX.landscape * (360 / 1920)).toBeGreaterThanOrEqual(14);
+    expect(coldOpenCaptionScale(44, false)).toBeCloseTo(78 / 44);
+    expect(coldOpenCaptionScale(100, false)).toBe(1);
   });
 });

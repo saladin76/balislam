@@ -23,7 +23,7 @@ import type { ChannelInfo } from "../../channel/types";
 import { engineEnabled } from "../../plan/engine";
 import { parseTransition, transitionIssues, type Transition } from "../../plan/transitions";
 import { FrozenScene, TransitionContext, TransitionIn, type TransitionCtx } from "./transitions";
-import { useTheme } from "../../../brand/identity/index";
+import { useSize, useTheme } from "../../../brand/identity/index";
 import { fontFamilies } from "../../../brand/fonts";
 import { sceneAdvanceFrames, seamAudio, seamPlan, seamVolumeAt, type SeamAudio } from "../../plan/seams";
 import { isAmbience, sceneSacredSpans, sfxGainAt, sfxTrim, speechSpans } from "../../plan/sfxMix";
@@ -79,12 +79,25 @@ export const mediaSrc = (media: EpisodeMedia, rel: string) => (media.mode === "s
 const ColdOpenCaption: React.FC<{ themeId: Plan["themeId"]; timings: ReturnType<typeof toFrames>; portrait: boolean }> = ({ themeId, timings, portrait }) => {
   const t = useTheme(themeId);
   const notebook = useChannel().frame === "notebook";
+  const size = useSize("caption", portrait ? "portrait" : "landscape");
+  // D198 v4 (شرط المالك ٢٣ نوفمبر: «تكبير الترجمة لتُقرأ على هاتف ٦ بوصات»): سطر الخطاف القصير بحجم COLD_OPEN_CAPTION_PX
+  const k = coldOpenCaptionScale(size, portrait);
   return timings.length ? (
     <AbsoluteFill style={notebook ? { mixBlendMode: "difference" } : undefined}>
-      <CaptionBar theme={t} timings={timings} portrait={portrait} variant={notebook ? "adaptive" : "pill"} />
+      <AbsoluteFill style={{ transform: `scale(${k})`, transformOrigin: "50% 100%" }}>
+        <CaptionBar theme={t} timings={timings} portrait={portrait} variant={notebook ? "adaptive" : "pill"} />
+      </AbsoluteFill>
     </AbsoluteFill>
   ) : null;
 };
+
+/**
+ * حجم ترجمة الخطاف بالبكسل في إطار 1920 (العرضي): على هاتف ٦ بوصات يُعرض الفيديو العرضي بعرض ~٣٦٠ نقطة، فيصير ٧٨ بكسلًا
+ * نحو ١٤٫٦ نقطة (حجم نص قابل للقراءة)، بدل ٤٤ (≈٨ نقاط). سطر الخطاف قصير (كلمات السؤال وحدها) فيتسع للحجم.
+ */
+export const COLD_OPEN_CAPTION_PX = { landscape: 78, portrait: 72 } as const;
+export const coldOpenCaptionScale = (base: number, portrait: boolean) =>
+  Math.max(1, COLD_OPEN_CAPTION_PX[portrait ? "portrait" : "landscape"] / Math.max(1, base));
 
 /**
  * الخطاف المسبق (D198): صورة المشهد المصدر وتسجيله نفسه حتى `to` (نص الكلمات المنطوقة فيه وحدها، فتظهر ترجمتها كالمعتاد)،

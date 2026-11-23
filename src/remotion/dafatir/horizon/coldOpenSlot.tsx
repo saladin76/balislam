@@ -22,8 +22,35 @@ export const SLOT_CAM_END: SlotCam = { cx: 1300, cy: 560, s: 1.75 };
 /** الدفتر كله (NEUTRAL في book.tsx): إليه يتراجع الكادر بعد القطع، ومنه يبدأ قلب الصفحة */
 export const SLOT_NEUTRAL: SlotCam = { cx: 960, cy: 520, s: 1 };
 
-/** «؟» العربية بالقلم (عكس «?» اللاتينية): تبدأ من الطرف الأيمن، وتقوّس فوقًا إلى اليسار، وينزل جانبها الأيسر إلى الساق */
-const HOOK = `M${SLOT.x + 40} 512 C${SLOT.x + 40} 470 ${SLOT.x - 40} 470 ${SLOT.x - 40} 512 C${SLOT.x - 40} 545 ${SLOT.x} 548 ${SLOT.x} 585 L${SLOT.x} 600`;
+/**
+ * «؟» بشكل النسخ (D198 v4، شرط المالك ٢٣ نوفمبر: «علامة الاستفهام بشكل النسخ، الأول في صورة المقارنة»): محيط الحرف نفسه
+ * من خط الأميري (U+061F في public/fonts/Amiri-Regular.ttf، بوحدات الخط ١٠٠٠/em، والمحور y للأعلى)، غليظ ورفيع بالتفافته
+ * ونقطته — لا خط بعرض واحد. يُكتب بالحبر: قناع خط مركزي (QMARK_PEN) يُكشف على مسار القلم، من رأس الالتفافة يمينًا فوق القوس
+ * إلى اليسار ثم إلى الساق، والنقطة بعده.
+ */
+export const QMARK_BODY = "M322 519Q326 587 276 620Q246 640 207 640Q164 638 144 614Q97 561 148 476Q182 421 199.5 364.5Q217 308 219 252Q220 227 219.0 206.0Q218 185 214 168Q211 156 201 156Q189 156 190 171Q191 181 191.0 191.0Q191 201 191 210Q191 261 162 287Q58 376 42 428Q11 525 65 601Q114 667 210 669Q252 669 290 647Q332 623 349 570Q357 545 354 510Q351 473 344 458Q325 415 284 415Q256 415 239 435Q224 455 224 476Q224 499 237 516Q250 533 278 535Q305 536 322 519Z";
+export const QMARK_DOT = "M147 44Q147 66 163 81Q181 97 201 97Q223 97 239 81Q254 66 254 44Q254 23 239 6Q224 -11 201 -11Q180 -11 163 6Q147 22 147 44Z";
+/** مسار القلم داخل الحرف (وحدات الخط): من رأس الالتفافة، حول القوس إلى اليسار، ثم نزولًا إلى طرف الساق */
+export const QMARK_PEN = "M262 478C262 520 300 560 330 545C352 590 300 660 210 655C110 650 40 580 60 480C80 400 205 340 205 260L205 160";
+/** مقياس الحرف في الخانة وخط قاعدته: ارتفاعه ~١٧٠ بكسل بين أعلى الخانة (455) وأسفلها (655) */
+export const QMARK_SCALE = 0.25;
+const QMARK_BASE = 637;
+const QMARK_CX = 198;
+const qmarkTransform = `translate(${SLOT.x - QMARK_CX * QMARK_SCALE} ${QMARK_BASE}) scale(${QMARK_SCALE} ${-QMARK_SCALE})`;
+
+/** «؟» الأميري يُكتب بالحبر: p للجسم على مسار القلم، dot للنقطة (تظهر من مركزها) */
+const NaskhQuestion: React.FC<{ p: number; dot: number }> = ({ p, dot }) => (
+  <g transform={qmarkTransform}>
+    <defs>
+      <mask id="co-qmark-pen" maskUnits="userSpaceOnUse" x={-100} y={-100} width={600} height={900}>
+        <path d={QMARK_PEN} fill="none" stroke="#fff" strokeWidth={120} strokeLinecap="round" strokeLinejoin="round" pathLength={1} strokeDasharray="1" strokeDashoffset={1 - p} />
+      </mask>
+    </defs>
+    {p > 0 ? <path d={QMARK_BODY} fill={C.inkText} mask="url(#co-qmark-pen)" /> : null}
+    {dot > 0 ? <g transform={`translate(200 43) scale(${dot}) translate(-200 -43)`}><path d={QMARK_DOT} fill={C.inkText} /></g> : null}
+  </g>
+);
+
 const BOX = `M${SLOT.x + SLOT.w / 2} ${SLOT.top} H${SLOT.x - SLOT.w / 2} V${SLOT.bottom} H${SLOT.x + SLOT.w / 2} Z`;
 /** دائرة تكاد تُغلق حول الخانة (كما في لقطة «لا تاريخ ثابتًا») */
 const RING = (() => {
@@ -89,9 +116,8 @@ export const ColdOpenSlot: React.FC<{ t: number; words: TimedWord[]; end?: numbe
         <Ink d={`M${SLOT.x} ${SLOT.bottom} V${SLOT.line}`} w={3} p={p(b.box)} />
         <rect x={SLOT.x - SLOT.w / 2} y={SLOT.top} width={SLOT.w} height={SLOT.bottom - SLOT.top} rx={6} fill={C.page} opacity={p(b.box) * 0.9} />
         <Ink d={BOX} w={4} p={p(b.box)} />
-        {/* «؟» بالقلم: الخطّاف ثم النقطة */}
-        <Ink d={HOOK} w={11} p={p(b.hook)} c={C.inkText} />
-        {dot > 0 ? <circle cx={SLOT.x} cy={630} r={9 * dot} fill={C.inkText} /> : null}
+        {/* «؟» بشكل النسخ (الأميري) بالقلم: الجسم ثم النقطة */}
+        <NaskhQuestion p={p(b.hook)} dot={dot} />
         <Ink d={RING} w={5} p={p(b.ring) * 0.9} c={C.ribbon} />
         </g>
       </svg>

@@ -1282,3 +1282,4 @@
 ## 2026-11-22 — الخطاف المسبق في الخطة (D198، التعريف: docs/dafatir-alzaman/07-decisions.md)
 
 - حقل اختياري `coldOpen` في الخطة يُستعمل في «دفاتر الزمن 001» وحده. المشترك منه: بصمة المشهد الأول تشمل الخطاف (`src/studio/sceneInputs.ts`)، وبند «الخطاف» في بطاقة الجودة يحسبه (`src/studio/quality/card.ts`). بلا `coldOpen` في الخطة لا يتغير شيء في حلقات هذه القناة.
+- v4 (٢٣ نوفمبر): «؟» بشكل النسخ وترجمة الخطاف أكبر (`src/remotion/scenes/Episode.tsx`، `coldOpenCaptionScale`). لا أثر هنا: بلا `coldOpen` في الخطة لا يُرسم الخطاف.
