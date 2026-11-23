@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "status": "مسودة",
+  "long": {
+    "titles": [
+      { "text": "الإمام مالك: حياته وزمنه", "angle": "العنوان الأساسي" },
+      { "text": "", "angle": "زاوية ثانية" },
+      { "text": "", "angle": "زاوية ثالثة" }
+    ],
+    "description": "",
+    "coverIdeas": [
+      { "kind": "title", "text": "", "idea": "" },
+      { "kind": "scene", "text": "", "idea": "" },
+      { "kind": "question", "text": "", "idea": "" }
+    ]
+  },
+  "shorts": [
+    { "title": "", "from": "" }
+  ]
+}
