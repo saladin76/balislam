@@ -12,6 +12,7 @@ import { VERSE_PLACEHOLDER } from "../plan/quranText";
 import { sceneFrames } from "../plan/duration";
 import { resolveScriptPath } from "../script/episodes";
 import type { Plan } from "../plan/types";
+import { coldOpenIssues, coldOpenSource } from "../plan/coldOpen";
 import type { EpisodeMedia } from "../plan/media";
 import { renderEpisode } from "./episode";
 import { scriptVersesAreCitations } from "../quran/citationChannel";
@@ -65,13 +66,24 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
   // A scene cut carries the channel intro only if it opens the episode: the assembly concatenates the cuts,
   // so it then holds one intro at the start exactly like the Master, not one per scene (funnel audit, D36).
   const opensEpisode = full.chapters[0]?.scenes[0]?.id === ids[0];
-  const plan: Plan = { ...full, ...(sceneDraft && !opensEpisode ? { intro: false } : {}),
+  // D198: the cold open lives in the same slot as the intro, so the first cut carries it too; its source scene
+  // (later in the episode) is attached as a snapshot because the plan below keeps only the rendered scenes.
+  const source = opensEpisode ? coldOpenSource(full) : null;
+  const plan: Plan = { ...full, ...(sceneDraft && !opensEpisode ? { intro: false, coldOpen: undefined } : {}),
+    ...(source ? { coldOpenSource: source } : {}),
     chapters: full.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((s) => ids.includes(s.id)) })).filter((c) => c.scenes.length) };
   const draftMode = Boolean(opts.allowPendingRecitation && sceneDraft);
   // Only reviewed, owner-attached recordings are ever used; a draft simply leaves a missing one silent.
+  // The cold open's source recording is collected with the rendered scenes (the same file, never a new one).
+  // …and its page-turn sound (D158: a sound with the turn), collected like any scene's effect, never generated.
+  const mediaPlan: Plan = source
+    ? { ...plan, chapters: [...plan.chapters, { number: -1, title: "", scenes: [{ ...source, id: `${source.id}`, sfx: [...source.sfx, { id: "page-turn", at: 0 }] }] }] }
+    : plan;
   const media = draftMode
-    ? await prepareRenderMedia(episode, plan, { requireApprovedQuran: false })
-    : await prepareRenderMedia(episode, plan, { requireApprovedQuran: true });
+    ? await prepareRenderMedia(episode, mediaPlan, { requireApprovedQuran: false })
+    : await prepareRenderMedia(episode, mediaPlan, { requireApprovedQuran: true });
+  const coldIssues = coldOpenIssues(plan, media.voice);
+  if (coldIssues.length) throw new Error(coldIssues.join("\n"));
   // D68: a written-citation channel's verse card is the finished silent card, never marked «التلاوة تُضاف لاحقًا».
   const cited = scriptVersesAreCitations(scriptPath);
   const pendingRecitation = draftMode ? plan.chapters.flatMap((c) => c.scenes)

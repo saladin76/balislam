@@ -717,5 +717,47 @@
     "scene": "c1-s5",
     "words": 6,
     "to": 3.5
+  },
+  "series": {
+    "id": "bidayat",
+    "name": "البدايات",
+    "kind": "series",
+    "number": 1,
+    "identity": {
+      "channel": "dafatir-alzaman",
+      "accent": "#E07A3F",
+      "accentBase": "#E07A3F",
+      "onAccent": "#2A1E3F",
+      "paper": "#F1E4CB",
+      "ink": "#2A1E3F",
+      "card": {
+        "bg": "#2A1E3F",
+        "ink": "#F1E4CB"
+      },
+      "motif": "stars",
+      "fonts": {
+        "heading": "Amiri",
+        "body": "Tajawal",
+        "wordmark": "Amiri"
+      },
+      "title": {
+        "weight": "bold",
+        "size": "m",
+        "ornament": "rule"
+      },
+      "intro": "sting",
+      "thumbnail": {
+        "badge": "band"
+      },
+      "emblem": {
+        "base": "horizon-book",
+        "parts": [
+          "book"
+        ]
+      },
+      "clamped": []
+    },
+    "template": {},
+    "stampedAt": "2026-11-23T06:11:03.597Z"
   }
 }

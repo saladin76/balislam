@@ -14,7 +14,7 @@ import React, { useMemo } from "react";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { BeamDust, CAPTION_SHADOW_LIGHT, DepthOfField, Stage3D, calmAt, ease, grain, lightsAt, orbit, safeKeys, swing, useAssetTextures, type CamState, type Light, type V3 } from "../../three";
+import { BeamDust, CAPTION_SHADOW_LIGHT, DepthOfField, Stage3D, calmAt, ease, grain, lightsAt, orbit, safeKeys, swing, useAssetTextures, type CamState, type Light, type V3, type Window } from "../../three";
 import { BAA, DIR_SEC, DIR_STILL, DIR_WORDS, wordAt } from "./common";
 import { figureShapes } from "./figure";
 
@@ -181,6 +181,74 @@ const camOf = (s: AlleyShot, t: number): CamState & { focus: number } => {
   return { position: orbit(c), target: c.target, fov: c.fov, focus: c.dist };
 };
 
+/** ضوء الحارة: شمس عصر منخفضة من يسارها تُلقي ظل كل طبقة ورق على التي خلفها، ونور الفوانيس الدافئ على الجدار البعيد */
+export const ALLEY_LIGHTS: Light[] = [
+  { kind: "ambient", kelvin: 4200, intensity: 0.9, position: [0, 0, 0] },
+  { kind: "key", kelvin: 3600, intensity: 2.6, position: [-7, 6, 6] },
+  { kind: "fill", kelvin: 2200, intensity: 0.5, position: [0, 5, -1.6] },
+];
+/** مدخلات مسرح الحارة: كل حركة تأتي من الخارج (نموذج المقارنة أو القالب)، والمسرح يرسمها وحده */
+export type AlleyStageProps = {
+  t: number; width: number; height: number; cam: CamState & { focus: number }; aperture: number; still: Window[]; calm: number; nor: THREE.Texture[];
+  /** نزول الدكاكين ٠→١، أو null بلا دكاكين */
+  market: number | null; settle: number;
+  /** عدد الشخصيتين الظاهرتين (٠–٢)، ودخولهما ٠→١، واهتزاز الورق، ووضع الذراعين */
+  figures: number; enter: number; wobA: number; wobB: number; pose1: ArmPose; pose2: ArmPose;
+  /** عدد الفوانيس المضاءة (٠–٧، يقبل الكسر لإضاءة متدرجة) */
+  lit: number;
+};
+/** مسرح الحارة الورقي (المشهد كله بلا صوت ولا ترجمة): يستعمله نموذج المقارنة وقالب «الحارة» معًا */
+export const AlleyStage: React.FC<AlleyStageProps> = ({ t, width, height, cam, aperture, still, calm, nor, market, settle, figures, enter, wobA, wobB, pose1, pose2, lit }) => {
+  const paperA = usePaper(3), paperB = usePaper(7), paperC = usePaper(11);
+  const wall = useMemo(archRow, []), houses = useMemo(farHouses, []), lantern = useMemo(lanternShape, []), fore = useMemo(foreArch, []);
+  const stalls = useMemo(() => [stall(-3.2), stall(3.4)], []);
+  const fg = useMemo(() => ({ baskets: [...basket(-5.6, 1.5, 0.75), ...basket(-4.1, 1.1, 0.55)], sacks: [sack(4.3, 0.9, 0.85), sack(5.5, 1.05, 1.0)], cloth: CLOTH_STACK.map((c, i) => ({ ink: BAA[c.ink], shapes: clothFold(2.9 + (i % 2) * 0.06, i * 0.17, c.w, 0.16) })) }), []);
+  const lanternSway = (k: number) => 0.04 * Math.sin(t * 1.3 + k * 0.9) * calm;
+  return (
+    <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, ALLEY_LIGHTS, still)} background={BAA.paper} shadows="soft">
+      <DepthOfField focus={cam.focus} aperture={aperture} />
+      {/* سماء الحارة ورقة، والبيوت البعيدة، والجدار بأقواسه */}
+      <mesh position={[0, 3, -4.6]} receiveShadow><planeGeometry args={[40, 20]} /><meshStandardMaterial color={BAA.paper} map={paperC} normalMap={nor[0]} roughness={1} /></mesh>
+      <group position={[0, 0, -3.8]}><Paper shapes={houses} ink="#D98C6E" tex={paperB} nor={nor[0]} shift={[0.05, -0.04]} /></group>
+      <group position={[0, 0, -3]}><Paper shapes={wall} ink={BAA.emerald} tex={paperA} nor={nor[0]} shift={[0.06, -0.05]} /></group>
+      {/* حبل الفوانيس: كل فانوس يتأرجح قليلًا على حبله، ونوره دافئ من خلف ورقه */}
+      <group position={[0, 0, -2.2]}>
+        {LANTERNS.map((l, k) => (
+          <group key={k} position={[l.x, l.y + 0.25, 0]} rotation={[0, 0, lanternSway(k)]}>
+            <mesh position={[0, -0.13, -0.02]}><circleGeometry args={[0.14, 16]} /><meshBasicMaterial color="#FBF6EE" toneMapped={false} transparent opacity={Math.min(1, Math.max(0, lit - k))} /></mesh>
+            <group position={[0, -0.25, 0]}><Paper shapes={[lantern]} ink={BAA.gold} tex={paperC} nor={nor[0]} shift={[0.025, -0.02]} /></group>
+          </group>
+        ))}
+        <mesh position={[0, 5.27, 0]}><boxGeometry args={[15, 0.025, 0.01]} /><meshStandardMaterial color={BAA.night} /></mesh>
+      </group>
+      <BeamDust t={t} from={[-6, 6, 3]} to={[-1.8, 0.6, -1.4]} radius={0.9} color={BAA.paper} count={70} still={still} seed={17} />
+      {/* الدكاكين تنزل من أعلى المسرح عند «السوق» (كما تُدلّى قطع مسرح الورق) وتستقر */}
+      {market !== null && stalls.map((sh, i) => (
+        <group key={i} visible={(market ?? 0) > 0} position={[0, (1 - (market ?? 0)) * 9, -1.4]} rotation={[0, 0, i ? -settle : settle]}>
+          <Paper shapes={sh} ink={BAA.copper} tex={paperB} nor={nor[0]} shift={[0.05, -0.04]} />
+        </group>
+      ))}
+      {/* الأرض */}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, -1]} receiveShadow><planeGeometry args={[40, 14]} /><meshStandardMaterial color="#D9B08C" map={paperA} normalMap={nor[0]} roughness={1} /></mesh>
+      {figures >= 1 && <Person x={-6 + enter * 4.2} flip={false} ink={BAA.rose} pose={pose1} tex={paperC} nor={nor[0]} cap="turban" wob={wobA} />}
+      {figures >= 2 && <Person x={6 - enter * 4.2} flip ink={BAA.night} pose={pose2} tex={paperB} nor={nor[0]} cap="kufiya" wob={wobB} />}
+      {/* الطبقة الأمامية للعمق: سلال، وأكياس بهار بكومها، وأثواب قماش مطوية مكدسة */}
+      <group position={[0, 0, 1.5]}>
+        <Paper shapes={fg.baskets} ink={BAA.gold} tex={paperA} nor={nor[0]} shift={[0.04, -0.03]} />
+        {fg.sacks.map((k, i) => (
+          <group key={i}>
+            <Paper shapes={k.sack} ink={i ? BAA.emerald : BAA.rose} tex={paperB} nor={nor[0]} shift={[0.04, -0.03]} />
+            <Paper shapes={k.heap} ink={i ? BAA.gold : BAA.copper} tex={paperC} nor={nor[0]} shift={[0.03, -0.02]} z={0.004} />
+          </group>
+        ))}
+        {fg.cloth.map((c, i) => <Paper key={i} shapes={c.shapes} ink={c.ink} tex={paperA} nor={nor[0]} shift={[0.03, -0.02]} z={i * 0.003} />)}
+      </group>
+      {/* القوس الأمامي القريب */}
+      <group position={[0, 0, 2.6]}><Paper shapes={fore} ink={BAA.night} tex={paperA} nor={nor[0]} shift={[0.06, -0.05]} /></group>
+    </Stage3D>
+  );
+};
+
 const SFX = (f: string) => staticFile(`three/sfx/${f}.mp3`);
 
 export const PrintedAlleyLab: React.FC = () => {
@@ -190,10 +258,6 @@ export const PrintedAlleyLab: React.FC = () => {
   const t = frame / fps;
   const still = DIR_STILL;
   const nor = useAssetTextures(["balislam-plaster-nor"], [0.25, 0.25]);
-  const paperA = usePaper(3), paperB = usePaper(7), paperC = usePaper(11);
-  const wall = useMemo(archRow, []), houses = useMemo(farHouses, []), lantern = useMemo(lanternShape, []), fore = useMemo(foreArch, []);
-  const stalls = useMemo(() => [stall(-3.2), stall(3.4)], []);
-  const fg = useMemo(() => ({ baskets: [...basket(-5.6, 1.5, 0.75), ...basket(-4.1, 1.1, 0.55)], sacks: [sack(4.3, 0.9, 0.85), sack(5.5, 1.05, 1.0)], cloth: CLOTH_STACK.map((c, i) => ({ ink: BAA[c.ink], shapes: clothFold(2.9 + (i % 2) * 0.06, i * 0.17, c.w, 0.16) })) }), []);
   const key = (w: string, d: number, lead = 0.1) => safeKeys([{ a: wordAt(w) - lead, b: wordAt(w) - lead + d, to: 1 }], still)[0]!;
   const enterK = key("رجلان", 1.0, 0.2), marketK = key("السوق", 0.7), say1K = key("يقول", 0.5, 0.05), say2K = key("الحقُّ", 0.5, 0.05);
   const prog = (k: { a: number; b: number }) => ease(span(t, k.a, k.b - k.a));
@@ -204,61 +268,13 @@ export const PrintedAlleyLab: React.FC = () => {
   const wobA = (swing(t, enterK.b, 0.035, 1.8) + (enter > 0 && enter < 1 ? 0.02 * Math.sin(t * 14) : 0)) * calm;
   const wobB = (swing(t, enterK.b, -0.03, 1.5) + (enter > 0 && enter < 1 ? 0.02 * Math.sin(t * 13 + 1) : 0)) * calm;
   const pose1 = armPose(t, say1K, GESTURES.speak, calm), pose2 = armPose(t, say2K, GESTURES.self, calm);
-  const lanternSway = (k: number) => 0.04 * Math.sin(t * 1.3 + k * 0.9) * calm;
   const shots = alleyShots();
   const shot = shots.find((s) => t >= s.a && t < s.b) ?? shots[shots.length - 1]!;
   const cam = camOf(shot, t);
   if (!nor) return null;
-  const lights: Light[] = [
-    { kind: "ambient", kelvin: 4200, intensity: 0.9, position: [0, 0, 0] },
-    // شمس عصر منخفضة من يسار الحارة: تُلقي ظل كل طبقة ورق على التي خلفها
-    { kind: "key", kelvin: 3600, intensity: 2.6, position: [-7, 6, 6] },
-    // نور الفوانيس الدافئ على الجدار البعيد (بلا ظل)
-    { kind: "fill", kelvin: 2200, intensity: 0.5, position: [0, 5, -1.6] },
-  ];
   return (
     <>
-      <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, lights, still)} background={BAA.paper} shadows="soft">
-        <DepthOfField focus={cam.focus} aperture={shot.aperture} />
-        {/* سماء الحارة ورقة، والبيوت البعيدة، والجدار بأقواسه */}
-        <mesh position={[0, 3, -4.6]} receiveShadow><planeGeometry args={[40, 20]} /><meshStandardMaterial color={BAA.paper} map={paperC} normalMap={nor[0]} roughness={1} /></mesh>
-        <group position={[0, 0, -3.8]}><Paper shapes={houses} ink="#D98C6E" tex={paperB} nor={nor[0]} shift={[0.05, -0.04]} /></group>
-        <group position={[0, 0, -3]}><Paper shapes={wall} ink={BAA.emerald} tex={paperA} nor={nor[0]} shift={[0.06, -0.05]} /></group>
-        {/* حبل الفوانيس: كل فانوس يتأرجح قليلًا على حبله، ونوره دافئ من خلف ورقه */}
-        <group position={[0, 0, -2.2]}>
-          {LANTERNS.map((l, k) => (
-            <group key={k} position={[l.x, l.y + 0.25, 0]} rotation={[0, 0, lanternSway(k)]}>
-              <mesh position={[0, -0.13, -0.02]}><circleGeometry args={[0.14, 16]} /><meshBasicMaterial color="#FBF6EE" toneMapped={false} /></mesh>
-              <group position={[0, -0.25, 0]}><Paper shapes={[lantern]} ink={BAA.gold} tex={paperC} nor={nor[0]} shift={[0.025, -0.02]} /></group>
-            </group>
-          ))}
-          <mesh position={[0, 5.27, 0]}><boxGeometry args={[15, 0.025, 0.01]} /><meshStandardMaterial color={BAA.night} /></mesh>
-        </group>
-        <BeamDust t={t} from={[-6, 6, 3]} to={[-1.8, 0.6, -1.4]} radius={0.9} color={BAA.paper} count={70} still={still} seed={17} />
-        {/* الدكاكين تنزل من أعلى المسرح عند «السوق» (كما تُدلّى قطع مسرح الورق) وتستقر */}
-        {stalls.map((sh, i) => (
-          <group key={i} visible={market > 0} position={[0, (1 - market) * 9, -1.4]} rotation={[0, 0, i ? -settle : settle]}>
-            <Paper shapes={sh} ink={BAA.copper} tex={paperB} nor={nor[0]} shift={[0.05, -0.04]} />
-          </group>
-        ))}
-        {/* الأرض */}
-        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, -1]} receiveShadow><planeGeometry args={[40, 14]} /><meshStandardMaterial color="#D9B08C" map={paperA} normalMap={nor[0]} roughness={1} /></mesh>
-        <Person x={-6 + enter * 4.2} flip={false} ink={BAA.rose} pose={pose1} tex={paperC} nor={nor[0]} cap="turban" wob={wobA} />
-        <Person x={6 - enter * 4.2} flip ink={BAA.night} pose={pose2} tex={paperB} nor={nor[0]} cap="kufiya" wob={wobB} />
-        {/* الطبقة الأمامية للعمق: سلال، وأكياس بهار بكومها، وأثواب قماش مطوية مكدسة */}
-        <group position={[0, 0, 1.5]}>
-          <Paper shapes={fg.baskets} ink={BAA.gold} tex={paperA} nor={nor[0]} shift={[0.04, -0.03]} />
-          {fg.sacks.map((k, i) => (
-            <group key={i}>
-              <Paper shapes={k.sack} ink={i ? BAA.emerald : BAA.rose} tex={paperB} nor={nor[0]} shift={[0.04, -0.03]} />
-              <Paper shapes={k.heap} ink={i ? BAA.gold : BAA.copper} tex={paperC} nor={nor[0]} shift={[0.03, -0.02]} z={0.004} />
-            </group>
-          ))}
-          {fg.cloth.map((c, i) => <Paper key={i} shapes={c.shapes} ink={c.ink} tex={paperA} nor={nor[0]} shift={[0.03, -0.02]} z={i * 0.003} />)}
-        </group>
-        {/* القوس الأمامي القريب */}
-        <group position={[0, 0, 2.6]}><Paper shapes={fore} ink={BAA.night} tex={paperA} nor={nor[0]} shift={[0.06, -0.05]} /></group>
-      </Stage3D>
+      <AlleyStage t={t} width={width} height={height} cam={cam} aperture={shot.aperture} still={still} calm={calm} nor={nor} market={market} settle={settle} figures={2} enter={enter} wobA={wobA} wobB={wobB} pose1={pose1} pose2={pose2} lit={7} />
       {/* صوت الغرفة، ومع كل حركة صوتها: انزلاق الورق، ونزول الدكاكين واستقرارها، ورفع الذراعين (D158) */}
       <Audio src={SFX("silence-room")} volume={0.3} loop />
       <Sequence from={Math.round(enterK.a * fps)} durationInFrames={35}><Audio src={SFX("swipe-paper")} volume={0.4} /></Sequence>

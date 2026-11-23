@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "id": "bidayat",
+  "name": "البدايات",
+  "kind": "series",
+  "description": "من آدم عليه السلام إلى البداية الجديدة للأرض (~٩ حلقات)",
+  "order": 1,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#E07A3F"
+    },
+    "motif": "stars",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "book"
+      ]
+    }
+  },
+  "template": {}
+}

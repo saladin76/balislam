@@ -89,7 +89,7 @@ describe("تصحيحات «الحارة» بعد الاعتماد (٢٢ نوفم
   });
   it("الدكاكين لا تُرى قبل «السوق»، والطبقة الأمامية سلال وأكياس وقماش", () => {
     const code = readFileSync(`${DIR}/PrintedAlley.tsx`, "utf8");
-    expect(code).toMatch(/visible=\{market > 0\}/);
+    expect(code).toMatch(/visible=\{\(market \?\? 0\) > 0\}/);
     for (const re of [/basket\(/, /sack\(/, /CLOTH_STACK/]) expect(code).toMatch(re);
   });
 });
