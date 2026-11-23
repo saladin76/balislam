@@ -16,6 +16,11 @@ import { ZDIR_FPS, zFrames } from "../zubdat/directions/common";
 import { DIR_FPS, dirFrames } from "../balislam/directions/common";
 import { StoneLinesLab } from "../dafatir/bidayat/StoneLines";
 import { BID_FPS, bidFrames } from "../dafatir/bidayat/common";
+import { LT_FPS, LT_FRAMES, LtCard } from "../dafatir/looktest/common";
+import { M1Archive } from "../dafatir/looktest/M1Archive";
+import { M2Mixed } from "../dafatir/looktest/M2Mixed";
+import { M3HandDrawn } from "../dafatir/looktest/M3HandDrawn";
+import { M5ThreeD } from "../dafatir/looktest/M5ThreeD";
 
 /**
  * تكوينات مختبرات القوالب (المرحلة ٣، تيرمينال C): نماذج يراها المالك قبل أي قالب كامل، ولا تُنشر.
@@ -35,6 +40,12 @@ export const TemplateLabs: React.FC = () => (
     {/* دفاتر الزمن: «مكتب الرحّالة»، الاتجاهات الثلاثة في عالم واحد (توصية المنسّق ٢٢ نوفمبر)، صامت لا يُنشر */}
     <Composition id="dafatir-world-desk" component={DeskWorldLab} durationInFrames={worldFrames()} fps={WORLD_FPS} width={1920} height={1080} />
     {/* دفاتر الزمن، سلسلة «البدايات»: الاتجاهات الثلاثة لعالمها (D203)، صامتة لا تُنشر ولا قالب قبل اختيار المالك */}
+    {/* دفاتر الزمن: تجربة الشكل بخمس طرق (قرار المالك ٢٣ نوفمبر)، لا تُنشر */}
+    <Composition id="lt-1-archive" component={M1Archive} durationInFrames={LT_FRAMES} fps={LT_FPS} width={1920} height={1080} />
+    <Composition id="lt-2-mixed" component={M2Mixed} durationInFrames={LT_FRAMES} fps={LT_FPS} width={1920} height={1080} />
+    <Composition id="lt-3-handdrawn" component={M3HandDrawn} durationInFrames={LT_FRAMES} fps={LT_FPS} width={1920} height={1080} />
+    <Composition id="lt-card" component={LtCard} durationInFrames={60} fps={LT_FPS} width={1920} height={1080} defaultProps={{ n: "١", label: "" }} />
+    <Composition id="lt-5-threed" component={M5ThreeD} durationInFrames={LT_FRAMES} fps={LT_FPS} width={1920} height={1080} />
     <Composition id="dafatir-bidayat-stones" component={StoneLinesLab} durationInFrames={bidFrames()} fps={BID_FPS} width={1920} height={1080} />
 
     {/* بالإسلام: اتجاهات المقارنة الثلاثة بثري دي (لا قالب قبل اختيار المالك)، صامتة لا تُنشر */}
