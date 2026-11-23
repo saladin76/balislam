@@ -5,6 +5,7 @@ import { SHOTS } from "../remotion/illus/shots";
 import { LIB_UI } from "../remotion/dafatir/lib/meta";
 import { RAHHALA_CITIES, RAHHALA_SHOTS } from "../remotion/dafatir/world/shots";
 import { ALLEY_SHOTS } from "../remotion/balislam/world/shots";
+import { JAZARI_SHOTS } from "../remotion/zubdat/world/shots";
 import { INK_UI } from "../remotion/zubdat/kitSlots";
 import { cueNamesAr } from "./sceneCues";
 import type { MatchMode, ShotUi } from "./sceneSlots";
@@ -482,6 +483,28 @@ export const templateDefs: TemplateDef[] = [
       { key: "selfWord", label: "كلمة «معي» (الكف إلى الصدر، للشخصية الثانية)", type: "text", ui: "anchor", match: "prefix", slot: "الكف إلى الصدر" },
       { key: "lightWord", label: "كلمة إضاءة الفوانيس", type: "text", ui: "anchor", match: "prefix", slot: "إضاءة الفوانيس" },
       { key: "sounds", label: "المؤثرات", type: "select", options: [{ value: "", label: "مع كل حركة" }, { value: "off", label: "بلا مؤثرات" }] },
+    ],
+  },
+  {
+    // «آلات الجزري» (D201): عالم «زبدة الكتب» ثلاثي الأبعاد (الأفكار آلات، بأسلوب مخطوطة الجزري) قالبًا للحلقات الجديدة.
+    // كل حدث لحظة نطق كلمته، والفكرة على اللوح وحده، وبلا فسفوري (D188). التوثيق: docs/zubdat-alkutub/06-decisions.md (D201)
+    id: "jazari-machine",
+    nameAr: "آلات الجزري",
+    useAr: "زبدة الكتب: آلة ماء نحاسية بأسلوب مخطوطة الجزري تحمل الفكرة: يبدأ التقطير في الكفّة، فيميل الذراع، فيدور الترسان، فيرفع الحبل لوح الفكرة بالحبر الأحمر، كل حدث لحظة نطق كلمته",
+    summaryAr: "آلات الجزري: قطر، ثم ميل، ثم دوران، ثم لوح الفكرة، كل حدث لحظة نطق كلمته.",
+    shots: Object.fromEntries(Object.entries(JAZARI_SHOTS).map(([k, v]) => [k, { title: v.nameAr, fields: v.fields }])),
+    shotFields: [],
+    implemented: true,
+    baseSeconds: 8,
+    minSeconds: 4,
+    fields: [
+      { key: "shot", label: "اللقطة", type: "select", ui: "shot", options: Object.entries(JAZARI_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
+      { key: "idea", label: "الفكرة على اللوح (كلمة أو كلمتان، منطوقة في الجملة)", type: "text" },
+      { key: "parts", label: "أسماء الأجزاء (حتى أربعة بالترتيب: الحوض|العوّامة|الكفّة|الدولاب)", type: "text", help: "مفصولة بـ |، وكل اسم يخدم معنى الجملة؛ الفارغ بلا بطاقة" },
+      { key: "dripWord", label: "كلمة بدء التقطير", type: "text", ui: "anchor", match: "prefix", slot: "بدء التقطير" },
+      { key: "tipWord", label: "كلمة ميل الذراع", type: "text", ui: "anchor", match: "prefix", slot: "ميل الذراع" },
+      { key: "turnWord", label: "كلمة دوران الترسين", type: "text", ui: "anchor", match: "prefix", slot: "دوران الترسين" },
+      { key: "riseWord", label: "كلمة وصول لوح الفكرة", type: "text", ui: "anchor", match: "prefix", slot: "وصول اللوح", fallbackFrom: "idea" },
     ],
   },
   {

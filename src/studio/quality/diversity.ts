@@ -33,6 +33,8 @@ export const COMPOSITION_FIELDS: Record<string, CompositionFields> = {
   "rahhala-desk": { shot: [], layout: ["shot", "city"] },
   // الحارة: كل لقطة تكوين، والمكان (سوق أو حارة) وعدد الشخصيات يغيّران التكوين
   "alley-world": { shot: [], layout: ["shot", "setting", "figures"] },
+  // آلات الجزري: كل لقطة (زاوية) تكوين
+  "jazari-machine": { shot: [], layout: ["shot"] },
 };
 
 /**

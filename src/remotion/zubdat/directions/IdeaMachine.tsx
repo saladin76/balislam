@@ -7,10 +7,12 @@
  * أربع لقطات بقطع (تفاصيل، متوسطة، قريبة، واسعة) مددها ٢–٦ ث، وعمق ميدان، وتأرجح بعد الحركة، وصوت مع كل حركة.
  */
 import React, { useMemo } from "react";
+import { useThree } from "@react-three/fiber";
 import { AbsoluteFill, Audio, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import * as THREE from "three";
 import { useBrandFonts } from "../../useBrandFonts";
-import { BeamDust, DepthOfField, Stage3D, calmAt, ease, lightsAt, orbit, safeKeys, swing, useAssetTextures, type CamState, type Light, type V3 , CAPTION_SHADOW, noise1 } from "../../three";
+import { CaptionProbe } from "../../three/captionProbe";
+import { BeamDust, DepthOfField, Stage3D, calmAt, ease, lightsAt, orbit, safeKeys, swing, useAssetTextures, type CamState, type Light, type V3, type Window, CAPTION_SHADOW, noise1 } from "../../three";
 import { IDEA, ZSTARTS, ZWORDS, Z_SEC, Z_STILL, zAt } from "./common";
 
 /** ألوان المخطوطة المقيّدة لهذا العالم (D188) مع أبيض الهوية وحبرها */
@@ -171,52 +173,70 @@ const M = MACHINE;
 /** زاوية الترس الصغير: نسبة الأسنان، وطور يضع سنّ الكبير في فجوة الصغير عند خط التماس (٣٠°) */
 export const g2Angle = (a1: number) => -a1 * (M.g1.teeth / M.g2.teeth) + (198.75 - 22.5 * 8) * (Math.PI / 180);
 
-export const IdeaMachineLab: React.FC = () => {
-  const ready = useBrandFonts();
-  const frame = useCurrentFrame();
-  const { width, height, fps } = useVideoConfig();
-  const t = frame / fps;
-  const still = Z_STILL;
+/** ضوء الورشة: نهار ناعم ومفتاح من نافذة عالية */
+export const MACHINE_LIGHTS: Light[] = [
+  { kind: "ambient", kelvin: 4200, intensity: 0.85, position: [0, 0, 0] },
+  { kind: "key", kelvin: 4800, intensity: 2.4, position: [-5, 8, 5] },
+];
+export const DRIP_PERIOD = 0.42;
+/** أدنى مسافة لذرة الغبار من العدسة، نسبةً إلى مسافة التركيز */
+export const DUST_NEAR = 0.67;
+/** أسماء الأجزاء بالحبر الأحمر بالنسخ (فارغ = لا بطاقة) */
+export type MachineTags = { water?: string; float?: string; cup?: string; gear?: string; pulley?: string };
+export const DEFAULT_TAGS: MachineTags = { water: "الحوض", float: "العوّامة", cup: "الكفّة", gear: "الدولاب", pulley: "البكرة" };
+/** مدخلات آلة الجزري: كل حركة من الخارج (نموذج المقارنة أو القالب)، والآلة ترسمها وحدها */
+export type MachineStageProps = {
+  t: number; width: number; height: number; cam: CamState & { focus: number }; aperture: number; still: Window[]; calm: number; ready: boolean;
+  /** نافذة التقطير (يمتلئ فيها الكوب وينخفض الحوض)، أو null بلا تقطير */
+  drip: { a: number; b: number } | null;
+  /** امتلاء الكفّة إن لم يكن تقطير (٠ فارغة، ١ ممتلئة) */
+  fillAt?: number;
+  lever: number; turn: number; boardSway: number; idea: string; tags: MachineTags;
+  /** نطاق الترجمة أسفل الكادر (٠ = بلا قيد): لا بطاقة فيه */
+  captionBand?: number;
+  /** قياس ما تحت سطور الترجمة بعد رسم الإطار (captionProbe.tsx)، لتأخذ كل كلمة نبرة ما خلفها */
+  probe?: React.ComponentProps<typeof CaptionProbe>;
+};
+/** مواضع بطاقات الأسماء في الآلة (الحوض فوقه، والكفّة والدولاب فوقهما لا أسفلهما، بعيدًا عن شريط الترجمة) */
+export const TAG_AT: Record<keyof MachineTags, V3> = {
+  water: [-3.25, 3.2, 0.6], float: [M.tank.x + 0.85, 5.0, 0.3], cup: [-2.9, 2.45, 0.55], gear: [0.25, 2.55, 0.55], pulley: [3.05, 4.65, 0.3],
+};
+/** بطاقة اسم لا تُرسم إن وقع مركزها على الشاشة في نطاق الترجمة (نسبة من أسفل الكادر) أو قرب حافته فتُقطع */
+const TagCard: React.FC<{ at: V3; tex: THREE.Texture; band: number }> = ({ at, tex, band }) => {
+  const { camera } = useThree();
+  const v = new THREE.Vector3(...at).project(camera);
+  const fromBottom = (v.y + 1) / 2;
+  if (band > 0 && fromBottom < band + 0.04) return null;
+  // ولا بطاقة مقطوعة بحافة الكادر
+  if (Math.abs(v.x) > 0.78 || v.y > 0.9) return null;
+  return <mesh position={at} rotation={[-0.2, 0, 0]}><planeGeometry args={[1.2, 0.38]} /><meshStandardMaterial map={tex} roughness={0.9} /></mesh>;
+};
+/** آلة الجزري (المشهد كله بلا صوت ولا ترجمة): يستعملها نموذج المقارنة وقالب «آلات الجزري» معًا */
+export const MachineStage: React.FC<MachineStageProps> = ({ t, width, height, cam, aperture, still, calm, ready, drip, fillAt = 0, lever, turn, boardSway, idea: ideaText, tags, captionBand = 0, probe }) => {
   const wood = useAssetTextures(["zubdat-wood-diff", "zubdat-wood-nor"], [3, 2]);
   const wall = useAssetTextures(["zubdat-plaster-nor"], [3, 1.5]);
   const folio = useFolio(ready);
   const brass = useWornBrass();
   const ripples = useRipples();
   const sheen = useSheen();
-  const tags = { water: useTag(ready, "الحوض"), float: useTag(ready, "العوّامة"), cup: useTag(ready, "الكفّة"), gear: useTag(ready, "الدولاب"), pulley: useTag(ready, "البكرة") };
-  const idea = useTag(ready, IDEA, true);
-  const key = (a: number, d: number) => safeKeys([{ a, b: a + d, to: 1 }], still)[0]!;
-  const dripK = key(zAt("يصلّي") - 0.1, zAt("يشعر") - zAt("يصلّي") + 0.7);
-  const tipK = key(zAt("ينتظر") - 0.1, 0.7);
-  const turnK = key(zAt("الشعور") - 0.1, zAt(IDEA) - zAt("الشعور") + 0.2);
-  const riseK = key(turnK.b, 0.3);
-  const fill = span(t, dripK.a, dripK.b - dripK.a);
-  const calm = calmAt(t, still);
+  const tagTex = { water: useTag(ready, tags.water ?? ""), float: useTag(ready, tags.float ?? ""), cup: useTag(ready, tags.cup ?? ""), gear: useTag(ready, tags.gear ?? ""), pulley: useTag(ready, tags.pulley ?? "") };
+  const idea = useTag(ready, ideaText, true);
+  const fill = drip ? span(t, drip.a, drip.b - drip.a) : fillAt;
   // الماء يجري في القناة ما دام التقطير، ويخفت عند آخره
-  const flow = Math.min(span(t, dripK.a - 0.3, 0.3), 1 - span(t, dripK.b - 0.2, 0.3));
+  const flow = drip ? Math.min(span(t, drip.a - 0.3, 0.3), 1 - span(t, drip.b - 0.2, 0.3)) : 0;
   ripples.offset.x = -t * 1.6 * calmAt(t, still, 0.2);
-  const lever = -0.28 + ease(span(t, tipK.a, tipK.b - tipK.a)) * 0.5 + swing(t, tipK.b, 0.06, 1.8) * calm;
-  const turn = ease(span(t, turnK.a, turnK.b - turnK.a));
   const a1 = turn * M.g1.sweep, a2 = g2Angle(a1);
   const wound = M.drum * Math.abs(a2 - g2Angle(0));
-  const boardSway = swing(t, riseK.b, 0.07, 1.3) * calm;
-  const shots = machineShots();
-  const shot = shots.find((s) => t >= s.a && t < s.b) ?? shots[shots.length - 1]!;
-  const cam = camOf(shot, t);
   if (!wood || !wall) return null;
-  const lights: Light[] = [
-    { kind: "ambient", kelvin: 4200, intensity: 0.85, position: [0, 0, 0] },
-    { kind: "key", kelvin: 4800, intensity: 2.4, position: [-5, 8, 5] },
-  ];
   // الكفّة في العالم (طرف الذراع)، وسطح مائها
   const [px, py] = M.lever.pivot;
   const toWorld = (lx: number, ly: number): [number, number] => [px + lx * Math.cos(lever) - ly * Math.sin(lever), py + lx * Math.sin(lever) + ly * Math.cos(lever)];
   const cupWater = toWorld(M.lever.cup, 0.32 - 0.24 + fill * 0.4);
   // قطرات تتكوّن عند فم القناة ثم تسقط بالجاذبية إلى الكفّة، وتموجة صغيرة حيث تقع
-  const lip = M.trough.to, period = 0.42, fallT = 0.3;
+  const lip = M.trough.to, period = DRIP_PERIOD, fallT = 0.3;
   const drops: { y: number; s: number }[] = [], rings: number[] = [];
-  if (t > dripK.a && t < dripK.b + fallT) for (let k = 0; k < 40; k++) {
-    const t0 = dripK.a + k * period; if (t0 > dripK.b) break;
+  if (drip && t > drip.a && t < drip.b + fallT) for (let k = 0; k < 40; k++) {
+    const t0 = drip.a + k * period; if (t0 > drip.b) break;
     const ph = t - t0;
     if (ph >= 0 && ph < period - fallT) drops.push({ y: lip[1] - 0.04, s: 0.4 + 0.6 * (ph / (period - fallT)) });
     else if (ph >= period - fallT && ph < period) { const q = (ph - (period - fallT)) / fallT; drops.push({ y: lip[1] - 0.04 - q * q * (lip[1] - 0.04 - cupWater[1]), s: 1 }); }
@@ -235,76 +255,103 @@ export const IdeaMachineLab: React.FC = () => {
   const boardTop = M.boardTop0 + wound;
   const z = M.z;
   return (
+    <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, MACHINE_LIGHTS, still)} background={J.paperDeep} shadows="soft">
+      <DepthOfField focus={cam.focus} aperture={aperture} />
+      {probe ? <CaptionProbe {...probe} /> : null}
+      <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[30, 20]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} color="#BDBDBD" roughness={0.7} /></mesh>
+      <mesh position={[0, 5, -2.2]} receiveShadow><planeGeometry args={[30, 12]} /><meshStandardMaterial normalMap={wall[0]} color={J.paper} roughness={1} /></mesh>
+      {/* ورقة المخطوطة مثبتة على الجدار خلف الآلة */}
+      <mesh position={[0, 2.9, -2.15]} receiveShadow><planeGeometry args={[8, 4.5]} /><meshStandardMaterial map={folio} roughness={0.95} /></mesh>
+      {/* لا ذرة أمام العدسة أقرب من ثلثي مسافة التركيز: كانت تصير قرصًا أبيض مموّهًا في اللقطات القريبة */}
+      <BeamDust t={t} from={[-5, 7.5, 4.5]} to={[0, 1.0, 0]} radius={1.0} color={J.paper} count={90} still={still} seed={13} lens={{ at: cam.position, near: DUST_NEAR * cam.focus }} />
+      {/* الحوض النحاسي المفتوح على عموده، وفيه الماء والعوّامة الخشبية بقضيبها وعلامتها الحمراء */}
+      <mesh position={[M.tank.x - 0.2, (M.tank.y - 0.45) / 2, 0]} castShadow><boxGeometry args={[0.16, M.tank.y - 0.45, 0.16]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+      <mesh position={[M.tank.x, M.tank.y, 0]} castShadow material={brass}><cylinderGeometry args={[0.5, 0.42, M.tank.h, 40, 1, true]} /></mesh>
+      <mesh position={[M.tank.x, M.tank.y - 0.44, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.42, 40]} /><meshStandardMaterial color={J.wood} metalness={0.5} roughness={0.5} /></mesh>
+      <mesh position={[M.tank.x, M.tank.y + 0.45, 0]} rotation={[Math.PI / 2, 0, 0]} material={brass}><torusGeometry args={[0.5, 0.03, 10, 48]} /></mesh>
+      <mesh position={[M.tank.x, tankWater, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.47, 40]} /><meshStandardMaterial color={DEEP} roughness={0.06} metalness={0.25} bumpMap={ripples} bumpScale={0.4} /></mesh>
+      <mesh position={[M.tank.x, tankWater + 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.47, 40]} /><meshBasicMaterial map={sheen} transparent opacity={0.7} depthWrite={false} toneMapped={false} /></mesh>
+      <mesh position={[M.tank.x, tankWater, 0]} castShadow><sphereGeometry args={[0.16, 24, 16]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" roughness={0.7} /></mesh>
+      <mesh position={[M.tank.x, tankWater + 0.5, 0]} castShadow material={brass}><cylinderGeometry args={[0.02, 0.02, 1.0, 10]} /></mesh>
+      <mesh position={[M.tank.x + 0.09, tankWater + 0.96, 0]} castShadow><boxGeometry args={[0.16, 0.1, 0.02]} /><meshStandardMaterial color={J.red} roughness={0.8} /></mesh>
+      {/* الصنبور والقناة المكشوفة، والماء يجري فيها إلى فمها */}
+      <mesh position={[M.trough.from[0] - 0.08, M.trough.from[1] + 0.02, 0]} rotation={[0, 0, Math.PI / 2]} castShadow material={brass}><cylinderGeometry args={[0.05, 0.05, 0.36, 16]} /></mesh>
+      <group position={[trMid[0], trMid[1], 0]} rotation={[0, 0, trA]}>
+        <mesh castShadow receiveShadow><boxGeometry args={[trL, 0.014, 0.26]} /><meshStandardMaterial color={J.gold} metalness={0.75} roughness={0.38} /></mesh>
+        {[-0.125, 0.125].map((dz) => <mesh key={dz} position={[0, 0.025, dz]} castShadow><boxGeometry args={[trL, 0.05, 0.014]} /><meshStandardMaterial color={J.gold} metalness={0.75} roughness={0.38} /></mesh>)}
+        <mesh position={[0, 0.024, 0]}><boxGeometry args={[trL - 0.02, 0.022, 0.235]} /><meshStandardMaterial color={WATER} transparent opacity={0.42 * flow} roughness={0.15} metalness={0} bumpMap={ripples} bumpScale={0.8} depthWrite={false} /></mesh>
+      </group>
+      <mesh position={[trMid[0] + 0.05, trMid[1] - 0.75, -0.06]} castShadow><boxGeometry args={[0.08, 1.4, 0.08]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+      {drops.map((d, i) => <mesh key={`d${i}`} position={[lip[0] - 0.02, d.y, 0]} scale={[d.s, d.s * 1.25, d.s]}><sphereGeometry args={[0.045, 16, 12]} /><meshPhysicalMaterial color={WATER} transparent opacity={0.55} roughness={0.02} clearcoat={1} depthWrite={false} /></mesh>)}
+      {rings.map((q, i) => <mesh key={`r${i}`} position={[cupWater[0], cupWater[1] + 0.006, 0]} rotation={[Math.PI / 2, 0, 0]} scale={0.04 + q * 0.18}><torusGeometry args={[1, 0.06, 6, 32]} /><meshStandardMaterial color={J.paper} transparent opacity={0.6 * (1 - q)} roughness={0.1} /></mesh>)}
+      {/* الذراع الخشبي على محوره، والكفّة النحاسية على طرفه */}
+      <mesh position={[px, 0.8, 0]} castShadow><boxGeometry args={[0.18, 1.6, 0.3]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+      <group position={[px, py, 0]} rotation={[0, 0, lever]}>
+        <mesh castShadow><boxGeometry args={[2.4, 0.09, 0.2]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+        <mesh rotation={[Math.PI / 2, 0, 0]} material={brass}><cylinderGeometry args={[0.05, 0.05, 0.4, 16]} /></mesh>
+        <group position={[M.lever.cup, 0.32, 0]}>
+          <mesh castShadow material={brass}><cylinderGeometry args={[0.3, 0.22, 0.5, 32, 1, true]} /></mesh>
+          <mesh position={[0, -0.24 + fill * 0.4, 0]}><cylinderGeometry args={[0.22 + fill * 0.07, 0.22, 0.01, 32]} /><meshStandardMaterial color={DEEP} roughness={0.06} metalness={0.25} bumpMap={ripples} bumpScale={0.4} /></mesh>
+          <mesh position={[0, -0.234 + fill * 0.4, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.21 + fill * 0.07, 32]} /><meshBasicMaterial map={sheen} transparent opacity={0.6} depthWrite={false} toneMapped={false} /></mesh>
+        </group>
+      </group>
+      <mesh position={[(tip[0] + pin[0]) / 2, (tip[1] + pin[1]) / 2, 0.14]} rotation={[0, 0, Math.atan2(rod.dy, rod.dx)]} castShadow material={brass}><boxGeometry args={[Math.hypot(rod.dx, rod.dy), 0.05, 0.05]} /></mesh>
+      {/* الترسان المتعشّقان على عموديهما */}
+      <Gear r={M.g1.r} teeth={M.g1.teeth} pos={[M.g1.at[0], M.g1.at[1], -0.1]} angle={a1} mat={brass} />
+      <Gear r={M.g2.r} teeth={M.g2.teeth} pos={[M.g2.at[0], M.g2.at[1], -0.1]} angle={a2} mat={brass} />
+      <mesh position={[M.g1.at[0], M.g1.at[1] / 2, -0.24]} castShadow><boxGeometry args={[0.14, M.g1.at[1], 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+      <mesh position={[M.g2.at[0], M.g2.at[1] / 2, -0.24]} castShadow><boxGeometry args={[0.14, M.g2.at[1], 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+      {/* أسطوانة الحبل على محور الترس الصغير، والبكرتان على عارضة خشب */}
+      <group position={[M.g2.at[0], M.g2.at[1], z]} rotation={[0, 0, a2]}>
+        <mesh rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[M.drum, M.drum, 0.12, 32]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" roughness={0.8} /></mesh>
+        {[-0.065, 0.065].map((dz) => <mesh key={dz} position={[0, 0, dz]} material={brass}><torusGeometry args={[M.drum + 0.01, 0.015, 8, 40]} /></mesh>)}
+      </group>
+      <mesh position={[(1.3 + 4.05) / 2, 4.25, 0.05]} castShadow><boxGeometry args={[4.05 - 1.3 + 0.14, 0.14, 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+      <mesh position={[1.3, 2.12, -0.25]} castShadow><boxGeometry args={[0.14, 4.25, 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+      <mesh position={[4.05, 2.12, 0.05]} castShadow><boxGeometry args={[0.14, 4.25, 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+      {[P1, P2].map((P, i) => <mesh key={`h${i}`} position={[P[0], (P[1] + 4.25) / 2, z]} material={brass}><boxGeometry args={[0.03, 4.25 - P[1], 0.03]} /></mesh>)}
+      <Pulley at={P1} z={z} r={M.pulleyR} angle={-wound / M.pulleyR} mat={brass} wood={wood[0]!} />
+      <Pulley at={P2} z={z} r={M.pulleyR} angle={-wound / M.pulleyR} mat={brass} wood={wood[0]!} />
+      <Cord a={[cx, M.g2.at[1]]} b={[cx, P1[1]]} z={z} />
+      <Cord a={[P1[0], P1[1] + M.pulleyR]} b={[P2[0], P2[1] + M.pulleyR]} z={z} />
+      {/* لوح الفكرة معلّق بالحبل: يرتفع بقدر ما يلتف، ويتأرجح قليلًا عند وصوله ثم يهدأ */}
+      <group position={[M.boardX, boardTop, z]} rotation={[0, 0, boardSway]}>
+        <Cord a={[0, 3.9 - boardTop]} b={[0, 0]} z={0} />
+        <mesh position={[0, -0.5, 0]} castShadow><boxGeometry args={[1.9, 0.95, 0.06]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
+        <mesh position={[0, -0.5, 0.045]}><planeGeometry args={[1.8, 0.86]} /><meshStandardMaterial map={idea} roughness={0.9} /></mesh>
+        <mesh position={[0, -0.02, 0]} material={brass}><torusGeometry args={[0.05, 0.012, 8, 20]} /></mesh>
+      </group>
+      {/* أسماء الأجزاء بالحبر الأحمر بالنسخ */}
+      {/* والبطاقة لا تقع في نطاق الترجمة أسفل الكادر (captionBand): تُخفى في اللقطة التي يقع موضعها فيه */}
+      {(Object.keys(TAG_AT) as (keyof typeof TAG_AT)[]).filter((k) => tags[k]).map((k) => (
+        <TagCard key={k} at={TAG_AT[k]} tex={tagTex[k]} band={captionBand} />
+      ))}
+    </Stage3D>
+  );
+};
+
+export const IdeaMachineLab: React.FC = () => {
+  const ready = useBrandFonts();
+  const frame = useCurrentFrame();
+  const { width, height, fps } = useVideoConfig();
+  const t = frame / fps;
+  const still = Z_STILL;
+  const key = (a: number, d: number) => safeKeys([{ a, b: a + d, to: 1 }], still)[0]!;
+  const dripK = key(zAt("يصلّي") - 0.1, zAt("يشعر") - zAt("يصلّي") + 0.7);
+  const tipK = key(zAt("ينتظر") - 0.1, 0.7);
+  const turnK = key(zAt("الشعور") - 0.1, zAt(IDEA) - zAt("الشعور") + 0.2);
+  const riseK = key(turnK.b, 0.3);
+  const calm = calmAt(t, still);
+  const lever = -0.28 + ease(span(t, tipK.a, tipK.b - tipK.a)) * 0.5 + swing(t, tipK.b, 0.06, 1.8) * calm;
+  const turn = ease(span(t, turnK.a, turnK.b - turnK.a));
+  const boardSway = swing(t, riseK.b, 0.07, 1.3) * calm;
+  const shots = machineShots();
+  const shot = shots.find((s) => t >= s.a && t < s.b) ?? shots[shots.length - 1]!;
+  const cam = camOf(shot, t);
+  const period = DRIP_PERIOD;
+  return (
     <>
-      <Stage3D width={width} height={height} cam={cam} lights={lightsAt(t, lights, still)} background={J.paperDeep} shadows="soft">
-        <DepthOfField focus={cam.focus} aperture={shot.aperture} />
-        <mesh rotation={[-Math.PI / 2, 0, 0]} receiveShadow><planeGeometry args={[30, 20]} /><meshStandardMaterial map={wood[0]} normalMap={wood[1]} color="#BDBDBD" roughness={0.7} /></mesh>
-        <mesh position={[0, 5, -2.2]} receiveShadow><planeGeometry args={[30, 12]} /><meshStandardMaterial normalMap={wall[0]} color={J.paper} roughness={1} /></mesh>
-        {/* ورقة المخطوطة مثبتة على الجدار خلف الآلة */}
-        <mesh position={[0, 2.9, -2.15]} receiveShadow><planeGeometry args={[8, 4.5]} /><meshStandardMaterial map={folio} roughness={0.95} /></mesh>
-        <BeamDust t={t} from={[-5, 7.5, 4.5]} to={[0, 1.0, 0]} radius={1.0} color={J.paper} count={90} still={still} seed={13} />
-        {/* الحوض النحاسي المفتوح على عموده، وفيه الماء والعوّامة الخشبية بقضيبها وعلامتها الحمراء */}
-        <mesh position={[M.tank.x - 0.2, (M.tank.y - 0.45) / 2, 0]} castShadow><boxGeometry args={[0.16, M.tank.y - 0.45, 0.16]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        <mesh position={[M.tank.x, M.tank.y, 0]} castShadow material={brass}><cylinderGeometry args={[0.5, 0.42, M.tank.h, 40, 1, true]} /></mesh>
-        <mesh position={[M.tank.x, M.tank.y - 0.44, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.42, 40]} /><meshStandardMaterial color={J.wood} metalness={0.5} roughness={0.5} /></mesh>
-        <mesh position={[M.tank.x, M.tank.y + 0.45, 0]} rotation={[Math.PI / 2, 0, 0]} material={brass}><torusGeometry args={[0.5, 0.03, 10, 48]} /></mesh>
-        <mesh position={[M.tank.x, tankWater, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.47, 40]} /><meshStandardMaterial color={DEEP} roughness={0.06} metalness={0.25} bumpMap={ripples} bumpScale={0.4} /></mesh>
-        <mesh position={[M.tank.x, tankWater + 0.003, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.47, 40]} /><meshBasicMaterial map={sheen} transparent opacity={0.7} depthWrite={false} toneMapped={false} /></mesh>
-        <mesh position={[M.tank.x, tankWater, 0]} castShadow><sphereGeometry args={[0.16, 24, 16]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" roughness={0.7} /></mesh>
-        <mesh position={[M.tank.x, tankWater + 0.5, 0]} castShadow material={brass}><cylinderGeometry args={[0.02, 0.02, 1.0, 10]} /></mesh>
-        <mesh position={[M.tank.x + 0.09, tankWater + 0.96, 0]} castShadow><boxGeometry args={[0.16, 0.1, 0.02]} /><meshStandardMaterial color={J.red} roughness={0.8} /></mesh>
-        {/* الصنبور والقناة المكشوفة، والماء يجري فيها إلى فمها */}
-        <mesh position={[M.trough.from[0] - 0.08, M.trough.from[1] + 0.02, 0]} rotation={[0, 0, Math.PI / 2]} castShadow material={brass}><cylinderGeometry args={[0.05, 0.05, 0.36, 16]} /></mesh>
-        <group position={[trMid[0], trMid[1], 0]} rotation={[0, 0, trA]}>
-          <mesh castShadow receiveShadow><boxGeometry args={[trL, 0.014, 0.26]} /><meshStandardMaterial color={J.gold} metalness={0.75} roughness={0.38} /></mesh>
-          {[-0.125, 0.125].map((dz) => <mesh key={dz} position={[0, 0.025, dz]} castShadow><boxGeometry args={[trL, 0.05, 0.014]} /><meshStandardMaterial color={J.gold} metalness={0.75} roughness={0.38} /></mesh>)}
-          <mesh position={[0, 0.024, 0]}><boxGeometry args={[trL - 0.02, 0.022, 0.235]} /><meshStandardMaterial color={WATER} transparent opacity={0.42 * flow} roughness={0.15} metalness={0} bumpMap={ripples} bumpScale={0.8} depthWrite={false} /></mesh>
-        </group>
-        <mesh position={[trMid[0] + 0.05, trMid[1] - 0.75, -0.06]} castShadow><boxGeometry args={[0.08, 1.4, 0.08]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        {drops.map((d, i) => <mesh key={`d${i}`} position={[lip[0] - 0.02, d.y, 0]} scale={[d.s, d.s * 1.25, d.s]}><sphereGeometry args={[0.045, 16, 12]} /><meshPhysicalMaterial color={WATER} transparent opacity={0.55} roughness={0.02} clearcoat={1} depthWrite={false} /></mesh>)}
-        {rings.map((q, i) => <mesh key={`r${i}`} position={[cupWater[0], cupWater[1] + 0.006, 0]} rotation={[Math.PI / 2, 0, 0]} scale={0.04 + q * 0.18}><torusGeometry args={[1, 0.06, 6, 32]} /><meshStandardMaterial color={J.paper} transparent opacity={0.6 * (1 - q)} roughness={0.1} /></mesh>)}
-        {/* الذراع الخشبي على محوره، والكفّة النحاسية على طرفه */}
-        <mesh position={[px, 0.8, 0]} castShadow><boxGeometry args={[0.18, 1.6, 0.3]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        <group position={[px, py, 0]} rotation={[0, 0, lever]}>
-          <mesh castShadow><boxGeometry args={[2.4, 0.09, 0.2]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-          <mesh rotation={[Math.PI / 2, 0, 0]} material={brass}><cylinderGeometry args={[0.05, 0.05, 0.4, 16]} /></mesh>
-          <group position={[M.lever.cup, 0.32, 0]}>
-            <mesh castShadow material={brass}><cylinderGeometry args={[0.3, 0.22, 0.5, 32, 1, true]} /></mesh>
-            <mesh position={[0, -0.24 + fill * 0.4, 0]}><cylinderGeometry args={[0.22 + fill * 0.07, 0.22, 0.01, 32]} /><meshStandardMaterial color={DEEP} roughness={0.06} metalness={0.25} bumpMap={ripples} bumpScale={0.4} /></mesh>
-            <mesh position={[0, -0.234 + fill * 0.4, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[0.21 + fill * 0.07, 32]} /><meshBasicMaterial map={sheen} transparent opacity={0.6} depthWrite={false} toneMapped={false} /></mesh>
-          </group>
-        </group>
-        <mesh position={[(tip[0] + pin[0]) / 2, (tip[1] + pin[1]) / 2, 0.14]} rotation={[0, 0, Math.atan2(rod.dy, rod.dx)]} castShadow material={brass}><boxGeometry args={[Math.hypot(rod.dx, rod.dy), 0.05, 0.05]} /></mesh>
-        {/* الترسان المتعشّقان على عموديهما */}
-        <Gear r={M.g1.r} teeth={M.g1.teeth} pos={[M.g1.at[0], M.g1.at[1], -0.1]} angle={a1} mat={brass} />
-        <Gear r={M.g2.r} teeth={M.g2.teeth} pos={[M.g2.at[0], M.g2.at[1], -0.1]} angle={a2} mat={brass} />
-        <mesh position={[M.g1.at[0], M.g1.at[1] / 2, -0.24]} castShadow><boxGeometry args={[0.14, M.g1.at[1], 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        <mesh position={[M.g2.at[0], M.g2.at[1] / 2, -0.24]} castShadow><boxGeometry args={[0.14, M.g2.at[1], 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        {/* أسطوانة الحبل على محور الترس الصغير، والبكرتان على عارضة خشب */}
-        <group position={[M.g2.at[0], M.g2.at[1], z]} rotation={[0, 0, a2]}>
-          <mesh rotation={[Math.PI / 2, 0, 0]} castShadow><cylinderGeometry args={[M.drum, M.drum, 0.12, 32]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" roughness={0.8} /></mesh>
-          {[-0.065, 0.065].map((dz) => <mesh key={dz} position={[0, 0, dz]} material={brass}><torusGeometry args={[M.drum + 0.01, 0.015, 8, 40]} /></mesh>)}
-        </group>
-        <mesh position={[(1.3 + 4.05) / 2, 4.25, 0.05]} castShadow><boxGeometry args={[4.05 - 1.3 + 0.14, 0.14, 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        <mesh position={[1.3, 2.12, -0.25]} castShadow><boxGeometry args={[0.14, 4.25, 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        <mesh position={[4.05, 2.12, 0.05]} castShadow><boxGeometry args={[0.14, 4.25, 0.14]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-        {[P1, P2].map((P, i) => <mesh key={`h${i}`} position={[P[0], (P[1] + 4.25) / 2, z]} material={brass}><boxGeometry args={[0.03, 4.25 - P[1], 0.03]} /></mesh>)}
-        <Pulley at={P1} z={z} r={M.pulleyR} angle={-wound / M.pulleyR} mat={brass} wood={wood[0]!} />
-        <Pulley at={P2} z={z} r={M.pulleyR} angle={-wound / M.pulleyR} mat={brass} wood={wood[0]!} />
-        <Cord a={[cx, M.g2.at[1]]} b={[cx, P1[1]]} z={z} />
-        <Cord a={[P1[0], P1[1] + M.pulleyR]} b={[P2[0], P2[1] + M.pulleyR]} z={z} />
-        {/* لوح الفكرة معلّق بالحبل: يرتفع بقدر ما يلتف، ويتأرجح قليلًا عند وصوله ثم يهدأ */}
-        <group position={[M.boardX, boardTop, z]} rotation={[0, 0, boardSway]}>
-          <Cord a={[0, 3.9 - boardTop]} b={[0, 0]} z={0} />
-          <mesh position={[0, -0.5, 0]} castShadow><boxGeometry args={[1.9, 0.95, 0.06]} /><meshStandardMaterial map={wood[0]} color="#BDBDBD" /></mesh>
-          <mesh position={[0, -0.5, 0.045]}><planeGeometry args={[1.8, 0.86]} /><meshStandardMaterial map={idea} roughness={0.9} /></mesh>
-          <mesh position={[0, -0.02, 0]} material={brass}><torusGeometry args={[0.05, 0.012, 8, 20]} /></mesh>
-        </group>
-        {/* أسماء الأجزاء بالحبر الأحمر بالنسخ */}
-        {[{ tex: tags.water, at: [M.tank.x, 3.05, 0.6] }, { tex: tags.float, at: [M.tank.x + 0.85, 5.0, 0.3] }, { tex: tags.cup, at: [-2.3, 0.75, 0.55] }, { tex: tags.gear, at: [0.6, 0.55, 0.55] }, { tex: tags.pulley, at: [(P1[0] + P2[0]) / 2, 4.65, 0.3] }].map((l, i) => (
-          <mesh key={i} position={l.at as V3} rotation={[-0.2, 0, 0]}><planeGeometry args={[1.2, 0.38]} /><meshStandardMaterial map={l.tex} roughness={0.9} /></mesh>
-        ))}
-      </Stage3D>
+      <MachineStage t={t} width={width} height={height} cam={cam} aperture={shot.aperture} still={still} calm={calm} ready={ready} drip={dripK} lever={lever} turn={turn} boardSway={boardSway} idea={IDEA} tags={DEFAULT_TAGS} />
       {/* صوت الورشة الخافت، ومع كل حركة صوتها (D158): كل قطرة، وميل الذراع، ودوران الترس والبكرتين، ووصول اللوح */}
       <Audio src={SFX("silence-room")} volume={0.3} loop />
       {Array.from({ length: 40 }, (_, k) => dripK.a + k * period + period).filter((x) => x <= dripK.b + period).map((x, i) => <Sequence key={i} from={Math.round(x * fps)} durationInFrames={12}><Audio src={SFX("water-drop")} volume={0.32 + (i % 3) * 0.06} /></Sequence>)}
