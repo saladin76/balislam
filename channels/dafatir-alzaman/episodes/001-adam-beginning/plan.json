@@ -13,7 +13,7 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-22T22:01:43.118Z",
+  "updatedAt": "2026-11-23T04:28:51.316Z",
   "intro": false,
   "shorts": [
     {
@@ -538,7 +538,9 @@
           "line": 146,
           "props": {
             "shot": "lib-timeline",
-            "items": "القصة = في الجنة\nالهبوط = الهبوط إلى الأرض"
+            "items": "القصة = في الجنة\nالهبوط = الهبوط إلى الأرض",
+            "title": "أخبرنا به القرآن الكريم",
+            "titleWord": "أخبرنا"
           },
           "sfx": [],
           "edited": true
