@@ -9,6 +9,7 @@ import { DeskWorldLab, WORLD_FPS, worldFrames } from "../dafatir/world/DeskWorld
 import { ShadowTheaterLab } from "../balislam/directions/ShadowTheater";
 import { LightGeometryLab } from "../balislam/directions/LightGeometry";
 import { PrintedAlleyLab } from "../balislam/directions/PrintedAlley";
+import { AlleyCharactersLab } from "../balislam/world/characters";
 import { IdeaMachineLab } from "../zubdat/directions/IdeaMachine";
 import { BulaqPressLab } from "../zubdat/directions/BulaqPress";
 import { ReadingRoomLab } from "../zubdat/directions/ReadingRoom";
@@ -36,6 +37,8 @@ export const TemplateLabs: React.FC = () => (
     {/* بالإسلام: اتجاهات المقارنة الثلاثة بثري دي (لا قالب قبل اختيار المالك)، صامتة لا تُنشر */}
     <Composition id="balislam-dir-geometry" component={LightGeometryLab} durationInFrames={dirFrames()} fps={DIR_FPS} width={1920} height={1080} />
     <Composition id="balislam-dir-alley" component={PrintedAlleyLab} durationInFrames={dirFrames()} fps={DIR_FPS} width={1920} height={1080} />
+    {/* بالإسلام: شخصيات «الحارة» الست (مقترح سجل الشخصيات للمالك)، إطار ثابت لا يُنشر */}
+    <Composition id="balislam-alley-characters" component={AlleyCharactersLab} durationInFrames={30} fps={DIR_FPS} width={1920} height={1080} defaultProps={{ who: "all" }} />
     <Composition id="balislam-dir-shadow" component={ShadowTheaterLab} durationInFrames={dirFrames()} fps={DIR_FPS} width={1920} height={1080} />
     {/* زبدة الكتب: اتجاهات المقارنة الثلاثة بثري دي (لا قالب قبل اختيار المالك)، صامتة لا تُنشر */}
     <Composition id="zubdat-dir-bulaq" component={BulaqPressLab} durationInFrames={zFrames()} fps={ZDIR_FPS} width={1920} height={1080} />

@@ -21,7 +21,7 @@ import { figureShapes } from "./figure";
 const span = (t: number, a: number, d: number) => Math.min(1, Math.max(0, (t - a) / d));
 
 /** تحبّب الورق (حتمي) */
-const usePaper = (seed: number) => useMemo(() => {
+export const usePaper = (seed: number) => useMemo(() => {
   const n = 256, g = grain(n, seed, 0.35), rgba = new Uint8Array(n * n * 4);
   for (let i = 0; i < g.length; i++) { const v = 222 + (g[i]! - 128) * 0.3; rgba.set([v, v, v, 255], i * 4); }
   const t = new THREE.DataTexture(rgba, n, n, THREE.RGBAFormat);
@@ -31,7 +31,7 @@ const usePaper = (seed: number) => useMemo(() => {
 
 type PaperProps = { shapes: THREE.Shape[]; ink: string; tex: THREE.Texture; nor?: THREE.Texture; shift?: [number, number]; z?: number };
 /** ورقة مقصوصة: وجهها بالحبر، وحافتها بيضاء (قلب الورق)، وتحتها ظل الحبر منزاحًا كأنها طُبعت */
-const Paper: React.FC<PaperProps> = ({ shapes, ink, tex, nor, shift = [0.03, -0.022], z = 0 }) => {
+export const Paper: React.FC<PaperProps> = ({ shapes, ink, tex, nor, shift = [0.03, -0.022], z = 0 }) => {
   const misreg = useMemo(() => new THREE.Color(ink).lerp(new THREE.Color(BAA.paper), 0.6), [ink]);
   return (
     <group position={[0, 0, z]}>
@@ -112,14 +112,14 @@ export const CLOTH_STACK = [{ ink: "emerald", w: 1.25 }, { ink: "rose", w: 1.15 
 /** وضع الذراع: زاوية الكتف من التدلي، وثني الكوع، وميل الرسغ (موجب = نحو الخارج والأعلى) */
 export type ArmPose = { shoulder: number; elbow: number; wrist: number };
 /** الكف: راحة مدوّرة وإبهام صغير (قصاصة واحدة، بلا أصابع مرسومة) */
-const handShape = () => {
+export const handShape = () => {
   const s = new THREE.Shape();
   s.moveTo(-0.022, 0); s.lineTo(0.022, 0); s.quadraticCurveTo(0.028, 0.05, 0.016, 0.07); s.quadraticCurveTo(0, 0.082, -0.016, 0.07); s.quadraticCurveTo(-0.028, 0.05, -0.022, 0);
   const thumb = new THREE.Shape(); thumb.absellipse(0.024, 0.028, 0.009, 0.02, 0, Math.PI * 2, false, -0.5);
   return [s, thumb];
 };
 /** مسمار المفصل النحاسي (كما تُثبّت قصاصات مسرح الورق) */
-const Brad: React.FC = () => <mesh position={[0, 0, 0.016]}><circleGeometry args={[0.011, 16]} /><meshStandardMaterial color={BAA.gold} metalness={0.6} roughness={0.35} /></mesh>;
+export const Brad: React.FC = () => <mesh position={[0, 0, 0.016]}><circleGeometry args={[0.011, 16]} /><meshStandardMaterial color={BAA.gold} metalness={0.6} roughness={0.35} /></mesh>;
 
 const Person: React.FC<{ x: number; flip: boolean; ink: string; pose: ArmPose; tex: THREE.Texture; nor?: THREE.Texture; cap: "turban" | "kufiya"; wob: number }> = ({ x, flip, ink, pose, tex, nor, cap, wob }) => {
   const s = useMemo(() => figureShapes({ robe: cap === "turban" ? 1 : 1.1, cap, stoop: 0 }), [cap]);
@@ -196,9 +196,11 @@ export type AlleyStageProps = {
   figures: number; enter: number; wobA: number; wobB: number; pose1: ArmPose; pose2: ArmPose;
   /** عدد الفوانيس المضاءة (٠–٧، يقبل الكسر لإضاءة متدرجة) */
   lit: number;
+  /** قصاصات إضافية في طبقة الشخصيات (سجل شخصيات الحارة) */
+  extra?: React.ReactNode;
 };
 /** مسرح الحارة الورقي (المشهد كله بلا صوت ولا ترجمة): يستعمله نموذج المقارنة وقالب «الحارة» معًا */
-export const AlleyStage: React.FC<AlleyStageProps> = ({ t, width, height, cam, aperture, still, calm, nor, market, settle, figures, enter, wobA, wobB, pose1, pose2, lit }) => {
+export const AlleyStage: React.FC<AlleyStageProps> = ({ t, width, height, cam, aperture, still, calm, nor, market, settle, figures, enter, wobA, wobB, pose1, pose2, lit, extra }) => {
   const paperA = usePaper(3), paperB = usePaper(7), paperC = usePaper(11);
   const wall = useMemo(archRow, []), houses = useMemo(farHouses, []), lantern = useMemo(lanternShape, []), fore = useMemo(foreArch, []);
   const stalls = useMemo(() => [stall(-3.2), stall(3.4)], []);
@@ -232,6 +234,7 @@ export const AlleyStage: React.FC<AlleyStageProps> = ({ t, width, height, cam, a
       <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.01, -1]} receiveShadow><planeGeometry args={[40, 14]} /><meshStandardMaterial color="#D9B08C" map={paperA} normalMap={nor[0]} roughness={1} /></mesh>
       {figures >= 1 && <Person x={-6 + enter * 4.2} flip={false} ink={BAA.rose} pose={pose1} tex={paperC} nor={nor[0]} cap="turban" wob={wobA} />}
       {figures >= 2 && <Person x={6 - enter * 4.2} flip ink={BAA.night} pose={pose2} tex={paperB} nor={nor[0]} cap="kufiya" wob={wobB} />}
+      {extra}
       {/* الطبقة الأمامية للعمق: سلال، وأكياس بهار بكومها، وأثواب قماش مطوية مكدسة */}
       <group position={[0, 0, 1.5]}>
         <Paper shapes={fg.baskets} ink={BAA.gold} tex={paperA} nor={nor[0]} shift={[0.04, -0.03]} />
