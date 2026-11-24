@@ -10,6 +10,8 @@
  * نقي بلا نظام ملفات: القراءة والحفظ في stockStore.ts.
  */
 
+import { seriesIdIssue } from "../channel/series";
+
 export const DRAFT_STATUS = "مسودة";
 /** أيام النشر (D168): السبت بالإسلام، والاثنين دفاتر الزمن، والأربعاء زبدة الكتب */
 export const CHANNEL_DAY: Record<string, string> = { balislam: "السبت", "dafatir-alzaman": "الاثنين", "zubdat-alkutub": "الأربعاء" };
@@ -18,7 +20,7 @@ export type StockSlot = {
   /** رقم الأسبوع في المرحلة (ترتيب لا موعد) */
   week: number;
   title: string;
-  /** معرّف السلسلة في الاستوديو إن وُجد، وإلا اسمها */
+  /** معرّف السلسلة المسجّل في الاستوديو وحده (D215)؛ اسمها العربي من سجل السلاسل */
   series?: string;
   /** رقم الحلقة (ثلاث خانات) حين يوجد مجلدها؛ وبدونه خانة مخططة */
   episode?: string;
@@ -38,7 +40,8 @@ export type Stock = {
 
 const EP = /^\d{3}$/;
 
-export const stockIssues = (s: Stock | null | undefined): string[] => {
+/** D215: مع قائمة سلاسل القناة المسجّلة، سلسلة كل خانة معرّف منها وحده (لا اسم عرض ولا معرّف غير مسجّل) */
+export const stockIssues = (s: Stock | null | undefined, series?: readonly { id: string; name: string }[]): string[] => {
   const out: string[] = [];
   if (!s || s.version !== 1 || !Array.isArray(s.slots)) return ["ترتيب النشر: الصيغة غير صالحة."];
   if (!Number.isInteger(s.phase) || s.phase < 1) out.push("ترتيب النشر: رقم المرحلة غير صالح.");
@@ -56,6 +59,10 @@ export const stockIssues = (s: Stock | null | undefined): string[] => {
     }
     if (x.specialist !== undefined && (!Array.isArray(x.specialist) || x.specialist.some((t) => typeof t !== "string" || !t.trim())))
       out.push(`${at}: بنود المتخصص يجب أن تكون نصوصًا.`);
+    if (series && x.series !== undefined) {
+      const problem = seriesIdIssue(x.series, series);
+      if (problem) out.push(`${at}: ${problem}`);
+    }
     for (const k of Object.keys(x)) if (/date|on$|At$/i.test(k)) out.push(`${at}: لا تواريخ في ترتيب النشر (ترتيب لا مواعيد): «${k}».`);
   });
   return out;
@@ -81,6 +88,8 @@ export type StockEpisodeView = {
   day: string;
   title: string;
   series?: string;
+  /** اسم السلسلة العربي من سجل القناة للعرض (D215)؛ يُضاف عند القراءة */
+  seriesName?: string;
   episode?: string;
   dir?: string;
   batch: number | null;

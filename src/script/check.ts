@@ -7,6 +7,7 @@ import type { Chapter, Frontmatter, Issue, ParsedScript } from "./types";
 import { defaultChannel, domainIds } from "../channel/types";
 import { langPacks } from "../i18n/packs";
 import { isStyle, styleIds } from "../plan/styles";
+import { seriesIdIssue } from "../channel/series";
 
 export type CheckConfig = {
   wordsPerMinute: number;
@@ -23,6 +24,8 @@ export type CheckConfig = {
   fixedChapters?: boolean;
   /** false: لا يُشترط قسم «الخطوة العملية» — من channel.json → script.practicalStep */
   practicalStep?: boolean;
+  /** D215: سلاسل القناة المسجّلة (معرّف واسم)؛ `series:` في الترويسة معرّف منها وحده. بلا قائمة: معرّف إنجليزي على الأقل */
+  series?: readonly { id: string; name: string }[];
 };
 
 export const configFromFile = (c: typeof defaultConfig = defaultConfig): CheckConfig => ({
@@ -100,6 +103,12 @@ export const checkScript = (script: ParsedScript, config: CheckConfig = configFr
         const pack = langPacks[fm.lang];
         if (!pack) err("lang-unknown", `اللغة «${fm.lang}» غير معروفة. المتاح: ${Object.keys(langPacks).join("، ")}.`, script.frontmatterLine);
         else if (!pack.ready) warn("lang-not-ready", `اللغة «${pack.nameAr}» في مرحلة التجهيز: نصوصها جاهزة، وتخطيط القوالب من اليسار لليمين لم يُفعَّل بعد.`, script.frontmatterLine);
+      }
+      const series = (script.frontmatter as { series?: unknown }).series;
+      if (series !== undefined) {
+        const problem = config.series ? seriesIdIssue(series, config.series)
+          : typeof series === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(series.trim()) ? null : `السلسلة «${String(series)}» يجب أن تكون معرّفًا إنجليزيًا مسجّلًا (مثل worship).`;
+        if (problem) err("series-unknown", problem, script.frontmatterLine);
       }
       if (!/[؟?]\s*$/.test(fm.title)) warn("title-question", "العنوان يُفضّل أن يكون سؤالًا ينتهي بـ «؟».", script.frontmatterLine);
       if (!fm.alt_titles || fm.alt_titles.length < 3) {

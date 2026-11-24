@@ -2,6 +2,7 @@
 title: "كيف تعرف أنك على حق؟"
 domain: psychology
 episode: "001"
+series: "psychology"
 style: alley
 alt_titles:
   - "هل أنت مستعد لأن تكون مخطئًا؟"
