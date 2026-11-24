@@ -132,7 +132,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
         <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
         <SceneCloseContext.Provider value={vis.close}>
           <VerseWindowContext.Provider value={vw ? [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)] : null}>
-          <VersePageContext.Provider value={vw && verseShow > 0 ? <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} /> : null}>
+          <VersePageContext.Provider value={vw && verseShow > 0 ? <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} partial={pr.versePartial === "1"} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} /> : null}>
             <LiveFrameContext.Provider value={liveFrame}>
             <PageHeadContext.Provider value={pageHead}>
             <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y - lift}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
@@ -157,7 +157,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
  * ولا إطار آية ولا نص مؤقت. ونص الآية من السكريبت يظهر دائمًا، قبل التلاوة أيضًا («نسخة قبل النهائية» بلا تلاوات،
  * طلب المالك ١٥ نوفمبر)، ويتزامن مع التلاوة البشرية عند إرفاقها. الآية الطويلة صفحات على مدى التلاوة (versePages).
  */
-export type HorizonVerseProps = SceneBase & { text?: string; ayahKey?: string; reciter?: string; recitationDuration?: number; head?: string };
+export type HorizonVerseProps = SceneBase & { text?: string; ayahKey?: string; reciter?: string; recitationDuration?: number; head?: string; partial?: string };
 export const HorizonVerse: React.FC<HorizonVerseProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -175,7 +175,7 @@ export const HorizonVerse: React.FC<HorizonVerseProps> = (props) => {
         {has ? (
           windows.map((w, i) => {
             const o = windows.length > 1 ? pageOpacity(w, frame) : 1;
-            return o > 0 ? <VerseCard key={i} show={show * o} text={w.text} refKey={key} reciter={props.reciter} /> : null;
+            return o > 0 ? <VerseCard key={i} show={show * o} text={w.text} refKey={key} reciter={props.reciter} partial={props.partial === "1"} /> : null;
           })
         ) : (
           <AbsoluteFill style={{ alignItems: "center", justifyContent: "center", background: "rgba(13,10,20,0.35)" }}>

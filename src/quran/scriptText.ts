@@ -6,7 +6,8 @@
 import { parseAyahRef } from "../script/quranMeta";
 import type { ParsedScript } from "../script/types";
 
-export type ScriptAyah = { key: string; ref: string; text: string; line: number };
+/** partial (D222): المرجع معلَّم «(جزء)» */
+export type ScriptAyah = { key: string; ref: string; text: string; line: number; partial?: true };
 export type ScriptQuranProblem = { key: string; ref: string; line: number; code: "invalid-ref" | "missing-text" | "conflicting-text"; reason: string };
 
 export const quranFromScript = (script: ParsedScript): {
@@ -36,7 +37,7 @@ export const quranFromScript = (script: ParsedScript): {
       continue;
     }
     texts[key] = text;
-    ayahs.push({ key, ref: block.ref, text, line: block.line });
+    ayahs.push({ key, ref: block.ref, text, line: block.line, ...(parsed.ref.partial ? { partial: true as const } : {}) });
   }
   return { texts, ayahs, problems };
 };

@@ -9,7 +9,12 @@ import path from "node:path";
 import { describe, expect, it } from "vitest";
 import type { Plan, PlanScene } from "../src/plan/types";
 import { loadTanzil, TANZIL_FILE, TANZIL_SHA256, tanzilAyah, tanzilBasmala, tanzilText, tanzilVerses } from "../src/quran/tanzil";
-import { normalizeShownVerse, planVerseMismatches, scriptVerseMismatches, withSourceVerseTexts } from "../src/quran/verseSource";
+import { normalizeShownVerse, PARTIAL_MIN_WORDS, planVerseMismatches, scriptVerseMismatches, verseWordCount, withSourceVerseTexts } from "../src/quran/verseSource";
+import { parseAyahRef } from "../src/script/quranMeta";
+import { parseScript } from "../src/script/parse";
+import { quranFromScript } from "../src/quran/scriptText";
+import { generatePlan } from "../src/plan/generate";
+import { verseRef } from "../src/remotion/dafatir/horizon/kit";
 import { verseSourceIssues } from "../src/quran/verseSourceIssues";
 import { buildCard, verseSourceItem } from "../src/studio/quality/card";
 import { assertNoQuranForTts, QuranTtsError } from "../src/voice/quranGuard";
@@ -164,5 +169,64 @@ describe("D220: خطط المستودع في القنوات غير المجمّ�
       expect(pending.filter((id) => !bad.includes(id)), `${ch}/${ep}: احذفها من PENDING_STUDIO_SYNC`).toEqual([]);
       expect(planVerseMismatches(withSourceVerseTexts(plan, tanzilVerses).plan, tanzilVerses), `${ch}/${ep}`).toEqual([]);
     }
+  });
+});
+
+describe("D222: جزء تام المعنى من آية طويلة جدًا، معلَّمًا", () => {
+  const words = (s: number, a: number) => tanzilAyah(s, a)!.split(" ");
+  const head = (s: number, a: number, n: number) => `${words(s, a).slice(0, n).join(" ")} …`;
+  const p282 = head(2, 282, 15); // «… بِٱلْعَدْلِ ۚ» ثم «…»
+  it("المرجع «(جزء)» يُقرأ لآية واحدة، والنطاق يُرفض", () => {
+    const r = parseAyahRef("البقرة 282 (جزء)");
+    expect(r.ok && [r.ref.key, r.ref.partial]).toEqual(["2:282", true]);
+    expect(parseAyahRef("البقرة 282").ok && (parseAyahRef("البقرة 282") as { ref: { partial?: true } }).ref.partial).toBeUndefined();
+    expect(parseAyahRef("البقرة 281-282 (جزء)").ok).toBe(false);
+  });
+
+  it("يُقبل المعلَّم: كلمات متصلة من المصدر، و«…» في كل طرف مقطوع وحده", () => {
+    const m = (text: string, partial = true) => scriptVerseMismatches([{ key: "2:282", text, line: 1, partial }], tanzilVerses);
+    expect(m(p282)).toEqual([]);
+    const mid = `… ${words(2, 282).slice(56, 60).join(" ")} …`; // «وَٱسْتَشْهِدُوا۟ شَهِيدَيْنِ مِن رِّجَالِكُمْ»
+    expect(m(mid)).toEqual([]);
+    const tail = `… ${words(2, 282).slice(-4).join(" ")}`;
+    expect(m(tail)).toEqual([]);
+    expect(m(p282.replace(" …", ""))[0]!.message).toMatch(/«…» في الطرف المقطوع/); // آخره مقطوع بلا «…»
+    expect(m(`… ${p282}`)[0]!.message).toMatch(/«…» في الطرف المقطوع/); // أوله ليس مقطوعًا
+    expect(m(`${words(2, 282).slice(0, 3).join(" ")} … ${words(2, 282).slice(5, 9).join(" ")} …`)[0]!.message).toMatch(/في وسطه/);
+    expect(m(p282.replace(words(2, 282)[3]!, "إذا"))[0]!.message).toMatch(/ليس كلمات متصلة/); // تعديل داخل الجزء
+    expect(m(`${words(2, 282).join(" ")}`)[0]!.message).toMatch(/الآية كاملة/);
+  });
+
+  it("الجزء غير المعلَّم يُرفض ويُقال إنه ينقصه التعليم؛ وجزء آية ≤ ٣٠ كلمة يُرفض", () => {
+    const unflagged = scriptVerseMismatches([{ key: "2:282", text: p282, line: 1 }], tanzilVerses);
+    expect(unflagged[0]!.message).toMatch(/معلَّمًا «\(جزء\)»/);
+    expect(verseWordCount(tanzilAyah(2, 30)!)).toBe(28);
+    const short = scriptVerseMismatches([{ key: "2:30", text: head(2, 30, 9), line: 1, partial: true }], tanzilVerses);
+    expect(short[0]!.message).toMatch(/تُعرض كاملة/);
+    expect(PARTIAL_MIN_WORDS).toBe(30);
+  });
+
+  it("الخطة: partial لبطاقة الآية وversePartial للقطة «خط الأفق»، و«انسخ نص المصدر» لا يمس الجزء", () => {
+    const card = scene("c1-s2", "verse-card", { ayahKey: "2:282", props: { text: p282, partial: "1" } });
+    const hz = scene("c1-s3", "horizon-shot", { props: { verseKey: "2:282", verseText: p282, versePartial: "1" } });
+    const bare = scene("c1-s4", "horizon-shot", { props: { verseKey: "2:282", verseText: p282 } });
+    expect(planVerseMismatches(planOf(card, hz, bare), tanzilVerses).map((x) => x.sceneId)).toEqual(["c1-s4"]);
+    expect(withSourceVerseTexts(planOf(hz), tanzilVerses).changed).toEqual([]);
+  });
+
+  it("السكريبت: «[آية: البقرة 282 (جزء) | …]» يصير بطاقة معلَّمة بمرجع «(جزء)»", () => {
+    const parsed = parseScript(`---\ntitle: t\n---\n# فصل\n\nكلام.\n\n[آية: البقرة 282 (جزء) | ${p282}]\n`, "x.md");
+    const q = quranFromScript(parsed);
+    expect(q.ayahs.map((a) => [a.key, a.partial])).toEqual([["2:282", true]]);
+    expect(scriptVerseMismatches(q.ayahs, tanzilVerses)).toEqual([]);
+    const plan = generatePlan(parsed, null, q.texts) as Plan;
+    const v = plan.chapters.flatMap((c) => c.scenes).find((s) => s.template === "verse-card")!;
+    expect([v.ayahKey, v.props.partial, v.props.reference]).toEqual(["2:282", "1", "البقرة · ٢٨٢ (جزء)"]);
+    expect(verseRef("2:282", true)).toBe("البقرة: ٢٨٢ (جزء)");
+  });
+
+  it("زمن القراءة قدر ما يظهر وحده: «…» وعلامة الوقف ليستا كلمة", () => {
+    expect(verseReadSeconds(p282)).toBe(2 + 0.5 * 14);
+    expect(verseReadSeconds(p282)).toBeLessThan(verseReadSeconds(tanzilAyah(2, 282)!));
   });
 });
