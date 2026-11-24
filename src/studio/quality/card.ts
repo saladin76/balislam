@@ -14,7 +14,7 @@ import { normalizeArabic } from "../../script/quranMeta";
 import { measureDiversity } from "./diversity";
 import { measureCraft } from "./craft";
 import { seriesDiffIssues, type SeriesDiffReport } from "./seriesDiff";
-import { INTERACTIVITY_MIN, type InteractivityReport } from "./interactivity";
+import { interactivityMinFor, type InteractivityReport } from "./interactivity";
 import { MIX_MIN, type MixReport } from "./mix";
 
 export const LOUDNESS_TARGET = -14;
@@ -99,11 +99,13 @@ export const pictureItems = (m: FileMeasurements | null, target: CardTarget, pla
     : !m ? unmeasured("resolution", "دقة 4K", "3840×2160")
     : { id: "resolution", label: "دقة 4K", need: "3840×2160", value: `${m.video.width}×${m.video.height}`, status: is4k(m.video) ? "pass" : "fail",
         ...(is4k(m.video) ? {} : { reason: "النسخة النهائية ليست 4K (القاعدة الرابعة)." }) };
-  const need = `≥ ${ar(INTERACTIVITY_MIN, 0)}٪ بعد استبعاد السكون المقصود`;
+  const iMin = interactivityMinFor(plan.channel);
+  const iOk = Boolean(m && m.interactivity.percent >= iMin);
+  const need = `≥ ${ar(iMin, 0)}٪ بعد استبعاد السكون المقصود`;
   const inter: CardItem = !m ? unmeasured("interactivity", "التفاعلية", need) : {
     id: "interactivity", label: "التفاعلية", need, value: `${ar(m.interactivity.percent)}٪ (سكون مقصود مستثنى ${ar(m.interactivity.exempt, 0)} ث)`,
-    status: m.interactivity.ok ? "pass" : "fail",
-    ...(m.interactivity.ok ? {} : { reason: `الشاشة ساكنة أكثر من المسموح${m.interactivity.still.length ? `؛ أطول المقاطع: ${m.interactivity.still.slice(0, 4).map((x) => `${clock(x.from)}–${clock(x.to)}`).join("، ")}` : ""}.` }),
+    status: iOk ? "pass" : "fail",
+    ...(iOk ? {} : { reason: `الشاشة ساكنة أكثر من المسموح${m.interactivity.still.length ? `؛ أطول المقاطع: ${m.interactivity.still.slice(0, 4).map((x) => `${clock(x.from)}–${clock(x.to)}`).join("، ")}` : ""}.` }),
   };
   return [res, inter, diversity];
 };
