@@ -178,6 +178,428 @@
         "عدم ربط الموقع المكتشف في عُمان بإرم",
         "عاد بعد قوم نوح: البعدية ثابتة والزمن «لا نعلم»"
       ]
+    },
+    {
+      "week": 14,
+      "title": "ثمود وناقة صالح عليه السلام",
+      "series": "hadarat",
+      "batch": 11,
+      "specialist": [
+        "لفظ حديث المرور بالحِجر ورقمه",
+        "«الواجهات نبطية لاحقة» بختم تقدير",
+        "هود ٦١ بطاقتها في 010 فلا تُكرر",
+        "صياغة عقر الناقة"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 15,
+      "title": "الأهرام وعالمها",
+      "series": "hadarat",
+      "batch": 12,
+      "specialist": [
+        "عرض معتقدات مصر القديمة بلا تعظيم",
+        "لا ربط بفرعون موسى"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 16,
+      "title": "إبراهيم عليه السلام في عالم العراق",
+      "series": "hadarat",
+      "batch": 13,
+      "specialist": [
+        "مقام المحاجّة في الكواكب",
+        "اسم الملك رواية و«أور» تقدير",
+        "لا تصوير للنار حوله"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 17,
+      "title": "لوط عليه السلام وقومه",
+      "series": "hadarat",
+      "batch": 14,
+      "specialist": [
+        "حدود الصياغة لجمهور فيه أطفال",
+        "موضع القرى تقدير أو لا نعلم"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 18,
+      "title": "إبراهيم وإسماعيل وبيت الله",
+      "series": "hadarat",
+      "batch": 15,
+      "specialist": [
+        "رقم حديث ابن عباس في قصة هاجر وزمزم ولفظ ما يُقرأ",
+        "الذبيح إسماعيل وعرض الخلاف"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 19,
+      "title": "يوسف عليه السلام في مصر",
+      "series": "hadarat",
+      "batch": 16,
+      "specialist": [
+        "اسم العزيز وامرأته رواية",
+        "أي عصر مصري تقدير",
+        "صياغة مشهد المراودة للأسرة"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 20,
+      "title": "موسى عليه السلام وفرعون",
+      "series": "hadarat",
+      "batch": 17,
+      "specialist": [
+        "هوية فرعون تقدير بلا ترجيح",
+        "حلقة أم جزءان"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 21,
+      "title": "أول القوانين المكتوبة",
+      "series": "hadarat",
+      "batch": 18,
+      "specialist": [
+        "المقارنة بشريعة التوحيد بلا مفاضلة متكلفة",
+        "اختيار الآيات"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 22,
+      "title": "داود وسليمان عليهما السلام",
+      "series": "hadarat",
+      "batch": 19,
+      "specialist": [
+        "الهيكل وأخبار الجن رواية",
+        "أقوال المفسرين في ص ٣١–٣٣"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 23,
+      "title": "سبأ والسد",
+      "series": "hadarat",
+      "batch": 20,
+      "specialist": [
+        "اسم الملكة رواية",
+        "تاريخ السد تقدير"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 24,
+      "title": "فارس واليونان",
+      "series": "hadarat",
+      "batch": 21,
+      "specialist": [
+        "لا ربط لذي القرنين بشخصية تاريخية"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 25,
+      "title": "الصين والهند",
+      "series": "hadarat",
+      "batch": 22,
+      "specialist": [
+        "عرض المعتقدات بلا تعظيم"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 26,
+      "title": "روما",
+      "series": "hadarat",
+      "batch": 23,
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 27,
+      "title": "عيسى عليه السلام في زمن روما",
+      "series": "hadarat",
+      "batch": 24,
+      "specialist": [
+        "كل جملة للمتخصص",
+        "نفي القتل والصلب بنص القرآن",
+        "لا رموز عقدية"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 28,
+      "title": "العالم بعد رفع عيسى عليه السلام",
+      "series": "tamheed",
+      "batch": 25,
+      "specialist": [
+        "معنى «على فترة من الرسل» وحدوده"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 29,
+      "title": "ممالك اليمن وحِمْيَر",
+      "series": "tamheed",
+      "batch": 26,
+      "specialist": [
+        "ما يُقال في قوم تُبّع",
+        "تمييز الرواية عن النقش"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 30,
+      "title": "مكة: من إسماعيل إلى قريش",
+      "series": "tamheed",
+      "batch": 27,
+      "specialist": [
+        "لفظ حديث عمرو بن لحي ورقمه",
+        "الأنساب رواية"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 31,
+      "title": "أصحاب الأخدود",
+      "series": "tamheed",
+      "batch": 28,
+      "specialist": [
+        "رقم حديث صهيب في مسلم ولفظه",
+        "ربط القصة بنجران رواية أو تقدير"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 32,
+      "title": "عام الفيل",
+      "series": "tamheed",
+      "batch": 29,
+      "specialist": [
+        "تفاصيل أبرهة وعبد المطلب رواية"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 33,
+      "title": "الإمبراطوريتان العظميان",
+      "series": "tamheed",
+      "batch": 30,
+      "specialist": [
+        "درجة حديث رهان أبي بكر رضي الله عنه",
+        "معنى «في بضع سنين»"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 34,
+      "title": "الحُنفاء",
+      "series": "tamheed",
+      "batch": 31,
+      "specialist": [
+        "رقم حديث زيد بن عمرو بن نفيل",
+        "درجة أخبار قس بن ساعدة"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 35,
+      "title": "العالم ليلة البعثة",
+      "series": "tamheed",
+      "batch": 32,
+      "specialist": [
+        "تاريخ البعثة الميلادي تقدير",
+        "مكان ما قبل البعثة من السيرة"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 36,
+      "title": "الوحي الأول",
+      "series": "sira",
+      "batch": 33,
+      "specialist": [
+        "اللفظ المعروض من حديث بدء الوحي (البخاري ٣)",
+        "كل جملة للمتخصص"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 37,
+      "title": "الدعوة سرًا",
+      "series": "sira",
+      "batch": 34,
+      "specialist": [
+        "ترتيب السابقين والخلاف فيه",
+        "كل جملة للمتخصص"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 38,
+      "title": "الجهر بالدعوة",
+      "series": "sira",
+      "batch": 35,
+      "specialist": [
+        "لفظ حديث الصفا ورقمه",
+        "عرض سورة المسد"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 39,
+      "title": "الهجرة إلى الحبشة",
+      "series": "sira",
+      "batch": 36,
+      "specialist": [
+        "درجة حديث أم سلمة في المسند",
+        "إسلام النجاشي والصلاة عليه"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 40,
+      "title": "عام الحزن",
+      "series": "sira",
+      "batch": 37,
+      "specialist": [
+        "شأن أبي طالب بنص الصحيح",
+        "تاريخ الوفاتين"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 41,
+      "title": "الطائف",
+      "series": "sira",
+      "batch": 38,
+      "specialist": [
+        "درجة دعاء الطائف المشهور",
+        "لا تصوير لملك الجبال"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 42,
+      "title": "الإسراء والمعراج",
+      "series": "sira",
+      "batch": 39,
+      "specialist": [
+        "ما يُعرض من التفاصيل وما يُترك",
+        "لا تصوير للبراق ولا جبريل عليه السلام"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 43,
+      "title": "بيعتا العقبة",
+      "series": "sira",
+      "batch": 40,
+      "specialist": [
+        "بنود البيعتين وأعداد الحاضرين"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 44,
+      "title": "الهجرة",
+      "series": "sira",
+      "batch": 41,
+      "specialist": [
+        "أخبار الحمامة والعنكبوت ودرجتها",
+        "لفظ حديث الهجرة في البخاري"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 45,
+      "title": "بناء المدينة",
+      "series": "sira",
+      "batch": 42,
+      "specialist": [
+        "درجة وثيقة المدينة وكيف تُعرض"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 46,
+      "title": "بدر",
+      "series": "sira",
+      "batch": 43,
+      "specialist": [
+        "الأعداد بختم الثبوت",
+        "لا تصوير لصحابي ولا ملَك"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 47,
+      "title": "أُحد",
+      "series": "sira",
+      "batch": 44,
+      "specialist": [
+        "الرماة بلا تجريح",
+        "صياغة استشهاد حمزة رضي الله عنه"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 48,
+      "title": "الخندق",
+      "series": "sira",
+      "batch": 45,
+      "specialist": [
+        "صياغة ما بعد الخندق بمنهج أهل السنة"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 49,
+      "title": "الحديبية",
+      "series": "sira",
+      "batch": 46,
+      "specialist": [
+        "بنود الصلح ولفظها"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 50,
+      "title": "رسائل الملوك",
+      "series": "sira",
+      "batch": 47,
+      "specialist": [
+        "نص الكتاب إلى هرقل (البخاري ٧) وما يُعرض منه",
+        "الأختام الأثرية المنسوبة تقدير"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 51,
+      "title": "خيبر",
+      "series": "sira",
+      "batch": 48,
+      "specialist": [
+        "قصة الراية بلفظها",
+        "صياغة الشاة المسمومة"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
+    },
+    {
+      "week": 52,
+      "title": "فتح مكة",
+      "series": "sira",
+      "batch": 49,
+      "specialist": [
+        "درجة «اذهبوا فأنتم الطلقاء»",
+        "صياغة العفو"
+      ],
+      "note": "مخططة (docs/dafatir-alzaman/13-eighteen-months.md)"
     }
   ]
 }
