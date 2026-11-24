@@ -507,12 +507,23 @@ const Sources: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const cut = prog(t, end(tl, "القرآن") + 0.1, end(tl, "القرآن") + 0.5);
   const fact = pop(t, at(tl, "حقيقة"));
   const factCut = prog(t, at(tl, "مؤكدة") + 0.1, end(tl, "مؤكدة") + 0.3);
+  // تفاعلية v18 (كان ساكنًا 4.8–6.7 و7.3–8.2): «ما لم يثبت»: إطار متقطع فارغ حيث سيُختم؛ والختم المشطوب يميل ويبهت
+  const unproven = prog(t, at(tl, "نجعل") - 0.05, at(tl, "حقيقة"));
+  const reject = prog(t, at(tl, "مؤكدة") + 0.1, end(tl, "مؤكدة") + 0.6, easeOut);
   const cols = prog(t, at(tl, "سنميز") - 0.05, at(tl, "سنميز") + 0.8, easeOut);
   const c1 = prog(t, Math.max(at(tl, "به"), end(tl, "الله") + 0.3), Math.max(at(tl, "به"), end(tl, "الله") + 0.3) + 0.6, easeOut);
   const c2 = prog(t, at(tl, "الشواهد") - 0.05, at(tl, "الشواهد") + 0.6, easeOut);
   const c3 = prog(t, at(tl, "بحث") - 0.05, at(tl, "بحث") + 0.6, easeOut);
   const cam = camPath(t, { cx: 1365, cy: 520, s: 1.12 }, [
-    { a: at(tl, "حقيقة") - 0.3, b: at(tl, "مؤكدة") + 0.4, cx: 1365, cy: 600, s: 1.12 },
+    // تفاعلية v18 (كان ساكنًا 0–0.8 و1.9–2.4 و4.8–5.6): «فلا يمكننا أن ننسب»: إلى الأداة وهي تُرسم، ثم «إلى شخصية»: معها إلى البطاقة،
+    // ثم «ورد ذكرها في القرآن»: إلى الختم
+    // ثم «أو أن نجعل ما لم يثبت»: إلى الإطار الفارغ، ثم «حقيقة مؤكدة»: يعود مع الختم وهو يُشطب
+    { a: at(tl, "فلا"), b: at(tl, "ننسب") + 0.5, cx: 1560, cy: 520, s: 1.12 },
+    { a: at(tl, "اكتشاف") - 0.05, b: at(tl, "شخصية") + 0.5, cx: 1170, cy: 520, s: 1.12 },
+    { a: at(tl, "ورد") - 0.1, b: at(tl, "القرآن") + 0.3, cx: 1380, cy: 520, s: 1.12 },
+    { a: at(tl, "القرآن") - 0.1, b: at(tl, "نجعل"), cx: 1600, cy: 600, s: 1.12 },
+    { a: at(tl, "نجعل"), b: at(tl, "يثبت") + 0.15, cx: 1440, cy: 640, s: 1.12 },
+    { a: at(tl, "حقيقة") - 0.1, b: end(tl, "مؤكدة") + 0.3, cx: 1300, cy: 600, s: 1.12 },
     // «ولهذا سنميز…»: الصفحتان كاملتان قبل نافذة ذكر الله، والكاميرا ساكنة عندها
     { a: at(tl, "ولهذا") - 0.1, b: Math.min(at(tl, "سنميز") + 0.6, at(tl, "الله") - 0.3), ...NEUTRAL },
     // الأعمدة الثلاثة كاملة، و«حقيقة مؤكدة» (حتى x≈1595) لا تُقص عند الحافة
@@ -536,8 +547,11 @@ const Sources: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       </g>
       <QuranSeal x={1255} y={350} o={seal} s={0.6} />
       <Ink d="M1340 380 L1410 450 M1410 380 L1340 450" w={7} p={cut} c={C.ribbon} />
-      <Stamp x={1365} y={700} q={fact} label="حقيقة مؤكدة" color={C.ink} w={460} />
-      <Ink d="M1135 655 L1595 745" w={7} p={factCut} c={C.ribbon} />
+      <rect x={1135} y={655} width={460} height={90} rx={10} fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="10 12" opacity={unproven * (1 - fact)} />
+      <g opacity={1 - 0.35 * reject} transform={`rotate(${-5 * reject} 1365 700)`}>
+        <Stamp x={1365} y={700} q={fact} label="حقيقة مؤكدة" color={C.ink} w={460} />
+        <Ink d="M1135 655 L1595 745" w={7} p={factCut} c={C.ribbon} />
+      </g>
     </g>
   );
   const L = (

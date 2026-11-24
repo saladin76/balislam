@@ -63,9 +63,10 @@ const rig = (s: PlanScene) => {
     );
     // كاميرا الدفتر (Camera: transform-origin 0 0) كما رُسمت؛ ثم الكاميرا الحية حول وسط الإطار
     const m = /transform-origin:0 0;transform:translate\((-?[\d.e-]+)px, (-?[\d.e-]+)px\) scale\((-?[\d.e-]+)\)/.exec(html);
-    const S = m ? Number(m[3]) : 1, ty = m ? Number(m[2]) : 0;
+    const S = m ? Number(m[3]) : 1, ty = m ? Number(m[2]) : 0, tx = m ? Number(m[1]) : 0;
     const screenY = (y: number) => (y * S + ty - 540) * cam.s + 540 + cam.y - SAFE_LIFT;
-    return { html, screenY, live: cam, found: Boolean(m) };
+    const screenX = (x: number) => (x * S + tx - 960) * cam.s + 960 + cam.x;
+    return { html, screenY, screenX, live: cam, found: Boolean(m) };
   };
   return { tl, dur, head, at, shot };
 };
@@ -166,4 +167,25 @@ describe("الإطار الآمن لمشاهد «خط الأفق» (تصحيح D
     }
     expect(bad).toEqual([]);
   }, 120_000);
+
+  // تفاعلية v18 (٩٤٫٣٪ بعد تنازل التكبير): مواضع كانت ساكنة صار فيها انتقال للكادر يتبع الجملة. عقد على المحتوى: يُفحص المشهد إن بقي
+  // بلقطته وكلماته. الحد: ١٢٠ بكسل على الشاشة بين الكلمتين (الانجراف والحركات التي قاسها freezedetect ساكنة كانت دون ٢ بكسل للإطار).
+  it.each([
+    ["scale", "وخلق", "طين"], ["scale", "طين", "إبليس"], ["scale", "مفاضلة", "والطين"],
+    ["honor", "له", "السجود"], ["enmity", "يمهله", "البعث"],
+    ["sources", "فلا", "ننسب"], ["sources", "اكتشاف", "شخصية"], ["sources", "القرآن", "يثبت"],
+  ] as const)("%s: الكادر يتحرك بين «%s» و«%s»", (shot, from, to) => {
+    const s = scenes.find((x) => x.props.shot === shot);
+    if (!s) return;
+    const r = rig(s);
+    const w0 = r.tl.words.find((w) => w.w.startsWith(from)), w1 = r.tl.words.find((w) => w.w.startsWith(to) && (!w0 || w.s > w0.s));
+    if (!w0 || !w1) return;
+    let path = 0, prev = r.at(w0.s);
+    for (let t = w0.s + 1 / 30; t <= w1.e; t += 1 / 30) {
+      const f = r.at(t);
+      path += Math.hypot(f.screenX(960) - prev.screenX(960), f.screenY(520) - prev.screenY(520));
+      prev = f;
+    }
+    expect(path).toBeGreaterThanOrEqual(120);
+  });
 });
