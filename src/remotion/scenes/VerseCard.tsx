@@ -1,4 +1,5 @@
 import React from "react";
+import { quranDisplay } from "../../quran/display";
 import { AbsoluteFill, interpolate, useVideoConfig } from "remotion";
 import { INK_VERSE, Paper, H as INK_H, W as INK_W, inkVerseParts } from "../zubdat/inkKit";
 import { useSize, useTheme } from "../../../brand/identity/index";
@@ -61,7 +62,9 @@ const HZ = { dusk: "#2A1E3F", duskDeep: "#140E20", parchment: "#F1E4CB", ink: "#
  * الآية تُكشف مقطعًا مقطعًا بترتيبها على مدى التلاوة، وكل الآية في مكانها النهائي من البداية فلا يتحرك سطر.
  */
 const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
-  const { orientation, text, reference, reciter, reveal } = props;
+  const { orientation, text: rawText, reference, reciter, reveal } = props;
+  // D221: علامات الوقف فوق آخر الكلمة التي قبلها (العرض وحده؛ النص المحفوظ كما هو)
+  const text = quranDisplay(rawText);
   const frame = useSceneFrame();
   const { durationInFrames } = useVideoConfig();
   const baseVerse = useSize("verse", orientation);
@@ -118,12 +121,12 @@ const VersePage: React.FC<VerseCardProps & { reveal: boolean }> = (props) => {
             <PagedVerse pages={pages} frame={frame} start={start}
               span={synchronized ? props.recitationDuration! * config.video.fps : end - start}
               wrap={(page, i, n) => (
-                <div style={{ direction: "rtl", fontFamily: fontFamilies.scripture, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance", opacity: i === 0 ? verseTextOpacity(frame, 10, 20, synchronized) : 1 }}>
+                <div style={{ direction: "rtl", fontFamily: fontFamilies.quran, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance", opacity: i === 0 ? verseTextOpacity(frame, 10, 20, synchronized) : 1 }}>
                   {i === 0 ? <span style={{ color: HZ.sand }}>﴿ </span> : null}{page}{i === n - 1 ? <span style={{ color: HZ.sand }}> ﴾</span> : null}
                 </div>
               )} />
           ) : (
-          <div style={{ direction: "rtl", fontFamily: fontFamilies.scripture, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance" }}>
+          <div style={{ direction: "rtl", fontFamily: fontFamilies.quran, fontSize: verseSize, lineHeight: verseFit < 0.8 ? 1.75 : 1.95, textAlign: "center", color: HZ.ink, textWrap: "balance" }}>
             <span style={{ color: HZ.sand, opacity: verseTextOpacity(frame, 10, 14, synchronized) }}>﴿</span>{" "}
             {chunks.map((c, i) => {
               const at = start + i * step;
@@ -162,7 +165,9 @@ export const VerseCard: React.FC<VerseCardProps> = (props) => {
 };
 
 const VerseCardClassic: React.FC<VerseCardProps> = (props) => {
-  const { themeId, orientation, text, reference, reciter, meaning, meaningSource } = props;
+  const { themeId, orientation, text: rawText, reference, reciter, meaning, meaningSource } = props;
+  // D221: علامات الوقف فوق آخر الكلمة التي قبلها (العرض وحده؛ النص المحفوظ كما هو)
+  const text = quranDisplay(rawText);
   const frame = useSceneFrame();
   const baseVerse = useSize("verse", orientation);
   const refSize = useSize("reference", orientation);
@@ -226,7 +231,7 @@ const VerseCardClassic: React.FC<VerseCardProps> = (props) => {
             style={{
               /** الآية عربية دائمًا: تبقى من اليمين لليسار حتى في الحلقات التركية والإنجليزية. */
               direction: "rtl",
-              fontFamily: fontFamilies.scripture,
+              fontFamily: fontFamilies.quran,
               fontSize: verseSize,
               lineHeight: verseFit < 0.8 ? 1.75 : 1.9,
               textAlign: "center",
@@ -283,7 +288,9 @@ export const inkVerseReference = (reference: string): string =>
 export const INK_WIDE_ROOM = 50;
 
 const VerseInk: React.FC<VerseCardProps> = (props) => {
-  const { orientation, text, reference, reciter } = props;
+  const { orientation, text: rawText, reference, reciter } = props;
+  // D221: علامات الوقف فوق آخر الكلمة التي قبلها (العرض وحده؛ النص المحفوظ كما هو)
+  const text = quranDisplay(rawText);
   const frame = useSceneFrame();
   const baseVerse = useSize("verse", orientation);
   const refSize = useSize("reference", orientation);
@@ -326,7 +333,7 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
                 <div style={{ fontWeight: 400, fontSize: Math.round(refSize * 0.9), color: c.inkSoft }}>البطاقة غير مكتملة ولا تُعتمد — اجلب نصوص الآيات ثم أعد المعاينة</div>
               </div>
             ) : (
-              <div style={{ fontFamily: fontFamilies.scripture, fontSize: wSize, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: 1400, width: wide.pages.length > 1 ? "100%" : undefined }}>
+              <div style={{ fontFamily: fontFamilies.quran, fontSize: wSize, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: 1400, width: wide.pages.length > 1 ? "100%" : undefined }}>
                 <PagedVerse pages={wide.pages} frame={frame} start={0}
                   span={props.recitationDuration && props.recitationDuration > 0 ? props.recitationDuration * config.video.fps : durationInFrames * 0.85}
                   wrap={(page) => page} />
@@ -355,7 +362,7 @@ const VerseInk: React.FC<VerseCardProps> = (props) => {
             <div style={{ fontWeight: 400, fontSize: Math.round(refSize * 0.9), color: c.inkSoft }}>البطاقة غير مكتملة ولا تُعتمد — اجلب نصوص الآيات ثم أعد المعاينة</div>
           </div>
         ) : (
-          <div style={{ fontFamily: fontFamilies.scripture, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: portrait ? 900 : 1400, width: pages.length > 1 ? "100%" : undefined }}>
+          <div style={{ fontFamily: fontFamilies.quran, fontSize: size, lineHeight: 1.9, color: c.ink, textAlign: "center", direction: "rtl", textWrap: "balance", maxWidth: portrait ? 900 : 1400, width: pages.length > 1 ? "100%" : undefined }}>
             <PagedVerse pages={pages} frame={frame} start={0}
               span={props.recitationDuration && props.recitationDuration > 0 ? props.recitationDuration * config.video.fps : durationInFrames * 0.85}
               wrap={(page) => page} />
