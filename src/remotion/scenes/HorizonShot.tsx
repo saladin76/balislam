@@ -68,8 +68,8 @@ export class ShotGuard extends React.Component<{ fallback: React.ReactNode; rese
 
 /** D214: ساعة الرسم المرئية — أزمنة الكلمات والجمل ونهاية المشهد والخروج منقولة إلى الزمن الفعّال (يقف داخل نوافذ السكون) */
 /** D217: وضع الكاميرا الحية يعود إلى الإطار الأول (s=1، بلا إزاحة) في الثانية التي قبل بطاقة الآية ويبقى فيه */
-export const settlePose = <P extends { s: number; x: number; y: number; bg: number }>(pose: P, t: number, at: number): P => {
-  const k = prog(t, at - VERSE_SETTLE, at - 0.05);
+export const settlePose = <P extends { s: number; x: number; y: number; bg: number }>(pose: P, t: number, w: readonly [number, number]): P => {
+  const k = prog(t, w[0] - VERSE_SETTLE, w[0] - 0.05) * (1 - prog(t, w[1], w[1] + VERSE_SETTLE));
   return { ...pose, s: pose.s + (1 - pose.s) * k, x: pose.x * (1 - k), y: pose.y * (1 - k), bg: pose.bg * (1 - k) };
 };
 
@@ -107,7 +107,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
     : tl.words.length && !meta.minEnd ? Math.max(lastWord, vw ? vw[1] : 0) : undefined;
   const pr = props as unknown as Record<string, string | undefined>;
   // D214/D217: الآية ساكنة كاملة — بطاقتها تظهر كاملة لحظة نافذتها وتختفي دفعة واحدة قبل الخروج (لا تلاشٍ ولا جزء منها)
-  const verseShow = vw && t >= vw[0] - 0.05 && t < Math.max(dur - 0.45, vw[1]) ? 1 : 0;
+  const verseShow = vw && t >= vw[0] - 0.05 && t < vw[1] ? 1 : 0;
   // الكاميرا الحية (breath.ts): إعادة تأطير عند كل عبارة، ورجوع إلى الإطار الأول قبل القطع، وخلفية أبطأ بعكسه، والسكون المقصود ثابت
   const breath = React.useMemo(() => {
     const wins = breathStill(tl, dur, meta.still === "dhikr", vw);
@@ -118,7 +118,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   // الانجراف الدائم بالزمن الفعّال (يسكن في السكون المقصود)، ولا انجراف في مشهد ساكن كله
   const live = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
   // D217: والكاميرا الحية أيضًا تعود إلى الإطار الأول قبل بطاقة الآية وتثبت عليه طوال ظهورها (لا آية مقطوعة أبدًا)
-  const cam = vw ? settlePose(live, t, vw[0]) : live;
+  const cam = vw ? settlePose(live, t, vw) : live;
   // D217: المشهد يرتفع في الإطار الأفقي فيبقى شريط الترجمة لها وحدها، والدفتر يعرف وضع الكاميرا الحية الفعلي فيقيّد تأطيره
   const lift = props.orientation === "portrait" ? 0 : SAFE_LIFT;
   const pageHead = React.useMemo(() => (pr.pageHead?.trim() && !/الله|لله/.test(pr.pageHead) ? { text: pr.pageHead.trim(), side: pr.pageHeadSide === "r" ? "r" as const : "l" as const, y: Number(pr.pageHeadY) || 190 } : null), [pr.pageHead, pr.pageHeadSide, pr.pageHeadY]);

@@ -66,7 +66,7 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
       if (props.verseText && props.verseKey && voiced.words?.length) {
         try {
           const vw = verseWindow(props, timelineFromWords(hzSentences(scene.narration), voiced.words.map((w) => ({ word: w.word, start: w.start, end: w.end })), 0));
-          if (vw) return Math.max(MIN_SECONDS, base, vw[1] + 0.9);
+          if (vw) return Math.max(MIN_SECONDS, base, vw[1] + 0.3);
         } catch {
           // عدد الكلمات مختلف: يبقى الحساب أدناه
         }

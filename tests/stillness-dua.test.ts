@@ -55,12 +55,12 @@ describe("السكون المقصود: زمن قراءة الاستشهاد ال
   it("ولا يُستثنى شيء في المشهد نفسه بلا آية معروضة", () => {
     expect(intendedStillness(scene({}), 0)).toEqual([]);
   });
-  it("النافذة تنتهي بنهاية زمن قراءة الآية لا بنهاية المشهد، ولا تشمل ما قبل آخر كلمة", () => {
+  it("D219: النافذة هي ظهور البطاقة نفسه (من كلمتها، داخل كلام الراوي)، لا ما بعد آخر كلمة ولا المشهد كله", () => {
     const spans = intendedStillness(scene({ verseKey: "2:35", verseText: "نص", verseFrom: "وخلق" }), 0).filter((x) => x.why === "آية");
     expect(spans).toHaveLength(1);
-    // آية من كلمة واحدة: زمن القراءة 5 ث من «وخلق» (أول كلمة)؛ والمشهد 9 ث
+    // آية من كلمة واحدة: زمن القراءة 5 ث من «وخلق» (أول كلمة)، والكلام أقصر منها فتنتهي بعد آخر كلمة بـ ٠٫٨ ث على الأكثر؛ والمشهد 9 ث
+    expect(spans[0]!.from).toBeLessThan(1);
     expect(spans[0]!.to).toBeLessThan(6);
-    expect(spans[0]!.from).toBeGreaterThan(1);
   });
   it("لا يمس القوالب الأخرى ولا لقطة غير مسجلة، ولو حملت verseText", () => {
     for (const [template, shot] of [["alley-tale", "permit"], ["kinetic-text", "permit"], ["horizon-shot", "لا-توجد"]]) {

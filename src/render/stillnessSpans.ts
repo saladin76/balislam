@@ -84,9 +84,9 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
             }
           }
           const vw = verseWindow(s.props as Record<string, string | undefined>, tl);
-          const lastWord = voiced ? words[words.length - 1]!.end / 30 : tl.end;
+          // D219: نافذة الآية نفسها (ظهور البطاقة قدر قراءتها والراوي يكمل) سكون مقصود كلها
           if (vw) {
-            const from = t + lastWord;
+            const from = t + vw[0];
             const to = t + Math.min(d, vw[1]);
             if (to - from > 0.5) spans.push({ from, to, why: "آية" });
           }
