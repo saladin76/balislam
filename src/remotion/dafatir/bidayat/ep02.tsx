@@ -131,9 +131,9 @@ const WorldDark = reverent((q) => {
       <Ring x={600} y={430} r={22} p={fam} w={4} />
       {light > 0 ? <circle cx={mix(900, 640, light)} cy={mix(250, 380, light)} r={14} fill={C.gold} opacity={light} /> : null}
       <g opacity={counter}>
-        <rect x={380} y={710} width={360} height={110} rx={10} fill={C.page} stroke={C.ink} strokeWidth={4} />
-        <Write id="b2w-c" x={560} y={760} size={34} p={ctext} label="في هذه الحلقة:" font="tajawal" />
-        <Seal x={560} y={790} q={seal} kind="لا نعلم" s={0.5} />
+        <rect x={380} y={700} width={360} height={170} rx={10} fill={C.page} stroke={C.ink} strokeWidth={4} />
+        <Write id="b2w-c" x={560} y={745} size={34} p={ctext} label="في هذه الحلقة:" font="tajawal" />
+        <Seal x={560} y={815} q={seal} kind="لا نعلم" s={0.5} />
       </g>
     </g>
   );
@@ -209,8 +209,8 @@ const OfferingsShot = reverent((q) => {
         <Ink d="M-26 0 L-8 18 L28 -20" p={yes} w={7} c={C.ink} />
       </g>
       <Ring x={STONE_L} y={812} r={22 * (1 + 0.25 * flashN)} p={no} w={5} />
-      <Q x={960} y={430} size={120} q={qm} />
-      <Seal x={960} y={330} q={seal} kind="لا نعلم" s={0.6} />
+      <Q x={1160} y={470} size={120} q={qm} />
+      <Seal x={1160} y={330} q={seal} kind="لا نعلم" s={0.6} />
     </g>
   );
   return <Leaf q={q} id="b2o" cam={cam} L={both} R={both} />;
@@ -581,7 +581,8 @@ const ThreadKnot = reverent((q) => {
   const tie3 = k.on(3, "نعقده", 0.8);
   const name3 = S === 3 ? k.draw(3, "الأجيال", 0.9) : 0;
   const r = rng(52);
-  const dots = Array.from({ length: 26 }, () => [mix(1100, 220, r()), 560 + (r() > 0.5 ? 1 : -1) * (40 + r() * 110)] as const);
+  // النقاط بعيدة عن الخيط وعن أسماء العقد تحته
+  const dots = Array.from({ length: 26 }, () => [mix(1100, 220, r()), 560 + (r() > 0.35 ? -1 : 1) * (110 + r() * 150)] as const).map(([x, y]) => [x, y > 560 ? y + 60 : y] as const);
   const cam = k.cam({ cx: 1300, cy: 560, s: 1.35 }, [
     [1, "ومضت", { cx: 860, cy: 560, s: 1.05 }, 1.4],
     [2, "الأجيال", { cx: 560, cy: 520, s: 1.3 }, 1.0],
@@ -723,4 +724,4 @@ export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
 };
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */
-export const BD02_STILLS: Record<string, string> = {};
+export const BD02_STILLS: Record<string, string> = { "bd02-crow": "c1-s38" };

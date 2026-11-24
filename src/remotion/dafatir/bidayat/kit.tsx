@@ -146,10 +146,17 @@ export type Cue = ReturnType<typeof cueKit>;
 /** ظهور ناعم عند a */
 export const pop = (t: number, a: number, d = 0.45) => prog(t, a - 0.05, a - 0.05 + d, easeOut);
 
+/** صورة المراجعة الثابتة (أداة الصور للمالك): الدفتر كله بلا تأطير الكاميرا، فيُرى التكوين كاملًا. لا أثر له في الرندر */
+export const StillViewContext = React.createContext(false);
+
 /** دفتر اللقطة: رأس الفصل إن وُجد في الحقول، والصفحتان، والكاميرا */
-export const Leaf: React.FC<{ q: BdProps; id: string; cam: Cam; L?: React.ReactNode; R?: React.ReactNode; top?: React.ReactNode; over?: React.ReactNode; tintL?: string; light?: number }> = ({ q, id, cam, L, R, top, over, tintL, light }) => (
-  <Book id={id} t={q.t} dur={q.dur} exit={q.exit} from={q.from} cam={cam} L={L} R={<g>{q.p.head ? <ChapterHead label={q.p.head} /> : null}{R}</g>} top={top} over={over} tintL={tintL} light={light} />
-);
+const LeafBook: React.FC<{ q: BdProps; id: string; cam: Cam; L?: React.ReactNode; R?: React.ReactNode; top?: React.ReactNode; over?: React.ReactNode; tintL?: string; light?: number }> = ({ q, id, cam, L, R, top, over, tintL, light }) => {
+  const still = React.useContext(StillViewContext);
+  return (
+    <Book id={id} t={q.t} dur={q.dur} exit={q.exit} from={still ? undefined : q.from} cam={still ? NEUTRAL : cam} L={L} R={<g>{q.p.head ? <ChapterHead label={q.p.head} /> : null}{R}</g>} top={top} over={over} tintL={tintL} light={light} />
+  );
+};
+export const Leaf = LeafBook;
 
 // ───────────────────────── نصوص ─────────────────────────
 
