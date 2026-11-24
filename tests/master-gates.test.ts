@@ -2,6 +2,7 @@
  * بوابات النسخة النهائية: كل حالة تستوجب المنع تمنع فعلًا، والحالة السليمة تمر.
  * حلقة صغيرة مصطنعة لقناة «دفاتر الزمن» (لها قارئ): جملة واحدة وآية واحدة.
  */
+import { tanzilAyah } from "../src/quran/tanzil";
 import { mkdtemp, mkdir, writeFile, rm } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import os from "node:os";
@@ -47,7 +48,7 @@ const fresh = async () => {
   const scriptPath = path.join(dir, "script.md");
   await writeFile(scriptPath, SCRIPT);
   const parsed = parseScript(SCRIPT, scriptPath);
-  const plan = generatePlan(parsed, null, { "2:30": "نص الآية للاختبار" }, channel) as Plan;
+  const plan = generatePlan(parsed, null, { "2:30": tanzilAyah(2, 30)! }, channel) as Plan;
   const scenes = plan.chapters.flatMap((c) => c.scenes);
   const spoken = scenes.find((s) => s.narration.trim())!;
   const verse = scenes.find((s) => s.template === "verse-card")!;
@@ -60,7 +61,7 @@ const fresh = async () => {
     voice: { [spoken.id]: { file: "a.mp3", text: spoken.narration.trim(), duration: 3, words: [] } },
     recitations: { [verse.ayahKey!]: { file: "r.mp3", duration: 6, source: "manual" as const } },
   };
-  for (const s of scenes) if (s.template === "verse-card") s.props.text = "نص الآية للاختبار";
+  for (const s of scenes) if (s.template === "verse-card") s.props.text = tanzilAyah(2, 30)!; // D220: نص المصدر نفسه
   // المشهد المنطوق بقالب لا يحتاج صورة (القالب الافتراضي للقناة لوحة وثائقية تحتاج صورة)
   spoken.tone = "documentary";
   spoken.template = "noor-text";

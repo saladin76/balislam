@@ -75,7 +75,9 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
   const checked = checkForChannel(parsed);
   if (!checked.ok) throw new Error("السكريبت غير صالح للرندر النهائي؛ راجع تبويب السكريبت وفحوصه.");
-  const errors = planIssues(plan, o.channel).filter((issue) => issue.level === "error");
+  // D220: نص كل آية معروضة يطابق Tanzil بالرسم العثماني حرفًا حرفًا
+  const { verseSourceIssues } = await import("../quran/verseSourceIssues");
+  const errors = [...planIssues(plan, o.channel), ...verseSourceIssues(plan)].filter((issue) => issue.level === "error");
   if (errors.length) throw new Error(`خطة الحلقة بها أخطاء تمنع النشر: ${errors.slice(0, 5).map((issue) => issue.message).join("؛ ")}`);
   // Citations are documentation and never block (CLAUDE.md rule 5; owner decision 10 Nov): the count is
   // shown in step ١ and step ٣ as information only, never a Master, publish or Drive gate.

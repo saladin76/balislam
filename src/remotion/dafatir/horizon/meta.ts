@@ -102,9 +102,9 @@ export const verseWindow = (props: Record<string, string | undefined>, tl: Timel
 /**
  * زمن قراءة نص آية معروض والراوي مستمر (المراجعة 031): ثانيتان لإيجاد البطاقة وقراءة مرجعها، ثم نصف ثانية لكل كلمة
  * (قراءة متأنية لنص مشكول، نحو 120 كلمة في الدقيقة، أبطأ من القراءة الحرة لأن المشاهد يسمع الراوي في الوقت نفسه)،
- * وخمس ثوانٍ على الأقل. البطاقة تبقى بعده حتى نهاية المشهد.
+ * وخمس ثوانٍ على الأقل. البطاقة تبقى بعده حتى نهاية المشهد. علامة الوقف المنفصلة في الرسم العثماني (ۖ ۗ ۚ، D220) ليست كلمة.
  */
-export const verseReadSeconds = (text: string) => Math.max(5, 2 + 0.5 * text.trim().split(/\s+/).filter(Boolean).length);
+export const verseReadSeconds = (text: string) => Math.max(5, 2 + 0.5 * text.trim().split(/\s+/).filter((w) => /\p{L}/u.test(w)).length);
 
 export const hzEstimateSeconds = (narration: string, shot: string, props: Record<string, string | undefined> = {}) => {
   const m = HZ_META[shot];

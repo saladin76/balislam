@@ -812,12 +812,17 @@ const Warning: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
 // ثم قوس ذهبي فوقه عند «فتاب عليه»؛ وختم السورة على اليمنى لحظة ذكرها. السكون على «الله» و«ربه» وحدهما.
 const Received: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const seal = pop(t, at(tl, "البقرة"));
-  const line = prog(t, at(tl, "آدم") - 0.1, at(tl, "تلقى") + 0.5, easeOut);
-  const words = [0, 1, 2].map((i) => prog(t, at(tl, "كلمات") - 0.05 + i * 0.22, at(tl, "كلمات") + 0.45 + i * 0.22, easeOut));
+  // توقير: لا حركة من قبل «الله» و«ربه» بربع ثانية إلى ما بعدهما بربع ثانية (اختبار horizon-sacred)
+  const afterGod = end(tl, "الله") + 0.27;
+  const beforeRabb = at(tl, "ربه") - 0.27;
+  const afterRabb = end(tl, "ربه") + 0.27;
+  const line = prog(t, Math.max(at(tl, "آدم") - 0.1, afterGod), Math.min(at(tl, "تلقى") + 0.5, beforeRabb), easeOut);
+  const w0 = Math.max(at(tl, "كلمات") - 0.05, afterRabb);
+  const words = [0, 1, 2].map((i) => prog(t, w0 + i * 0.22, w0 + 0.5 + i * 0.22, easeOut));
   const arc = prog(t, at(tl, "فتاب") - 0.05, end(tl, "عليه") + 0.3, easeOut);
   const glow = prog(t, at(tl, "فتاب"), end(tl, "عليه") + 0.6);
   const cam = camPath(t, NEUTRAL, [
-    { a: at(tl, "آدم") - 0.2, b: at(tl, "تلقى") + 0.4, cx: 640, cy: 520, s: 1.12 },
+    { a: Math.max(at(tl, "آدم") - 0.2, afterGod), b: Math.min(at(tl, "تلقى") + 0.4, beforeRabb), cx: 640, cy: 520, s: 1.12 },
     { a: at(tl, "فتاب") - 0.2, b: end(tl, "عليه") + 0.2, cx: 600, cy: 470, s: 1.18 },
   ]);
   const L = (

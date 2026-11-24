@@ -9,8 +9,8 @@
  * ever planned for a verse. `tests/quran-tts-guard.test.ts` enumerates the call sites.
  *
  * Refused: a verse scene (template verse-card or an ayahKey), any ﴿ ﴾ bracket or [آية …] marker, and any
- * run of five consecutive words of a known verse of the episode (tashkeel, tatweel, punctuation and alef
- * forms ignored), and the basmala anywhere in the text (owner decision 10 Nov, src/voice/basmala.ts). Context (previous_text / next_text) is never refused: the Quran spans are cut out of it
+ * run of five consecutive words of a known verse of the episode (tashkeel, tatweel, punctuation and every
+ * alef ignored, so imla'i narration still matches an Uthmani verse, D220), and the basmala anywhere in the text (owner decision 10 Nov, src/voice/basmala.ts). Context (previous_text / next_text) is never refused: the Quran spans are cut out of it
  * and a context made only of Quran becomes undefined, so a verse is not even sent as context.
  */
 
@@ -34,10 +34,12 @@ const MARKER = /\[\s*(?:آية|ايه|آيه|اية|ayah|verse)/iu;
 /** ﴿…﴾ (also an unclosed ﴿… to the end) and [آية …] markers */
 const SPANS = /﴿[^﴾]*(?:﴾|$)|[^﴿]*﴾|\[\s*(?:آية|ايه|آيه|اية|ayah|verse)[^\]]*\]?/giu;
 
+// D220: الآيات المعروضة صارت بالرسم العثماني (Tanzil) والراوي يكتب بالإملائي؛ الرسم العثماني يحذف ألفات يكتبها الإملائي
+// (ٱلْعَـٰلَمِينَ/العالمين، لِلْمَلَـٰٓئِكَةِ/للملائكة)، فتُحذف الألف بكل صورها من الطرفين لتبقى الكلمات الخمس تُعرف بالرسمين
 const norm = (w: string) =>
   w.normalize("NFKC")
     .replace(/[ً-ٰٟـۖ-ۭ]/g, "")
-    .replace(/[أإآٱ]/g, "ا")
+    .replace(/[اأإآٱ]/g, "")
     .replace(/ى/g, "ي")
     .replace(/ة/g, "ه")
     .replace(/[^\p{L}\p{N}]/gu, "");

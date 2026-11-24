@@ -174,7 +174,9 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
         const surah = r.ok ? surahNameFor(r.ref.surah, L.code) : "";
         const ayahs = r.ok ? `${digits(r.ref.from)}${r.ref.to !== r.ref.from ? `–${digits(r.ref.to)}` : ""}` : "";
         // العربية: «النجم · ٣٩»، وغيرها: «An-Najm · 53:39»
-        const reference = !r.ok ? b.ref : L.code === "ar" ? `${surah} · ${ayahs}` : `${surah} · ${r.ref.surah}:${ayahs}`;
+        // D222: جزء آية طويلة جدًا يقول المرجع إنه جزء
+        const part = r.ok && r.ref.partial ? (L.code === "ar" ? " (جزء)" : " (part)") : "";
+        const reference = !r.ok ? b.ref : L.code === "ar" ? `${surah} · ${ayahs}${part}` : `${surah} · ${r.ref.surah}:${ayahs}${part}`;
         push({
           template: "verse-card",
           narration: "",
@@ -184,6 +186,7 @@ export const generatePlan = (parsed: ParsedScript, previous?: Plan | null, quran
             text: (key && quran[key]) || VERSE_PLACEHOLDER,
             reference,
             reciter: reciterFor(key),
+            ...(r.ok && r.ref.partial ? { partial: "1" } : {}),
             ...(key && quran[`${key}#meaning`] ? {
               meaning: quran[`${key}#meaning`],
               ...(quran[`${key}#meaningSource`] ? { meaningSource: quran[`${key}#meaningSource`] } : {}),
