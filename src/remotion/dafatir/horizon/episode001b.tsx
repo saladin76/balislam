@@ -452,11 +452,12 @@ const Sort: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
   const jinn = pop(t, at(tl, "الجن"));
   const tag = pop(t, at(tl, "إبليس"));
   const toA = prog(t, at(tl, "يكن") - 0.1, at(tl, "الملائكة") + 0.2, easeOut);
-  const blocked = prog(t, at(tl, "الملائكة") + 0.1, end(tl, "الملائكة") + 0.3);
+  // D217 (ملاحظة المالك على v15): لا علامة ✗ على «الملائكة»؛ سهم من «إبليس» خارج دائرتهم إلى دائرة الجن
+  const arrow = prog(t, end(tl, "الملائكة") + 0.05, at(tl, "بل") + 0.2) * (1 - prog(t, end(tl, "الجن"), end(tl, "الجن") + 0.4));
   const toJ = prog(t, at(tl, "بل") - 0.05, end(tl, "الجن") + 0.1, easeOut);
   const seal = pop(t, at(tl, "الكهف"));
-  // موضع الكلمة: من الوسط إلى حافة دائرة الملائكة (ترتد)، ثم إلى قلب دائرة الجن
-  const bx = mix(mix(960, 1170, toA) - 60 * blocked, 560, toJ);
+  // موضع الكلمة: من الوسط إلى جوار دائرة الملائكة (خارجها، لا تدخلها)، ثم إلى قلب دائرة الجن
+  const bx = mix(mix(960, 1010, toA), 560, toJ);
   const by = mix(300, 520, Math.max(toA * 0.4, toJ));
   const tagEl = (
     <g opacity={tag} transform={`translate(${bx} ${by})`}>
@@ -477,7 +478,6 @@ const Sort: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
       <Word x={1365} y={540} size={56} p={angels} color={C.ink}>
         الملائكة
       </Word>
-      <Ink d="M1150 380 L1230 470 M1230 380 L1150 470" w={6} p={blocked} c={C.ribbon} />
       {tagEl}
     </g>
   );
@@ -488,6 +488,8 @@ const Sort: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
         الجن
       </Word>
       <QuranSeal x={300} y={250} o={seal} s={0.85} refText="الكهف ٥٠" />
+      {/* سهم متقطع من «إبليس» (خارج دائرة الملائكة) إلى دائرة الجن */}
+      <Ink d="M905 400 C 860 405 830 425 812 455 M812 455 l 2 -22 M812 455 l 18 -12" w={3.5} p={arrow} c={C.inkSoft} />
       {tagEl}
     </g>
   );
@@ -804,7 +806,42 @@ const Warning: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   );
 };
 
+
+// ─── c1-s34 (D217، ملاحظة المالك على v15: صفحة فارغة ٩ ثوانٍ): «تلقى آدم من ربه كلمات، فتاب عليه» ───
+// خيط آدم العائد يُرسم صاعدًا على اليسرى، وتنزل عليه ثلاثة أسطر حبر مجردة (كلمات بلا حروف مخترعة) لحظة «كلمات»،
+// ثم قوس ذهبي فوقه عند «فتاب عليه»؛ وختم السورة على اليمنى لحظة ذكرها. السكون على «الله» و«ربه» وحدهما.
+const Received: React.FC<HzProps> = ({ t, tl, dur, exit }) => {
+  const seal = pop(t, at(tl, "البقرة"));
+  const line = prog(t, at(tl, "آدم") - 0.1, at(tl, "تلقى") + 0.5, easeOut);
+  const words = [0, 1, 2].map((i) => prog(t, at(tl, "كلمات") - 0.05 + i * 0.22, at(tl, "كلمات") + 0.45 + i * 0.22, easeOut));
+  const arc = prog(t, at(tl, "فتاب") - 0.05, end(tl, "عليه") + 0.3, easeOut);
+  const glow = prog(t, at(tl, "فتاب"), end(tl, "عليه") + 0.6);
+  const cam = camPath(t, NEUTRAL, [
+    { a: at(tl, "آدم") - 0.2, b: at(tl, "تلقى") + 0.4, cx: 640, cy: 520, s: 1.12 },
+    { a: at(tl, "فتاب") - 0.2, b: end(tl, "عليه") + 0.2, cx: 600, cy: 470, s: 1.18 },
+  ]);
+  const L = (
+    <g>
+      <circle cx={560} cy={430} r={150} fill={C.gold} opacity={0.16 * glow} />
+      <Ink d="M300 760 C 380 760 430 720 470 660 C 510 600 540 540 560 470" w={6} p={line} c={C.ribbon} />
+      {[0, 1, 2].map((i) => (
+        <g key={i} opacity={words[i]} transform={`translate(0 ${-14 * (1 - words[i]!)})`}>
+          <Ink d={`M${470 - i * 18} ${330 + i * 34} C ${520 - i * 18} ${324 + i * 34} ${590 - i * 18} ${336 + i * 34} ${650 - i * 18} ${330 + i * 34}`} w={4} p={words[i]!} c={C.ink} />
+        </g>
+      ))}
+      <Ink d="M440 470 C 470 380 650 380 680 470" w={4.5} p={arc} c={C.gold} />
+    </g>
+  );
+  const R = (
+    <g>
+      <QuranSeal x={1360} y={300} o={seal} s={0.9} refText="البقرة ٣٧" />
+    </g>
+  );
+  return <Book id="c434" t={t} dur={dur} exit={exit} cam={cam} L={L} R={R} />;
+};
+
 export const HZ_SCENES_B: Record<string, React.FC<HzProps>> = {
+  received: Received,
   clay: Clay,
   steps: Steps,
   catalog: Catalog,

@@ -21,7 +21,7 @@ export const LIB_META: Record<string, HzMeta> = {
 };
 
 /** إمساك القراءة بعد اكتمال كتابة المصطلح قبل بدء الخروج (الأمر 019، L1) */
-export const TERM_HOLD = 2.0;
+export const TERM_HOLD = 1.0;
 const EXIT_LEN: Record<string, number> = { turn: 1.0, fade: 0.8, none: 0 };
 const firstWord = (s?: string) => (s ?? "").trim().split(/\s+/)[0] ?? "";
 const letters = (s: string) => s.replace(/[\u064B-\u0652\u0670\u0640\s]/g, "").length;

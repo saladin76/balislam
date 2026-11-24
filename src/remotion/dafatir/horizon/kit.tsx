@@ -274,6 +274,36 @@ export const verseRef = (key: string) => {
  * يوفّره HorizonShot لمشهد فيه verseKey/verseText/verseFrom.
  */
 export const VersePageContext = React.createContext<React.ReactNode>(null);
+/**
+ * D217 (ملاحظة المالك: الترجمة تقع فوق نص الآية أو فوق ما يُكتب، خاصة أثناء تنقل الكاميرا): منطقة آمنة للترجمة لا يدخلها نص المشهد.
+ * أسفل نص الصفحة في عالم الدفتر CONTENT_BOTTOM، وأعلى شريط الترجمة على الشاشة CAPTION_TOP؛ والمشهد كله يرتفع SAFE_LIFT في الإطار الأفقي،
+ * وكاميرا الدفتر تُقيَّد إطارًا إطارًا (captionSafeCam) بوضع الكاميرا الحية الفعلي فلا ينزل نص تحت CAPTION_TOP أبدًا.
+ */
+export const CONTENT_BOTTOM = 900;
+export const CAPTION_TOP = 880;
+export const SAFE_LIFT = 40;
+/** وضع الكاميرا الحية الفعلي (تكبيرها وإزاحتها الرأسية بعد الرفع) يمرّ إلى الدفتر */
+export const LiveFrameContext = React.createContext<{ s: number; y: number } | null>(null);
+/** أقل cy لكاميرا الدفتر يُبقي CONTENT_BOTTOM فوق CAPTION_TOP: ((B − cy)·s)·ls + 540 + ly ≤ CAPTION_TOP */
+export const captionSafeCy = (s: number, live: { s: number; y: number }) => CONTENT_BOTTOM - (CAPTION_TOP - 540 - live.y) / (s * live.s);
+/** ارتفاع بطاقة الآية على الصفحة (تقدير بسخاء من طول النص، كما يرسمها VerseCard) */
+export const verseCardHeight = (text: string) => {
+  const len = text.length;
+  const font = len > 200 ? 38 : len > 120 ? 44 : 50;
+  const perLine = Math.floor((780 - 88) / (font * 0.42));
+  return 64 + Math.ceil(len / perLine) * font * 1.9 + 46;
+};
+/** مركز البطاقة الرأسي بعد قصّه: أسفلها لا ينزل تحت CONTENT_BOTTOM ولا أعلاها فوق الصفحة */
+export const verseCardY = (text: string, y = 510) => { const h = verseCardHeight(text); return Math.max(110 + h / 2, Math.min(y, CONTENT_BOTTOM - h / 2)); };
+
+/**
+ * D217 (ملاحظة المالك: «لا صفحة فارغة أثناء الكلام»): عنوان الصفحة pageHead من الخطة — كلمات قصيرة من معنى الجملة بالحبر أعلى صفحة
+ * (اليسرى افتراضيًا)، تصل مع الصفحة نفسها فلا تبدأ الجملة على صفحة بيضاء، ولا تتحرك في السكون. بلا لفظ الجلالة (توقير).
+ */
+export const PageHeadContext = React.createContext<{ text: string; side: "l" | "r"; y: number } | null>(null);
+
+/** D217: نافذة بطاقة الآية بالزمن المرئي للمشهد [ظهور، نهاية القراءة]: الدفتر يعود قبلها إلى الكادر العام فتبقى البطاقة كاملة في الإطار */
+export const VerseWindowContext = React.createContext<[number, number] | null>(null);
 
 /**
  * بطاقة نص الآية. «center» بطاقة الآية القديمة وسط الشاشة. «page» استشهاد بصري صامت (V9) على صفحة من الكتاب
@@ -285,7 +315,7 @@ export const VerseCard: React.FC<{ show: number; text: string; refKey: string; r
       {place === "page" ? null : <AbsoluteFill style={{ background: "rgba(13,10,20,0.28)", opacity: show }} />}
       <div
         style={{
-          ...(place === "page" ? { position: "absolute" as const, left: side === "r" ? 975 : 165, top: y, transform: `translateY(calc(-50% + ${(1 - show) * 18}px))` } : { position: "relative" as const }),
+          ...(place === "page" ? { position: "absolute" as const, left: side === "r" ? 975 : 165, top: verseCardY(text, y), transform: "translateY(-50%)" } : { position: "relative" as const }),
           // في الإطار الرأسي لا تتجاوز البطاقة عرض الشاشة (كانت تُقص عند الحافتين)
           width: place === "page" ? 780 : "min(1320px, calc(100% - 230px))",
           padding: place === "page" ? "36px 44px 28px" : "44px 64px 34px",
