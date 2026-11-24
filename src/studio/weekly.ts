@@ -99,10 +99,10 @@ export const reviewChannel = (c: ChannelWeek): ChannelReview => {
       if (!biggest || s.drop > biggest.drop) biggest = { episode: e.episode, title: e.title, from: s.from, to: s.to, drop: s.drop, sceneId: s.sceneId, sentence: s.sentence, early };
   }
   const hasData = ctr !== null || avgViewSec !== null || avgViewPct !== null || biggest !== null;
-  // تحسين واحد بالترتيب: الخطاف ← الغلاف والعنوان ← موضع أكبر تسرب ← الإيقاع
+  // تحسين واحد بالترتيب: البداية (بلا خطاف، D207) ← الغلاف والعنوان ← موضع أكبر تسرب ← الإيقاع
   let improvement: string;
   if (!hasData) improvement = "ارفع تصدير YouTube Studio للحلقة المنشورة («جدول البيانات» و«Audience retention») ليبدأ القياس.";
-  else if (biggest?.early) improvement = `الخطاف: أول ٣٠ ثانية في ${biggest.episode} تفقد ${Math.round(biggest.drop)} نقطة؛ أعد كتابة الجمل الأولى حتى ${clock(biggest.to)} (أكثر من ${EARLY_DROP_LIMIT}).`;
+  else if (biggest?.early) improvement = `البداية: أول ٣٠ ثانية في ${biggest.episode} تفقد ${Math.round(biggest.drop)} نقطة؛ وضّح الجمل الأولى في السكريبت حتى ${clock(biggest.to)} بشكلها الطبيعي بلا خطاف (أكثر من ${EARLY_DROP_LIMIT}).`;
   else if (ctr !== null && ctr < CTR_LOW) improvement = `الغلاف والعنوان: نسبة النقر ${ctr.toFixed(1)}٪ (أقل من ${CTR_LOW}٪)؛ جرّب غلافًا بعنصر واحد أقوى وسؤالًا أقصر.`;
   else if (biggest) improvement = `أكبر تسرب: ${biggest.episode} عند ${clock(biggest.from)}–${clock(biggest.to)} (−${Math.round(biggest.drop)} نقطة)${biggest.sceneId ? ` في ${biggest.sceneId}` : ""}؛ اختصر الموضع أو أضف حدثًا مرئيًا فيه.`;
   else if (avgViewPct !== null && avgViewPct < AVG_PCT_LOW) improvement = `الإيقاع: متوسط المشاهدة ${Math.round(avgViewPct)}٪ (أقل من ${AVG_PCT_LOW}٪)؛ قصّر المشاهد الطويلة بلا حدث.`;
