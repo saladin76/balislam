@@ -1,0 +1,48 @@
+{
+  "series": "family",
+  "stamp": {
+    "id": "family",
+    "name": "الأسرة والعلاقات",
+    "kind": "category",
+    "identity": {
+      "channel": "balislam",
+      "accent": "#B4532F",
+      "accentBase": "#B4532F",
+      "onAccent": "#EFE4D3",
+      "paper": "#EFE4D3",
+      "ink": "#0E1A2B",
+      "card": {
+        "bg": "#0E1A2B",
+        "ink": "#EFE4D3"
+      },
+      "motif": "arches",
+      "fonts": {
+        "heading": "El Messiri",
+        "body": "IBM Plex Sans Arabic",
+        "wordmark": "Readex Pro"
+      },
+      "title": {
+        "weight": "bold",
+        "size": "m",
+        "ornament": "rule"
+      },
+      "intro": "sting",
+      "thumbnail": {
+        "badge": "band"
+      },
+      "emblem": {
+        "base": "baa",
+        "parts": [
+          "baa"
+        ]
+      },
+      "clamped": []
+    },
+    "template": {
+      "script": {
+        "source": "channel"
+      }
+    },
+    "stampedAt": "2026-11-24T09:24:10.781Z"
+  }
+}

@@ -344,5 +344,52 @@
       ]
     }
   ],
-  "tone": "dramatic"
+  "tone": "dramatic",
+  "series": {
+    "id": "awwal-marra-osalli",
+    "name": "كتاب أول مرة أصلي",
+    "kind": "series",
+    "number": 1,
+    "identity": {
+      "channel": "zubdat-alkutub",
+      "accent": "#FF6B4A",
+      "accentBase": "#FF6B4A",
+      "onAccent": "#111111",
+      "paper": "#FFFFFF",
+      "ink": "#111111",
+      "card": {
+        "bg": "#FFFFFF",
+        "ink": "#111111"
+      },
+      "motif": "ruled",
+      "fonts": {
+        "heading": "Lalezar",
+        "body": "Tajawal",
+        "wordmark": "Lalezar"
+      },
+      "title": {
+        "weight": "bold",
+        "size": "m",
+        "ornament": "rule"
+      },
+      "intro": "sting",
+      "thumbnail": {
+        "badge": "band"
+      },
+      "emblem": {
+        "base": "highlighter-z",
+        "parts": [
+          "card"
+        ]
+      },
+      "clamped": []
+    },
+    "template": {
+      "intro": "sting",
+      "publish": {
+        "titlePattern": "{series} | الحلقة {n}: {title}"
+      }
+    },
+    "stampedAt": "2026-11-24T09:24:16.483Z"
+  }
 }

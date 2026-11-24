@@ -1,0 +1,31 @@
+{
+  "version": 1,
+  "id": "muqaddima",
+  "name": "مقدمة ابن خلدون",
+  "kind": "series",
+  "parent": "hadara",
+  "description": "سلسلة الكتاب: أجزاء من الطبعة المعتمدة (تُسجَّل في سجل الكتب)",
+  "order": 1,
+  "status": "active",
+  "identity": {
+    "accent": {
+      "base": "#111111"
+    },
+    "motif": "ruled",
+    "title": {
+      "weight": "bold",
+      "size": "m",
+      "ornament": "rule"
+    },
+    "intro": "sting",
+    "thumbnail": {
+      "badge": "band"
+    },
+    "emblem": {
+      "parts": [
+        "card"
+      ]
+    }
+  },
+  "template": {}
+}
