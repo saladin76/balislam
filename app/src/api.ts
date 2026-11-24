@@ -21,6 +21,7 @@ import type { QualityCard, CardTarget } from "../../src/studio/quality/card";
 import type { PreFinalWatchView } from "../../src/studio/preFinalApprove";
 import type { LibraryRead } from "../../src/library/libraryData";
 import type { Season, SeasonView } from "../../src/studio/seasons";
+import type { Stock, StockEpisodeView } from "../../src/studio/stock";
 import type { Book, Scholar } from "../../src/library/shared";
 export type { LibraryRead };
 export type QualityCardRead = QualityCard & { exists: boolean; measuring: boolean };
@@ -424,6 +425,12 @@ export const api = {
   /** مواسم السنة الهجرية (عمود «بالإسلام»، عاشرًا/٦) */
   seasons: () => call<{ today: string; seasons: SeasonView[]; issues: string[] }>("/api/seasons"),
   saveSeason: (season: Season) => call<{ ok: boolean }>(`/api/seasons/${season.id}`, { method: "PUT", json: { season } }),
+  // D213 بناء المخزون: «بانتظارك» (القنوات الثلاث) وترتيب النشر لكل قناة (ترتيب لا مواعيد)
+  stockAll: () => call<{ channels: StockOverview[] }>("/api/stock?all=1"),
+  stock: () => call<StockOverview>("/api/stock"),
+  saveStock: (stock: Stock) => call<{ ok: boolean; saved: Stock }>("/api/stock", { method: "PUT", json: { stock } }),
+  stockFile: (ch: string, ep: string, name: string) => call<{ name: string; text: string | null }>(`/api/stock/${ch}/${ep}/file?name=${encodeURIComponent(name)}`),
+  approveDraftScript: (ch: string, ep: string) => call<{ ok: boolean; at: string }>(`/api/stock/${ch}/${ep}/approve-script`, { method: "POST", json: {} }),
   saveSeries: (series: SeriesConfig) => call<{ ok: boolean; series: SeriesConfig; derived: DerivedSeriesIdentity }>(`/api/series/${series.id}`, { method: "PUT", json: { series } }),
   deleteSeries: (id: string) => call<{ ok: boolean }>(`/api/series/${id}`, { method: "DELETE" }),
   moveEpisodeToSeries: (id: string, episode: string) => call<{ ok: boolean }>(`/api/series/${id}/episodes`, { method: "POST", json: { episode } }),
@@ -579,3 +586,5 @@ export type SyncStatus = {
   lastSavedAt?: string; lastCommit?: string; lastUpdateAt?: string; updateNote?: string; restartNeeded?: boolean; supervised: boolean;
   restartPending?: boolean; lastCheckAt?: string; receiveError?: string; lastReceived?: ReceivedSummary;
 };
+
+export type StockOverview = { channel: string; frozen?: Stock["frozen"]; phase: number; views: StockEpisodeView[]; issues: string[] };
