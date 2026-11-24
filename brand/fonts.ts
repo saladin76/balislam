@@ -10,6 +10,8 @@ export const fontFamilies = {
   /** IBM Plex Sans (اللاتيني) احتياطي من نفس العائلة للحروف التركية التي لا تغطيها النسخة العربية: Ğ İ Ş */
   body: "var(--bal-body, 'IBM Plex Sans Arabic'), 'IBM Plex Sans Arabic', 'IBM Plex Sans', sans-serif",
   scripture: "'Amiri', serif",
+  /** D221: نص الآيات (الرسم العثماني من Tanzil، D220) بخط «Amiri Quran» (OFL 1.1، public/fonts/AmiriQuran-OFL.txt): علامات الوقف في مواضعها */
+  quran: "'Amiri Quran', 'Amiri', serif",
   wordmark: "var(--bal-wordmark, 'Readex Pro'), 'Readex Pro', sans-serif",
   /** خط اليد لقوالب السبورة: رقعة للعربية، وCaveat للاتينية */
   hand: "'Aref Ruqaa', 'Caveat', cursive",
@@ -40,6 +42,7 @@ export const fontFiles: FontFile[] = [
   { family: "IBM Plex Sans", file: "fonts/IBMPlexSans.ttf", weight: "100 700" },
   { family: "Amiri", file: "fonts/Amiri-Regular.ttf", weight: "400" },
   { family: "Amiri", file: "fonts/Amiri-Bold.ttf", weight: "700" },
+  { family: "Amiri Quran", file: "fonts/AmiriQuran.ttf", weight: "400 700" },
   { family: "Readex Pro", file: "fonts/ReadexPro.ttf", weight: "200 700" },
   { family: "Aref Ruqaa", file: "fonts/ArefRuqaa-Regular.ttf", weight: "400" },
   { family: "Aref Ruqaa", file: "fonts/ArefRuqaa-Bold.ttf", weight: "700" },

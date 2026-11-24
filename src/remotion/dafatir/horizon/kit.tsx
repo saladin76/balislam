@@ -2,6 +2,7 @@
  * أدوات «خط الأفق» لدفاتر الزمن: الألوان من لوحة الهوية المعتمدة «دفتر الأفق»، الدفتر المفتوح،
  * قلب الصفحة، رسم الحبر، الكاميرا، والترجمة. كل شيء بإحداثيات 1920×1080 (العالم قد يكون أكبر في بعض اللقطات).
  */
+import { quranDisplay } from "../../../quran/display";
 import React from "react";
 import { AbsoluteFill, Easing } from "remotion";
 
@@ -330,7 +331,7 @@ export const VerseCard: React.FC<{ show: number; text: string; refKey: string; r
           textAlign: "center",
         }}
       >
-        <div style={{ fontFamily: "'Amiri', serif", fontSize: place === "page" ? (text.length > 200 ? 38 : text.length > 120 ? 44 : 50) : text.length > 200 ? 54 : 62, lineHeight: place === "page" ? 1.9 : 2.05, color: C.inkText }}>{text}</div>
+        <div style={{ fontFamily: "'Amiri Quran', 'Amiri', serif", fontSize: place === "page" ? (text.length > 200 ? 38 : text.length > 120 ? 44 : 50) : text.length > 200 ? 54 : 62, lineHeight: place === "page" ? 1.9 : 2.05, color: C.inkText }}>{quranDisplay(text)}</div>
         <div style={{ marginTop: 18, fontFamily: "'Tajawal', sans-serif", fontWeight: 500, fontSize: 28, color: C.inkSoft }}>
           {/* بلا تلاوة (V9): المرجع وحده */}
           {reciter ? `${verseRef(refKey)} · بصوت ${reciter}` : verseRef(refKey)}
