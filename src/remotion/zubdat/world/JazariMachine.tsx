@@ -43,16 +43,45 @@ const SETUPS: Record<JazariShotId, [Setup, Setup]> = {
     { size: "wide", aperture: 0.006, from: { target: [0.4, 2.4, 0], yaw: 10, pitch: 6, dist: 10.0, fov: 34 }, to: { target: [0.2, 2.6, 0], yaw: 4, pitch: 8, dist: 9.4, fov: 34 } },
   ],
 };
+/**
+ * الطولي (شورت ٩:١٦): مجال الرؤية الأفقي أضيق بثلاث مرات، فزوايا الأفقي نفسها كانت تقع على الجدار وحده (الكادران الفارغان في
+ * v3، ملاحظة المالك): الحوض والقناة في الثانية من «القطر»، وأول «الذراع» الثانية. لكل لقطة زاويتان طوليتان: الهدف على الجزء
+ * نفسه، وانحراف أقل، ومسافة أبعد، فيبقى في الكادر جزآن من الآلة على الأقل طوال القطع (tests/jazari-machine.test.ts).
+ */
+const PORTRAIT_SETUPS: Record<JazariShotId, [Setup, Setup]> = {
+  drip: [
+    { size: "detail", aperture: 0.02, from: { target: [-3.1, 3.4, 0.05], yaw: 10, pitch: 24, dist: 4.6, fov: 30 }, to: { target: [-2.7, 3.0, 0.05], yaw: 4, pitch: 20, dist: 4.2, fov: 30 } },
+    { size: "detail", aperture: 0.02, from: { target: [-2.5, 2.5, 0.05], yaw: -6, pitch: 16, dist: 4.4, fov: 30 }, to: { target: [-2.4, 2.3, 0.05], yaw: -2, pitch: 14, dist: 4.0, fov: 30 } },
+  ],
+  lever: [
+    { size: "medium", aperture: 0.012, from: { target: [-1.6, 2.0, 0], yaw: -8, pitch: 10, dist: 6.6, fov: 32 }, to: { target: [-1.3, 2.0, 0], yaw: -3, pitch: 10, dist: 6.0, fov: 32 } },
+    { size: "medium", aperture: 0.012, from: { target: [-1.0, 1.9, 0], yaw: 8, pitch: 8, dist: 6.4, fov: 32 }, to: { target: [-1.2, 1.9, 0], yaw: 3, pitch: 9, dist: 5.8, fov: 32 } },
+  ],
+  gears: [
+    { size: "close", aperture: 0.018, from: { target: [1.0, 2.0, 0], yaw: 8, pitch: 4, dist: 4.6, fov: 32 }, to: { target: [1.8, 3.0, 0.1], yaw: 3, pitch: 2, dist: 5.0, fov: 32 } },
+    { size: "close", aperture: 0.018, from: { target: [1.0, 1.8, 0], yaw: -6, pitch: 6, dist: 4.4, fov: 32 }, to: { target: [1.1, 1.9, 0], yaw: -2, pitch: 5, dist: 4.0, fov: 32 } },
+  ],
+  machine: [
+    { size: "wide", aperture: 0.005, from: { target: [0, 2.6, 0], yaw: -6, pitch: 8, dist: 17.5, fov: 34 }, to: { target: [0, 2.6, 0], yaw: -3, pitch: 8, dist: 16.5, fov: 34 } },
+    { size: "wide", aperture: 0.005, from: { target: [0.2, 2.5, 0], yaw: 5, pitch: 6, dist: 17.0, fov: 34 }, to: { target: [0.1, 2.6, 0], yaw: 2, pitch: 8, dist: 16.0, fov: 34 } },
+  ],
+};
 export type JazariCut = Setup & { a: number; b: number };
-/** اللقطات داخل المشهد: لقطة واحدة إلى ٨ ث، وفوقها قطع متساوية (≤٧ ث) تتناوب بين زاويتي اللقطة */
-export const jazariCuts = (shot: JazariShotId, dur: number): JazariCut[] => {
+/** اللقطات داخل المشهد: لقطة واحدة إلى ٨ ث، وفوقها قطع متساوية (≤٧ ث) تتناوب بين زاويتي اللقطة؛ وللطولي زاويتاه */
+export const jazariCuts = (shot: JazariShotId, dur: number, portrait = false): JazariCut[] => {
   const n = dur <= 8 ? 1 : Math.ceil(dur / 7);
-  return Array.from({ length: n }, (_, i) => ({ ...SETUPS[shot][i % 2]!, a: (i * dur) / n, b: ((i + 1) * dur) / n }));
+  const set = (portrait ? PORTRAIT_SETUPS : SETUPS)[shot];
+  return Array.from({ length: n }, (_, i) => ({ ...set[i % 2]!, a: (i * dur) / n, b: ((i + 1) * dur) / n }));
+};
+/** مواضع أجزاء الآلة التي يجب أن يرى الكادر جزأين منها على الأقل (للاختبار) */
+export const JAZARI_KEY_POINTS: V3[] = [[-3.8, 3.95, 0], [-2.675, 3.215, 0], [-2.3, 1.65, 0], [-1.4, 1.65, 0], [0.6, 1.5, 0], [1.466, 2.0, 0], [2.4, 3.9, 0], [2.9, 2.0, 0]];
+export const jazariCamAt = (c: JazariCut, p: number): ShotCam => {
+  const L = (x: number, y: number) => x + (y - x) * p;
+  return { target: [L(c.from.target[0], c.to.target[0]), L(c.from.target[1], c.to.target[1]), L(c.from.target[2], c.to.target[2])] as V3, yaw: L(c.from.yaw, c.to.yaw), pitch: L(c.from.pitch, c.to.pitch), dist: L(c.from.dist, c.to.dist), fov: L(c.from.fov, c.to.fov) };
 };
 const camOf = (c: JazariCut, t: number, still: Window[]): CamState & { focus: number } => {
   const p = ease(span(effectiveTime(t, still), effectiveTime(c.a, still), Math.max(0.01, effectiveTime(c.b, still) - effectiveTime(c.a, still))));
-  const L = (x: number, y: number) => x + (y - x) * p;
-  const s = { target: [L(c.from.target[0], c.to.target[0]), L(c.from.target[1], c.to.target[1]), L(c.from.target[2], c.to.target[2])] as V3, yaw: L(c.from.yaw, c.to.yaw), pitch: L(c.from.pitch, c.to.pitch), dist: L(c.from.dist, c.to.dist), fov: L(c.from.fov, c.to.fov) };
+  const s = jazariCamAt(c, p);
   return { position: orbit(s), target: s.target, fov: s.fov, focus: s.dist };
 };
 
@@ -76,6 +105,14 @@ export const jazariTags = (parts?: string): MachineTags => {
 };
 
 const SFX = (f: string) => staticFile(`three/sfx/${f}.mp3`);
+/**
+ * ظل الترجمة في هذا العالم: الحبر الداكن على الورق بهالة ورقية ناعمة خفيفة لا حدّ فاتح صلب (الحد الفاتح الكثيف كان يجعل
+ * الحبر يُرى أبيض بحد داكن على الهاتف: ملاحظة المالك «حبر داكن على الورق البيج»)، والنص الفاتح على الخشب بحده الداكن كما هو.
+ */
+export const JAZARI_CAPTION_SHADOW = {
+  ink: "0 0 3px rgba(241,237,228,0.55), 0 0 10px rgba(241,237,228,0.45)",
+  light: CAPTION_TONES.light.textShadow,
+} as const;
 
 export const JazariMachine: React.FC<JazariMachineProps> = (props) => {
   const ready = useBrandFonts();
@@ -95,7 +132,7 @@ export const JazariMachine: React.FC<JazariMachineProps> = (props) => {
   const lever = -0.28 + prog("tip") * 0.5 + (tipE ? swing(t, tipE.b, 0.06, 1.8) * calm : 0);
   const turn = ev("turn") ? prog("turn") : prog("rise");
   const boardSway = turnE ? swing(t, turnE.b, 0.07, 1.3) * calm : 0;
-  const cuts = jazariCuts(shot, dur);
+  const cuts = jazariCuts(shot, dur, height > width);
   const cut = cuts.find((c) => t >= c.a && t < c.b) ?? cuts[cuts.length - 1]!;
   const cam = camOf(cut, t, still);
   const drip = ev("drip");
@@ -135,7 +172,7 @@ export const JazariMachine: React.FC<JazariMachineProps> = (props) => {
             <div style={{ opacity: line.fade, padding: `${CAPTION_GEOMETRY.padY}px ${CAPTION_GEOMETRY.padX}px`, fontFamily: "Tajawal", fontWeight: 500, fontSize: CAPTION_GEOMETRY.fontSize, lineHeight: `${CAPTION_GEOMETRY.lineHeight}px`, direction: "rtl", textAlign: "center" }}>
               {line.text.split(" ").filter(Boolean).map((w, i) => {
                 const tone = tones[i] ?? "ink";
-                return <React.Fragment key={i}>{i ? " " : ""}<span style={{ color: tone === "ink" ? JAZARI.ink : JAZARI.paper, textShadow: CAPTION_TONES[tone].textShadow }}>{w}</span></React.Fragment>;
+                return <React.Fragment key={i}>{i ? " " : ""}<span style={{ color: tone === "ink" ? JAZARI.ink : JAZARI.paper, textShadow: JAZARI_CAPTION_SHADOW[tone] }}>{w}</span></React.Fragment>;
               })}
             </div>
           </div>
