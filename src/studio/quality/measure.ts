@@ -18,7 +18,9 @@ import { verifyVideoEvidence } from "../videoEvidence";
 import { measureLoudness } from "./audio";
 import { checkMix, measureMixLevels } from "./mix";
 import config from "../../../config.json";
-import { assemblyStillness, measureInteractivity } from "./interactivity";
+import { assemblyStillness, detectFreezes, fileStartsFromSeams, interactivityFrom, planSceneStarts, remapSpans } from "./interactivity";
+import { detectSilences, frozenReport, recitedVerseSpans, silenceReport } from "./pauses";
+import { blankReport, detectInkSamples, speechSpans } from "./blankFrame";
 import { buildCard, cardRefusal, type CardTarget, type FileMeasurements, type QualityCard } from "./card";
 import { compareWithSeries, seriesIdOf, type SeriesDiffReport, type SeriesEpisode } from "./seriesDiff";
 import type { PublishKit } from "../../package/social";
@@ -29,7 +31,7 @@ import type { Plan } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 
 /** يرتفع حين يتغير ما يُقاس أو طريقته، فيُعاد القياس */
-export const MEASURE_VERSION = 3;
+export const MEASURE_VERSION = 4; // 4: D218 السكوت والشاشة الواقفة والإطار شبه الفارغ أثناء الكلام
 
 type Stored = FileMeasurements & { version: number; file: { size: number; mtimeMs: number }; at: string };
 
@@ -72,10 +74,20 @@ export const measureTarget = async (episode: string, target: CardTarget): Promis
     // السكون المقصود في زمن الملف نفسه: المجمّعة بأطوال مشاهدها الفعلية (سجل الوصلات)، والنهائية بزمن الخطة
     const rec = target === "assembly" ? await readSeamsRecord(scriptPath) : null;
     const spans = rec ? assemblyStillness(plan, media, rec as Parameters<typeof assemblyStillness>[2], intro) : intendedStillness(plan, intro, media);
+    // D218: بدايات المشاهد في زمن الملف (لتسمية مواضع السكوت والشاشة الواقفة)، ونوافذ الآيات المتلوّة وحدها في زمنه
+    const planStarts = planSceneStarts(plan, media, intro);
+    const fileStarts = rec ? [...fileStartsFromSeams(rec as Parameters<typeof fileStartsFromSeams>[0])].map(([id, start]) => ({ id, start })) : planStarts;
+    const recited = recitedVerseSpans(plan, media, intro);
+    const recitedInFile = rec ? remapSpans(recited, planStarts, fileStartsFromSeams(rec as Parameters<typeof fileStartsFromSeams>[0])) : recited;
     const { leadingSilence } = await import("../assembleScenes");
-    const [loudness, headSilence, interactivity, video] = await Promise.all([
-      measureLoudness(file), leadingSilence(file), measureInteractivity(file, spans), verifyVideoEvidence(file),
+    // مرور واحد لـ freezedetect يخدم التفاعلية والشاشة الواقفة معًا
+    const [loudness, headSilence, freezes, video] = await Promise.all([
+      measureLoudness(file), leadingSilence(file), detectFreezes(file), verifyVideoEvidence(file),
     ]);
+    const interactivity = interactivityFrom(freezes.duration, freezes.freezes, spans);
+    const silence = silenceReport(await detectSilences(file, freezes.duration), fileStarts);
+    const frozen = frozenReport(freezes.freezes, recitedInFile, fileStarts);
+    const blank = blankReport(await detectInkSamples(file), speechSpans(plan, media, fileStarts), fileStarts);
     // فحص الخلط من ملفات الراوي والمؤثرات نفسها، بالعلو الذي يخرج به الرندر (ربح سرد المشهد كما في التجميع وMaster)
     const { sfxDir } = await import("../../voice/sfx");
     const { narrationLoudness } = await import("../narrationLoudness");
@@ -85,7 +97,7 @@ export const measureTarget = async (episode: string, target: CardTarget): Promis
     if (!after || after.size !== before.size || after.mtimeMs !== before.mtimeMs) throw Error("تغيّر الملف أثناء القياس؛ أعد القياس.");
     const stored: Stored = { version: MEASURE_VERSION, file: before, at: new Date().toISOString(), loudness, headSilence,
       interactivity: { percent: interactivity.percent, counted: interactivity.counted, exempt: interactivity.exempt, still: interactivity.still, ok: interactivity.ok },
-      video: { width: video.width, height: video.height }, mix };
+      video: { width: video.width, height: video.height }, mix, silence, frozen, blank };
     const out = measurementFile(scriptPath, target);
     const tmp = `${out}.${randomUUID()}.tmp`;
     await writeFile(tmp, JSON.stringify(stored, null, 1) + "\n", { mode: 0o600 });
