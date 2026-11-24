@@ -1,0 +1,898 @@
+{
+  "version": 1,
+  "episode": "012",
+  "title": "مائدة واحدة تكفي الحارة؟",
+  "domain": "family",
+  "themeId": "family",
+  "channel": "balislam",
+  "lang": "ar",
+  "updatedAt": "2026-11-24T15:43:36.757Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "",
+      "scenes": [
+        {
+          "template": "alley-tale",
+          "narration": "هل يمكن لمائدة واحدة أن تكفي حارة كاملة؟",
+          "line": 13,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s1",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "سؤال يبدو غريبًا، ونحن نعرف كم يكلف الإفطار كل يوم.",
+          "line": 15,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s2",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لكن في رمضان، تحدث أشياء لا تفسرها الحسابات وحدها.",
+          "line": 17,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s3",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "في الحارة، قبل الأذان بدقائق.",
+          "line": 19,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s4",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "كل بيت يُخرج ضوءه إلى الشارع، والفوانيس تتمايل بين الشرفات.",
+          "line": 21,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s5",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ومن نافذة صغيرة في آخر الحارة، يجلس الجار وحده.",
+          "line": 23,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s6",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "طبق واحد أمامه، وكوب ماء، وساعة الحائط تعدّ الدقائق.",
+          "line": 25,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | واحد"
+          },
+          "id": "c1-s7",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "كان يفطر هكذا منذ أن سافر أولاده.",
+          "line": 27,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s8",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لاحظت الجدة الضوء الضعيف في نافذته.",
+          "line": 29,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s9",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فوضعت في طبق بعض التمر، وشيئًا من طعامها، وأرسلته مع الشاب.",
+          "line": 31,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s10",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "طرق الشاب الباب، ومدّ الطبق، وقال: الجدة تقول لك: رمضان مبارك.",
+          "line": 33,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s11",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أخذ الجار الطبق، وتردد قليلًا، ثم قال: أنا لا أحتاج شيئًا.",
+          "line": 35,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s12",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قال الشاب: ولا هي تحتاج شيئًا. لكنها تقول: الطعام أطيب حين يُقسم.",
+          "line": 37,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s13",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "في الليلة التالية، لم يرسل أحد طبقًا.",
+          "line": 39,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | أحد"
+          },
+          "id": "c1-s14",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "خرج الجار بنفسه، يحمل كرسيه، وجلس على طرف مائدة الجدة في الشارع.",
+          "line": 41,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s15",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ثم جاء العطّار بطبق، والحدّاد بطبق، والمعلّم بإبريق كبير.",
+          "line": 43,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s16",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وصارت المائدة الصغيرة مائدة واحدة طويلة، في وسط الحارة.",
+          "line": 45,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s17",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وكان الطعام هو هو، لكنه كفى الجميع، وفاض.",
+          "line": 47,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s18",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فلماذا نتردد في أن نفتح موائدنا؟",
+          "line": 49,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s19",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "نخاف ألا يكفي الطعام، أو نخجل من بساطته، أو نقول: لكل بيت شأنه.",
+          "line": 51,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s20",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وننسى أن الجار الذي يفطر وحده لا ينتظر منا وليمة.",
+          "line": 53,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s21",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ينتظر أن يعرف أن أحدًا تذكره.",
+          "line": 55,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s22",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد جعل النبي صلى الله عليه وسلم لهذا التذكر أجرًا عظيمًا، فقال:",
+          "line": 57,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s23",
+          "sfx": []
+        },
+        {
+          "template": "hadith-card",
+          "narration": "",
+          "line": 59,
+          "props": {
+            "text": "مَنْ فَطَّرَ صَائِمًا كَانَ لَهُ مِثْلُ أَجْرِهِ، غَيْرَ أَنَّهُ لَا يَنْقُصُ مِنْ أَجْرِ الصَّائِمِ شَيْئًا",
+            "narrator": "زيد بن خالد الجهني",
+            "reference": "سنن الترمذي ٨٠٧",
+            "grade": "حسن"
+          },
+          "id": "c1-s24",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "تأمّل هذا الحساب: يصوم أخوك يومًا كاملًا، ثم تعطيه ما يفطر عليه، فيكون لك مثل أجره.",
+          "line": 61,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "think,stand,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | تأمّل"
+          },
+          "id": "c1-s25",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ولا يُنقص ذلك من أجره شيئًا.",
+          "line": 63,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s26",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والإفطار لا يشترط وليمة. فقد يكون تمرة، أو شربة ماء، أو طبقًا بسيطًا مما عندك.",
+          "line": 65,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s27",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وأما الخوف من أن الطعام لا يكفي، فقد أجاب عنه النبي صلى الله عليه وسلم بقوله:",
+          "line": 67,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s28",
+          "sfx": []
+        },
+        {
+          "template": "hadith-card",
+          "narration": "",
+          "line": 69,
+          "props": {
+            "text": "طَعَامُ الِاثْنَيْنِ كَافِي الثَّلَاثَةِ، وَطَعَامُ الثَّلَاثَةِ كَافِي الأَرْبَعَةِ",
+            "narrator": "أبو هريرة",
+            "reference": "صحيح البخاري ٥٣٩٢",
+            "grade": "صحيح"
+          },
+          "id": "c1-s29",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "البركة في الطعام المقسوم، لا في الطعام الكثير.",
+          "line": 71,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s30",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد رأينا هذا في بيوتنا: سفرة بسيطة اجتمع عليها الناس، فكفتهم، وبقي منها.",
+          "line": 73,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الناس"
+          },
+          "id": "c1-s31",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والجار خاصة له منزلة لا يعرفها كثير منا.",
+          "line": 75,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s32",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قال النبي صلى الله عليه وسلم:",
+          "line": 77,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s33",
+          "sfx": []
+        },
+        {
+          "template": "hadith-card",
+          "narration": "",
+          "line": 79,
+          "props": {
+            "text": "مَا زَالَ جِبْرِيلُ يُوصِينِي بِالجَارِ، حَتَّى ظَنَنْتُ أَنَّهُ سَيُوَرِّثُهُ",
+            "narrator": "عائشة",
+            "reference": "صحيح البخاري ٦٠١٤",
+            "grade": "صحيح"
+          },
+          "id": "c1-s34",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وصية تتكرر، حتى ظن النبي صلى الله عليه وسلم أن الجار سيصير وارثًا من كثرتها.",
+          "line": 81,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s35",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالجار ليس مجرد اسم على الباب المقابل. هو حق.",
+          "line": 83,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s36",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد أثنى الله في كتابه على عباد يقدّمون طعامهم لغيرهم وهم يحتاجون إليه، ولا ينتظرون من أحد مقابلًا.",
+          "line": 85,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s37",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 87,
+          "ayahKey": "76:8-9",
+          "props": {
+            "text": "",
+            "reference": "الإنسان · ٨–٩",
+            "reciter": ""
+          },
+          "id": "c1-s38",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فكيف نجعل مائدتنا تتسع في هذا الشهر؟",
+          "line": 89,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s39",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ابدأ بالأقرب: من في حارتك يفطر وحده؟ كبير في السن، أو مغترب، أو بيت فقد عائله.",
+          "line": 91,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s40",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ثم ابدأ بالقليل: طبق واحد يكفي، ولا تنتظر أن تُعدّ وليمة.",
+          "line": 93,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | واحد"
+          },
+          "id": "c1-s41",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وأرسله بلطف، دون أن تُشعر أحدًا بأنه محتاج.",
+          "line": 95,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s42",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قل: الطعام أطيب حين يُقسم، كما قالت الجدة.",
+          "line": 97,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s43",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وإن قدرت أن تجمع، فاجمع: مائدة يشترك فيها الجيران، كل بيت بطبق.",
+          "line": 99,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s44",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ولا تجعل المائدة مكانًا للتفاخر بكثرة الأصناف، فليس هذا ما يُطلب.",
+          "line": 101,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s45",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وفي الليلة الأخيرة من القصة، لم تكن الجدة هي من بدأت.",
+          "line": 103,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s46",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "كان الجار هو من طرق بابها، يحمل طبقًا صغيرًا، وقال: اليوم دوري.",
+          "line": 105,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s47",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فهل تكفي مائدة واحدة الحارة؟",
+          "line": 107,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s48",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "نعم، إذا اجتمعت عليها القلوب قبل الأطباق.",
+          "line": 109,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s49",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وهذه خطوة الأسبوع:",
+          "line": 111,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "walk",
+            "look": "hero",
+            "cast": "",
+            "cues": "walk | خطوة"
+          },
+          "id": "c1-s50",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فطّر صائمًا واحدًا هذا الأسبوع، ولو بتمرة وماء. وابدأ بجار تعرف أنه يفطر وحده.",
+          "line": 113,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s51",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ثم أخبرنا في التعليقات: من الذي ستتذكره على مائدتك هذا الأسبوع؟ دون أن تذكر اسمه.",
+          "line": 115,
+          "props": {
+            "place": "alley",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s52",
+          "sfx": []
+        },
+        {
+          "id": "c1-end",
+          "template": "end-screen",
+          "narration": "",
+          "line": 126,
+          "props": {
+            "step": "فطّر صائمًا واحدًا هذا الأسبوع ولو بتمرة وماء، وابدأ بجار يفطر وحده.  دون أن تذكر اسمه.",
+            "prompt": "اكتب في التعليقات: ثم سؤال التعليقات: من الذي ستتذكره على مائدتك هذا الأسبوع؟"
+          },
+          "captions": false,
+          "sfx": []
+        }
+      ]
+    }
+  ]
+}

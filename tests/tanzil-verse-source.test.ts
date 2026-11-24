@@ -147,26 +147,14 @@ describe("D220: الرسم العثماني لا يُضعف حارس الصوت 
   });
 });
 
-/**
- * نُسخ نص المصدر إلى دفاتر الزمن 001 في الاستوديو (٢٤ نوفمبر)، والخطة تصل main مع حفظ الاستوديو التالي. حتى تصل، مشاهدها
- * هذه وحدها تُقبل مخالفة؛ وما إن تطابق يفشل الاختبار حتى تُحذف من القائمة (فلا تبقى القائمة بعد أن تنتهي حاجتها).
- */
-const PENDING_STUDIO_SYNC: Record<string, string[]> = {
-  "dafatir-alzaman/001-adam-beginning": ["c1-s8", "c1-s14", "c1-s20", "c1-s28", "c1-s33", "c1-s37", "c1-s42"],
-};
-
 describe("D220: خطط المستودع في القنوات غير المجمّدة تطابق المصدر", () => {
   const frozen = (ch: string) => { try { return Boolean(JSON.parse(readFileSync(path.join(root, "channels", ch, "stock.json"), "utf8")).frozen); } catch { return false; } };
   const channels = readdirSync(path.join(root, "channels")).filter((c) => existsSync(path.join(root, "channels", c, "episodes")) && !frozen(c));
-  it.each(channels)("%s: كل verseText في plan.json يطابق Tanzil (إلا ما ينتظر حفظ الاستوديو)، و«انسخ نص المصدر» يصلح كل مخالف", (ch) => {
+  it.each(channels)("%s: كل verseText في plan.json يطابق Tanzil، و«انسخ نص المصدر» يصلح كل مخالف", (ch) => {
     const dir = path.join(root, "channels", ch, "episodes");
     for (const ep of readdirSync(dir).filter((e) => existsSync(path.join(dir, e, "plan.json")))) {
       const plan = JSON.parse(readFileSync(path.join(dir, ep, "plan.json"), "utf8")) as Plan;
-      const bad = planVerseMismatches(plan, tanzilVerses).map((m) => m.sceneId);
-      const pending = PENDING_STUDIO_SYNC[`${ch}/${ep}`] ?? [];
-      expect(bad.filter((id) => !pending.includes(id)), `${ch}/${ep}`).toEqual([]);
-      // ما وصل مطابقًا يُحذف من القائمة
-      expect(pending.filter((id) => !bad.includes(id)), `${ch}/${ep}: احذفها من PENDING_STUDIO_SYNC`).toEqual([]);
+      expect(planVerseMismatches(plan, tanzilVerses).map((m) => `${m.sceneId}: ${m.message}`), `${ch}/${ep}`).toEqual([]);
       expect(planVerseMismatches(withSourceVerseTexts(plan, tanzilVerses).plan, tanzilVerses), `${ch}/${ep}`).toEqual([]);
     }
   });

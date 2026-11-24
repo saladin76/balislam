@@ -1,0 +1,1372 @@
+{
+  "version": 1,
+  "episode": "002",
+  "title": "الجليس الصالح: هل تشبه من تجلس معهم؟",
+  "domain": "family",
+  "themeId": "family",
+  "channel": "balislam",
+  "lang": "ar",
+  "updatedAt": "2026-11-24T15:43:36.654Z",
+  "chapters": [
+    {
+      "number": 1,
+      "title": "",
+      "scenes": [
+        {
+          "template": "alley-tale",
+          "narration": "هل لاحظت يومًا أنك تقول كلمة لم تكن تقولها من قبل؟",
+          "line": 13,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s1",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ثم تذكرت فجأة من أين جاءت… من صديق تجلس معه كل يوم.",
+          "line": 15,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | معه"
+          },
+          "id": "c1-s2",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فهل نشبه من نجلس معهم أكثر مما نظن؟",
+          "line": 17,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s3",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "في سوق قديم، يمشي رجلان في الطريق نفسه، في الوقت نفسه.",
+          "line": 19,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "walk,walk,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "walk | الطريق"
+          },
+          "id": "c1-s4",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "مرّ الأول بدكان عطّار، فوقف قليلًا يتحدث مع صاحبه.",
+          "line": 21,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s5",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ومرّ الثاني بدكان حدّاد، فوقف قليلًا بجوار النار.",
+          "line": 23,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s6",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لم يشترِ أحدهما شيئًا، ولم يعمل أحدهما شيئًا.",
+          "line": 25,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s7",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لكن حين خرجا من السوق، لم يخرجا كما دخلا.",
+          "line": 27,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s8",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الأول يحمل رائحة طيبة لم يدفع ثمنها.",
+          "line": 29,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s9",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والثاني يحمل رائحة دخان لم يقصدها، وربما ثقبًا صغيرًا في ثوبه.",
+          "line": 31,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s10",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وهذا ما يحدث لنا مع الناس، كل يوم، دون أن ننتبه.",
+          "line": 33,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الناس"
+          },
+          "id": "c1-s11",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "نحن لا نأخذ من أصحابنا كلماتهم فقط.",
+          "line": 35,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s12",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "نأخذ طريقة ضحكهم، وما يغضبهم، وما يرونه عاديًّا.",
+          "line": 37,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s13",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "صديقك الذي يشكو من كل شيء، تبدأ بعد أشهر برؤية الدنيا بعينه.",
+          "line": 39,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s14",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وصديقك الذي يقرأ، تجد نفسك تسأله عن كتابه، ثم تشتري مثله.",
+          "line": 41,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s15",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ومن يستهين بالوعد، يجعل الوعد في عينك أمرًا صغيرًا.",
+          "line": 43,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s16",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لا يحدث هذا في يوم واحد. يحدث قليلًا قليلًا، مثل الرائحة.",
+          "line": 45,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | واحد"
+          },
+          "id": "c1-s17",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "شاب كان يحافظ على صلاته في وقتها.",
+          "line": 47,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s18",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ثم صار له أصحاب طيبون في أشياء كثيرة، لكنهم لا يبالون بالصلاة.",
+          "line": 49,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s19",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لم يسخر منه أحد، ولم يطلب منه أحد أن يترك شيئًا.",
+          "line": 51,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | أحد"
+          },
+          "id": "c1-s20",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "كانوا فقط يؤخرونها، ويقولون: ما زال في الوقت متسع.",
+          "line": 53,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s21",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وبعد شهور، انتبه إلى أنه صار يؤخرها مثلهم، ويقول الجملة نفسها.",
+          "line": 55,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s22",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لم يتغير بقرار اتخذه. تغيّر لأن ما حوله صار عاديًّا في عينه.",
+          "line": 57,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "cross,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "decide | بقرار"
+          },
+          "id": "c1-s23",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فلماذا نتأثر بهذا القدر، ونحن نظن أننا مستقلون في آرائنا؟",
+          "line": 59,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s24",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لأن ما يتكرر أمام أعيننا يصبح مألوفًا، وما يصبح مألوفًا لا نعود نسأل عنه.",
+          "line": 61,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s25",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ولأن القلب يميل إلى من يحب، فيقبل منه ما لا يقبله من غيره.",
+          "line": 63,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "look-up,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "heart | القلب\ncompanion | غيره"
+          },
+          "id": "c1-s26",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "قد ترفض الفكرة إذا سمعتها من غريب، ثم تقبلها إذا قالها صديق تثق به.",
+          "line": 65,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s27",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ولهذا لا يكون السؤال: هل أتأثر بأصحابي؟ فكلنا نتأثر.",
+          "line": 67,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s28",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "بل السؤال: بماذا أتأثر؟ وإلى أين يأخذني هذا التأثير؟",
+          "line": 69,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s29",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وصورة السوق هذه ليست من خيالنا.",
+          "line": 71,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s30",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فقد ضربها النبي صلى الله عليه وسلم مثلًا للجليس الصالح وجليس السوء، فقال:",
+          "line": 73,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s31",
+          "sfx": []
+        },
+        {
+          "template": "hadith-card",
+          "narration": "",
+          "line": 75,
+          "props": {
+            "text": "مَثَلُ الجَلِيسِ الصَّالِحِ وَالسَّوْءِ، كَحَامِلِ المِسْكِ وَنَافِخِ الكِيرِ، فَحَامِلُ المِسْكِ: إِمَّا أَنْ يُحْذِيَكَ، وَإِمَّا أَنْ تَبْتَاعَ مِنْهُ، وَإِمَّا أَنْ تَجِدَ مِنْهُ رِيحًا طَيِّبَةً، وَنَافِخُ الكِيرِ: إِمَّا أَنْ يُحْرِقَ ثِيَابَكَ، وَإِمَّا أَنْ تَجِدَ رِيحًا خَبِيثَةً",
+            "narrator": "أبو موسى الأشعري",
+            "reference": "صحيح البخاري ٥٥٣٤",
+            "grade": "صحيح"
+          },
+          "id": "c1-s32",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والكير هو منفاخ الحدّاد الذي يُشعل به النار.",
+          "line": 77,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s33",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "تأمّل حامل المسك: إما أن يهديك، وإما أن تشتري منه، وإما أن تخرج برائحته.",
+          "line": 79,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "think,stand,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | تأمّل"
+          },
+          "id": "c1-s34",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أقل ما تأخذه منه رائحة طيبة، ولو لم تقصدها.",
+          "line": 81,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s35",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وتأمّل نافخ الكير: إما أن تصيبك شرارة من ناره، وإما أن تخرج برائحة الدخان.",
+          "line": 83,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "think,stand",
+            "look": "hero",
+            "cast": "",
+            "cues": "think | وتأمّل"
+          },
+          "id": "c1-s36",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أقل ما تأخذه منه رائحة لا تحبها، ولو لم تقترب من النار.",
+          "line": 85,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s37",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالمجالسة لا تمر دون أثر. السؤال فقط: أي أثر؟",
+          "line": 87,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s38",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وفي حديث آخر، قال النبي صلى الله عليه وسلم:",
+          "line": 89,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s39",
+          "sfx": []
+        },
+        {
+          "template": "hadith-card",
+          "narration": "",
+          "line": 91,
+          "props": {
+            "text": "الرَّجُلُ عَلَى دِينِ خَلِيلِهِ، فَلْيَنْظُرْ أَحَدُكُمْ مَنْ يُخَالِلُ",
+            "narrator": "أبو هريرة",
+            "reference": "سنن أبي داود ٤٨٣٣",
+            "grade": "حسن"
+          },
+          "id": "c1-s40",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والخليل هو الصديق القريب الذي تفتح له قلبك.",
+          "line": 93,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "look-up",
+            "look": "hero",
+            "cast": "",
+            "cues": "heart | قلبك"
+          },
+          "id": "c1-s41",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقال أهل العلم في شرح حديث المسك والكير، ومنهم ابن حجر في «فتح الباري»: إن فيه النهي عن مجالسة من يُتأذّى بمجالسته في الدين والدنيا، والترغيب في مجالسة من يُنتفع بمجالسته فيهما.",
+          "line": 95,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s42",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالحديث لا يطلب منك أن تخاف من الناس، بل أن تنظر، وأن تختار.",
+          "line": 97,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الناس"
+          },
+          "id": "c1-s43",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وقد أمر الله نبيه صلى الله عليه وسلم أن يلزم صحبة الصالحين، فقال سبحانه:",
+          "line": 99,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s44",
+          "sfx": []
+        },
+        {
+          "template": "verse-card",
+          "narration": "",
+          "line": 101,
+          "ayahKey": "18:28",
+          "props": {
+            "text": "",
+            "reference": "الكهف · ٢٨",
+            "reciter": ""
+          },
+          "id": "c1-s45",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فالصحبة الصالحة تحتاج إلى صبر، لأنها لا تكون دائمًا أسهل الطرق ولا أكثرها متعة.",
+          "line": 103,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s46",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لكن هل يعني هذا أن تقطع كل من فيه عيب؟",
+          "line": 105,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s47",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لا. فكلنا فينا عيوب، ولو بحث كل واحد منا عن صاحب كامل لبقي وحيدًا.",
+          "line": 107,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | واحد"
+          },
+          "id": "c1-s48",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والأهل والجيران وزملاء العمل لهم حقوق، لا تسقط لأن بعضهم لا يشبهنا.",
+          "line": 109,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s49",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الفرق بين أن تعامل الناس بالحسنى، وبين أن تجعل أحدهم أقرب الناس إلى قلبك.",
+          "line": 111,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,look-up",
+            "look": "hero",
+            "cast": "",
+            "cues": "people | الناس\nheart | قلبك"
+          },
+          "id": "c1-s50",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الأول خُلق واجب مع الجميع.",
+          "line": 113,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s51",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والثاني اختيار، وأنت المسؤول عنه.",
+          "line": 115,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s52",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فكيف نختار، دون أن نتعالى على أحد؟",
+          "line": 117,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | أحد"
+          },
+          "id": "c1-s53",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وهذه ثلاث خطوات.",
+          "line": 119,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "walk",
+            "look": "hero",
+            "cast": "",
+            "cues": "walk | خطوات"
+          },
+          "id": "c1-s54",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "الأولى: سؤال صغير بعد كل جلسة: كيف خرجت منها؟",
+          "line": 121,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s55",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "هل خرجت أقرب إلى ما تحب أن تكون؟ أم أثقل، وأكثر شكوى، وأقل رغبة في الخير؟",
+          "line": 123,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s56",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "هذا السؤال وحده يكشف لك الكثير، دون أن تحكم على أحد.",
+          "line": 125,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "companion | أحد"
+          },
+          "id": "c1-s57",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والثانية: أن تقترب خطوة من شخص تعرف أنه يذكّرك بالخير.",
+          "line": 127,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "walk",
+            "look": "hero",
+            "cast": "",
+            "cues": "walk | خطوة"
+          },
+          "id": "c1-s58",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ليس من الضروري أن يكون عالمًا أو واعظًا. يكفي أن يكون صادقًا، يدفعك إلى الأفضل.",
+          "line": 129,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think,nod",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s59",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "صاحب يقول لك الحقيقة حين تخطئ، ولو كانت ثقيلة على سمعك.",
+          "line": 131,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "look-up,think",
+            "look": "hero",
+            "cast": "",
+            "cues": "truth | الحقيقة"
+          },
+          "id": "c1-s60",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وصاحب يفرح بنجاحك، ولا يقيسه بنجاحه.",
+          "line": 133,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s61",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وصاحب إذا غبت عن الصلاة سأل عنك.",
+          "line": 135,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s62",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والثالثة، وهي الأهم: أن تكون أنت حامل المسك لغيرك.",
+          "line": 137,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s63",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فأنت أيضًا جليس لشخص آخر، وهو يخرج من مجلسك برائحة ما.",
+          "line": 139,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s64",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "كلمة طيبة تقولها، وغيبة تمتنع عنها، ووعد تفي به.",
+          "line": 141,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s65",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "كل هذا مسك يخرج به من جلس معك.",
+          "line": 143,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s66",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "عاد الرجلان إلى السوق في اليوم التالي.",
+          "line": 145,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s67",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "أحدهما مرّ بالعطّار عن قصد، وسأله عن أفضل ما عنده.",
+          "line": 147,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s68",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "والآخر وقف عند باب الحداد لحظة، ثم قرر أن يسلّم عليه من بعيد، ويكمل طريقه.",
+          "line": 149,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s69",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لم يخاصمه، ولم يحتقر عمله.",
+          "line": 151,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s70",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "لكنه عرف أين يقف، وكم من الوقت يبقى.",
+          "line": 153,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s71",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فهل تشبه من تجلس معهم؟",
+          "line": 155,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s72",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "نعم، قليلًا أو كثيرًا. والخبر الجميل أنك تستطيع أن تختار من تشبه.",
+          "line": 157,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": "news | والخبر"
+          },
+          "id": "c1-s73",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وفي حلقة سابقة سألنا: كيف تعرف أنك على حق؟",
+          "line": 159,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "rise",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s74",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "ومن أعظم ما يعينك على ذلك صاحب صادق، يقول لك الحق ولو كان مرًّا.",
+          "line": 161,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "drift",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s75",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "فاختر من تجالس، وكن أنت لغيرك حامل المسك.",
+          "line": 163,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "push",
+            "poses": "stand,think",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s76",
+          "sfx": []
+        },
+        {
+          "template": "alley-tale",
+          "narration": "وأخبرنا في التعليقات، دون أن تذكر اسمًا: صاحبٌ غيّرك إلى الأفضل، ماذا أخذت منه؟",
+          "line": 165,
+          "props": {
+            "place": "home",
+            "mood": "dawn",
+            "moodTo": "",
+            "camera": "track",
+            "poses": "sit,sit-low,sit",
+            "look": "hero",
+            "cast": "",
+            "cues": ""
+          },
+          "id": "c1-s77",
+          "sfx": []
+        },
+        {
+          "id": "c1-end",
+          "template": "end-screen",
+          "narration": "",
+          "line": 176,
+          "props": {
+            "step": "ثم اكتب اسم شخص واحد يذكّرك بالخير، وأرسل إليه رسالة قصيرة الليلة.",
+            "prompt": "اكتب في التعليقات: بعد أول جلسة اليوم، اسأل نفسك: كيف خرجت منها؟"
+          },
+          "captions": false,
+          "sfx": []
+        }
+      ]
+    }
+  ],
+  "series": {
+    "id": "family",
+    "name": "الأسرة والعلاقات",
+    "kind": "category",
+    "identity": {
+      "channel": "balislam",
+      "accent": "#B4532F",
+      "accentBase": "#B4532F",
+      "onAccent": "#EFE4D3",
+      "paper": "#EFE4D3",
+      "ink": "#0E1A2B",
+      "card": {
+        "bg": "#0E1A2B",
+        "ink": "#EFE4D3"
+      },
+      "motif": "arches",
+      "fonts": {
+        "heading": "El Messiri",
+        "body": "IBM Plex Sans Arabic",
+        "wordmark": "Readex Pro"
+      },
+      "title": {
+        "weight": "bold",
+        "size": "m",
+        "ornament": "rule"
+      },
+      "intro": "sting",
+      "thumbnail": {
+        "badge": "band"
+      },
+      "emblem": {
+        "base": "baa",
+        "parts": [
+          "baa"
+        ]
+      },
+      "clamped": []
+    },
+    "template": {
+      "script": {
+        "source": "channel"
+      }
+    },
+    "stampedAt": "2026-11-24T09:24:10.781Z"
+  }
+}
