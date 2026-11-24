@@ -402,9 +402,9 @@
   "prefinal-no-recitation.mp4": {
     "title": "نسخة قبل النهائية — بلا تلاوات (للمشاهدة فقط)",
     "note": "كل المشاهد الحالية بالترتيب، معتمدة أو مسودات. ليست اعتمادًا ولا تجميعًا ولا Master.",
-    "version": 16,
-    "updatedAt": "2026-11-24T18:09:36.213Z",
-    "sha256": "7d08dbf83eccedfb4dae5889af2115ef657519cb1c262eab3a4d6eaa2fd18933",
-    "size": 82366074
+    "version": 17,
+    "updatedAt": "2026-11-24T20:05:43.623Z",
+    "sha256": "12abea83a9c0090775ec8b09c304867abb40be823c4ff7a7680eb5bbf9cfa4fa",
+    "size": 82346610
   }
 }
