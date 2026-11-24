@@ -1,7 +1,7 @@
 {
-  "series": "series",
+  "series": "awwal-marra-osalli",
   "stamp": {
-    "id": "series",
+    "id": "awwal-marra-osalli",
     "name": "كتاب أول مرة أصلي",
     "kind": "series",
     "number": 1,
@@ -40,12 +40,11 @@
       "clamped": []
     },
     "template": {
-      "tone": "grave",
       "intro": "sting",
       "publish": {
         "titlePattern": "{series} | الحلقة {n}: {title}"
       }
     },
-    "stampedAt": "2026-11-11T19:54:32.507Z"
+    "stampedAt": "2026-11-24T09:24:16.483Z"
   }
 }
