@@ -143,7 +143,7 @@ describe("what the scene holds on purpose is never cut, and is reported", () => 
     expect(s!.over).toMatch(/مدة المشهد التي حددتها/);
   });
 
-  it("دفاتر الزمن: the design tail (page turn, ink fade) runs under the next scene; the reading time of a visual citation does not", () => {
+  it("دفاتر الزمن: the design tail (page turn, ink fade) runs under the next scene; the citation card (D219: inside the narration) is never cut", () => {
     const a = scene("a", long, { template: "horizon-shot", props: { shot: "lib-compare" } } as Partial<PlanScene>);
     const b = scene("b", long, { template: "horizon-shot", props: { shot: "lib-timeline" } } as Partial<PlanScene>);
     const m = mediaOf([a, b]);
@@ -155,7 +155,8 @@ describe("what the scene holds on purpose is never cut, and is reported", () => 
     const floor = sceneHoldFloor(cited, mc);
     const [sc] = seamPlan([cited, b], mc);
     expect((sceneFrames(cited, mc) - sc!.overlapFrames) / fps).toBeGreaterThanOrEqual(floor - 1e-6);
-    expect(floor).toBeGreaterThan(Math.max(...mc.voice.c!.words.map((w) => w.end)) + 1);
+    // D219: البطاقة داخل كلام الراوي، فلا يطول المشهد بعد آخر كلمة أكثر من ٠٫٨ ث للقراءة
+    expect(floor).toBeLessThanOrEqual(Math.max(...mc.voice.c!.words.map((w) => w.end)) + 0.8 + 0.31);
   });
 
   it("a scene held by its own text animation keeps it", () => {
