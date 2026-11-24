@@ -21,6 +21,9 @@ import { intendedStillness, type Span } from "../../render/stillnessSpans";
 const exec = promisify(execFile);
 
 export const INTERACTIVITY_MIN = 80;
+/** D214: الحد لكل قناة — «دفاتر الزمن» (خط الأفق) ٩٥٪ خارج السكون المقصود بقرار المالك (٢٤ نوفمبر)، وغيرها ٨٠٪ */
+export const INTERACTIVITY_MIN_BY_CHANNEL: Readonly<Record<string, number>> = { "dafatir-alzaman": 95 };
+export const interactivityMinFor = (channel?: string) => (channel && INTERACTIVITY_MIN_BY_CHANNEL[channel]) || INTERACTIVITY_MIN;
 /** مقطع ساكن غير مقصود أطول من هذا يُذكر بالاسم في البطاقة (القاعدة الثانية: لا يزيد على ثانيتين) */
 export const STILL_REPORT_SEC = 2;
 /** تغيّر الإطار تحت هذا (نسبة، 0.003 ≈ −50 dB) ضجيج ترميز لا حركة */

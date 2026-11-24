@@ -66,6 +66,16 @@ export class ShotGuard extends React.Component<{ fallback: React.ReactNode; rese
   render() { return this.state.failed ? this.props.fallback : this.props.children; }
 }
 
+/** D214: ساعة الرسم المرئية — أزمنة الكلمات والجمل ونهاية المشهد والخروج منقولة إلى الزمن الفعّال (يقف داخل نوافذ السكون) */
+export const visualClock = (tl: Timeline, dur: number, close: number | undefined, wins: [number, number][]) => {
+  const v = (x: number) => activeTime(x, wins);
+  return {
+    tl: { words: tl.words.map((w) => ({ ...w, s: v(w.s), e: v(w.e) })), sentences: tl.sentences.map((x) => ({ ...x, s: v(x.s), e: v(x.e) })), end: v(tl.end) } as Timeline,
+    dur: v(dur),
+    close: close === undefined ? undefined : v(close),
+  };
+};
+
 export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
@@ -90,7 +100,8 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const close = Number.isFinite(closeAt) && closeAt > 0 ? closeAt
     : tl.words.length && !meta.minEnd ? Math.max(lastWord, vw ? vw[1] : 0) : undefined;
   const pr = props as unknown as Record<string, string | undefined>;
-  const verseShow = vw ? prog(t, vw[0] - 0.05, vw[0] + 0.55) * (1 - prog(t, dur - 0.75, dur - 0.15)) : 0;
+  // D214: الآية ساكنة كاملة — بطاقتها تظهر كاملة لحظة نافذتها بلا تلاشٍ داخل السكون، وتخرج مع المشهد بعد نهايتها
+  const verseShow = vw ? (t >= vw[0] - 0.05 ? 1 : 0) * (1 - prog(t, Math.max(dur - 0.75, vw[1]), Math.max(dur - 0.15, vw[1] + 0.6))) : 0;
   // الكاميرا الحية (breath.ts): إعادة تأطير عند كل عبارة، ورجوع إلى الإطار الأول قبل القطع، وخلفية أبطأ بعكسه، والسكون المقصود ثابت
   const breath = React.useMemo(() => {
     const wins = breathStill(tl, dur, Boolean(meta.still), vw);
@@ -100,16 +111,19 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
     [props.narration, props.narrationTimings, dur, meta.still, vw?.[0], vw?.[1]]);
   // الانجراف الدائم بالزمن الفعّال (يسكن في السكون المقصود)، ولا انجراف في مشهد ساكن كله
   const cam = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
+  // D214: رسم المشهد نفسه (الحبر والخيط والعناصر) يسكن أيضًا في نوافذ الذكر: يأخذ «الزمن المرئي» (activeTime) بدل الزمن،
+  // وتُنقل أزمنة الكلمات والخروج إليه، فيبقى كل حدث عند كلمته خارج السكون، ولا يتقدم شيء داخله، ولا قفزة بعده.
+  const vis = React.useMemo(() => visualClock(tl, dur, close, breath.wins), [tl, dur, close, breath.wins]);
   return (
     <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless captionVariant="adaptive">
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
-        <SceneCloseContext.Provider value={close}>
+        <SceneCloseContext.Provider value={vis.close}>
           <VersePageContext.Provider value={vw && verseShow > 0 ? <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} /> : null}>
             <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
-            {stale ? <HorizonWordsOnly t={t} tl={tl} dur={dur} exit={exit} head={props.head} /> : (
-              <ShotGuard resetKey={`${shot}|${props.narration ?? ""}`} fallback={<HorizonWordsOnly t={t} tl={tl} dur={dur} exit={exit} head={props.head} />}>
-                <Comp t={t} tl={tl} dur={dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
+            {stale ? <HorizonWordsOnly t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} /> : (
+              <ShotGuard resetKey={`${shot}|${props.narration ?? ""}`} fallback={<HorizonWordsOnly t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} />}>
+                <Comp t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
               </ShotGuard>
             )}
             </AbsoluteFill>
