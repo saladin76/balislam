@@ -84,7 +84,7 @@ export const VERSE_SETTLE = 0.9;
  * عند الخروج بالقلب تعود الكاميرا إلى الوضع العام قبله، فالمشهد التالي يبدأ من دفتر فارغ بالكادر نفسه.
  */
 /** D217: الكادر يعود إلى الدفتر كله قبل بطاقة الآية ويثبت عليه طوال ظهورها (يُختبر في tests/horizon-verse-frame.test.ts) */
-export const verseSettle = (cam: Cam, t: number, vwin: [number, number]): Cam => blend(cam, NEUTRAL, prog(t, vwin[0] - VERSE_SETTLE, vwin[0] - 0.05, easeIO));
+export const verseSettle = (cam: Cam, t: number, vwin: [number, number]): Cam => blend(cam, NEUTRAL, prog(t, vwin[0] - VERSE_SETTLE, vwin[0] - 0.05, easeIO) * (1 - prog(t, vwin[1], vwin[1] + VERSE_SETTLE, easeIO)));
 
 /** D217: عنوان الصفحة بالحبر وتحته خط ذهبي قصير (يصل مع الصفحة) */
 const HeadInk: React.FC<{ id: string; head: { text: string; side: "l" | "r"; y: number } }> = ({ id, head }) => {

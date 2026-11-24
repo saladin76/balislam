@@ -33,7 +33,8 @@ describe("دفاتر الزمن 001 — c1-s37 «الهبوط إلى الأرض�
     // زمن القراءة نفسه (verseReadSeconds) لا يتغير؛ البطاقة لا تبدأ قبل «آدم» حتى لا تظهر مع لفظ الجلالة في «أخبرنا الله»
     const vw = verseWindow(props, tl)!;
     const last = tl.words.at(-1)!.e;
-    expect(vw[1] - last).toBeLessThan(3.5);
+    // D219: لا سكوت للقراءة — تنتهي البطاقة بعد آخر كلمة بـ ٠٫٨ ث على الأكثر
+    expect(vw[1] - last).toBeLessThanOrEqual(0.8 + 1e-9);
     expect(vw[0]).toBeGreaterThan(tl.words.find((w) => w.w === "الله")!.e);
   });
 
