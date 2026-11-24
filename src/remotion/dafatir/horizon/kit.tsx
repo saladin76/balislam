@@ -274,6 +274,8 @@ export const verseRef = (key: string) => {
  * يوفّره HorizonShot لمشهد فيه verseKey/verseText/verseFrom.
  */
 export const VersePageContext = React.createContext<React.ReactNode>(null);
+/** D217: نافذة بطاقة الآية بالزمن المرئي للمشهد [ظهور، نهاية القراءة]: الدفتر يعود قبلها إلى الكادر العام فتبقى البطاقة كاملة في الإطار */
+export const VerseWindowContext = React.createContext<[number, number] | null>(null);
 
 /**
  * بطاقة نص الآية. «center» بطاقة الآية القديمة وسط الشاشة. «page» استشهاد بصري صامت (V9) على صفحة من الكتاب

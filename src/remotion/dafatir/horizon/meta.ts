@@ -53,6 +53,7 @@ export const EP001_META: Record<string, HzMeta> = {
   whisper: { nameAr: "الوسوسة خط متموج، والوعدان تحت «زعم» يضمّهما قوس (بلا شطب)", tail: 1.2, exit: "fade" },
   breach: { nameAr: "ثم وقع: ثغرة في حدّ النهي، ثم «فأكلا من الشجرة»", tail: 1.0, exit: "none" },
   "return-line": { nameAr: "الخط العائد: لم يصر بل رجع، ومرجع الدعاء في الأعراف", tail: 1.9, exit: "fade" },
+  received: { nameAr: "تلقى من ربه كلمات فتاب عليه: الخيط العائد وأسطر الحبر (D217)", tail: 0.6, exit: "fade" },
   stances: { nameAr: "موقفان: استكبر وأصر / تاب وأناب، وباب التوبة", tail: 1.6, exit: "turn" },
   "earth-words": { nameAr: "مستقر ومتاع إلى حين، وحياة وموت وإخراج", tail: 1.2, exit: "fade" },
   bridge: { nameAr: "نقطة التحول: أفق الخبر يتصل بأفق التاريخ البشري", tail: 1.4, exit: "fade" },
@@ -66,7 +67,7 @@ export const EP001_META: Record<string, HzMeta> = {
   roadmap: { nameAr: "طريق الحلقات: قبل الكتابة، القرى والمدن، الحضارات", tail: 1.2, exit: "fade" },
   sources: { nameAr: "مبدأ السلسلة: لا يُنسب اكتشاف إلى شخصية بلا دليل، والتمييز بين الخبر والشاهد وموضع البحث", tail: 1.4, exit: "turn" },
   questions: { nameAr: "أسئلة الحلقة القادمة، لكل سؤال أداته", tail: 1.6, exit: "turn" },
-  closing: { nameAr: "الختام: صفحة «دفاتر الزمن» الأولى", tail: 3.2, exit: "none" },
+  closing: { nameAr: "الختام: صفحة «دفاتر الزمن» الأولى", tail: 1.0, exit: "none" },
 };
 
 /** كل مشاهد «خط الأفق»: المكتبة العامة (lib/meta.ts) ثم مشاهد الحلقة 001 */

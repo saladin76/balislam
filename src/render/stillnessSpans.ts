@@ -56,7 +56,8 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
       const shot = String(s.props?.shot ?? "");
       if (s.template === "verse-card") spans.push({ from: t, to: t + d, why: "آية" });
       else if (s.template === "ink-shot" && shot.startsWith("verse-intro")) spans.push({ from: t, to: t + d, why: "تمهيد آية" });
-      else if (s.template === "horizon-shot" && HZ_META[shot]?.still) spans.push({ from: t, to: t + d, why: HZ_META[shot]!.still === "dhikr" ? "ذكر الله" : "تمهيد آية" });
+      // D217: في «خط الأفق» لا يسكن تمهيد الآية كله (قرار المالك: السكون على كلمات الذكر وحدها)؛ يبقى المشهد الساكن للذكر كله (البسملة)
+      else if (s.template === "horizon-shot" && HZ_META[shot]?.still === "dhikr") spans.push({ from: t, to: t + d, why: "ذكر الله" });
       else if (s.narration && c.scenes[i + 1]?.template === "verse-card" && /[:：]\s*$/.test(s.narration.trim())) spans.push({ from: t, to: t + d, why: "تمهيد آية" });
       else if (s.narration) {
         const clip = media?.voice[s.id];

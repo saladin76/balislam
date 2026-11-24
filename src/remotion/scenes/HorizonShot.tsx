@@ -1,8 +1,8 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { SceneShell } from "./SceneShell";
-import { C, Dusk, VerseCard, VersePageContext, prog } from "../dafatir/horizon/kit";
-import { Book, ChapterHead, NEUTRAL, SceneCloseContext, parseCam } from "../dafatir/horizon/book";
+import { C, Dusk, VerseCard, VersePageContext, VerseWindowContext, prog } from "../dafatir/horizon/kit";
+import { Book, ChapterHead, NEUTRAL, SceneCloseContext, VERSE_SETTLE, parseCam } from "../dafatir/horizon/book";
 import { HZ_SCENES } from "../dafatir/horizon/episode001";
 import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../dafatir/horizon/meta";
 import { activeTime, breathAt, breathBeats, breathStill } from "../dafatir/horizon/breath";
@@ -67,6 +67,12 @@ export class ShotGuard extends React.Component<{ fallback: React.ReactNode; rese
 }
 
 /** D214: ساعة الرسم المرئية — أزمنة الكلمات والجمل ونهاية المشهد والخروج منقولة إلى الزمن الفعّال (يقف داخل نوافذ السكون) */
+/** D217: وضع الكاميرا الحية يعود إلى الإطار الأول (s=1، بلا إزاحة) في الثانية التي قبل بطاقة الآية ويبقى فيه */
+export const settlePose = <P extends { s: number; x: number; y: number; bg: number }>(pose: P, t: number, at: number): P => {
+  const k = prog(t, at - VERSE_SETTLE, at - 0.05);
+  return { ...pose, s: pose.s + (1 - pose.s) * k, x: pose.x * (1 - k), y: pose.y * (1 - k), bg: pose.bg * (1 - k) };
+};
+
 export const visualClock = (tl: Timeline, dur: number, close: number | undefined, wins: [number, number][]) => {
   const v = (x: number) => activeTime(x, wins);
   return {
@@ -100,17 +106,19 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const close = Number.isFinite(closeAt) && closeAt > 0 ? closeAt
     : tl.words.length && !meta.minEnd ? Math.max(lastWord, vw ? vw[1] : 0) : undefined;
   const pr = props as unknown as Record<string, string | undefined>;
-  // D214: الآية ساكنة كاملة — بطاقتها تظهر كاملة لحظة نافذتها بلا تلاشٍ داخل السكون، وتخرج مع المشهد بعد نهايتها
-  const verseShow = vw ? (t >= vw[0] - 0.05 ? 1 : 0) * (1 - prog(t, Math.max(dur - 0.75, vw[1]), Math.max(dur - 0.15, vw[1] + 0.6))) : 0;
+  // D214/D217: الآية ساكنة كاملة — بطاقتها تظهر كاملة لحظة نافذتها وتختفي دفعة واحدة قبل الخروج (لا تلاشٍ ولا جزء منها)
+  const verseShow = vw && t >= vw[0] - 0.05 && t < Math.max(dur - 0.45, vw[1]) ? 1 : 0;
   // الكاميرا الحية (breath.ts): إعادة تأطير عند كل عبارة، ورجوع إلى الإطار الأول قبل القطع، وخلفية أبطأ بعكسه، والسكون المقصود ثابت
   const breath = React.useMemo(() => {
-    const wins = breathStill(tl, dur, Boolean(meta.still), vw);
+    const wins = breathStill(tl, dur, meta.still === "dhikr", vw);
     return { wins, beats: breathBeats(tl, dur, wins), total: activeTime(dur, wins) };
   },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [props.narration, props.narrationTimings, dur, meta.still, vw?.[0], vw?.[1]]);
   // الانجراف الدائم بالزمن الفعّال (يسكن في السكون المقصود)، ولا انجراف في مشهد ساكن كله
-  const cam = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
+  const live = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
+  // D217: والكاميرا الحية أيضًا تعود إلى الإطار الأول قبل بطاقة الآية وتثبت عليه طوال ظهورها (لا آية مقطوعة أبدًا)
+  const cam = vw ? settlePose(live, t, vw[0]) : live;
   // D214: رسم المشهد نفسه (الحبر والخيط والعناصر) يسكن أيضًا في نوافذ الذكر: يأخذ «الزمن المرئي» (activeTime) بدل الزمن،
   // وتُنقل أزمنة الكلمات والخروج إليه، فيبقى كل حدث عند كلمته خارج السكون، ولا يتقدم شيء داخله، ولا قفزة بعده.
   const vis = React.useMemo(() => visualClock(tl, dur, close, breath.wins), [tl, dur, close, breath.wins]);
@@ -119,6 +127,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
         <SceneCloseContext.Provider value={vis.close}>
+          <VerseWindowContext.Provider value={vw ? [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)] : null}>
           <VersePageContext.Provider value={vw && verseShow > 0 ? <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} /> : null}>
             <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
             {stale ? <HorizonWordsOnly t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} /> : (
@@ -128,6 +137,7 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
             )}
             </AbsoluteFill>
           </VersePageContext.Provider>
+          </VerseWindowContext.Provider>
         </SceneCloseContext.Provider>
       </AbsoluteFill>
     </SceneShell>
