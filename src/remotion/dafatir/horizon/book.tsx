@@ -4,7 +4,7 @@
  * كل مشهد يبدأ من دفتر فارغ أو من الحال التي انتهى عليها المشهد قبله، فلا قفز بين المشاهد.
  */
 import React from "react";
-import { BookShadow, C, Camera, Defs, GUTTER, LEFT_PAGE, LightPool, LiveFrameContext, PAGE_TOP, Page, PageHeadContext, PageStack, RIGHT_PAGE, Spine, VersePageContext, VerseWindowContext, W, captionSafeCy, mix, prog, easeIO } from "./kit";
+import { BookShadow, C, Camera, Defs, SafeCamera, GUTTER, LEFT_PAGE, LightPool, LiveFrameContext, PAGE_TOP, Page, PageHeadContext, PageStack, RIGHT_PAGE, Spine, VersePageContext, VerseWindowContext, W, frameSafeCam, mix, pageHeadTop, prog, easeIO } from "./kit";
 
 export type Cam = { cx: number; cy: number; s: number };
 export const NEUTRAL: Cam = { cx: 960, cy: 520, s: 1 };
@@ -43,6 +43,10 @@ export type Leaf = {
   over?: React.ReactNode;
   tintL?: string;
   light?: number;
+  /** أعلى ما يجب أن يبقى في الإطار (بإحداثيات العالم: رأس بطاقة، عنوان مكتوب) — يضاف إلى عنوان الصفحة pageHead */
+  keepTop?: number;
+  /** أسفل ما يُرسم إن نزل تحت CONTENT_BOTTOM */
+  keepBottom?: number;
 };
 
 /** قلب صفحة إلى الأمام: الورقة اليسرى (بوجهها front) تنقلب إلى اليمين، فيظهر ظهرها الفارغ على اليمين */
@@ -130,7 +134,11 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
   // D217: بطاقة الآية لا تظهر ناقصة أبدًا — الكادر يعود إلى الدفتر كله في الثانية التي قبلها ويثبت عليه طوال ظهورها
   if (vwin) cam = verseSettle(cam, t, vwin);
   // D217: منطقة الترجمة الآمنة — لا ينزل نص الصفحة تحت أعلى الترجمة مهما كان تأطير المشهد أو الكاميرا الحية
-  if (live) cam = { ...cam, cy: Math.max(cam.cy, captionSafeCy(cam.s, live)) };
+  // تصحيح D217 (v17): وعنوان الصفحة وما أعلنه المشهد أعلاها يبقيان داخل الإطار، والتكبير يتنازل بدل أن يُدفع ما يُنظر إليه خارجه
+  if (live) {
+    const tops = [head ? pageHeadTop(head.y) : undefined, leaf.keepTop].filter((x): x is number => x !== undefined);
+    cam = frameSafeCam(cam, live, { top: tops.length ? Math.min(...tops) : undefined, bottom: leaf.keepBottom });
+  }
   const { sx, css } = leafTransform(p);
   const turning = p > 0 && p < 1;
   const crossed = p > 0 && sx <= 0;
@@ -160,21 +168,25 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
 };
 
 /** دفتر فارغ بكاميرا ثابتة يغطي ما تحته تدريجيًا (لخروج اللقطات المصممة قبل هذا البناء بخفوت الحبر) */
-export const BlankBookOver: React.FC<{ id: string; cam: Cam; o: number }> = ({ id, cam, o }) =>
-  o <= 0 ? null : (
+export const BlankBookOver: React.FC<{ id: string; cam: Cam; o: number; keep?: { top?: number; bottom?: number } }> = ({ id, cam, o, keep }) => {
+  if (o <= 0) return null;
+  const leaves = (
+    <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
+      <Defs id={id} />
+      <Page id={id} side="l" />
+      <Page id={id} side="r" />
+      <PageStack />
+      <Spine />
+      <LightPool />
+    </svg>
+  );
+  // كادر اللقطة القديمة نفسه: الآمنة (SHOT4_KEEP) تحت تقييدها، والباقية كما كانت
+  return (
     <div style={{ position: "absolute", inset: 0, opacity: o }}>
-      <Camera {...cam}>
-        <svg width={W} height={1080} style={{ position: "absolute", overflow: "visible" }}>
-          <Defs id={id} />
-          <Page id={id} side="l" />
-          <Page id={id} side="r" />
-          <PageStack />
-          <Spine />
-          <LightPool />
-        </svg>
-      </Camera>
+      {keep ? <SafeCamera {...cam} keep={keep}>{leaves}</SafeCamera> : <Camera {...cam}>{leaves}</Camera>}
     </div>
   );
+};
 
 const Amiri = "'Amiri', serif";
 const Tajawal = "'Tajawal', sans-serif";

@@ -1,3 +1,4 @@
+import { HZ_META } from "../src/remotion/dafatir/horizon/meta";
 import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import { sceneSeconds } from "../src/plan/duration";
@@ -14,17 +15,19 @@ const voiced = (rate: number) => {
   return { voice: { [scene.id]: { file: "x.mp3", hash: "h", text: scene.narration.trim(), duration: end + 0.4, words, timing: { pre: 0.3, tail: 1.3, seconds: end + 1.3, speechStart: 0.3, speechEnd: end, toneMap: "t", parts: [] } } }, recitations: {}, end, words };
 };
 
+// تصحيح D217 (v17): ذيل التوقيت المسجَّل (١٫٣ هنا) لا يزيد على ذيل تصميم اللقطة (verse-tag: ١٫٠)
+const TAIL = Math.min(1.3, HZ_META["verse-tag"]!.tail);
 describe("مشهد البقرة 30 (c1-s8) بالصوت الحقيقي", () => {
   it("لا يمتد بسكوت للقراءة: مدته مدة الكلام وذيله، أو آخر البطاقة بعد آخر كلمة بقليل حين يقصر الكلام عن زمن القراءة", () => {
     for (const rate of [0.32, 0.4, 0.5]) {
       const m = voiced(rate);
-      // البطاقة لا تمد المشهد أكثر من ٠٫٨ ث بعد آخر كلمة (وذيله ١٫٣ ث يغطيها)
-      expect(sceneSeconds(scene, m as never), `rate ${rate}`).toBeLessThanOrEqual(m.end + 1.3 + 1e-6);
-      expect(sceneSeconds(scene, m as never)).toBeGreaterThanOrEqual(m.end + 1.3 - 1e-6);
+      // البطاقة لا تمد المشهد أكثر من VERSE_AFTER_SPEECH بعد آخر كلمة (وذيله يغطيها)
+      expect(sceneSeconds(scene, m as never), `rate ${rate}`).toBeLessThanOrEqual(m.end + TAIL + 1e-6);
+      expect(sceneSeconds(scene, m as never)).toBeGreaterThanOrEqual(m.end + TAIL - 1e-6);
     }
   });
   it("ولا يقصر عن نهاية الكلام وذيله إن كان الكلام أطول من زمن القراءة", () => {
     const m = voiced(1.2);
-    expect(sceneSeconds(scene, m as never)).toBeCloseTo(m.end + 1.3, 5);
+    expect(sceneSeconds(scene, m as never)).toBeCloseTo(m.end + TAIL, 5);
   });
 });

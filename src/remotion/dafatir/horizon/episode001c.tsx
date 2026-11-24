@@ -162,7 +162,8 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       <QuranSeal x={cx - 290} y={200} o={seal * (front ? 1 : 0)} s={0.7} refText="لم يسمّها" />
     </g>
   );
-  return <Book id="c52" t={t} dur={dur} exit={exit} cam={cam} R={R} />;
+  // تصحيح D217 (v17): رأس البطاقة «بطاقة فهرسة» لا يخرج من أعلى الإطار في الاقتراب من الاحتمالات
+  return <Book id="c52" t={t} dur={dur} exit={exit} cam={cam} R={R} keepTop={296} />;
 };
 
 // ─── c5-s3: تحذير من عداوة الشيطان (امتداد لختام الفصل الرابع)، ثم الآية ───
@@ -399,14 +400,17 @@ const Stances: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       </Word>
     </g>
   );
-  return <Book id="c58" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} />;
+  // تصحيح D217 (v17): عنوان «الفرق بين موقفين» (y 225) لا يخرج من أعلى الإطار
+  return <Book id="c58" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} keepTop={178} />;
 };
 
 // ═══════════════ الفصل السادس ═══════════════
 
 // ─── c6-s2: على الأفق: مستقر ومتاع إلى حين، وفوقه الحياة، وتحته الموت، ومنه الإخراج (الأعراف 24–25) ───
 const EarthWords: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const seal = pop(t, at(tl, "الأعراف"));
+  // تصحيح D217 (v17، 6:53.2): الختم يصل مع أول الجملة «وفي سورة الأعراف» لا مع آخرها، فلا تبدأ على صفحة شبه فارغة
+  // (أول كلمة بزمنها، قبل نافذة لفظ الجلالة في «أخبرنا الله» بأكثر من ثانية)
+  const seal = pop(t, Math.min(at(tl, "سورة") - 0.15, at(tl, "الأعراف")));
   const hz = prog(t, at(tl, "الأرض") - 0.1, at(tl, "الأرض") + 0.8);
   const w = [at(tl, "مستقرا"), at(tl, "ومتاعا"), at(tl, "إلى", 1)].map((a) => pop(t, a));
   const limit = prog(t, at(tl, "حين") - 0.05, at(tl, "حين") + 0.5);

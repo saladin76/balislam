@@ -118,7 +118,9 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   // الانجراف الدائم بالزمن الفعّال (يسكن في السكون المقصود)، ولا انجراف في مشهد ساكن كله
   const live = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
   // D217: والكاميرا الحية أيضًا تعود إلى الإطار الأول قبل بطاقة الآية وتثبت عليه طوال ظهورها (لا آية مقطوعة أبدًا)
-  const cam = vw ? settlePose(live, t, vw) : live;
+  // تصحيح D217 (v17): بالزمن الفعّال كرسم المشهد (verseSettle)، فلا تتحرك العودة داخل نافذة ذكر قبل البطاقة
+  // («أخبرنا الله» قبل البقرة ٣٨، «وأباح الله» قبل البقرة ٣٥، «ربه» قبل الأعراف ٢٣ — كانت العودة تبدأ داخل نافذة اللفظ)
+  const cam = vw ? settlePose(live, activeTime(t, breath.wins), [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)]) : live;
   // D217: المشهد يرتفع في الإطار الأفقي فيبقى شريط الترجمة لها وحدها، والدفتر يعرف وضع الكاميرا الحية الفعلي فيقيّد تأطيره
   const lift = props.orientation === "portrait" ? 0 : SAFE_LIFT;
   const pageHead = React.useMemo(() => (pr.pageHead?.trim() && !/الله|لله/.test(pr.pageHead) ? { text: pr.pageHead.trim(), side: pr.pageHeadSide === "r" ? "r" as const : "l" as const, y: Number(pr.pageHeadY) || 190 } : null), [pr.pageHead, pr.pageHeadSide, pr.pageHeadY]);
