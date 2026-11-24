@@ -21,6 +21,8 @@ import config from "../../../config.json";
 import { assemblyStillness, detectFreezes, fileStartsFromSeams, interactivityFrom, planSceneStarts, remapSpans } from "./interactivity";
 import { detectSilences, frozenReport, recitedVerseSpans, silenceReport } from "./pauses";
 import { blankReport, detectInkSamples, speechSpans } from "./blankFrame";
+import { tanzilVerses } from "../../quran/tanzil";
+import { planVerseMismatches } from "../../quran/verseSource";
 import { buildCard, cardRefusal, type CardTarget, type FileMeasurements, type QualityCard } from "./card";
 import { compareWithSeries, seriesIdOf, type SeriesDiffReport, type SeriesEpisode } from "./seriesDiff";
 import type { PublishKit } from "../../package/social";
@@ -31,7 +33,7 @@ import type { Plan } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 
 /** يرتفع حين يتغير ما يُقاس أو طريقته، فيُعاد القياس */
-export const MEASURE_VERSION = 4; // 4: D218 السكوت والشاشة الواقفة والإطار شبه الفارغ أثناء الكلام
+export const MEASURE_VERSION = 5; // 4: D218 السكوت والشاشة الواقفة والإطار شبه الفارغ أثناء الكلام؛ 5: D220 لا يُحسب فارغًا ما يُرسم أو يتحرك
 
 type Stored = FileMeasurements & { version: number; file: { size: number; mtimeMs: number }; at: string };
 
@@ -154,7 +156,8 @@ export const qualityCard = async (episode: string, target?: CardTarget): Promise
   if (!plan) throw Error("لا توجد خطة للحلقة.");
   const media = await collectMedia(episode, plan);
   const measured = await readMeasurement(scriptPath, t);
-  const card = buildCard({ target: t, plan, media, measured, citations: await citationCount(scriptPath), ready: await readyItems(scriptPath, plan, media), series: await seriesComparison(scriptPath, plan) });
+  const card = buildCard({ target: t, plan, media, measured, citations: await citationCount(scriptPath), ready: await readyItems(scriptPath, plan, media), series: await seriesComparison(scriptPath, plan),
+    verseSource: { mismatches: planVerseMismatches(plan, tanzilVerses) } });
   return { ...card, exists: Boolean(await fileStamp(targetFile(scriptPath, t))), measuring: await isMeasuring(episode, t) };
 };
 

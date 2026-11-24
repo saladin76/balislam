@@ -6,8 +6,9 @@
  *
  * لكل ملف متغيّر (مقارنةً بآخر ما على GitHub، --base):
  *   - JSON صالح (كل ملف .json).
- *   - plan.json: لا خطأ جديد في فحص الخطة (planIssues) لم يكن في النسخة السابقة؛ الخطة تُفحص بنصوص آيات السكريبت المجاور كما يقرؤها الاستوديو.
- *   - script.md: لا خطأ جديد في فحص السكريبت (checkForChannel).
+ *   - plan.json: لا خطأ جديد في فحص الخطة (planIssues) لم يكن في النسخة السابقة؛ الخطة تُفحص بنصوص آيات السكريبت المجاور كما يقرؤها الاستوديو،
+ *     ولا نص آية معروض جديد لا يطابق Tanzil بالرسم العثماني حرفًا حرفًا (D220، verseSourceIssues؛ والجزء المعلَّم D222).
+ *   - script.md: لا خطأ جديد في فحص السكريبت (checkForChannel)، ولا آية [آية: … | …] جديدة لا تطابق المصدر (D220/D222).
  *   - publish.json: لا أثر جديد لأدوات الإنتاج في أي نص (findTraces، القاعدة الأولى).
  *   - sentence-pronunciations.json (D131): لا قرآن ولا بسملة في أي نطق، وتشكيله ≥ ٩٨٪.
  *   - pace.json («سرعة الإلقاء»): سرعات وفاصل معروفة وحدها (checkPaceDoc).
@@ -46,6 +47,7 @@ const { withQuran } = await import("../src/plan/quranText.ts");
 const { quranFromScript } = await import("../src/quran/scriptText.ts");
 const { checkForChannel } = await import("../src/script/checkChannel.ts");
 const { findTraces } = await import("../src/package/traces.ts");
+const { verseSourceIssues, scriptVerseSourceIssues } = await import("../src/quran/verseSourceIssues.ts");
 
 for (const file of files) {
   if (!isOwnerContentPath(file)) { failures.push(`${file}: ليس من ملفات محتوى المالك؛ يمر على البوابة الكاملة.`); continue; }
@@ -69,7 +71,7 @@ for (const file of files) {
           try { return withQuran(p, quranFromScript(parseScript(src, scriptFile)).texts); } catch { return p; }
         };
         const nowScript = existsSync(path.join(root, scriptFile)) ? readFileSync(path.join(root, scriptFile), "utf8") : null;
-        const issues = (p: any) => runWithChannel(channel, () => planIssues(p, loadChannel(p?.channel ?? channel)))
+        const issues = (p: any) => runWithChannel(channel, () => [...planIssues(p, loadChannel(p?.channel ?? channel)), ...verseSourceIssues(p)])
           .filter((i) => i.level === "error").map((i) => `${i.sceneId}: ${i.message}`);
         const added = fresh(issues(withScript(data, nowScript)), old ? issues(withScript(old, showBase(scriptFile))) : []);
         for (const a of added) failures.push(`${file}: خطأ جديد في الخطة — ${a}`);
@@ -130,9 +132,11 @@ for (const file of files) {
       if (!existsSync(path.join(path.dirname(abs), "script.md"))) failures.push(`${file}: لا سكريبت بجوار النسخة المشكولة؛ مكانها مجلد الحلقة نفسها.`);
     } else if (file.endsWith("/script.md") && channel) {
       const errs = (src: string) => runWithChannel(channel, () => {
-        const r = checkForChannel(parseScript(src, file));
+        const parsed = parseScript(src, file);
+        const r = checkForChannel(parsed);
         // بلا رقم السطر: إضافة سطر فوق خطأ قديم لا تجعله «جديدًا»
-        return r.issues.filter((i) => i.level === "error").map((i) => `${i.code}: ${i.message}`);
+        return [...r.issues.filter((i) => i.level === "error").map((i) => `${i.code}: ${i.message}`),
+          ...scriptVerseSourceIssues(parsed).map((i) => `verse-source: ${i.message}`)];
       });
       const added = fresh(errs(text), before === null ? [] : errs(before));
       for (const a of added) failures.push(`${file}: خطأ جديد في السكريبت — ${a}`);

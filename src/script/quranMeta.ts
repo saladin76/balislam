@@ -96,7 +96,11 @@ const latinIndex = () => {
   return LATIN;
 };
 
-export type AyahRef = { surah: number; surahName: string; from: number; to: number; key: string };
+/** partial (D222): المرجع معلَّم «(جزء)»: يُعرض جزء متصل تام المعنى من آية طويلة جدًا، لا الآية كلها */
+export type AyahRef = { surah: number; surahName: string; from: number; to: number; key: string; partial?: true };
+
+/** علامة الجزء في آخر المرجع (D222): «البقرة 282 (جزء)» */
+export const PARTIAL_MARK = /\s*[(（]\s*(?:جزء|جزء من آية|part)\s*[)）]\s*$/iu;
 
 export type AyahRefResult = { ok: true; ref: AyahRef } | { ok: false; reason: string };
 
@@ -105,6 +109,14 @@ export type AyahRefResult = { ok: true; ref: AyahRef } | { ok: false; reason: st
  * المفتاح الناتج بصيغة Quran Foundation: «53:39» أو «2:255-256».
  */
 export const parseAyahRef = (raw: string): AyahRefResult => {
+  const partial = PARTIAL_MARK.test(raw);
+  const r = parseWholeRef(partial ? raw.replace(PARTIAL_MARK, "") : raw);
+  if (!r.ok || !partial) return r;
+  if (r.ref.from !== r.ref.to) return { ok: false, reason: `علامة «(جزء)» لآية واحدة لا لنطاق («${raw}»).` };
+  return { ok: true, ref: { ...r.ref, partial: true } };
+};
+
+const parseWholeRef = (raw: string): AyahRefResult => {
   const text = toLatinDigits(raw.trim()).replace(/^(\d{1,3})\s*:\s*(\d)/, "$1 $2");
   const m = text.match(/^(.+?)\s+(\d+)(?:\s*[-–]\s*(\d+))?$/);
   if (!m) return { ok: false, reason: `صيغة المرجع «${raw}» غير صحيحة؛ الصيغة: اسم السورة ثم رقم الآية، مثل «النجم 39» أو «An-Najm 39» أو «53:39».` };

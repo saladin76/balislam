@@ -261,9 +261,10 @@ export const Tag: React.FC<{ text: string; corner: "tl" | "tr" | "bl" | "br" | "
 const SURAH: Record<number, string> = { 2: "البقرة", 4: "النساء", 7: "الأعراف", 15: "الحجر", 18: "الكهف", 20: "طه", 38: "ص" };
 const easternDigits = (n: number | string) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
 /** «2:30» ← «البقرة: ٣٠» */
-export const verseRef = (key: string) => {
+/** partial (D222): جزء من آية طويلة جدًا، فيقول المرجع «(جزء)» */
+export const verseRef = (key: string, partial = false) => {
   const [s, a] = key.split(":");
-  return `${SURAH[Number(s)] ?? `سورة ${s}`}: ${easternDigits(a ?? "")}`;
+  return `${SURAH[Number(s)] ?? `سورة ${s}`}: ${easternDigits(a ?? "")}${partial ? " (جزء)" : ""}`;
 };
 
 /**
@@ -310,7 +311,7 @@ export const VerseWindowContext = React.createContext<[number, number] | null>(n
  * بطاقة نص الآية. «center» بطاقة الآية القديمة وسط الشاشة. «page» استشهاد بصري صامت (V9) على صفحة من الكتاب
  * المفتوح، بإحداثيات الدفتر داخل كاميرته: اليمنى (side "r"، الافتراضي) أو اليسرى ("l")، ومركزها الرأسي y.
  */
-export const VerseCard: React.FC<{ show: number; text: string; refKey: string; reciter?: string; place?: "center" | "page"; side?: "r" | "l"; y?: number }> = ({ show, text, refKey, reciter, place = "center", side = "r", y = 510 }) =>
+export const VerseCard: React.FC<{ show: number; text: string; refKey: string; reciter?: string; place?: "center" | "page"; side?: "r" | "l"; y?: number; partial?: boolean }> = ({ show, text, refKey, reciter, place = "center", side = "r", y = 510, partial = false }) =>
   show <= 0 ? null : (
     <AbsoluteFill style={place === "page" ? { direction: "ltr", width: W, height: H } : { alignItems: "center", justifyContent: "center", paddingBottom: 60 }}>
       {place === "page" ? null : <AbsoluteFill style={{ background: "rgba(13,10,20,0.28)", opacity: show }} />}
@@ -334,7 +335,7 @@ export const VerseCard: React.FC<{ show: number; text: string; refKey: string; r
         <div style={{ fontFamily: "'Amiri Quran', 'Amiri', serif", fontSize: place === "page" ? (text.length > 200 ? 38 : text.length > 120 ? 44 : 50) : text.length > 200 ? 54 : 62, lineHeight: place === "page" ? 1.9 : 2.05, color: C.inkText }}>{quranDisplay(text)}</div>
         <div style={{ marginTop: 18, fontFamily: "'Tajawal', sans-serif", fontWeight: 500, fontSize: 28, color: C.inkSoft }}>
           {/* بلا تلاوة (V9): المرجع وحده */}
-          {reciter ? `${verseRef(refKey)} · بصوت ${reciter}` : verseRef(refKey)}
+          {reciter ? `${verseRef(refKey, partial)} · بصوت ${reciter}` : verseRef(refKey, partial)}
         </div>
       </div>
     </AbsoluteFill>

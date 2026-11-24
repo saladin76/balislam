@@ -10,6 +10,7 @@ const buildOverview = async (episodesDir: string, load: RouteCtx["load"]) => {
     const { parseScript } = await load("/src/script/parse.ts");
     const { checkForChannel } = await load("/src/script/checkChannel.ts");
     const { planIssues } = await load("/src/plan/validate.ts");
+    const { verseSourceIssues } = await load("/src/quran/verseSourceIssues.ts");
     const { loadChannel } = await load("/src/channel/index.ts");
     const { summarizeSceneProduction } = await load("/src/studio/sceneService.ts");
     const { episodeLength } = await load("/src/plan/episodeLength.ts");
@@ -30,7 +31,8 @@ const buildOverview = async (episodesDir: string, load: RouteCtx["load"]) => {
       const voiced = scenes.filter((s: any) => s.narration?.trim());
       const vIndex = existsSync(path.join(dir, "voice", "index.json")) ? JSON.parse(await readFile(path.join(dir, "voice", "index.json"), "utf8")) : {};
       const voiceOk = voiced.filter((s: any) => vIndex[s.id]?.text === s.narration.trim()).length;
-      const issues = plan ? planIssues(plan, loadChannel(plan.channel)) : [];
+      // D220: ومطابقة نص الآيات المعروضة لـ Tanzil
+      const issues = plan ? [...planIssues(plan, loadChannel(plan.channel)), ...verseSourceIssues(plan)] : [];
       const pkgDir = path.join(dir, "out", "package");
       const pkgFiles = existsSync(pkgDir) ? await readdir(pkgDir) : [];
       const id = d.slice(0, 3);
