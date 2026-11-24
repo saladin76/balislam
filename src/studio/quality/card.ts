@@ -17,6 +17,7 @@ import { seriesDiffIssues, type SeriesDiffReport } from "./seriesDiff";
 import { interactivityMinFor, type InteractivityReport } from "./interactivity";
 import { MIX_MIN, type MixReport } from "./mix";
 import { FREEZE_MAX_SEC, SILENCE_MAX_SEC, pauseText, type PauseReport } from "./pauses";
+import { BLANK_MAX_SEC } from "./blankFrame";
 
 export const LOUDNESS_TARGET = -14;
 export const LOUDNESS_TOLERANCE = 1;
@@ -40,16 +41,18 @@ export type FileMeasurements = {
   video: { width: number; height: number };
   /** فحص الخلط سطرًا سطرًا (mix.ts)؛ غيابه في قياس قديم = لم يُقس */
   mix?: MixReport;
-  /** D217: السكوت الأطول من ثانية (pauses.ts)؛ غيابه في قياس قديم = لم يُقس */
+  /** D218: السكوت الأطول من ثانية (pauses.ts)؛ غيابه في قياس قديم = لم يُقس */
   silence?: PauseReport;
-  /** D217: الشاشة الواقفة الأطول من ٣ ث بعد إعفاء الآيات المتلوّة وحدها */
+  /** D218: الشاشة الواقفة الأطول من ٣ ث بعد إعفاء الآيات المتلوّة وحدها */
   frozen?: PauseReport;
+  /** D218: الإطار شبه الفارغ أثناء الكلام أطول من ثانية (blankFrame.ts) */
+  blank?: PauseReport;
 };
 
 const ar = (n: number, d = 1) => (Number.isFinite(n) ? n.toLocaleString("ar-EG", { maximumFractionDigits: d, minimumFractionDigits: 0 }) : "—∞");
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const unmeasured = (id: string, label: string, need: string): CardItem => ({ id, label, status: "unmeasured", need, reason: "لم يُقس الملف الحالي بعد." });
-/** D217: بند الفترات الطويلة (السكوت أو الشاشة الواقفة) يمنع كالتفاعلية، ويسمّي كل فترة بزمنها ومشهدها */
+/** D218: بند الفترات الطويلة (السكوت أو الشاشة الواقفة) يمنع كالتفاعلية، ويسمّي كل فترة بزمنها ومشهدها */
 const pauseItem = (id: string, label: string, need: string, r: PauseReport | undefined, why: string): CardItem => {
   if (!r) return unmeasured(id, label, need);
   const ok = r.spans.length === 0;
@@ -61,6 +64,8 @@ export const silenceItem = (m: FileMeasurements | null) =>
   pauseItem("long-silence", "لا سكوت أطول من ثانية", `لا سكوت فوق ${ar(SILENCE_MAX_SEC, 0)} ث`, m?.silence, "سكوت يُشعر المشاهد بأن الفيديو انتهى (طلب المالك ٢٤ نوفمبر)");
 export const frozenItem = (m: FileMeasurements | null) =>
   pauseItem("frozen-screen", "لا شاشة واقفة أطول من ٣ ثوانٍ", `لا شاشة واقفة فوق ${ar(FREEZE_MAX_SEC, 0)} ث إلا بطاقة آية تحتها تلاوة`, m?.frozen, "صورة المشهد واقفة (وآية بلا تلاوة معتمدة لا تُعفى)");
+export const blankItem = (m: FileMeasurements | null) =>
+  pauseItem("blank-frame", "لا إطار شبه فارغ أثناء الكلام", `لا إطار شبه فارغ فوق ${ar(BLANK_MAX_SEC, 0)} ث والراوي يتكلم`, m?.blank, "الراوي يتكلم والصفحة شبه فارغة (لا عنوان ولا رسم)");
 const later = (id: string, label: string, need: string, who: string): CardItem => ({ id, label, status: "later", need, reason: `يُبنى في ${who}؛ لا يمنع حتى يُبنى.` });
 
 export const audioItems = (m: FileMeasurements | null): CardItem[] => {
@@ -125,7 +130,7 @@ export const pictureItems = (m: FileMeasurements | null, target: CardTarget, pla
     status: iOk ? "pass" : "fail",
     ...(iOk ? {} : { reason: `الشاشة ساكنة أكثر من المسموح${m.interactivity.still.length ? `؛ أطول المقاطع: ${m.interactivity.still.slice(0, 4).map((x) => `${clock(x.from)}–${clock(x.to)}`).join("، ")}` : ""}.` }),
   };
-  return [res, inter, frozenItem(m), diversity];
+  return [res, inter, frozenItem(m), blankItem(m), diversity];
 };
 
 /**

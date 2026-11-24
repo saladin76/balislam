@@ -21,7 +21,8 @@ const planOf = (...scenes: PlanScene[]): Plan => ({ version: 1, episode: "001", 
 const good: FileMeasurements = { loudness: { integrated: -14.3, truePeak: -1.5 }, headSilence: 0.2,
   interactivity: { percent: 91, counted: 100, exempt: 10, still: [], ok: true }, video: { width: 3840, height: 2160 },
   mix: { lines: [], ambience: null, sfx: null, ok: true },
-  silence: { spans: [], longest: 0.5, max: 1, ok: true }, frozen: { spans: [], longest: 1.5, max: 3, ok: true } };
+  silence: { spans: [], longest: 0.5, max: 1, ok: true }, frozen: { spans: [], longest: 1.5, max: 3, ok: true },
+  blank: { spans: [], longest: 0, max: 1, ok: true } };
 const stamp = { file: { size: 1, mtimeMs: 1 }, at: "2026-11-21T00:00:00Z" };
 const status = (c: ReturnType<typeof buildCard>, id: string) => c.sections.flatMap((s) => s.items).find((i) => i.id === id)!.status;
 
@@ -136,7 +137,7 @@ describe("بطاقة الجودة: القياس على ملفات حقيقية �
       expect(err).toMatch(/لا تُصنع النسخة النهائية/);
       expect(err).toContain("علو الحلقة");
       expect(err).toContain("سكوت البداية");
-      expect(err).toContain("لا سكوت أطول من ثانية"); // D217: الثانيتان الصامتتان في أوله سكوت فوق ثانية أيضًا
+      expect(err).toContain("لا سكوت أطول من ثانية"); // D218: الثانيتان الصامتتان في أوله سكوت فوق ثانية أيضًا
       expect(await readMeasurement(path.join(ep, "script.md"), "assembly")).not.toBeNull();
       // ملف جديد بعلو −14 تقريبًا (loudnorm) ويبدأ بالصوت: يمر
       const loud = path.join(tmp, "loud.mp4");
@@ -145,7 +146,7 @@ describe("بطاقة الجودة: القياس على ملفات حقيقية �
       expect(await readMeasurement(path.join(ep, "script.md"), "assembly")).toBeNull(); // القياس القديم لا يصلح لملف جديد
       await expect(assertQualityForFinal("001")).resolves.toBeUndefined();
       const card = await qualityCard("001", "assembly");
-      expect(card.sections.flatMap((s) => s.items).filter((i) => i.status === "pass").map((i) => i.id)).toEqual(expect.arrayContaining(["loudness", "true-peak", "head-silence", "interactivity", "long-silence", "frozen-screen"]));
+      expect(card.sections.flatMap((s) => s.items).filter((i) => i.status === "pass").map((i) => i.id)).toEqual(expect.arrayContaining(["loudness", "true-peak", "head-silence", "interactivity", "long-silence", "frozen-screen", "blank-frame"]));
     });
   }, 120_000);
 
