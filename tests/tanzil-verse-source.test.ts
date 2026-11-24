@@ -218,3 +218,15 @@ describe("D222: جزء تام المعنى من آية طويلة جدًا، م�
     expect(verseReadSeconds(p282)).toBeLessThan(verseReadSeconds(tanzilAyah(2, 282)!));
   });
 });
+
+describe("D220: آيات سكريبتات المستودع في القنوات الثلاث تطابق المصدر (بعد نسخ نص Tanzil إليها)", () => {
+  const channels = readdirSync(path.join(root, "channels")).filter((c) => existsSync(path.join(root, "channels", c, "episodes")));
+  it.each(channels)("%s: كل [آية: … | …] في script.md يطابق Tanzil (أو جزء معلَّم مقبول)", (ch) => {
+    const dir = path.join(root, "channels", ch, "episodes");
+    const bad = readdirSync(dir).filter((ep) => existsSync(path.join(dir, ep, "script.md"))).flatMap((ep) => {
+      const f = path.join(dir, ep, "script.md");
+      return scriptVerseMismatches(quranFromScript(parseScript(readFileSync(f, "utf8"), f)).ayahs, tanzilVerses).map((m) => `${ep} ${m.key}: ${m.message}`);
+    });
+    expect(bad).toEqual([]);
+  });
+});
