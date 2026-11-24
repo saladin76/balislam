@@ -42,7 +42,7 @@ export const BEAT = { move: 1.4, gap: 1.6, longPhrase: 2.2, maxMove: 4 } as cons
  * انجراف دائم بطيء (تكملة D195، ٢٣ نوفمبر): بين لحظات إعادة التأطير لا تقف الكاميرا تمامًا، فتدفع نحو الدفتر وتنزاح
  * قليلًا على قوس واحد يبدأ وينتهي في الإطار الأول. يتقدم بالزمن الفعّال فيسكن في نوافذ السكون المقصود ولا يعوّضها.
  */
-export const DRIFT = { s: 0.015, x: 44, y: 0 } as const;
+export const DRIFT = { s: 0.03, x: 70, y: -10 } as const;
 /** أقصر حركة إعادة تأطير تُقبل قبل نافذة سكون قريبة (تنتهي قبلها) */
 export const MIN_MOVE = 0.7;
 type Pose = { s: number; x: number; y: number };
