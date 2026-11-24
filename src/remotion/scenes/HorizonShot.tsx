@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { SceneShell } from "./SceneShell";
-import { C, Dusk, VerseCard, VersePageContext, VerseWindowContext, prog } from "../dafatir/horizon/kit";
+import { C, Dusk, LiveFrameContext, PageHeadContext, SAFE_LIFT, VerseCard, VersePageContext, VerseWindowContext, prog } from "../dafatir/horizon/kit";
 import { Book, ChapterHead, NEUTRAL, SceneCloseContext, VERSE_SETTLE, parseCam } from "../dafatir/horizon/book";
 import { HZ_SCENES } from "../dafatir/horizon/episode001";
 import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../dafatir/horizon/meta";
@@ -119,6 +119,10 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const live = breathAt(t, breath.beats, breath.total > 0.5 ? activeTime(t, breath.wins) / breath.total : undefined);
   // D217: والكاميرا الحية أيضًا تعود إلى الإطار الأول قبل بطاقة الآية وتثبت عليه طوال ظهورها (لا آية مقطوعة أبدًا)
   const cam = vw ? settlePose(live, t, vw[0]) : live;
+  // D217: المشهد يرتفع في الإطار الأفقي فيبقى شريط الترجمة لها وحدها، والدفتر يعرف وضع الكاميرا الحية الفعلي فيقيّد تأطيره
+  const lift = props.orientation === "portrait" ? 0 : SAFE_LIFT;
+  const pageHead = React.useMemo(() => (pr.pageHead?.trim() && !/الله|لله/.test(pr.pageHead) ? { text: pr.pageHead.trim(), side: pr.pageHeadSide === "r" ? "r" as const : "l" as const, y: Number(pr.pageHeadY) || 190 } : null), [pr.pageHead, pr.pageHeadSide, pr.pageHeadY]);
+  const liveFrame = props.orientation === "portrait" ? null : { s: cam.s, y: cam.y - lift };
   // D214: رسم المشهد نفسه (الحبر والخيط والعناصر) يسكن أيضًا في نوافذ الذكر: يأخذ «الزمن المرئي» (activeTime) بدل الزمن،
   // وتُنقل أزمنة الكلمات والخروج إليه، فيبقى كل حدث عند كلمته خارج السكون، ولا يتقدم شيء داخله، ولا قفزة بعده.
   const vis = React.useMemo(() => visualClock(tl, dur, close, breath.wins), [tl, dur, close, breath.wins]);
@@ -129,13 +133,17 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
         <SceneCloseContext.Provider value={vis.close}>
           <VerseWindowContext.Provider value={vw ? [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)] : null}>
           <VersePageContext.Provider value={vw && verseShow > 0 ? <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} /> : null}>
-            <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
+            <LiveFrameContext.Provider value={liveFrame}>
+            <PageHeadContext.Provider value={pageHead}>
+            <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y - lift}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
             {stale ? <HorizonWordsOnly t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} /> : (
               <ShotGuard resetKey={`${shot}|${props.narration ?? ""}`} fallback={<HorizonWordsOnly t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} />}>
                 <Comp t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
               </ShotGuard>
             )}
             </AbsoluteFill>
+            </PageHeadContext.Provider>
+            </LiveFrameContext.Provider>
           </VersePageContext.Provider>
           </VerseWindowContext.Provider>
         </SceneCloseContext.Provider>

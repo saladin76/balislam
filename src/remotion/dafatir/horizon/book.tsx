@@ -4,7 +4,7 @@
  * كل مشهد يبدأ من دفتر فارغ أو من الحال التي انتهى عليها المشهد قبله، فلا قفز بين المشاهد.
  */
 import React from "react";
-import { BookShadow, C, Camera, Defs, GUTTER, LEFT_PAGE, LightPool, PAGE_TOP, Page, PageStack, RIGHT_PAGE, Spine, VersePageContext, VerseWindowContext, W, mix, prog, easeIO } from "./kit";
+import { BookShadow, C, Camera, Defs, GUTTER, LEFT_PAGE, LightPool, LiveFrameContext, PAGE_TOP, Page, PageHeadContext, PageStack, RIGHT_PAGE, Spine, VersePageContext, VerseWindowContext, W, captionSafeCy, mix, prog, easeIO } from "./kit";
 
 export type Cam = { cx: number; cy: number; s: number };
 export const NEUTRAL: Cam = { cx: 960, cy: 520, s: 1 };
@@ -86,6 +86,17 @@ export const VERSE_SETTLE = 0.9;
 /** D217: الكادر يعود إلى الدفتر كله قبل بطاقة الآية ويثبت عليه طوال ظهورها (يُختبر في tests/horizon-verse-frame.test.ts) */
 export const verseSettle = (cam: Cam, t: number, vwin: [number, number]): Cam => blend(cam, NEUTRAL, prog(t, vwin[0] - VERSE_SETTLE, vwin[0] - 0.05, easeIO));
 
+/** D217: عنوان الصفحة بالحبر وتحته خط ذهبي قصير (يصل مع الصفحة) */
+const HeadInk: React.FC<{ id: string; head: { text: string; side: "l" | "r"; y: number } }> = ({ id, head }) => {
+  const x = head.side === "l" ? 555 : 1365;
+  return (
+    <g>
+      <WriteIn id={`${id}-ph`} x={x} y={head.y} size={54} p={1} label={head.text} color={C.inkSoft} />
+      <path d={`M${x + 90} ${head.y + 28} H${x - 90}`} stroke={C.gold} strokeWidth={3} strokeLinecap="round" opacity={0.8} />
+    </g>
+  );
+};
+
 /** الخيط الأحمر في الخروج: يُمدّ من الكعب إلى الحافتين ثم يبهت */
 const ExitThread: React.FC<{ p: number }> = ({ p }) => {
   const draw = Math.min(1, p * 1.6), o = 0.9 * (1 - Math.max(0, (p - 0.7) / 0.3));
@@ -101,6 +112,8 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
   const close = React.useContext(SceneCloseContext);
   const verse = React.useContext(VersePageContext);
   const vwin = React.useContext(VerseWindowContext);
+  const live = React.useContext(LiveFrameContext);
+  const head = React.useContext(PageHeadContext);
   // الخروج يبدأ حين يُغلق الراوي الفكرة (بعد آخر كلمة بنَفَس قصير) لا بعد ذيل ساكن، ولا يقصر عن مدته الأصلية
   const turnStart = turnAt ?? (close !== undefined ? Math.min(dur - 0.95, close + EXIT_BEAT) : dur - 0.95);
   const turnLen = turnAt === undefined && close !== undefined ? Math.max(0.8, dur - 0.15 - turnStart) : 0.8;
@@ -116,6 +129,8 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
   if (exit === "fade" && close !== undefined) cam = blend(cam, NEUTRAL, prog(t, fadeStart, dur - 0.15));
   // D217: بطاقة الآية لا تظهر ناقصة أبدًا — الكادر يعود إلى الدفتر كله في الثانية التي قبلها ويثبت عليه طوال ظهورها
   if (vwin) cam = verseSettle(cam, t, vwin);
+  // D217: منطقة الترجمة الآمنة — لا ينزل نص الصفحة تحت أعلى الترجمة مهما كان تأطير المشهد أو الكاميرا الحية
+  if (live) cam = { ...cam, cy: Math.max(cam.cy, captionSafeCy(cam.s, live)) };
   const { sx, css } = leafTransform(p);
   const turning = p > 0 && p < 1;
   const crossed = p > 0 && sx <= 0;
@@ -126,8 +141,8 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
         <Defs id={id} />
         {leaf.under}
         <BookShadow />
-        {leaf.noLeft ? null : <Page id={id} side="l" tint={leaf.tintL}>{p > 0 ? null : <g opacity={ink}>{leaf.L}</g>}</Page>}
-        <Page id={id} side="r">{p >= 1 ? null : <g opacity={ink}>{leaf.R}</g>}</Page>
+        {leaf.noLeft ? null : <Page id={id} side="l" tint={leaf.tintL}>{p > 0 ? null : <g opacity={ink}>{leaf.L}{head?.side === "l" ? <HeadInk id={id} head={head} /> : null}</g>}</Page>}
+        <Page id={id} side="r">{p >= 1 ? null : <g opacity={ink}>{leaf.R}{head?.side === "r" ? <HeadInk id={id} head={head} /> : null}</g>}</Page>
         <PageStack />
         {p >= 1 || crossed ? null : <g opacity={ink}>{leaf.top}</g>}
         {turning ? <FwdLeaf id={id} p={p} front={leaf.L} /> : null}
