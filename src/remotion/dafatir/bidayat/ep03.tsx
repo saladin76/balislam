@@ -1,14 +1,14 @@
 /**
  * «دفاتر الزمن 003 — الأجيال الأولى»: لقطات «خط الأفق» الجديدة كما في خطة المشاهد (scenes.md، D214).
  * ليل الدفتر ومواقده (القطعة المخصوصة: كل موقد جيل)، والخيط الأحمر على خط الأفق نفسه، والعقد العشر السوداء بين آدم ونوح.
- * لا تصوير لنبي ولا ملَك ولا لأي إنسان: إدريس عليه السلام اسم بالحبر ونقطة حبر على الخيط (رمز بانتظار اعتماد المالك).
+ * لا تصوير لنبي ولا ملَك ولا لأي إنسان: إدريس عليه السلام اسم بالحبر وحده خارج الخيط (مراجعة المتخصص، الدفعة ٥).
  * الأسماء والأعمار في القوائم أسطر غير مقروءة (لا حروف مخترعة). كل حدث على كلمته (cueKit)، والسكون عند الذكر (reverent).
  */
 import React from "react";
 import { Books, Fire, GLYPHS, Qalam, Ruler } from "../lib/drawings";
 import { DateRibbon } from "../horizon/book";
 import {
-  Arrow, BlankLine, C, Dot, Field, GOLD_D, GoldSeal, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Scribble, Seal, Sheet, Slip, Stone, Tab, Thread, Txt,
+  Arrow, BlankLine, C, Dot, GOLD_D, GoldSeal, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Scribble, Seal, Sheet, Stone, Tab, Thread, Txt,
   Write, bounce, cueKit, mix, prog, reverent, rng, type BdProps, type KnotDef,
 } from "./kit";
 
@@ -61,7 +61,7 @@ const Arc: React.FC<{ p: number; gap?: number; c?: string }> = ({ p, gap = 0, c 
     </g>
   );
 
-/** عقد الخيط في هذه الحلقة: ١ آدم، ٢ ابناه، ٣ إدريس (فارغة حتى تُشد)، ونوح رمادية */
+/** عقد الخيط في هذه الحلقة: ١ آدم، ٢ ابناه، ٣ الأجيال الأولى (فارغة حتى تُشد)، ونوح رمادية */
 const K1 = 1700, K2 = 1540, K3 = 760, KN = 300;
 
 // ─── c1-s1: مواقد الليل ───
@@ -144,28 +144,30 @@ const ThreadNight = reverent((q) => {
   const g2 = bounce(t, k.at("ابنيه"), k.at("ابنيه") + 1.4), l2 = k.on(0, "ابنيه");
   const third = k.on(0, "الثالثة", 0.7);
   const gens = bounce(t, k.at("الأجيال"), k.end("بعدهما") + 0.6);
+  // مراجعة المتخصص (الدفعة ٥): العقدة الثالثة هي «الأجيال» نفسها، واسم إدريس عليه السلام خارج الخيط بلا موضع بين آدم ونوح
+  const tie3 = k.on(0, "الأجيال", 0.8);
   const name = k.draw(0, "إدريس", 1.0);
   const cam = k.cam({ cx: 1500, cy: 580, s: 1.3 }, [
     [0, "ابنيه", { cx: 1560, cy: 600, s: 1.4 }, 1.0],
     [0, "الثالثة", { cx: 1100, cy: 580, s: 1.05 }, 1.2],
-    [0, "إدريس", { cx: 820, cy: 560, s: 1.3 }, 1.0],
+    [0, "إدريس", { cx: 1300, cy: 420, s: 1.15 }, 1.0],
   ]);
   const knots: KnotDef[] = [
     { x: K1, kind: "tied", q: two, glow: g1 },
     { x: K2, kind: "tied", q: two, glow: g2 },
-    { x: K3, kind: "ring", q: third, tie: 0, mark: 0 },
+    { x: K3, kind: "ring", q: third, tie: tie3, mark: 0 },
   ];
   const both = (
     <g>
       <Night />
       {HX.map((x, i) => <Hearth key={i} x={x} q={1} t={t} dim={x < K2 && x > K3 ? -0.6 * gens : 0} s={x < K2 && x > K3 ? 1 + 0.15 * gens : 1} />)}
       <Thread x1={1760} x2={160} y={HY} p={thread} knots={knots} sag={3} />
-      <Dot x={K3} y={HY} q={name} r={7} c={C.inkText} />
     </g>
   );
   return (
-    <Leaf q={q} id="b3tn" cam={cam} L={<g>{both}<Write id="b3tn-i" x={K3} y={500} size={40} p={name} label="إدريس عليه السلام" font="tajawal" color={C.page} /></g>}
+    <Leaf q={q} id="b3tn" cam={cam} L={both}
       R={<g>{both}
+        <Write id="b3tn-i" x={1365} y={260} size={44} p={name} label="إدريس عليه السلام" font="tajawal" color={C.page} />
         <Txt x={K1 - 20} y={690} size={28} q={l1} color={C.page}>خلق آدم وهبوطه</Txt>
         <Txt x={K2 - 60} y={740} size={28} q={l2} color={C.page}>ابنا آدم</Txt>
       </g>} />
@@ -480,47 +482,8 @@ const LongScroll = reverent((q) => {
   );
 });
 
-// ─── c1-s22 / c1-s23: اسم على قصاصة ───
-const NameSlip = reverent((q) => {
-  const k = cueKit(q, ["شيث", "القرآن"]);
-  const slip = k.on(0, "مشهور", 0.9);
-  const name = k.draw(0, "شيث", 0.7);
-  const tab = k.on(0, "المؤرخون");
-  const son = k.draw(0, "ابن", 0.9);
-  const will = k.on(0, "الوصية", 0.6);
-  const f1 = k.on(1, "القرآن"), f2 = k.on(1, "حديثا");
-  const seal = k.on(1, "رواية");
-  const cam = k.cam(NEUTRAL, [[0, "شيث", { cx: 1365, cy: 420, s: 1.3 }, 1.0], [1, "القرآن", { cx: 1420, cy: 600, s: 1.15 }, 1.0]]);
-  const sx = mix(620, 1365, slip), sy = mix(420, 400, slip);
-  return (
-    <Leaf q={q} id="b3ns" cam={cam}
-      L={<g>
-        <rect x={340} y={200} width={460} height={330} fill="#FBF3E2" stroke={C.ink} strokeWidth={3} />
-        <rect x={330} y={184} width={480} height={22} rx={11} fill="#E4D2AE" stroke={C.ink} strokeWidth={3} />
-        <rect x={330} y={524} width={480} height={22} rx={11} fill="#E4D2AE" stroke={C.ink} strokeWidth={3} />
-        <Scribble x={780} y={240} w={170} n={8} p={1} gap={36} seed={31} c={C.ink} o={0.6} />
-        <Seal x={700} y={350} q={1} kind="رواية" s={0.5} />
-      </g>}
-      R={<g>
-        <Slip x={sx} y={sy} w={380} h={200} q={slip} rot={-2} dx={0}>
-          <Write id="b3ns-n" x={0} y={-10} size={70} p={name} label="شيث" />
-          <Txt x={0} y={60} size={28} q={son} color={C.inkSoft}>ابن لآدم عليه السلام</Txt>
-          <Seal x={120} y={-50} q={seal} kind="رواية" s={0.45} />
-        </Slip>
-        <Tab x={1560} y={290} q={tab * slip} label="المؤرخون" />
-        <g opacity={will} transform={`translate(1640 ${560 - 20 * (1 - will)})`}>
-          <rect x={-56} y={-34} width={112} height={68} rx={4} fill="#EFE2C4" stroke={C.ink} strokeWidth={3} />
-          <path d="M-56 -34 L0 6 L56 -34" fill="none" stroke={C.ink} strokeWidth={2.5} />
-          <circle cx={0} cy={8} r={12} fill={C.ribbon} stroke={C.ink} strokeWidth={2} />
-        </g>
-        <Field x={1660} y={700} label="في القرآن:" q={f1} w={160} />
-        <Field x={1660} y={790} label="في الحديث الصحيح:" q={f2} w={110} size={36} />
-      </g>} />
-  );
-});
-
-/** الخيط بعُقده الثلاث (والثالثة بإدريس) ونوح رمادية */
-const BaseThread: React.FC<{ tie3?: number; glow3?: number; dot?: number; noah?: boolean; p?: number; x2?: number }> = ({ tie3 = 1, glow3 = 0, dot = 1, noah = true, p = 1, x2 = 160 }) => (
+/** الخيط بعُقده الثلاث (والثالثة «الأجيال الأولى») ونوح رمادية؛ إدريس عليه السلام ليس على الخيط */
+const BaseThread: React.FC<{ tie3?: number; glow3?: number; noah?: boolean; p?: number; x2?: number }> = ({ tie3 = 1, glow3 = 0, noah = true, p = 1, x2 = 160 }) => (
   <g>
     <Thread x1={1760} x2={x2} y={HY} p={p} sag={3} knots={[
       { x: K1, kind: "tied", q: 1 },
@@ -528,31 +491,31 @@ const BaseThread: React.FC<{ tie3?: number; glow3?: number; dot?: number; noah?:
       { x: K3, kind: "ring", q: 1, tie: tie3, glow: glow3 },
       ...(noah ? [{ x: KN, kind: "grey" as const, q: 1 }] : []),
     ]} />
-    <Dot x={K3} y={HY} q={dot} r={6} c={C.page} />
   </g>
 );
 
 // ─── c1-s24: العقدة الثالثة ───
 const ThirdKnot = reverent((q) => {
+  // مراجعة المتخصص (الدفعة ٥): اسم إدريس عليه السلام يقف خارج الخيط، بلا عقدة ولا نقطة ولا موضع بين آدم ونوح
   const k = cueKit(q, ["نصل"]);
   const { t } = k;
   const gold = k.on(0, "كتابه");
-  const tie = k.on(0, "إدريس", 0.8);
-  const glow = bounce(t, k.at("إدريس"), k.at("إدريس") + 1.6);
   const name = k.draw(0, "إدريس", 1.0);
-  const cam = k.cam({ cx: 1500, cy: 580, s: 1.25 }, [[0, "نصل", { cx: K3, cy: 560, s: 1.4 }, 1.6]]);
+  const glow = bounce(t, k.at("إدريس"), k.at("إدريس") + 1.6);
+  const cam = k.cam({ cx: 1300, cy: 560, s: 1.1 }, [[0, "نصل", { cx: 1365, cy: 360, s: 1.3 }, 1.6]]);
   const both = (
     <g>
       <Night />
       {HX.map((x, i) => <Hearth key={i} x={x} q={1} t={t} s={0.85} />)}
-      <BaseThread tie3={tie} glow3={glow} dot={tie} noah={false} />
+      <BaseThread noah={false} />
     </g>
   );
   return (
-    <Leaf q={q} id="b3k3" cam={cam} R={both}
-      L={<g>{both}
-        <GoldSeal x={480} y={450} q={gold} s={0.7} />
-        <Write id="b3k3-n" x={K3} y={500} size={42} p={name} label="إدريس عليه السلام" font="tajawal" color={C.page} />
+    <Leaf q={q} id="b3k3" cam={cam} L={both}
+      R={<g>{both}
+        <ellipse cx={1365} cy={250} rx={230} ry={60} fill={C.gold} opacity={0.18 * glow} />
+        <GoldSeal x={1650} y={240} q={gold} s={0.7} />
+        <Write id="b3k3-n" x={1365} y={262} size={48} p={name} label="إدريس عليه السلام" font="tajawal" color={C.page} />
       </g>} />
   );
 });
@@ -598,82 +561,6 @@ const HadithNote = reverent((q) => {
   );
 });
 
-// ─── c1-s33 / c1-s34: أين نضعه على الخيط؟ ───
-const TEN2 = Array.from({ length: 10 }, (_, i) => 1640 - i * 100);
-const Placement = reverent((q) => {
-  const k = cueKit(q, ["فمتى", "وضعناه"]);
-  const { t, S } = k;
-  const rise = k.on(0, "فمتى", 0.8);
-  const before = k.on(0, "قبل"), after = k.on(0, "بعده");
-  const most = S === 0 ? prog(t, k.at("أكثر") - 0.05, k.end("يجعلونه") + 0.3) : 1;
-  const khilaf = k.draw(0, "خلاف", 0.8);
-  const settle = k.on(1, "وضعناه", 1.0);
-  const seal = k.on(1, "تقدير");
-  const tarjih = k.on(1, "ترجيح"), noyaq = k.on(1, "يقين");
-  const NX = 400, DX = 560;
-  const dx = mix(mix(DX, 470, rise), DX, settle), dy = mix(mix(HY, 470, rise), HY, settle);
-  const cam = k.cam({ cx: 700, cy: 520, s: 1.1 }, [
-    [0, "قبل", { cx: 420, cy: 420, s: 1.35 }, 1.0],
-    [1, "وضعناه", { cx: 520, cy: 520, s: 1.3 }, 1.0],
-  ]);
-  const both = (
-    <g>
-      <Night />
-      <Thread x1={1760} x2={160} y={HY} p={1} sag={3} knots={[{ x: K1 + 40, kind: "tied", q: 1 }, { x: NX, kind: "grey", q: 1 }]} />
-      {TEN2.map((x, i) => <circle key={i} cx={x - 100} cy={HY} r={8} fill="#141015" stroke={C.page} strokeWidth={1.5} />)}
-    </g>
-  );
-  return (
-    <Leaf q={q} id="b3pl" cam={cam} R={both}
-      L={<g>{both}
-        <Txt x={NX} y={HY + 60} size={26} q={1} color={C.page}>نوح عليه السلام</Txt>
-        <g opacity={before}><rect x={DX + 10 - 90} y={300} width={180} height={70} rx={8} fill={C.page} stroke={C.ink} strokeWidth={3} /><Txt x={DX + 10} y={348} size={32} q={1}>قبل نوح</Txt></g>
-        <g opacity={after}><rect x={250 - 85} y={300} width={170} height={70} rx={8} fill={C.page} stroke={C.ink} strokeWidth={3} /><Txt x={250} y={348} size={32} q={1}>بعد نوح</Txt></g>
-        {[0, 1, 2, 3, 4].map((i) => <path key={i} d={`M${DX - 50 + i * 24} 384 v18`} stroke={C.page} strokeWidth={4} strokeLinecap="round" opacity={prog(most, i / 5, (i + 1) / 5)} />)}
-        <Ink d={`M${DX - 90} 290 C${DX - 140} 240 ${300} 240 ${250} 290`} p={khilaf} w={3} c={C.gold} />
-        <Txt x={(DX + 250) / 2} y={238} size={28} q={khilaf} color={C.gold}>خلاف</Txt>
-        <Dot x={dx} y={dy} q={1} r={11} c={C.page} />
-        <Seal x={DX} y={HY - 90} q={seal} kind="تقدير" s={0.45} />
-        <Txt x={DX + 50} y={HY + 70} size={28} q={tarjih} color={C.page}>ترجيح</Txt>
-        <Txt x={DX - 80} y={HY + 70} size={28} q={noyaq} color={C.page}>لا يقين</Txt>
-      </g>} />
-  );
-});
-
-// ─── c1-s35: القلم والإبرة (رواية) ───
-const ReedPen = reverent((q) => {
-  const k = cueKit(q, ["بالقلم"]);
-  const { t } = k;
-  const sheet = k.open(0, 0.7);
-  const write = prog(t, k.at("خط", 1.4) - 0.05, k.at("خط", 1.4) + 1.4);
-  const sew = k.draw(0, "خاط", 1.2);
-  const chain = k.draw(0, "إسنادا", 1.0);
-  const fam = k.on(0, "مشهورة");
-  const seal = k.on(0, "رواية", 0.6);
-  const cam = k.cam({ cx: 1365, cy: 480, s: 1.15 }, [[0, "خاط", { cx: 1365, cy: 520, s: 1.25 }, 1.0], [0, "رواية", { cx: 1300, cy: 520, s: 1.05 }, 1.0]]);
-  const penX = mix(1620, 1140, write);
-  return (
-    <Leaf q={q} id="b3rp" cam={cam} L={<NightArc t={t} />}
-      R={<g>
-        <Sheet x={1365} y={510} w={700} h={680} q={sheet} rot={1}>
-          <Ink d={`M255 -200 H${penX - 1365}`} p={write > 0 ? 1 : 0} w={4} />
-          {write > 0 && write < 1 ? <g transform={`translate(${penX - 1365} -210) rotate(-35) scale(0.28)`}><g transform="translate(-330 0)"><Qalam /></g></g> : null}
-          <g opacity={prog(sew, 0, 0.3)}>
-            <path d="M200 -60 H-200 V40 H200 Z" fill="#D9C7A4" stroke={C.ink} strokeWidth={3} />
-            {Array.from({ length: 8 }, (_, i) => <path key={i} d={`M-200 ${-56 + i * 13} l-12 4`} stroke={C.ink} strokeWidth={2} opacity={0.5} />)}
-          </g>
-          <path d="M180 -40 H-180" fill="none" stroke={C.ribbon} strokeWidth={4} strokeDasharray="14 10" opacity={sew} style={{ clipPath: `inset(0 0 0 ${(1 - sew) * 100}%)` }} />
-          {[0, 1, 2, 3, 4, 5].map((i) => {
-            const x = 200 - i * 78;
-            return i === 3 ? null : <Ring key={i} x={x} y={150} r={24} p={prog(chain, i / 6, (i + 1) / 6)} w={4} />;
-          })}
-          <Txt x={150} y={260} size={30} q={fam} color={C.inkSoft}>مشهورة</Txt>
-        </Sheet>
-        <Seal x={1365} y={500} q={seal} kind="رواية" s={0.85} />
-      </g>} />
-  );
-});
-
 // ─── c1-s36: ما بقي في اليد ───
 const WhatRemains = reverent((q) => {
   const k = cueKit(q, ["أيدينا"]);
@@ -688,18 +575,19 @@ const WhatRemains = reverent((q) => {
     <g>
       <Night />
       {HX.map((x, i) => <Hearth key={i} x={x} q={1} t={t} s={0.8} />)}
-      <BaseThread glow3={glow} />
+      <BaseThread />
     </g>
   );
   return (
     <Leaf q={q} id="b3wr" cam={cam}
-      L={<g>{both}<Ink d={`M${K3 + 30} ${HY - 30} L${K3 + 90} ${HY - 110}`} p={rise} w={4} c={C.gold} /><Arrow d={`M${K3 + 30} ${HY - 30} L${K3 + 90} ${HY - 110}`} p={rise} hx={K3 + 90} hy={HY - 110} ang={-53} c={C.gold} /></g>}
+      L={both}
       R={<g>{both}
         <rect x={1360} y={210} width={360} height={170} rx={10} fill={C.page} stroke={C.ink} strokeWidth={3} opacity={frame} />
         <Dot x={1660} y={300} q={root} r={11} />
         <g transform="translate(1480 330) scale(0.16)"><Arc p={arc} /></g>
         {[0, 1, 2].map((i) => <circle key={i} cx={1450 + i * 30} cy={325} r={4} fill={C.ember} opacity={arc} />)}
         <Dot x={1395} y={300} q={glow > 0 || rise > 0 ? 1 : 0} r={7} c={C.gold} />
+        <Arrow d="M1395 285 L1395 232" p={rise} hx={1395} hy={232} ang={-90} c={C.gold} />
       </g>} />
   );
 });
@@ -719,7 +607,6 @@ const Gap = reverent((q) => {
       <path d={`M${K3} ${HY} H${KN}`} stroke={C.ribbon} strokeWidth={6} strokeLinecap="round" opacity={1 - broken} />
       <path d={`M${K3} ${HY} H${KN}`} stroke={C.ribbon} strokeWidth={6} strokeDasharray="14 18" opacity={broken} />
       <Thread x1={KN} x2={160} y={HY} p={1} sag={0} knots={[{ x: KN, kind: "grey", q: 1 }]} />
-      <Dot x={K3} y={HY} q={1} r={6} c={C.page} />
     </g>
   );
   return (
@@ -776,12 +663,9 @@ export const BD03_SCENES: Record<string, React.FC<BdProps>> = {
   "bd03-one-then-many": OneThenMany,
   "bd03-ten-knots": TenKnots,
   "bd03-long-scroll": LongScroll,
-  "bd03-name-slip": NameSlip,
   "bd03-third-knot": ThirdKnot,
   "bd03-three-words": ThreeWords,
   "bd03-hadith-note": HadithNote,
-  "bd03-placement": Placement,
-  "bd03-reed-pen": ReedPen,
   "bd03-what-remains": WhatRemains,
   "bd03-gap": Gap,
   "bd03-dimming": Dimming,
@@ -792,6 +676,5 @@ export const BD03_STILLS: Record<string, string> = {
   "bd03-ten-knots": "c1-s17",
   "bd03-margin-note": "c1-s15",
   "bd03-long-scroll": "c1-s19",
-  "bd03-placement": "c1-s34",
 };
 

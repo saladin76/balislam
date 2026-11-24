@@ -5,11 +5,10 @@
  * كل حدث على كلمته (cueKit)، والسكون عند كلمات الذكر بالزمن المرئي (reverent).
  */
 import React from "react";
-import { Books, Fire, Lens } from "../lib/drawings";
+import { Books, Lens } from "../lib/drawings";
 import { DateRibbon } from "../horizon/book";
 import {
-  Arrow, BlankLine, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Scribble, Seal,
-  Sheet, Slip, Stone, Sun, Tab, Thread, Txt, WATER, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
+  Arrow, BlankLine, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Seal, Stone, Sun, Tab, Thread, Txt, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
 } from "./kit";
 
 const GROUND = 640;
@@ -217,86 +216,6 @@ const OfferingsShot = reverent((q) => {
   return <Leaf q={q} id="b2o" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s13 / c1-s29: ورقة الهامش (رواية) ───
-const SideNote = reverent((q) => {
-  const k = cueKit(q, ["نارا", "الحجر"]);
-  const { t, S } = k;
-  const slip = S === 0 ? k.on(0, "روايات", 0.6) : k.on(1, "الروايات", 0.6);
-  const fire = k.on(0, "نارا");
-  const seal = S === 0 ? k.on(0, "رواية") : k.on(1, "رواية");
-  const beam = k.draw(0, "نصدقها", 0.7);
-  const tilt = S === 0 ? bounce(t, k.at("نكذبها"), k.at("نكذبها") + 1.0) * 6 : 0;
-  const fold = S === 0 ? prog(t, k.at("نبني", 0.8), k.at("نبني", 0.8) + 0.8) : 0;
-  const stone = k.draw(1, "الحجر", 0.7);
-  const unknown = k.on(1, "نعلم");
-  const cam = k.cam(NEUTRAL, [
-    [0, "روايات", { cx: 1360, cy: 460, s: 1.3 }, 1.1],
-    [0, "نبني", NEUTRAL, 1.2],
-    [1, "الروايات", { cx: 1360, cy: 470, s: 1.3 }, 1.1],
-  ]);
-  const bg =
-    S === 0 ? (
-      <g><Horizon y={600} p={1} sky="plain" /><Offerings stones={1} cloths={1} t={t} dim={0.55} /></g>
-    ) : (
-      <g><Horizon y={600} p={1} sky="dusk" dim={1} /><Stone x={560} y={650} w={200} h={110} q={1} fill="#A99C86" /><path d="M640 660 L1760 700 L1760 720 L620 676 Z" fill="#2B1E14" opacity={0.28} /></g>
-    );
-  return (
-    <Leaf q={q} id="b2s" cam={cam} L={bg}
-      R={<g>{bg}
-        <Slip x={1380} y={440} w={400} h={250} q={slip} fold={fold} tab="من روايات المفسرين">
-          {S === 0 ? (
-            <g>
-              <rect x={-90} y={-80} width={180} height={150} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="8 8" opacity={fire} />
-              <g opacity={fire} transform="translate(0 40) scale(0.9)"><Fire q={fire} /></g>
-            </g>
-          ) : (
-            <Write id="b2s-h" x={40} y={0} size={56} p={stone} label="الحجر" />
-          )}
-          <Seal x={S === 0 ? 120 : -110} y={S === 0 ? 70 : 60} q={seal} kind="رواية" s={0.5} />
-          {S === 1 ? <Seal x={60} y={-70} q={unknown} kind="لا نعلم" s={0.4} /> : null}
-        </Slip>
-        {S === 0 ? (
-          <g opacity={beam * (1 - fold)} transform={`rotate(${tilt} 1380 640)`}>
-            <Ink d="M1220 640 H1540" p={beam} w={5} />
-            <path d="M1380 640 L1360 676 H1400 Z" fill={C.ink} opacity={beam} />
-          </g>
-        ) : null}
-      </g>} />
-  );
-});
-
-// ─── c1-s14..s16: اسمان يمسحهما الماء ───
-const NamesWash = reverent((q) => {
-  const k = cueKit(q, ["اسماهما", "يردا", "ابنا"]);
-  const { t, S } = k;
-  const stone = k.on(0, "اسماهما", 0.6);
-  const n1 = k.draw(0, "هابيل", 0.8), n2 = k.draw(0, "وقابيل", 0.8);
-  const wash = S === 1 ? prog(t, k.at("يردا", 1.4) - 0.1, k.at("يردا", 1.4) + 1.4) : S > 1 ? 1 : 0;
-  const hadith = k.on(1, "الحديث");
-  const seal = k.on(1, "روايات");
-  const gold = k.on(2, "القرآن");
-  const clear = k.draw(2, "ابنا", 0.9);
-  const faded = 1 - 0.72 * prog(wash, 0.3, 0.9);
-  const cam = k.cam(NEUTRAL, [
-    [0, "اسماهما", { cx: 1360, cy: 520, s: 1.3 }, 1.2],
-    [1, "الحديث", { cx: 1000, cy: 520, s: 1.0 }, 1.0],
-    [2, "ابنا", { cx: 1360, cy: 600, s: 1.25 }, 1.0],
-  ]);
-  const R = (
-    <g>
-      <Stone x={1365} y={600} w={520} h={230} q={stone} fill="#C8BEA8" />
-      <g opacity={faded}>
-        <Write id="b2n-1" x={1365} y={470} size={58} p={n1} label="هابيل" />
-        <Write id="b2n-2" x={1365} y={545} size={58} p={n2} label="قابيل" />
-      </g>
-      {wash > 0 && wash < 1 ? <rect x={mix(1700, 1000, wash) - 120} y={360} width={240} height={260} rx={60} fill={WATER} opacity={0.22 * Math.sin(Math.PI * wash)} /> : null}
-      <Seal x={1530} y={410} q={seal} kind="رواية" s={0.5} />
-      <GoldSealSmall x={1640} y={250} q={gold} />
-      <Write id="b2n-3" x={1365} y={720} size={62} p={clear} label="ابنا آدم" />
-    </g>
-  );
-  return <Leaf q={q} id="b2n" cam={cam} L={<Field x={760} y={420} label="حديث صحيح:" q={hadith} w={200} />} R={R} />;
-});
 const GoldSealSmall: React.FC<{ x: number; y: number; q: number; label?: string }> = ({ x, y, q, label }) =>
   q <= 0 ? null : (
     <g opacity={q} transform={`translate(${x} ${y}) scale(${0.8 + 0.2 * q})`}>
@@ -553,17 +472,15 @@ const FirstMark = reverent((q) => {
 // ─── c1-s35 / c1-s36: أرض لم تُحفر ───
 const BareGround: React.FC = () => <Horizon y={520} p={1} sky="morning" ground="#CDB892" texture={0.4} />;
 const BareEarth = reverent((q) => {
-  const k = cueKit(q, ["وقف", "قبر"]);
-  const { t, S } = k;
-  const qm = S === 0 ? k.on(0, "يدري") : 1 - k.on(1, "يدفن", 0.8);
-  const mound = S === 1 ? k.draw(1, "قبر", 0.8) * (1 - prog(t, k.at("بعد", 0.8), k.at("بعد", 0.8) + 0.9)) : 0;
-  const cam = k.cam(NEUTRAL, [[0, "وقف", { cx: 520, cy: 660, s: 1.5 }, 1.2], [1, "قبر", { cx: 640, cy: 660, s: 1.3 }, 1.0]]);
+  // مراجعة المتخصص (الدفعة ٥): حُذفت جملة «لم يكن على الأرض قبر بعد» (c1-s36) فلا كوم منقّط
+  const k = cueKit(q, ["وقف"]);
+  const qm = k.on(0, "يدري");
+  const cam = k.cam(NEUTRAL, [[0, "وقف", { cx: 520, cy: 660, s: 1.5 }, 1.2]]);
   return (
     <Leaf q={q} id="b2be" cam={cam} R={<BareGround />}
       L={<g><BareGround />
         <Dot x={440} y={710} q={1} r={12} />
         <Q x={500} y={640} size={80} q={qm} />
-        <path d="M680 720 C700 680 800 680 820 720" fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="8 8" opacity={mound} />
       </g>} />
   );
 });
@@ -627,71 +544,6 @@ const Mound = reverent((q) => {
         <path d={`M550 716 C580 ${716 - 18 * fill} 660 ${716 - 18 * fill} 690 716 Z`} fill={CLAY} opacity={0.7 * fill} />
         <Ink d="M548 717 C580 704 660 704 692 717" p={prog(fill, 0.8, 1)} w={3} />
         <Write id="b2m-n" x={620} y={560} size={60} p={word} label="الندم" />
-      </g>} />
-  );
-});
-
-// ─── c1-s43: خانة المكان ───
-const PlaceSlip = reverent((q) => {
-  const k = cueKit(q, ["أين"]);
-  const { t } = k;
-  const field = k.on(0, "أين", 0.6);
-  const slips = [0, 1, 2].map((i) => prog(t, k.at("أماكن") + i * 0.25 - 0.05, k.at("أماكن") + i * 0.25 + 0.4));
-  const slide = prog(t, k.at("يثبت", 1.0) - 0.05, k.at("يثبت", 1.0) + 1.0);
-  const seal = k.on(0, "نعلم");
-  const cam = k.cam(NEUTRAL, [[0, "أين", { cx: 1365, cy: 520, s: 1.25 }, 1.0], [0, "نعلم", { cx: 1365, cy: 540, s: 1.35 }, 0.9]]);
-  const POS = [[1600, 340, -6], [1130, 360, 5], [1365, 700, -3]] as const;
-  return (
-    <Leaf q={q} id="b2p" cam={cam}
-      R={<g>
-        <Field x={1560} y={540} label="المكان:" q={field} w={300} size={50} />
-        {POS.map(([x, y, r], i) => (
-          <Slip key={i} x={x + (x > 1365 ? 260 : -260) * slide} y={y} w={190} h={90} q={slips[i]!} rot={r} tab="رواية" dx={0} fold={slide * 0.6}>
-            <Scribble x={70} y={-10} w={140} n={2} p={1} gap={26} seed={i + 2} o={0.35} />
-          </Slip>
-        ))}
-        <Seal x={1260} y={528} q={seal} kind="لا نعلم" s={0.5} />
-      </g>} />
-  );
-});
-
-// ─── c1-s44 / c1-s45: الأبيات المنحولة ───
-const ForgedVerse = reverent((q) => {
-  const k = cueKit(q, ["أبيات", "نبه"]);
-  const { t, S } = k;
-  const book = k.on(0, "التاريخ", 0.7);
-  const sheet = k.on(0, "أبيات", 0.6);
-  const arrow = k.draw(0, "تنسب", 1.0);
-  const tab = k.on(1, "كثير");
-  const seal = k.on(1, "تصح");
-  const cut = k.on(1, "منحولة", 0.5);
-  const away = S === 1 ? prog(t, k.at("طويل", 1.4) - 0.1, k.at("طويل", 1.4) + 1.4) : 0;
-  const cam = k.cam(NEUTRAL, [
-    [0, "أبيات", { cx: 700, cy: 500, s: 1.25 }, 1.0],
-    [0, "تنسب", { cx: 960, cy: 480, s: 1.05 }, 1.0],
-    [1, "طويل", { cx: 700, cy: 600, s: 1.0 }, 1.4],
-  ]);
-  const sx = mix(640, 260, away), sy = mix(430, 790, away);
-  const L = (
-    <g>
-      <Thread x1={940} x2={160} y={830} p={S === 1 ? prog(t, k.at("طويل", 0.8) - 0.4, k.at("طويل", 0.8) + 0.5) : 0} w={4} />
-      <OpenBook x={560} y={620} q={book} s={0.9} />
-      <Sheet x={sx} y={sy} w={320 * (1 - 0.6 * away)} h={250 * (1 - 0.6 * away)} q={sheet} rot={-4 + 10 * away}>
-        <g transform={`scale(${1 - 0.6 * away})`}>
-          <Scribble x={140} y={-80} w={120} n={5} p={sheet} gap={36} seed={12} c={C.ink} o={0.55} />
-          <Scribble x={-10} y={-80} w={120} n={5} p={sheet} gap={36} seed={17} c={C.ink} o={0.55} />
-          <Seal x={0} y={30} q={seal} kind="لا يصح" s={0.6} />
-        </g>
-      </Sheet>
-      <Arrow d="M800 420 C880 380 960 360 1060 360" p={arrow} hx={1060} hy={360} ang={0} dashed cut={cut} />
-    </g>
-  );
-  return (
-    <Leaf q={q} id="b2fv" cam={cam} L={L}
-      R={<g>
-        <Arrow d="M960 360 C1060 360 1120 350 1180 350" p={arrow} hx={1180} hy={350} ang={0} dashed cut={cut} />
-        <Txt x={1360} y={364} size={44} q={arrow}>آدم عليه السلام</Txt>
-        <Tab x={1700} y={520} q={tab} label="ابن كثير" />
       </g>} />
   );
 });
@@ -853,8 +705,6 @@ export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-world-dark": WorldDark,
   "bd02-tell": Tell,
   "bd02-offerings": OfferingsShot,
-  "bd02-side-note": SideNote,
-  "bd02-names-wash": NamesWash,
   "bd02-wind-cloth": WindCloth,
   "bd02-halted-stroke": HaltedStroke,
   "bd02-two-loads": TwoLoads,
@@ -865,8 +715,6 @@ export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-bare-earth": BareEarth,
   "bd02-crow": CrowShot,
   "bd02-mound": Mound,
-  "bd02-place-slip": PlaceSlip,
-  "bd02-forged-verse": ForgedVerse,
   "bd02-three-seals": ThreeSeals,
   "bd02-thread-knot": ThreadKnot,
   "bd02-crack-grows": CrackGrows,

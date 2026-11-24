@@ -610,48 +610,6 @@ const UnknownForm = reverent((q) => {
   );
 });
 
-// ─── c1-s32: الطريق يتكرر ───
-const RepeatPath = reverent((q) => {
-  const k = cueKit(q, ["المبالغة"]);
-  const { t } = k;
-  const road = k.draw(0, "الطريق", 1.0);
-  const st = [k.draw(0, "المحبة", 0.7), k.draw(0, "المبالغة", 0.7), k.draw(0, "النسيان", 0.7)];
-  const copies = prog(t, k.at("تكرر") - 0.05, k.at("تكرر") + 1.4);
-  const nations = k.on(0, "أمم", 0.9);
-  const seal = k.on(0, "القرآن");
-  const lights = k.on(0, "وأنبياء", 0.8);
-  const ST = [1620, 1365, 1110];
-  const cam = k.cam({ cx: 1365, cy: 380, s: 1.2 }, [[0, "تكرر", NEUTRAL, 1.3]]);
-  const copy = (x0: number, i: number) => (
-    <g key={i} opacity={0.45 * prog(copies, i / 3, (i + 1) / 3)} transform={`translate(${x0} 640) scale(0.45)`}>
-      <path d="M260 0 H-260" stroke={C.ink} strokeWidth={6} />
-      {[-180, 0, 180].map((x) => <circle key={x} cx={x} cy={0} r={14} fill={C.ink} />)}
-      <path d={GLYPHS[i % GLYPHS.length]} transform="translate(0 -40) scale(2)" fill="none" stroke={C.ink} strokeWidth={2} opacity={nations} />
-    </g>
-  );
-  const COPIES = [1650, 1250, 760, 360];
-  const both = (
-    <g>
-      <Horizon y={680} p={1} sky="plain" texture={0.3} />
-      {COPIES.map((x, i) => copy(x, i))}
-      <Thread x1={1760} x2={160} y={850} p={1} w={4} knots={[0, 1, 2].map((i) => ({ x: [1500, 1000, 500][i]!, kind: "light" as const, q: prog(lights, i / 3, (i + 1) / 3) }))} />
-    </g>
-  );
-  return (
-    <Leaf q={q} id="b4rp" cam={cam} L={both}
-      R={<g>{both}
-        <Ink d="M1700 380 H1030" p={road} w={5} />
-        {ST.map((x, i) => (
-          <g key={i}>
-            <circle cx={x} cy={380} r={16} fill={i === 2 ? "#2B1408" : C.ink} opacity={st[i]} />
-            <Txt x={x} y={340} size={38} q={st[i]!} color={i === 2 ? "#2B1408" : C.ink}>{["المحبة", "المبالغة", "النسيان"][i]}</Txt>
-          </g>
-        ))}
-        <GoldSeal x={1650} y={200} q={seal} s={0.7} />
-      </g>} />
-  );
-});
-
 // ─── c1-s34 / c1-s44: العلم الحارس ───
 const KnowledgeGuard = reverent((q) => {
   const k = cueKit(q, ["تتكرر", "حارس"]);
@@ -908,7 +866,6 @@ export const BD04_SCENES: Record<string, React.FC<BdProps>> = {
   "bd04-closed-book": ClosedBook,
   "bd04-stele-erode": SteleErode,
   "bd04-unknown-form": UnknownForm,
-  "bd04-repeat-path": RepeatPath,
   "bd04-knowledge-guard": KnowledgeGuard,
   "bd04-knot-placed": KnotPlaced,
   "bd04-far-arrow": FarArrow,

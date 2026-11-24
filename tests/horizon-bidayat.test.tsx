@@ -9,7 +9,7 @@ import { SceneCloseContext } from "../src/remotion/dafatir/horizon/book";
 import { LIB_META } from "../src/remotion/dafatir/lib/meta";
 import { BD_META } from "../src/remotion/dafatir/bidayat/meta";
 import { BD_SCENES } from "../src/remotion/dafatir/bidayat";
-import { parseBidayatPlan, type BdPlanRow } from "../src/remotion/dafatir/bidayat/plans";
+import { BD_WITHDRAWN, activeRows, parseBidayatPlan, type BdPlanRow } from "../src/remotion/dafatir/bidayat/plans";
 import { SACRED_WORD } from "../src/render/stillness";
 import { normalizeArabic } from "../src/script/quranMeta";
 
@@ -23,7 +23,8 @@ const EPS = ["002", "003", "004", "005", "006", "007", "008", "009"];
 const plans: Record<string, BdPlanRow[]> = Object.fromEntries(
   EPS.map((e) => {
     const dir = readdirSync(DIR).find((d) => d.startsWith(`${e}-`))!;
-    return [e, parseBidayatPlan(readFileSync(`${DIR}/${dir}/scenes.md`, "utf8"))];
+    // ما حذفته مراجعة المتخصص (الدفعة ٥) من السكريبت لا يُبنى ولا يُختبر (BD_WITHDRAWN)
+    return [e, activeRows(e, parseBidayatPlan(readFileSync(`${DIR}/${dir}/scenes.md`, "utf8")))];
   }),
 );
 
@@ -53,6 +54,15 @@ describe("لقطات «البدايات» — التسجيل", () => {
       expect(LIB_META[k] ?? EP001_META[k], `${k} مكرر`).toBeUndefined();
     }
     for (const k of Object.keys(BD_SCENES)) expect(BD_META[k], k).toBeTruthy();
+  });
+
+  it("لا لقطة لما حذفته مراجعة المتخصص (الدفعة ٥)، ولا يبقى مشهد باقٍ عليها", () => {
+    for (const [ep, w] of Object.entries(BD_WITHDRAWN)) {
+      for (const s of w.shots) {
+        expect(HZ_SCENES[s], s).toBeUndefined();
+        expect(plans[ep]!.some((r) => r.shot === s), `${s} ما زال في مشهد باقٍ`).toBe(false);
+      }
+    }
   });
 });
 

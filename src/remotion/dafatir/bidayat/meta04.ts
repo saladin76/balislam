@@ -21,7 +21,6 @@ export const BD04_META: Record<string, HzMeta> = {
   "bd04-closed-book": { nameAr: "البدايات ٤ · الكتاب يُغلق ويعلوه الغبار", tail: 1.0, exit: "fade" },
   "bd04-stele-erode": { nameAr: "البدايات ٤ · الذكرى تُمحى", tail: 1.2, exit: "turn" },
   "bd04-unknown-form": { nameAr: "البدايات ٤ · الهيئة المجهولة", tail: 1.0, exit: "fade" },
-  "bd04-repeat-path": { nameAr: "البدايات ٤ · الطريق يتكرر في الأمم", tail: 1.0, exit: "fade" },
   "bd04-knowledge-guard": { nameAr: "البدايات ٤ · العلم الحارس", tail: 1.0, exit: "fade" },
   "bd04-knot-placed": { nameAr: "البدايات ٤ · موضع العقدة على الخيط", tail: 1.0, exit: "fade" },
   "bd04-far-arrow": { nameAr: "البدايات ٤ · السهم البعيد وشريط العلامة", tail: 1.2, exit: "turn" },
