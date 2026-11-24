@@ -7,6 +7,8 @@ import { parse as parseYaml } from "yaml";
 import { channelPaths } from "../channel";
 import { listScriptEpisodeDirs } from "../script/episodes";
 import { workflowSigningKey } from "./signingKey";
+import { listSeries } from "../channel/seriesStore";
+import { seriesIdIssue } from "../channel/series";
 import { DRAFT_STATUS, productionRefusal, stockIssues, stockViews, type EpisodeFacts, type Stock, type StockEpisodeView } from "./stock";
 
 export const STOCK_FILE = "stock.json";
@@ -35,7 +37,7 @@ const writeAtomic = async (f: string, text: string) => {
 /** يحفظ ترتيب النشر كله (المالك يعدّله) بعد الفحص؛ الترتيب بالأسبوع */
 export const saveStock = async (ch: string, s: Stock): Promise<Stock> => {
   const next: Stock = { ...s, version: 1, slots: [...s.slots].sort((a, b) => a.week - b.week || (a.episode ?? "").localeCompare(b.episode ?? "")) };
-  const issues = stockIssues(next);
+  const issues = stockIssues(next, listSeries(ch));
   if (issues.length) throw new StockError(issues);
   await writeAtomic(stockPath(ch), JSON.stringify(next, null, 2) + "\n");
   return next;
@@ -87,7 +89,10 @@ export const episodeFacts = async (ch: string): Promise<EpisodeFacts[]> => {
 
 export const stockOverview = async (ch: string): Promise<{ channel: string; frozen?: Stock["frozen"]; phase: number; views: StockEpisodeView[]; issues: string[] }> => {
   const stock = readStock(ch);
-  return { channel: ch, ...(stock.frozen ? { frozen: stock.frozen } : {}), phase: stock.phase, views: stockViews(ch, stock, await episodeFacts(ch)), issues: stockIssues(stock) };
+  const series = listSeries(ch);
+  const names = new Map(series.map((s) => [s.id, s.name]));
+  const views = stockViews(ch, stock, await episodeFacts(ch)).map((v) => (v.series && names.has(v.series) ? { ...v, seriesName: names.get(v.series)! } : v));
+  return { channel: ch, ...(stock.frozen ? { frozen: stock.frozen } : {}), phase: stock.phase, views, issues: stockIssues(stock, series) };
 };
 
 const episodeDir = async (ch: string, num: string): Promise<string> => {
@@ -126,6 +131,10 @@ export const scaffoldStockEpisode = async (o: { channel: string; number: string;
   if (!/^\d{3}$/.test(o.number)) throw new StockError(["رقم الحلقة يجب أن يكون ثلاث خانات."]);
   if (!/^[a-z0-9][a-z0-9-]{1,60}$/.test(o.slug)) throw new StockError(["الاسم المختصر بالحروف اللاتينية الصغيرة والشرطات."]);
   if (!o.title.trim()) throw new StockError(["العنوان فارغ."]);
+  if (o.series !== undefined) {
+    const problem = seriesIdIssue(o.series, listSeries(o.channel));
+    if (problem) throw new StockError([problem]);
+  }
   const epDir = channelPaths(o.channel).episodes;
   if ((await listScriptEpisodeDirs(epDir)).some((d) => d.startsWith(`${o.number}-`)) || existsSync(path.join(epDir, `${o.number}-${o.slug}`)))
     throw new StockError([`الحلقة ${o.number} موجودة بالفعل.`]);

@@ -3,7 +3,7 @@ title: "03 | كتاب «أول مرة أصلي» || ماذا يحدث في سج�
 domain: classics
 episode: "003"
 status: "مسودة"
-series: "كتاب أول مرة أصلي"
+series: "awwal-marra-osalli"
 alt_titles:
   - "أول مرة أصلي | لماذا نسجد مرتين في كل ركعة؟"
   - "ماذا تقول في سجودك؟ | أول مرة أصلي"

@@ -3,7 +3,7 @@ title: "لماذا أغضب وأنا صائم؟"
 domain: psychology
 episode: "011"
 status: "مسودة"
-series: "النفس والسلوك"
+series: "psychology"
 alt_titles:
   - "«إني صائم»: جملة تطفئ الغضب"
   - "لماذا يضيق صدري قبل المغرب؟"

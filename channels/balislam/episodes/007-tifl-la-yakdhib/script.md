@@ -3,7 +3,7 @@ title: "كيف تربي طفلًا لا يكذب؟"
 domain: family
 episode: "007"
 status: "مسودة"
-series: "الأسرة والعلاقات"
+series: "family"
 alt_titles:
   - "لماذا يكذب أطفالنا؟ وما دورنا نحن؟"
   - "وعدٌ صغير لطفلك: هل تفي به؟"

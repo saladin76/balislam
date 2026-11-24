@@ -3,7 +3,7 @@ title: "أين ذهب وقتي؟"
 domain: knowledge
 episode: "009"
 status: "مسودة"
-series: "أسئلة العصر"
+series: "knowledge"
 alt_titles:
   - "الإشعار الذي سرق يومك: كيف نسترده؟"
   - "ساعة كاملة في دقائق متفرقة: أين تذهب؟"

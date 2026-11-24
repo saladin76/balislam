@@ -21,6 +21,21 @@ export const GENERAL_NAME = "عام";
 export const MAX_DEPTH = 3;
 export const SLUG_RE = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
+/**
+ * D215 (قرار المالك ٢٤ نوفمبر): السلسلة تُذكر في السكريبت والخطط وترتيب النشر بمعرّفها الإنجليزي وحده (مثل `worship`)،
+ * واسمها العربي للعرض في سجل القناة وحده (`channels/<القناة>/series/<المعرّف>/series.json`). يعيد سبب الرفض أو null.
+ * «عام» (`general`) مسجّل دائمًا.
+ */
+export const seriesIdIssue = (value: unknown, registered: readonly { id: string; name: string }[]): string | null => {
+  if (typeof value !== "string" || !value.trim()) return "السلسلة (series) يجب أن تكون معرّفًا نصيًا غير فارغ.";
+  const v = value.trim();
+  if (v === GENERAL_SLUG || registered.some((s) => s.id === v)) return null;
+  const byName = registered.find((s) => s.name.trim() === v);
+  if (byName) return `السلسلة «${v}» اسم عرض؛ اكتب معرّفها «${byName.id}» (الاسم العربي في سجل السلاسل وحده).`;
+  const ids = [GENERAL_SLUG, ...registered.map((s) => s.id).filter((id) => id !== GENERAL_SLUG)];
+  return `السلسلة «${v}» غير مسجّلة في القناة؛ المسجّل: ${ids.join("، ")}. أنشئها في «السلاسل والتصنيفات» أولًا.`;
+};
+
 export type TitleWeight = "regular" | "bold";
 export type TitleSize = "s" | "m" | "l";
 export type TitleOrnament = "none" | "rule" | "motif";

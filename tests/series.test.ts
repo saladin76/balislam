@@ -15,6 +15,11 @@ import {
   type SeriesConfig, type SeriesContext,
 } from "../src/channel/series";
 import { channelLibrary } from "../src/channel/library";
+import { seriesIdIssue } from "../src/channel/series";
+import { parseScript } from "../src/script/parse";
+import { checkScript, configFromFile } from "../src/script/check";
+import { stockIssues } from "../src/studio/stock";
+import { parse as parseYaml } from "yaml";
 import { loadChannel } from "../src/channel";
 import { allToneIds, toneIds } from "../src/voice/tones";
 import { findTraces } from "../src/package/traces";
@@ -275,5 +280,80 @@ describe("الحفظ على القرص: «عام» للقائم، وختم ال�
     await store.saveSeries("balislam", S({ id: "old", name: "قديمة", status: "archived" }));
     await expect(createEpisode({ episode: "004", slug: "x", domain: "psychology", title: "ع", series: "old" })).rejects.toThrow(/مؤرشفة/);
     await expect(store.saveSeries("balislam", { ...S({ id: GENERAL_SLUG, name: "عام", kind: "category" }), status: "archived" })).rejects.toThrow(/لا يُؤرشف/);
+  });
+});
+
+// D215 (قرار المالك ٢٤ نوفمبر): معرّف إنجليزي واحد لكل سلسلة في السكريبتات والخطط وترتيب النشر، واسم عربي واحد في السجل
+describe("D215: معرّف السلسلة المسجّل وحده في السكريبت وترتيب النشر", () => {
+  const REG = [{ id: "worship", name: "العبادة الواعية" }, { id: "money", name: "المال والعمل" }];
+  const frontmatterOf = (text: string): Record<string, unknown> => {
+    const m = /^---\n([\s\S]*?)\n---/.exec(text);
+    return m ? (parseYaml(m[1]!) as Record<string, unknown>) : {};
+  };
+  const registered = (ch: string) => readSeriesFilesFor(ch).map((s) => ({ id: s.id, name: s.name }));
+  const readSeriesFilesFor = (ch: string): SeriesConfig[] => {
+    const dir = path.join("channels", ch, "series");
+    return existsSync(dir) ? readdirSync(dir).filter((d) => existsSync(path.join(dir, d, "series.json")))
+      .map((d) => JSON.parse(readFileSync(path.join(dir, d, "series.json"), "utf8")) as SeriesConfig) : [];
+  };
+
+  it("seriesIdIssue: المعرّف المسجّل و«عام» مقبولان؛ اسم العرض يُرفض ويُقترح معرّفه؛ وغير المسجّل يُرفض", () => {
+    expect(seriesIdIssue("worship", REG)).toBeNull();
+    expect(seriesIdIssue(GENERAL_SLUG, REG)).toBeNull();
+    expect(seriesIdIssue("العبادة الواعية", REG)).toContain("«worship»");
+    expect(seriesIdIssue("books", REG)).toContain("غير مسجّلة");
+    expect(seriesIdIssue("", REG)).not.toBeNull();
+    expect(seriesIdIssue(3, REG)).not.toBeNull();
+  });
+
+  it("فحص السكريبت: series غير مسجّل خطأ series-unknown، والمسجّل بلا خطأ", () => {
+    const script = (series: string) => parseScript(`---\ntitle: "سؤال؟"\ndomain: worship\nepisode: "001"\nseries: "${series}"\n---\n\nنص قصير.\n`, "x/script.md");
+    const cfg = { ...configFromFile(), domains: ["worship"], series: REG };
+    const codes = (s: string) => checkScript(script(s), cfg).issues.filter((i) => i.level === "error").map((i) => i.code);
+    expect(codes("worship")).not.toContain("series-unknown");
+    expect(codes("المال والعمل")).toContain("series-unknown");
+    expect(codes("books")).toContain("series-unknown");
+    // بلا قائمة: معرّف إنجليزي على الأقل
+    expect(checkScript(script("المال والعمل"), { ...configFromFile(), domains: ["worship"] }).issues.map((i) => i.code)).toContain("series-unknown");
+  });
+
+  it("ترتيب النشر: سلسلة الخانة معرّف مسجّل", () => {
+    const stock = { version: 1 as const, phase: 1, slots: [{ week: 1, title: "أ", batch: 1, series: "money" }, { week: 2, title: "ب", batch: 1, series: "المال والعمل" }] };
+    const issues = stockIssues(stock, REG);
+    expect(issues).toHaveLength(1);
+    expect(issues[0]).toContain("الخانة 2");
+    expect(stockIssues(stock)).toEqual([]);
+  });
+
+  for (const ch of CHANNELS) {
+    it(`${ch}: كل series في السكريبتات وترتيب النشر وملفات الانتماء وسجل الكتب معرّف مسجّل`, () => {
+      const reg = registered(ch);
+      const bad: string[] = [];
+      const epRoot = path.join("channels", ch, "episodes");
+      for (const d of existsSync(epRoot) ? readdirSync(epRoot) : []) {
+        const s = path.join(epRoot, d, "script.md");
+        if (existsSync(s)) {
+          const fm = frontmatterOf(readFileSync(s, "utf8"));
+          if (fm.series !== undefined) { const p = seriesIdIssue(fm.series, reg); if (p) bad.push(`${s}: ${p}`); }
+        }
+        const link = path.join(epRoot, d, "series.json");
+        if (existsSync(link)) { const p = seriesIdIssue(JSON.parse(readFileSync(link, "utf8")).series, reg); if (p) bad.push(`${link}: ${p}`); }
+      }
+      const stockFile = path.join("channels", ch, "stock.json");
+      if (existsSync(stockFile)) for (const a of stockIssues(JSON.parse(readFileSync(stockFile, "utf8")), reg)) if (a.includes("السلسلة")) bad.push(`${stockFile}: ${a}`);
+      const lib = path.join("channels", ch, "library");
+      for (const [f, key] of [["books.json", "books"], ["scholars.json", "scholars"]] as const) {
+        const file = path.join(lib, f);
+        if (existsSync(file)) for (const x of JSON.parse(readFileSync(file, "utf8"))[key] ?? []) { const p = seriesIdIssue(x.series, reg); if (p) bad.push(`${file} ${x.id}: ${p}`); }
+      }
+      expect(bad).toEqual([]);
+    });
+  }
+
+  it("لكل سلسلة اسم عربي واحد: لا اسمان متطابقان في قناة واحدة", () => {
+    for (const ch of CHANNELS) {
+      const names = registered(ch).map((s) => s.name.trim());
+      expect(names.filter((n, i) => names.indexOf(n) !== i), ch).toEqual([]);
+    }
   });
 });

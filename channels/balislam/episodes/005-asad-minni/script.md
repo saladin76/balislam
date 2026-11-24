@@ -3,7 +3,7 @@ title: "لماذا يبدو الجميع أسعد مني؟"
 domain: knowledge
 episode: "005"
 status: "مسودة"
-series: "أسئلة العصر"
+series: "knowledge"
 alt_titles:
   - "تتصفح الهاتف فتشعر أنك متأخر عن الجميع؟"
   - "المقارنة على الشاشة: كيف تخرج منها؟"

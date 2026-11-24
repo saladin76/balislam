@@ -53,6 +53,9 @@ describe("«اعتمدت السكريبت» وقالب المخزون (ملفا�
     process.env.BAL_CHANNELS_DIR = root;
     process.env.BAL_WORKFLOW_HMAC_KEY = "k".repeat(40);
     mkdirSync(path.join(root, "balislam", "episodes"), { recursive: true });
+    // D215: سلسلة القالب معرّف مسجّل في القناة
+    mkdirSync(path.join(root, "balislam", "series", "worship"), { recursive: true });
+    writeFileSync(path.join(root, "balislam", "series", "worship", "series.json"), JSON.stringify({ version: 1, id: "worship", name: "العبادة الواعية", kind: "category" }));
   });
   afterAll(() => {
     if (prev.dir === undefined) delete process.env.BAL_CHANNELS_DIR; else process.env.BAL_CHANNELS_DIR = prev.dir;
@@ -66,6 +69,8 @@ describe("«اعتمدت السكريبت» وقالب المخزون (ملفا�
     expect(st.scriptFrontmatter(readFileSync(path.join(dir, "script.md"), "utf8"))).toMatchObject({ status: "مسودة", episode: "014", title: "عنوان" });
     await expect(st.scaffoldStockEpisode({ channel: "balislam", number: "014", slug: "other", title: "x", domain: "worship", templatesRoot: path.resolve("templates") })).rejects.toThrow(/موجودة/);
     expect(await st.productionBlockFor("balislam", path.join(dir, "script.md"))).toContain("مسودة");
+    // D215: اسم العرض أو معرّف غير مسجّل لا يُكتب في ترويسة المسودة
+    await expect(st.scaffoldStockEpisode({ channel: "balislam", number: "015", slug: "x-ep", title: "x", domain: "worship", series: "العبادة الواعية", templatesRoot: path.resolve("templates") })).rejects.toThrow(/worship/);
   });
   it("الاعتماد موقّع ويُظهر «تغيّر بعد اعتمادك» عند تعديل السكريبت، والتوقيع المزوّر لا يُقبل", async () => {
     const st = await import("../src/studio/stockStore");

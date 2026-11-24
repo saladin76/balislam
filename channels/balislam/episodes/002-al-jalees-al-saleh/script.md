@@ -2,6 +2,7 @@
 title: "الجليس الصالح: هل تشبه من تجلس معهم؟"
 domain: family
 episode: "002"
+series: "family"
 status: "مسودة"
 alt_titles:
   - "لماذا تشبه أصحابك أكثر مما تظن؟"

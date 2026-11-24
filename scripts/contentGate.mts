@@ -105,7 +105,10 @@ for (const file of files) {
       // ترتيب النشر وبناء المخزون (D213): أسابيع ودفعات صحيحة، ولا تواريخ (ترتيب لا مواعيد)
       if (/^channels\/[^/]+\/stock\.json$/.test(file)) {
         const { stockIssues } = await import("../src/studio/stock.ts");
-        for (const a of fresh(stockIssues(data as never), old ? stockIssues(old) : [])) failures.push(`${file}: ${a}`);
+        // D215: سلسلة كل خانة معرّف مسجّل في القناة
+        const { listSeries } = await import("../src/channel/seriesStore.ts");
+        const series = channel ? listSeries(channel) : undefined;
+        for (const a of fresh(stockIssues(data as never, series), old ? stockIssues(old, series) : [])) failures.push(`${file}: ${a}`);
       }
     } else if (file.endsWith("/tashkeel.md")) {
       // D132: the voweled copy is sent to the voice only; a broken or empty file never reaches main

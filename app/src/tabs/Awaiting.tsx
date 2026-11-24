@@ -37,7 +37,7 @@ const Row: React.FC<{ v: StockEpisodeView; onChanged: () => void }> = ({ v, onCh
         <span className="pill warn">مسودة</span> {v.title} <small>{CHANNEL_NAME[v.channel] ?? v.channel} {v.episode}</small>
       </h4>
       <p className="help">
-        {v.series ? `السلسلة: ${v.series} | ` : ""}{v.week !== null ? `ترتيب النشر: الأسبوع ${ar(v.week)}، ${v.day}` : "خارج ترتيب النشر"} | <strong>{state}</strong>
+        {v.series ? `السلسلة: ${v.seriesName ?? v.series} | ` : ""}{v.week !== null ? `ترتيب النشر: الأسبوع ${ar(v.week)}، ${v.day}` : "خارج ترتيب النشر"} | <strong>{state}</strong>
       </p>
       {v.specialist.length > 0
         ? <p className="warn"><strong>يحتاج المتخصص قبل الصوت:</strong> {v.specialist.join("؛ ")}</p>
