@@ -6,7 +6,7 @@
  *
  * لكل ملف متغيّر (مقارنةً بآخر ما على GitHub، --base):
  *   - JSON صالح (كل ملف .json).
- *   - plan.json: لا خطأ جديد في فحص الخطة (planIssues) لم يكن في النسخة السابقة.
+ *   - plan.json: لا خطأ جديد في فحص الخطة (planIssues) لم يكن في النسخة السابقة؛ الخطة تُفحص بنصوص آيات السكريبت المجاور كما يقرؤها الاستوديو.
  *   - script.md: لا خطأ جديد في فحص السكريبت (checkForChannel).
  *   - publish.json: لا أثر جديد لأدوات الإنتاج في أي نص (findTraces، القاعدة الأولى).
  *   - sentence-pronunciations.json (D131): لا قرآن ولا بسملة في أي نطق، وتشكيله ≥ ٩٨٪.
@@ -42,6 +42,8 @@ const strings = (v: unknown, out: string[] = []): string[] => {
 const { runWithChannel, loadChannel } = await import("../src/channel/index.ts");
 const { planIssues } = await import("../src/plan/validate.ts");
 const { parseScript } = await import("../src/script/parse.ts");
+const { withQuran } = await import("../src/plan/quranText.ts");
+const { quranFromScript } = await import("../src/quran/scriptText.ts");
 const { checkForChannel } = await import("../src/script/checkChannel.ts");
 const { findTraces } = await import("../src/package/traces.ts");
 
@@ -58,9 +60,18 @@ for (const file of files) {
       try { data = JSON.parse(text); } catch (e) { failures.push(`${file}: JSON غير صالح (${(e as Error).message}).`); continue; }
       const old = (() => { try { return before === null ? null : JSON.parse(before); } catch { return null; } })();
       if (file.endsWith("/plan.json") && channel) {
+        // نص الآيات لا يُخزَّن في plan.json (stripQuran)؛ الاستوديو يدمجه من السكريبت المجاور عند القراءة (readPlanFile).
+        // فتُفحص الخطة كما يستعملها الاستوديو فعلًا: بنصوص آيات السكريبت المجاور في النسخة نفسها (الجديدة والسابقة)،
+        // لا الملف الخام الذي تبدو فيه كل بطاقة آية «بنص مؤقت» ولو كان نصها في السكريبت.
+        const scriptFile = path.join(path.dirname(file), "script.md");
+        const withScript = (p: any, src: string | null) => {
+          if (!p || src === null) return p;
+          try { return withQuran(p, quranFromScript(parseScript(src, scriptFile)).texts); } catch { return p; }
+        };
+        const nowScript = existsSync(path.join(root, scriptFile)) ? readFileSync(path.join(root, scriptFile), "utf8") : null;
         const issues = (p: any) => runWithChannel(channel, () => planIssues(p, loadChannel(p?.channel ?? channel)))
           .filter((i) => i.level === "error").map((i) => `${i.sceneId}: ${i.message}`);
-        const added = fresh(issues(data), old ? issues(old) : []);
+        const added = fresh(issues(withScript(data, nowScript)), old ? issues(withScript(old, showBase(scriptFile))) : []);
         for (const a of added) failures.push(`${file}: خطأ جديد في الخطة — ${a}`);
       }
       if (file.endsWith("/sentence-pronunciations.json")) {
