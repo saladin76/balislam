@@ -18,6 +18,7 @@ import { interactivityMinFor, type InteractivityReport } from "./interactivity";
 import { MIX_MIN, type MixReport } from "./mix";
 import { FREEZE_MAX_SEC, SILENCE_MAX_SEC, pauseText, type PauseReport } from "./pauses";
 import { BLANK_MAX_SEC } from "./blankFrame";
+import { shownVerses } from "../../quran/verseSource";
 
 export const LOUDNESS_TARGET = -14;
 export const LOUDNESS_TOLERANCE = 1;
@@ -189,6 +190,24 @@ export const scriptItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "re
   ];
 };
 
+/** D220: نتيجة مقابلة نصوص الآيات المعروضة بـ Tanzil (measure.ts يقابلها بالملف؛ هذا الملف خالص) */
+export type VerseSourceReport = { mismatches: { sceneId: string; message: string }[] };
+
+/**
+ * D220 (قرار المالك ٢٤ نوفمبر): «لا بطاقة آية تخالف المصدر» — كل نص آية معروض (بطاقة الآية ولقطة الآية في «خط الأفق»)
+ * يطابق Tanzil بالرسم العثماني حرفًا حرفًا، وإلا يمنع. خطة بلا آية معروضة ✓؛ وفيها آيات ولم تُقابل بعد: «لم يُقس».
+ */
+export const verseSourceItem = (plan: Plan, r?: VerseSourceReport | null): CardItem => {
+  const id = "verse-source", label = "لا بطاقة آية تخالف المصدر", need = "نص كل آية معروضة يطابق المصدر المعتمد (Tanzil بالرسم العثماني) حرفًا حرفًا";
+  const { shown, problems } = shownVerses(plan);
+  if (!shown.length && !problems.length) return { id, label, need, status: "pass", value: "لا آية معروضة" };
+  if (!r) return unmeasured(id, label, need);
+  const total = shown.length + problems.length;
+  if (!r.mismatches.length) return { id, label, need, status: "pass", value: `${ar(total, 0)} من ${ar(total, 0)}` };
+  return { id, label, need, status: "fail", value: `${ar(r.mismatches.length, 0)} من ${ar(total, 0)} لا تطابق`,
+    reason: `${r.mismatches.slice(0, 4).map((m) => `${m.sceneId}: ${m.message}`).join(" · ")}${r.mismatches.length > 4 ? " · …" : ""}` };
+};
+
 /** بنود التغليف والشورتس من B (`src/package/qualityCard.ts`) بصيغة البطاقة؛ كلها «للنشر» */
 export type ReadyItems = { items: { id: string; label: string; ok: boolean; detail?: string }[] };
 const fromReady = (r: ReadyItems | undefined, missing: CardItem): CardItem[] =>
@@ -213,13 +232,15 @@ export const buildCard = (input: {
   ready?: { packaging: ReadyItems; shorts: ReadyItems };
   /** D204: المقارنة بالحلقة السابقة في السلسلة (null: لم تُقرأ) */
   series?: SeriesDiffReport | null;
+  /** D220: مقابلة الآيات المعروضة بالمصدر (غيابها وفي الخطة آيات = لم يُقس) */
+  verseSource?: VerseSourceReport | null;
 }): QualityCard => {
   const m = input.measured;
   const sections: CardSection[] = [
     { id: "audio", label: "الصوت", items: audioItems(m) },
     { id: "picture", label: "الصورة", items: pictureItems(m, input.target, input.plan) },
     { id: "craft", label: "الحِرفة", items: craftItems(input.plan, input.media, input.series) },
-    { id: "script", label: "السكريبت", items: scriptItems(input.plan, input.media, input.citations) },
+    { id: "script", label: "السكريبت", items: [...scriptItems(input.plan, input.media, input.citations), verseSourceItem(input.plan, input.verseSource)] },
     { id: "packaging", label: "التغليف", items: packagingItems(input.ready?.packaging) },
     { id: "shorts", label: "الشورتس", items: shortsItems(input.ready?.shorts) },
   ];

@@ -10,6 +10,7 @@ import { elevenLabsFromEnv } from "../voice/elevenlabs";
 import { generateVoice } from "../voice/generate";
 import { packageEpisode } from "./package";
 import { planIssues } from "../plan/validate";
+import { verseSourceIssues } from "../quran/verseSourceIssues";
 
 /** The final file found voice that was never generated (owner decision 15–16 Nov: it does not pay for it). */
 export const missingVoiceMessage = (clips: number, chars: number) =>
@@ -47,7 +48,8 @@ export const makeEpisode = async (opts: MakeOptions) => {
   const existing = await loadPlan(ep);
   const plan = existing && isDesignedPlan(existing) ? existing : await regeneratePlan(ep);
   log(`   ${plan.chapters.reduce((n, c) => n + c.scenes.length, 0)} مشهدًا.`);
-  const issues = planIssues(plan, loadChannel(plan.channel));
+  // D220: نص كل آية معروضة يطابق Tanzil بالرسم العثماني حرفًا حرفًا
+  const issues = [...planIssues(plan, loadChannel(plan.channel)), ...verseSourceIssues(plan)];
   for (const i of issues.filter((x) => x.level === "warning")) log(`   تنبيه (${i.sceneId}): ${i.message}`);
   const blocking = issues.filter((x) => x.level === "error");
   if (blocking.length && !opts.noVoice) throw new Error(`لا يمكن إخراج نسخة نهائية:\n${blocking.map((i) => `- ${i.sceneId}: ${i.message}`).join("\n")}`);

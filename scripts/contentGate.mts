@@ -6,8 +6,9 @@
  *
  * لكل ملف متغيّر (مقارنةً بآخر ما على GitHub، --base):
  *   - JSON صالح (كل ملف .json).
- *   - plan.json: لا خطأ جديد في فحص الخطة (planIssues) لم يكن في النسخة السابقة.
- *   - script.md: لا خطأ جديد في فحص السكريبت (checkForChannel).
+ *   - plan.json: لا خطأ جديد في فحص الخطة (planIssues) لم يكن في النسخة السابقة، ولا نص آية معروض جديد
+ *     لا يطابق Tanzil بالرسم العثماني حرفًا حرفًا (D220، verseSourceIssues).
+ *   - script.md: لا خطأ جديد في فحص السكريبت (checkForChannel)، ولا آية [آية: … | …] جديدة لا تطابق المصدر (D220).
  *   - publish.json: لا أثر جديد لأدوات الإنتاج في أي نص (findTraces، القاعدة الأولى).
  *   - sentence-pronunciations.json (D131): لا قرآن ولا بسملة في أي نطق، وتشكيله ≥ ٩٨٪.
  *   - pace.json («سرعة الإلقاء»): سرعات وفاصل معروفة وحدها (checkPaceDoc).
@@ -44,6 +45,7 @@ const { planIssues } = await import("../src/plan/validate.ts");
 const { parseScript } = await import("../src/script/parse.ts");
 const { checkForChannel } = await import("../src/script/checkChannel.ts");
 const { findTraces } = await import("../src/package/traces.ts");
+const { verseSourceIssues, scriptVerseSourceIssues } = await import("../src/quran/verseSourceIssues.ts");
 
 for (const file of files) {
   if (!isOwnerContentPath(file)) { failures.push(`${file}: ليس من ملفات محتوى المالك؛ يمر على البوابة الكاملة.`); continue; }
@@ -58,7 +60,7 @@ for (const file of files) {
       try { data = JSON.parse(text); } catch (e) { failures.push(`${file}: JSON غير صالح (${(e as Error).message}).`); continue; }
       const old = (() => { try { return before === null ? null : JSON.parse(before); } catch { return null; } })();
       if (file.endsWith("/plan.json") && channel) {
-        const issues = (p: any) => runWithChannel(channel, () => planIssues(p, loadChannel(p?.channel ?? channel)))
+        const issues = (p: any) => runWithChannel(channel, () => [...planIssues(p, loadChannel(p?.channel ?? channel)), ...verseSourceIssues(p)])
           .filter((i) => i.level === "error").map((i) => `${i.sceneId}: ${i.message}`);
         const added = fresh(issues(data), old ? issues(old) : []);
         for (const a of added) failures.push(`${file}: خطأ جديد في الخطة — ${a}`);
@@ -119,9 +121,11 @@ for (const file of files) {
       if (!existsSync(path.join(path.dirname(abs), "script.md"))) failures.push(`${file}: لا سكريبت بجوار النسخة المشكولة؛ مكانها مجلد الحلقة نفسها.`);
     } else if (file.endsWith("/script.md") && channel) {
       const errs = (src: string) => runWithChannel(channel, () => {
-        const r = checkForChannel(parseScript(src, file));
+        const parsed = parseScript(src, file);
+        const r = checkForChannel(parsed);
         // بلا رقم السطر: إضافة سطر فوق خطأ قديم لا تجعله «جديدًا»
-        return r.issues.filter((i) => i.level === "error").map((i) => `${i.code}: ${i.message}`);
+        return [...r.issues.filter((i) => i.level === "error").map((i) => `${i.code}: ${i.message}`),
+          ...scriptVerseSourceIssues(parsed).map((i) => `verse-source: ${i.message}`)];
       });
       const added = fresh(errs(text), before === null ? [] : errs(before));
       for (const a of added) failures.push(`${file}: خطأ جديد في السكريبت — ${a}`);
