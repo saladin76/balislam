@@ -1,0 +1,20 @@
+{
+  "version": 1,
+  "status": "{{STATUS}}",
+  "long": {
+    "titles": [
+      { "text": "{{TITLE}}", "angle": "العنوان الأساسي" },
+      { "text": "", "angle": "زاوية ثانية" },
+      { "text": "", "angle": "زاوية ثالثة" }
+    ],
+    "description": "",
+    "coverIdeas": [
+      { "kind": "title", "text": "", "idea": "" },
+      { "kind": "scene", "text": "", "idea": "" },
+      { "kind": "question", "text": "", "idea": "" }
+    ]
+  },
+  "shorts": [
+    { "title": "", "from": "" }
+  ]
+}

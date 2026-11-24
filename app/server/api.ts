@@ -85,12 +85,16 @@ const serveFile = (req: IncomingMessage, res: ServerResponse, file: string, type
   }
 };
 
+/** D213: مسارات الحلقة التي تولّد صوتًا أو ترندر أو تعتمد التجهيز (تمنعها المسودة وتجميد القناة) */
+const PRODUCTION_ACTIONS = new Set(["scene-av-render", "scene-av-assemble", "scene-prefinal", "approve-preparation", "scene-prepare", "voice", "sentences", "publish-drive"]);
+
 /**
  * A rejected promise nobody awaited (e.g. a render-browser download failing deep inside the renderer
  * while offline) must not take the whole Studio down mid-queue (funnel audit 8 Nov, D36). It is logged;
  * the request that started the work still reports its own error to the owner.
  */
 let crashGuardInstalled = false;
+
 export const installStudioCrashGuard = (proc: Pick<NodeJS.Process, "on"> = process) => {
   if (crashGuardInstalled && proc === process) return;
   if (proc === process) crashGuardInstalled = true;
@@ -317,6 +321,13 @@ export const balApi = (): Plugin => ({
             }
             return send(res, isOwnerAuthError(error) ? 403 : 409, { error: message });
           };
+          // D213 بناء المخزون: سكريبت «مسودة» لا يدخل الإنتاج، والقناة المجمّدة (D211) لا رندر ولا صوت فيها.
+          // يسري على كل ما يولّد صوتًا أو يرندر أو يعتمد التجهيز؛ القراءة والتحرير المكتوب مسموحان.
+          if (req.method === "POST" && PRODUCTION_ACTIONS.has(parts[2] ?? "")) {
+            const { productionBlockFor } = await load("/src/studio/stockStore.ts");
+            const blocked = await productionBlockFor(ch, scriptPath);
+            if (blocked) return send(res, 409, { error: blocked });
+          }
           if (parts[2] === "scene-production" && parts.length === 3) {
             const { inspectSceneProduction, decideSceneProduction } =
               await load("/src/studio/sceneService.ts");

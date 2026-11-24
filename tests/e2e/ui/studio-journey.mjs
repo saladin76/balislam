@@ -51,7 +51,7 @@ const drive = await mkdtemp(path.join(os.tmpdir(), "bal-e2e-ui-drive-"));
 const chDir = path.join(root, CH);
 for (const ch of new Set([CH, ...DOCK_CHANNELS])) {
   await mkdir(path.join(root, ch, "episodes"), { recursive: true });
-  for (const f of await readdir(path.join(repo, "channels", ch))) if (f.endsWith(".json")) await cp(path.join(repo, "channels", ch, f), path.join(root, ch, f));
+  for (const f of await readdir(path.join(repo, "channels", ch))) if (f.endsWith(".json") && f !== "stock.json") await cp(path.join(repo, "channels", ch, f), path.join(root, ch, f));
 }
 Object.assign(process.env, {
   BAL_CHANNELS_DIR: root, BAL_ENV_FILE: path.join(root, ".env"), BAL_CONTENT_SYNC: "off", BAL_DRIVE_PUBLISH_DIR: drive,

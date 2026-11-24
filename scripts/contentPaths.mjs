@@ -17,7 +17,7 @@ import { spawnSync } from "node:child_process";
 /** @type {RegExp[]} */
 export const CONTENT_PATH_RES = [
   // ملفات الحلقة التي يحرّرها المالك في الاستوديو
-  /^channels\/[a-z0-9-]+\/episodes\/[^/]+\/(script\.md|plan\.json|research\.md|publish\.json|series\.json|tashkeel\.md|tone-map\.json|review\.json|sentence-pronunciations\.json|pace\.json)$/,
+  /^channels\/[a-z0-9-]+\/episodes\/[^/]+\/(script\.md|plan\.json|research\.md|publish\.json|series\.json|tashkeel\.md|tone-map\.json|review\.json|sentence-pronunciations\.json|pace\.json|scenes\.md|publish\.draft\.json)$/,
   // نسخ خريطة النبرة السابقة (tone-map.v1.9.json) التي يشير إليها `previous` في tone-map.json (KI-050، D113)
   /^channels\/[a-z0-9-]+\/episodes\/[^/]+\/tone-map\.v[0-9]+(\.[0-9]+)*\.json$/,
   // فهرس المعاينات وحده (العنوان والبصمة ورابط Drive)، لا الفيديو
@@ -32,6 +32,8 @@ export const CONTENT_PATH_RES = [
   /^channels\/zubdat-alkutub\/library\/(scholars|books)\.json$/,
   // مواسم السنة الهجرية لكل قناة (عمود «بالإسلام»، عاشرًا/٦)
   /^channels\/[a-z0-9-]+\/seasons\.json$/,
+  // ترتيب النشر وبناء المخزون (D213): الأسابيع والدفعات وتجميد القناة (D211)
+  /^channels\/[a-z0-9-]+\/stock\.json$/,
   // إعدادات الاستوديو العامة (الأسرار في .env لا هنا)
   /^config\.json$/,
 ];
@@ -41,7 +43,7 @@ const NEVER_RES = [
   /(^|\/)\.env($|\.)/,
   // حالة الاستوديو المحلية وسجل الأخطاء (.studio/errors.jsonl، D112)
   /(^|\/)\.studio\//,
-  /scene-production\.v1\.json/, /scene-workflow\.v2\.json/, /script-approved\.v1\.json/, /workflow-approvals\.json/,
+  /scene-production\.v1\.json/, /scene-workflow\.v2\.json/, /script-approved\.v1\.json/, /script-approval\.local\.json/, /workflow-approvals\.json/,
   /voice-review\.json/, /(^|\/)storyboard\.json$/, /seam-checks\.local\.json/, /notes\/inbox\.json$/,
   /(^|\/)voice\//, /\.(mp3|mp4|wav|m4a|aac|mov|webm|png|jpe?g|pdf|zip|tar)$/i, /\.tmp$/, /\.lock(\/|$)/, /\.write\.lock$/,
 ];

@@ -39,6 +39,7 @@ import { MoveEpisodesDialog, useEpisodeMover } from "./tabs/MoveEpisodes";
 import { GENERAL_SLUG, SERIES_KIND_AR } from "../../src/channel/series";
 import type { SeriesRead } from "./api";
 import { OpsRoom } from "./tabs/OpsRoom";
+import { Awaiting } from "./tabs/Awaiting";
 import { ChannelsWorkspace } from "./tabs/ChannelsWorkspace";
 import { IntegratedReviewWorkspace } from "./workspace/IntegratedReviewWorkspace";
 import { PublishTab } from "./tabs/PublishTab";
@@ -473,6 +474,7 @@ export const App: React.FC = () => {
   const manageItems: ManageItem[] = [
     // غرفة العمليات وإعدادات القناة والهوية أزرار على الشريط نفسه بجوار القنوات (قرار المالك ١٨ نوفمبر، D156)
     { id: "ops", label: SECTION_TITLES.ops, note: "القنوات الثلاث وبنك الأفكار", quick: "monitor" },
+    { id: "awaiting", label: SECTION_TITLES.awaiting, note: "مسودات المخزون للمراجعة" },
     { id: "channel", label: SECTION_TITLES.channel, quick: "sliders" },
     { id: "identity", label: SECTION_TITLES.identity, note: identDirty ? "تعديلات غير محفوظة" : undefined, alert: identDirty, quick: "palette" },
     { id: "channels", label: SECTION_TITLES.channels },
@@ -675,6 +677,8 @@ export const App: React.FC = () => {
             }}
           />
           </div>
+        ) : tab === "awaiting" ? (
+          <div className="home-wrap studio-awaiting-workspace"><Awaiting /></div>
         ) : tab === "channels" ? (
           <ChannelsWorkspace channels={channels} activeId={channelId || channels[0]?.id || ""} onOpen={async (id, destination) => {
             if (!confirmLeaveScript()) return;

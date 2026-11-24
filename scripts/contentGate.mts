@@ -86,7 +86,7 @@ for (const file of files) {
         const added = fresh(errs(data), old ? errs(old) : []);
         for (const a of added) failures.push(`${file}: ${a}`);
       }
-      if (file.endsWith("/publish.json")) {
+      if (file.endsWith("/publish.json") || file.endsWith("/publish.draft.json")) {
         const hits = (v: unknown) => strings(v).flatMap((s) => findTraces(s));
         const added = fresh([...new Set(hits(data))], old ? [...new Set(hits(old))] : []);
         for (const a of added) failures.push(`${file}: أثر لأدوات الإنتاج في نص النشر — «${a}» (القاعدة الأولى).`);
@@ -101,6 +101,11 @@ for (const file of files) {
       if (/^channels\/[^/]+\/seasons\.json$/.test(file)) {
         const { seasonsIssues } = await import("../src/studio/seasons.ts");
         for (const a of fresh(seasonsIssues(data as never), old ? seasonsIssues(old) : [])) failures.push(`${file}: ${a}`);
+      }
+      // ترتيب النشر وبناء المخزون (D213): أسابيع ودفعات صحيحة، ولا تواريخ (ترتيب لا مواعيد)
+      if (/^channels\/[^/]+\/stock\.json$/.test(file)) {
+        const { stockIssues } = await import("../src/studio/stock.ts");
+        for (const a of fresh(stockIssues(data as never), old ? stockIssues(old) : [])) failures.push(`${file}: ${a}`);
       }
     } else if (file.endsWith("/tashkeel.md")) {
       // D132: the voweled copy is sent to the voice only; a broken or empty file never reaches main
