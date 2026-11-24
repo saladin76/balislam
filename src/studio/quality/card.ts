@@ -16,6 +16,7 @@ import { measureCraft } from "./craft";
 import { seriesDiffIssues, type SeriesDiffReport } from "./seriesDiff";
 import { interactivityMinFor, type InteractivityReport } from "./interactivity";
 import { MIX_MIN, type MixReport } from "./mix";
+import { FREEZE_MAX_SEC, SILENCE_MAX_SEC, pauseText, type PauseReport } from "./pauses";
 
 export const LOUDNESS_TARGET = -14;
 export const LOUDNESS_TOLERANCE = 1;
@@ -39,11 +40,27 @@ export type FileMeasurements = {
   video: { width: number; height: number };
   /** فحص الخلط سطرًا سطرًا (mix.ts)؛ غيابه في قياس قديم = لم يُقس */
   mix?: MixReport;
+  /** D217: السكوت الأطول من ثانية (pauses.ts)؛ غيابه في قياس قديم = لم يُقس */
+  silence?: PauseReport;
+  /** D217: الشاشة الواقفة الأطول من ٣ ث بعد إعفاء الآيات المتلوّة وحدها */
+  frozen?: PauseReport;
 };
 
 const ar = (n: number, d = 1) => (Number.isFinite(n) ? n.toLocaleString("ar-EG", { maximumFractionDigits: d, minimumFractionDigits: 0 }) : "—∞");
 const clock = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 const unmeasured = (id: string, label: string, need: string): CardItem => ({ id, label, status: "unmeasured", need, reason: "لم يُقس الملف الحالي بعد." });
+/** D217: بند الفترات الطويلة (السكوت أو الشاشة الواقفة) يمنع كالتفاعلية، ويسمّي كل فترة بزمنها ومشهدها */
+const pauseItem = (id: string, label: string, need: string, r: PauseReport | undefined, why: string): CardItem => {
+  if (!r) return unmeasured(id, label, need);
+  const ok = r.spans.length === 0;
+  return { id, label, need, status: ok ? "pass" : "fail",
+    value: ok ? `أطولها ${ar(r.longest, 1)} ث` : `عدد المواضع ${ar(r.spans.length, 0)}، أطولها ${ar(r.longest, 1)} ث`,
+    ...(ok ? {} : { reason: `${why}: ${r.spans.slice(0, 10).map(pauseText).join("، ")}${r.spans.length > 10 ? "، …" : ""}.` }) };
+};
+export const silenceItem = (m: FileMeasurements | null) =>
+  pauseItem("long-silence", "لا سكوت أطول من ثانية", `لا سكوت فوق ${ar(SILENCE_MAX_SEC, 0)} ث`, m?.silence, "سكوت يُشعر المشاهد بأن الفيديو انتهى (طلب المالك ٢٤ نوفمبر)");
+export const frozenItem = (m: FileMeasurements | null) =>
+  pauseItem("frozen-screen", "لا شاشة واقفة أطول من ٣ ثوانٍ", `لا شاشة واقفة فوق ${ar(FREEZE_MAX_SEC, 0)} ث إلا بطاقة آية تحتها تلاوة`, m?.frozen, "صورة المشهد واقفة (وآية بلا تلاوة معتمدة لا تُعفى)");
 const later = (id: string, label: string, need: string, who: string): CardItem => ({ id, label, status: "later", need, reason: `يُبنى في ${who}؛ لا يمنع حتى يُبنى.` });
 
 export const audioItems = (m: FileMeasurements | null): CardItem[] => {
@@ -51,7 +68,7 @@ export const audioItems = (m: FileMeasurements | null): CardItem[] => {
   const peakNeed = `≤ ${ar(TRUE_PEAK_MAX)} dBTP`;
   const headNeed = `≤ ${ar(HEAD_SILENCE_MAX)} ث`;
   const mix = mixItems(m?.mix);
-  if (!m) return [unmeasured("loudness", "علو الحلقة", loudNeed), unmeasured("true-peak", "الذروة", peakNeed), unmeasured("head-silence", "سكوت البداية", headNeed), ...mix];
+  if (!m) return [unmeasured("loudness", "علو الحلقة", loudNeed), unmeasured("true-peak", "الذروة", peakNeed), unmeasured("head-silence", "سكوت البداية", headNeed), silenceItem(m), ...mix];
   const { integrated, truePeak } = m.loudness;
   const loudOk = Math.abs(integrated - LOUDNESS_TARGET) <= LOUDNESS_TOLERANCE;
   return [
@@ -61,6 +78,7 @@ export const audioItems = (m: FileMeasurements | null): CardItem[] => {
       ...(truePeak <= TRUE_PEAK_MAX ? {} : { reason: "ذروة الصوت قريبة من الحد فقد تُسمع مقطوعة بعد ضغط يوتيوب." }) },
     { id: "head-silence", label: "سكوت البداية", need: headNeed, value: `${ar(m.headSilence, 2)} ث`, status: m.headSilence <= HEAD_SILENCE_MAX ? "pass" : "fail",
       ...(m.headSilence <= HEAD_SILENCE_MAX ? {} : { reason: "الفيديو يبدأ بصمت؛ المشاهد يغادر قبل أول كلمة (D155)." }) },
+    silenceItem(m),
     ...mix,
   ];
 };
@@ -107,7 +125,7 @@ export const pictureItems = (m: FileMeasurements | null, target: CardTarget, pla
     status: iOk ? "pass" : "fail",
     ...(iOk ? {} : { reason: `الشاشة ساكنة أكثر من المسموح${m.interactivity.still.length ? `؛ أطول المقاطع: ${m.interactivity.still.slice(0, 4).map((x) => `${clock(x.from)}–${clock(x.to)}`).join("، ")}` : ""}.` }),
   };
-  return [res, inter, diversity];
+  return [res, inter, frozenItem(m), diversity];
 };
 
 /**
