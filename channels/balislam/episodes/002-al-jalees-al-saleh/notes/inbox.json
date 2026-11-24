@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "notes": [
+    {
+      "id": "n6139705345",
+      "channel": "balislam",
+      "episode": "002-al-jalees-al-saleh",
+      "sceneId": "",
+      "kind": "error",
+      "note": "خطة الحلقة غير موجودة.",
+      "raw": "[خطأ] خطة الحلقة غير موجودة.",
+      "tone": null,
+      "timecode": null,
+      "createdAt": "2026-11-24T11:57:54.869Z",
+      "sceneInputSha256": "",
+      "previewSha256": "",
+      "ledgerSeq": 0,
+      "status": "open",
+      "fixedBy": null,
+      "answer": null,
+      "error": {
+        "id": "ee17998cff6",
+        "at": "2026-11-24T11:57:49.728Z",
+        "source": "server",
+        "kind": "route",
+        "route": "/api/episodes/002/tashkeel",
+        "method": "GET",
+        "message": "خطة الحلقة غير موجودة.",
+        "stack": "Error: خطة الحلقة غير موجودة.\n    at loadCtx (./src/voice/sentenceContext.ts:143:19)\n    at async Module.readTashkeel (./src/voice/tashkeelEdit.ts:130:14)\n    at async handlePreparationRoutes (file://./node_modules/.vite-temp/vite.config.ts.timestamp-1795517668472-724716e837dcb.mjs:3109:51)\n    at async handleStudioRoutes (file://./node_modules/.vite-temp/vite.config.ts.timestamp-1795517668472-724716e837dcb.mjs:4631:37)\n    at async file://./node_modules/.vite-temp/vite.config.ts.timestamp-1795517668472-724716e837dcb.mjs:5055:10\n    at async file://./node_modules/.vite-temp/vite.config.ts.timestamp-1795517668472-724716e837dcb.mjs:5021:12",
+        "label": null,
+        "episode": "002",
+        "commit": "43b30f994f8a",
+        "log": [
+          "2026-11-15T16:10:43.447Z server/route POST /api/episodes/001/scene-av-render ep 001 [ecfa0590106] The scene is not current or its inputs changed.",
+          "2026-11-24T11:57:49.728Z server/route GET /api/episodes/002/tashkeel ep 002 [ee17998cff6] خطة الحلقة غير موجودة."
+        ]
+      }
+    }
+  ]
+}
