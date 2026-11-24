@@ -15,6 +15,7 @@ import { VerseRefPanel } from "./verseRef";
 import { HZ_SCENES_C } from "./episode001c";
 import { HZ_SCENES_D } from "./episode001d";
 import { LIB_SCENES } from "../lib/scenes";
+import { BD_SCENES } from "../bidayat";
 
 export type HzProps = { t: number; tl: Timeline; dur: number; exit: Exit; from?: Cam; p: Record<string, string | undefined> };
 const { Amiri, Tajawal } = fonts;
@@ -661,6 +662,8 @@ export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
   "return-line": legacy(Shot5, { cx: 1405, cy: 500, s: 1.24 }),
   ...HZ_SCENES_D,
   evidence: EvidenceScene,
+  // لقطات «البدايات» الجديدة (دفاتر الزمن 002–009، bidayat/)
+  ...BD_SCENES,
 };
 
 // كل مشهد مسجل له بياناته، والعكس

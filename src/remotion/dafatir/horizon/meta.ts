@@ -4,6 +4,7 @@
  */
 import { buildTimeline, type Timeline } from "./timeline";
 import { LIB_META, LIB_SACRED } from "../lib/meta";
+import { BD_META } from "../bidayat/meta";
 
 export type HzExit = "turn" | "fade" | "none";
 export type HzMeta = {
@@ -70,8 +71,8 @@ export const EP001_META: Record<string, HzMeta> = {
   closing: { nameAr: "الختام: صفحة «دفاتر الزمن» الأولى", tail: 1.0, exit: "none" },
 };
 
-/** كل مشاهد «خط الأفق»: المكتبة العامة (lib/meta.ts) ثم مشاهد الحلقة 001 */
-export const HZ_META: Record<string, HzMeta> = { ...LIB_META, ...EP001_META };
+/** كل مشاهد «خط الأفق»: المكتبة العامة (lib/meta.ts) ثم مشاهد الحلقة 001 ثم لقطات «البدايات» 002–009 (bidayat/) */
+export const HZ_META: Record<string, HzMeta> = { ...LIB_META, ...EP001_META, ...BD_META };
 
 /** جمل النص كما في السكريبت (الجملة تنتهي بنقطة أو علامة استفهام) */
 export const hzSentences = (narration: string) => (narration.match(/[^.؟!]+[.؟!]?/g) ?? []).map((s) => s.trim()).filter(Boolean);
