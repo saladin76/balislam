@@ -9,7 +9,9 @@ import { templateMeta } from "../src/plan/templateMeta";
 import { channelLibrary, type LibraryRules } from "../src/channel/library";
 import { sceneCatalog } from "../src/remotion/scenes/catalog";
 import { JAZARI_SHOTS, type JazariShotId } from "../src/remotion/zubdat/world/shots";
-import { jazariCuts, jazariEvents, jazariTags } from "../src/remotion/zubdat/world/JazariMachine";
+import * as THREE from "three";
+import { JAZARI_CAPTION_SHADOW, JAZARI_KEY_POINTS, jazariCamAt, jazariCuts, jazariEvents, jazariTags } from "../src/remotion/zubdat/world/JazariMachine";
+import { orbit } from "../src/remotion/three/rig";
 import { anchorAt, sceneWords, stillWindows } from "../src/remotion/three/anchors";
 
 const CODE = readFileSync("src/remotion/zubdat/world/JazariMachine.tsx", "utf8");
@@ -72,7 +74,7 @@ describe("قالب «آلات الجزري» (D201)", () => {
   it("صوت لكل حركة فوق صوت الورشة، والترجمة بلا مستطيل، وبلا فسفوري ولا ألوان خارج المخطوطة", () => {
     expect(CODE).toMatch(/SFX\("silence-room"\)/);
     for (const f of ["water-drop", "drop-soft", "gears", "tick", "silence-room"]) expect(() => readFileSync(`public/three/sfx/${f}.mp3`)).not.toThrow();
-    expect(CODE).toMatch(/textShadow: CAPTION_TONES\[tone\]\.textShadow/);
+    expect(CODE).toMatch(/textShadow: JAZARI_CAPTION_SHADOW\[tone\]/);
     expect(CODE).not.toMatch(/background: "rgba|borderRadius/);
     expect(CODE).not.toMatch(/fluo|#E8F542/i);
     expect(CODE).not.toMatch(/#[0-9A-Fa-f]{6}\b/);
@@ -123,5 +125,29 @@ describe("مراجعة المنسّق: لون الترجمة حسب ما تحت�
     expect(machine).toMatch(/if \(band > 0 && fromBottom < band \+ 0\.04\) return null;/);
     expect(machine).toMatch(/Math\.abs\(v\.x\) > 0\.78/);
     expect(CODE).toMatch(/captionBand=\{line \? CAPTION_BAND : 0\}/);
+  });
+});
+
+describe("ملاحظة المالك على v3 (٢٤ نوفمبر): لا كادر فارغ، والحبر الداكن على الورق البيج", () => {
+  const visible = (c: ReturnType<typeof jazariCuts>[number], p: number, aspect: number) => {
+    const s = jazariCamAt(c, p);
+    const cam = new THREE.PerspectiveCamera(s.fov, aspect, 0.01, 200);
+    cam.position.set(...orbit(s)); cam.lookAt(...s.target); cam.updateMatrixWorld(); cam.updateProjectionMatrix();
+    return JAZARI_KEY_POINTS.filter((q) => { const v = new THREE.Vector3(...q).project(cam); return Math.abs(v.x) < 1 && Math.abs(v.y) < 1 && v.z < 1; }).length;
+  };
+  it("كل لقطة وكل قطع، أفقيًا وطوليًا، فيه جزء من الآلة على الأقل طوال حركته (كان «القطر» و«الذراع» الطوليان على الجدار وحده)", () => {
+    for (const portrait of [false, true]) for (const shot of Object.keys(JAZARI_SHOTS) as JazariShotId[]) for (const dur of [6, 10, 20])
+      for (const c of jazariCuts(shot, dur, portrait)) for (const p of [0, 0.25, 0.5, 0.75, 1])
+        expect(visible(c, p, portrait ? 9 / 16 : 16 / 9), `${portrait ? "طولي" : "أفقي"} ${shot} ${dur}ث عند ${c.a} (${p})`).toBeGreaterThanOrEqual(1);
+    expect(CODE).toMatch(/jazariCuts\(shot, dur, height > width\)/);
+  });
+  it("الورق البيج في الظل والعمق المموّه (٠٫٣٩–٠٫٥٩ مقيسًا) حبر داكن، والخشب (≤٠٫٢٨) نص فاتح؛ وهالة الحبر ناعمة لا حد فاتح صلب", async () => {
+    const { wordTones, INK_ABOVE } = await import("../src/remotion/three/captionProbe");
+    const measure = (s: string) => s.length * 10;
+    const flat = (v: number) => Array.from({ length: 100 }, () => v);
+    for (const v of [0.39, 0.45, 0.59]) expect(wordTones("أ بب", { bin: 10, lum: [flat(v)] }, 1000, measure), String(v)).toEqual(["ink", "ink"]);
+    for (const v of [0.06, 0.2, 0.28]) expect(wordTones("أ بب", { bin: 10, lum: [flat(v)] }, 1000, measure), String(v)).toEqual(["light", "light"]);
+    expect(INK_ABOVE).toBeGreaterThan(0.28); expect(INK_ABOVE).toBeLessThan(0.39);
+    expect(JAZARI_CAPTION_SHADOW.ink).not.toMatch(/px 0 rgba/);
   });
 });
