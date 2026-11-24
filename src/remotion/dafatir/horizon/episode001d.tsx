@@ -38,11 +38,10 @@ const GenFan: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const root = pop(t, at(tl, "آدم"));
   // V9.1 (صياغة المالك بالمعنى): «…وانتشر منهما الرجال والنساء» — الفروع تتسع عند «وانتشر» و«والنساء»
   const ga = [at(tl, "نسل"), at(tl, "البشر"), at(tl, "وانتشر"), at(tl, "والنساء")];
-  const label = pop(t, at(tl, "آدم"));
   const seal = pop(t, at(tl, "النساء"));
   const one = prog(t, at(tl, "واحدة") - 0.05, at(tl, "واحدة") + 0.7);
   const cam = camPath(t, { cx: 1180, cy: 420, s: 1.12 }, [
-    // «ومن آدم عليه السلام وزوجه»: اقتراب من الأصل والاسمين المكتوبين فوقه
+    // «ومن آدم عليه السلام وزوجه»: اقتراب من نقطة بدء الخطوط (بلا اسم ولا رمز لشخص)
     { a: at(tl, "آدم") - 0.1, b: at(tl, "وزوجه") + 0.3, cx: 1300, cy: 250, s: 1.3 },
     // «بدأ نسل البشر»: يتسع الكادر مع الفروع الأولى (ينتهي قبل نافذة ذكر الله)
     { a: at(tl, "بدأ") - 0.1, b: Math.min(at(tl, "البشر") + 0.5, at(tl, "الله") - 0.3), cx: 1120, cy: 470, s: 1.04 },
@@ -77,12 +76,8 @@ const GenFan: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       {p.head ? <ChapterHead label={p.head} /> : null}
       <circle cx={ROOT[0]} cy={ROOT[1]} r={60 * one} fill={C.gold} opacity={0.25 * (1 - 0.5 * one)} />
       <Ink d={`M${ROOT[0]} ${ROOT[1] - 34} a34 34 0 1 1 -0.1 0`} w={4} p={one} c={C.gold} />
-      {/* الأصل عقدة واحدة بحبر الدفتر: الاسم المكتوب فوقها هو الذي يعرّف، لا نقطتان بلونين يوحيان بشخصين */}
-      <circle cx={ROOT[0]} cy={ROOT[1]} r={16 * root} fill={C.ink} />
-      <circle cx={ROOT[0]} cy={ROOT[1]} r={6 * root} fill={C.page} />
-      <Word x={ROOT[0]} y={ROOT[1] - 56} size={34} p={label} font="tajawal" weight={500} color={C.inkSoft}>
-        آدم عليه السلام وزوجه
-      </Word>
+      {/* المراجعة العلمية (الدفعة ٥، البند ١٠١): خطوط متفرعة مجردة فقط، بلا عقدة مركزية ولا اسم يعرّفها بأنها آدم عليه السلام أو زوجه */}
+      <circle cx={ROOT[0]} cy={ROOT[1]} r={4 * root} fill={C.inkSoft} opacity={0.6} />
       <QuranSeal x={1640} y={300} o={seal} s={0.85} refText="النساء ١" />
       {fan}
     </g>
