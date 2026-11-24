@@ -54,32 +54,28 @@ describe("D218: الحدود والفترات", () => {
   });
 });
 
-describe("D218: الاستثناء الوحيد — آية تحتها تلاوة", () => {
+describe("D218/D219: نافذة بطاقة الآية سكون مقصود (بتلاوة أو بلا تلاوة)", () => {
   const plan = planOf(
     scene("a", "kinetic-text", { narration: "جملة قبل الآية تمهد لما بعدها" }),
     scene("v", "verse-card", { ayahKey: "2:30", props: { text: "نص" } }),
     scene("b", "kinetic-text", { narration: "جملة بعد الآية" }),
   );
 
-  it("بطاقة آية تلاوتها معتمدة في الوسائط: نافذتها معفاة؛ وبلا تلاوة لا تُعفى", () => {
+  it("نافذة بطاقة الآية معفاة بتلاوة أو بلا تلاوة (D219: لا حركة مع الآية، والراوي يكمل)", () => {
     const withRec = { voice: {}, recitations: { "2:30": recitation } };
     const spans = recitedVerseSpans(plan, withRec);
     expect(spans.map((x) => x.scene)).toEqual(["v"]);
     expect(spans[0]!.to - spans[0]!.from).toBeCloseTo(8, 3);
-    expect(recitedVerseSpans(plan, { voice: {}, recitations: {} })).toEqual([]);
-    // تلاوة آية أخرى لا تعفي هذه
-    expect(recitedVerseSpans(plan, { voice: {}, recitations: { "2:31": recitation } })).toEqual([]);
+    expect(recitedVerseSpans(plan, { voice: {}, recitations: {} }).map((x) => x.scene)).toEqual(["v"]);
   });
 
-  it("الشاشة الواقفة على الآية المتلوّة تمر، وعلى الآية بلا تلاوة تُذكر، وخارج النافذة تُذكر", () => {
+  it("الشاشة الواقفة على الآية تمر (بتلاوة أو بلا تلاوة)، وخارج النافذة تُذكر", () => {
     const media = { voice: {}, recitations: { "2:30": recitation } };
     const v = recitedVerseSpans(plan, media)[0]!;
     const starts = planSceneStarts(plan, media);
     const frozenOnVerse = [{ from: v.from, to: v.to }];
     expect(frozenReport(frozenOnVerse, recitedVerseSpans(plan, media), starts).ok).toBe(true);
-    const bare = frozenReport(frozenOnVerse, recitedVerseSpans(plan, { voice: {}, recitations: {} }), starts);
-    expect(bare.ok).toBe(false);
-    expect(bare.spans[0]!.scenes).toContain("v");
+    expect(frozenReport(frozenOnVerse, recitedVerseSpans(plan, { voice: {}, recitations: {} }), starts).ok).toBe(true);
     // سكون يبدأ في المشهد السابق ويمتد ٤ ث قبل الآية: لا يعفيه أنه يتصل بها
     const before = frozenReport([{ from: v.from - 4, to: v.to }], recitedVerseSpans(plan, media), starts);
     expect(before.spans.map((x) => [x.from, x.to])).toEqual([[Math.round((v.from - 4) * 1000) / 1000, Math.round(v.from * 1000) / 1000]]);

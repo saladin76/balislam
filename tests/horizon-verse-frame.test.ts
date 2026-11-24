@@ -27,7 +27,7 @@ const toScreen = (x: number, y: number, pose: { s: number; x: number; y: number 
 };
 /** كل أوضاع الكاميرا الحية الممكنة (إطارات إعادة التأطير مع أقصى انجراف)، بعد عودتها لحظة ظهور البطاقة */
 const LIVE = [{ s: 1, x: 0, y: 0 }, ...FRAMES.flatMap((f) => [f, { s: f.s + DRIFT.s, x: f.x + DRIFT.x, y: f.y + DRIFT.y }])];
-const POSES = LIVE.map((p) => settlePose({ ...p, bg: 0 }, 10, 10));
+const POSES = LIVE.map((p) => settlePose({ ...p, bg: 0 }, 10, [10, 16]));
 
 describe("بطاقة الآية كاملة في الإطار دائمًا (D217)", () => {
   it("في الخطة بطاقات آيات تُفحص", () => expect(verses.length).toBeGreaterThanOrEqual(5));
@@ -44,8 +44,9 @@ describe("بطاقة الآية كاملة في الإطار دائمًا (D217)
     const zoomed = { cx: 1400, cy: 420, s: 1.26 };
     const vwin: [number, number] = [5, 11];
     for (const t of [5 - 0.05, 5, 7.5, 11]) expect(verseSettle(zoomed, t, vwin)).toEqual(NEUTRAL);
-    // قبلها بأكثر من مدة العودة: كادر المشهد كما هو
+    // قبلها بأكثر من مدة العودة: كادر المشهد كما هو؛ وبعد اختفاء البطاقة يتحرر الكادر من جديد
     expect(verseSettle(zoomed, 5 - VERSE_SETTLE - 0.1, vwin)).toEqual(zoomed);
+    expect(verseSettle(zoomed, 11 + VERSE_SETTLE + 0.05, vwin)).toEqual(zoomed);
   });
   it("منطقة الترجمة: أسفل نص الصفحة لا ينزل تحت أعلى الترجمة مهما كان تأطير المشهد والكاميرا الحية", () => {
     for (const s of [1, 1.1, 1.26, 1.4]) for (const cy0 of [380, 520, 640, 760]) for (const p of LIVE) {

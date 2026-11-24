@@ -16,7 +16,8 @@ export const breathStill = (tl: Timeline, dur: number, still: boolean, verse?: W
   const out: Win[] = [];
   for (const w of tl.words) if (SACRED_WORD.test(normalizeArabic(w.w))) out.push([w.s - 0.25, w.e + 0.25]);
   for (const [a, b] of duaRanges(tl.words.map((w) => w.w))) out.push([tl.words[a]!.s - 0.25, tl.words[b]!.e + 0.25]);
-  if (verse && tl.words.length) out.push([tl.words[tl.words.length - 1]!.e, verse[1]]);
+  // D219: «لا حركة مع الآية» — الصفحة كلها ساكنة طوال ظهور البطاقة، والراوي يكمل
+  if (verse) out.push([verse[0], verse[1]]);
   return out.map(([a, b]) => [Math.max(0, a), Math.min(dur, b)] as Win).filter(([a, b]) => b > a);
 };
 /** الزمن الفعّال حتى t: الزمن ناقص ما مر منه داخل نوافذ السكون (النوافذ المتداخلة تُدمج) */

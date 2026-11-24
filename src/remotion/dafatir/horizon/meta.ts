@@ -3,7 +3,7 @@
  * الاسم في الاستوديو، وذيل المشهد بعد آخر كلمة، وطريقة الخروج، والسكون المقصود، ومدة المشاهد الصامتة.
  */
 import { buildTimeline, type Timeline } from "./timeline";
-import { LIB_META } from "../lib/meta";
+import { LIB_META, LIB_SACRED } from "../lib/meta";
 
 export type HzExit = "turn" | "fade" | "none";
 export type HzMeta = {
@@ -88,7 +88,15 @@ export const verseWindow = (props: Record<string, string | undefined>, tl: Timel
   const p = w.replace(/[\u064B-\u0652\u0670\u0640]/g, "");
   const hit = p ? tl.words.find((x) => x.w.replace(/[\u064B-\u0652\u0670\u0640]/g, "").startsWith(p)) : tl.words[0];
   const a = hit ? hit.s : 0.4;
-  return [a, a + verseReadSeconds(props.verseText)];
+  const read = verseReadSeconds(props.verseText);
+  // D219 (قرار المالك ٢٤ نوفمبر: «الراوي يكمل بلا سكوت، ومدة البطاقة قدر قراءتها فقط»): النافذة داخل الكلام؛ إن جاوزت آخر كلمة
+  // تتقدم بدايتها (لا قبل أول كلمة) فتنتهي معه، فلا يطول المشهد بسكوت للقراءة
+  // ولا تبدأ قبل نهاية نافذة ذكر سابقة (لا تظهر البطاقة مع لفظ الجلالة)؛ وإن قصر الكلام عن القراءة تمتد بعد آخر كلمة ٠٫٨ ث على الأكثر
+  const last = tl.words.length ? tl.words[tl.words.length - 1]!.e : a + read;
+  let floor = tl.words[0]?.s ?? 0.3;
+  for (const w of tl.words) if (w.s < a && LIB_SACRED.test(w.w)) floor = Math.max(floor, w.e + 0.25);
+  const s = a + read <= last ? a : Math.max(floor, Math.min(a, last - read));
+  return [s, Math.min(s + read, last + 0.8)];
 };
 
 /**
@@ -104,5 +112,5 @@ export const hzEstimateSeconds = (narration: string, shot: string, props: Record
   const tl = buildTimeline(hzSentences(narration), HZ_LEAD);
   const base = tl.end + (m?.tail ?? 1.2);
   const vw = verseWindow(props, tl);
-  return Math.round(Math.max(base, m?.minEnd?.(props, tl) ?? 0, vw ? vw[1] + 0.9 : 0) * 10) / 10;
+  return Math.round(Math.max(base, m?.minEnd?.(props, tl) ?? 0, vw ? vw[1] + 0.3 : 0) * 10) / 10;
 };

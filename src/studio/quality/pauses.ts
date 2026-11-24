@@ -99,7 +99,8 @@ export const recitedVerseSpans = (plan: Plan, media: Pick<EpisodeMedia, "voice" 
     for (let i = 0; i < starts.length; i++) if (starts[i]!.start <= x.from + 1e-6) k = i;
     const s = k >= 0 ? byId.get(starts[k]!.id) : undefined;
     const key = s && verseKeyOf(s);
-    if (s && key && media.recitations[key]) out.push({ from: x.from, to: x.to, scene: s.id });
+    // D219: بطاقة الآية سكون مقصود (قدر قراءتها، والراوي يكمل) — تُعفى بتلاوة أو بلا تلاوة
+    if (s && key) out.push({ from: x.from, to: x.to, scene: s.id });
   }
   return out;
 };
