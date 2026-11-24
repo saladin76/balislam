@@ -116,12 +116,25 @@ describe("kept as they are: verse, lead-in, basmala, stillness, a scene without 
     expect(s!.kept).toMatch(/البسملة/);
   });
 
-  it("intended stillness (dhikr / verse lead-in shots of دفاتر الزمن) keeps its seams", () => {
-    const still = scene("st", long, { template: "horizon-shot", props: { shot: "verse-tag" } } as Partial<PlanScene>);
+  it("intended stillness (a dhikr shot of دفاتر الزمن) keeps its seams", () => {
+    const still = scene("st", long, { template: "horizon-shot", props: { shot: "basmala" } } as Partial<PlanScene>);
     const x = scene("x", long, { template: "horizon-shot", props: { shot: "lib-compare" } } as Partial<PlanScene>);
     const [s] = seamPlan([x, still], mediaOf([x, still]));
     expect(s!.overlapFrames).toBe(0);
     expect(s!.kept).toMatch(/سكون مقصود/);
+  });
+
+  // تصحيح D217 (v17): تمهيد الآية في «خط الأفق» لم يعد ساكنًا كله (السكون على كلمات الذكر ونافذة البطاقة داخل المشهد)،
+  // فلا تُبقي الوصلة حوله ذيله وسكوته (كان ١٫٥ ث قبل البقرة ٣٠ و١٫١ ث بعدها)
+  it("a horizon verse lead-in (verse-tag / verse-intro) is joined like any scene", () => {
+    for (const shot of ["verse-tag", "verse-intro"]) {
+      const tag = scene("st", long, { template: "horizon-shot", props: { shot } } as Partial<PlanScene>);
+      const x = scene("x", long, { template: "horizon-shot", props: { shot: "lib-compare" } } as Partial<PlanScene>);
+      const [a, b] = seamPlan([x, tag, x], mediaOf([x, tag]));
+      expect(a!.kept, shot).toBeUndefined();
+      expect(b!.kept, shot).toBeUndefined();
+      expect(a!.overlapFrames, shot).toBeGreaterThan(0);
+    }
   });
 
   it("a scene without narration (chapter card, closing) is a visual beat", () => {
