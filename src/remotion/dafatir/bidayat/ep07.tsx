@@ -253,20 +253,20 @@ const TwoWaters = reverent((q) => {
   );
 });
 
-// ─── c1-s8: التقاء الماءين على أمر قد قُدّر ───
+// ─── c1-s8: التقاء الماءين على ما قدّره الله (نص قرار المالك ٢٥ نوفمبر) ───
 const Meet = reverent((q) => {
-  const k = cueKit(q, ["ينهمر"]);
+  const k = cueKit(q, ["يتدفق"]);
   const { t } = k;
-  const rain = 0.4 + 0.6 * k.on(0, "ينهمر", 0.8);
-  const springs = [0, 1, 2].map((i) => prog(t, k.at("وعيون") + i * 0.2, k.at("وعيون") + i * 0.2 + 0.5));
+  const rain = 0.4 + 0.6 * k.on(0, "يتدفق", 0.8);
+  const springs = [0, 1, 2].map((i) => prog(t, k.at("وينابيع") + i * 0.2, k.at("وينابيع") + i * 0.2 + 0.5));
   const meet = k.draw(0, "فيلتقي", 1.2);
-  const set = k.on(0, "قدر", 1.0);
-  const seal = k.on(0, "قدر", 0.6);
+  const set = k.on(0, "قدره", 1.0);
+  const seal = k.on(0, "قدره", 0.6);
   const wy = 760 - 40 * set;
   const cam = k.cam(NEUTRAL, [
-    [0, "وعيون", { cx: 560, cy: 640, s: 1.15 }, 1.0],
+    [0, "وينابيع", { cx: 560, cy: 640, s: 1.15 }, 1.0],
     [0, "فيلتقي", { cx: 960, cy: 680, s: 1.3 }, 1.0],
-    [0, "قدر", NEUTRAL, 1.0],
+    [0, "قدره", NEUTRAL, 1.0],
   ]);
   const both = (
     <g>
@@ -398,10 +398,11 @@ const Embark = reverent((q) => {
 
 // ─── c1-s18: لا ثقة بخشب ولا بحبال ───
 const NotWood = reverent((q) => {
-  const k = cueKit(q, ["تجري"]);
+  const k = cueKit(q, ["سيرها"]);
   const { t } = k;
-  const run = prog(t, k.at("تجري") - 0.05, k.at("تجري") + 0.8);
-  const rest = k.on(0, "ترسو", 0.6);
+  // نص قرار المالك ٢٥ نوفمبر: «يبدأ سيرها ورسوّها بذكر الله»
+  const run = prog(t, k.at("سيرها") - 0.05, k.at("سيرها") + 0.8);
+  const rest = k.on(0, "ورسوها", 0.6);
   const plank = k.draw(0, "بخشب", 0.7);
   const rope = k.draw(0, "بحبال", 0.8);
   const fs = k.safe(k.at("بحبال") + 0.6, 0.7);

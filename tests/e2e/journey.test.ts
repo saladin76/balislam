@@ -362,9 +362,9 @@ for (const channel of selectedChannels()) {
       } else expect(early.status).toBe(409);
       expect(existsSync(path.join(epDir, "out", "package", `${EP}-episode.mp4`)), "no Master file yet").toBe(false);
       for (const seam of s.seams) ok(`seam ${seam}`, await st.call("POST", `episodes/${EP}/seam-checks`, { seam, assemblySha256: assemblySha, how: "confirmed" }));
-      expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, seamsChecked: s.seams })).status, "not watched").toBe(409);
-      expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, confirmedWatched: true, seamsChecked: s.seams.slice(1) })).status, "a seam unchecked").toBe(409);
-      ok("approve assembly", await decide({ action: "approve-assembly", expectedSha256: assemblySha, confirmedWatched: true, seamsChecked: s.seams }));
+      // D223 (قرار المالك ٢٥ نوفمبر): اعتماد التجميع بضغطة واحدة، بلا مشاهدة ١× ولا تعليم الوصلات؛ والبايتات نفسها شرط
+      expect((await decide({ action: "approve-assembly", expectedSha256: "b".repeat(64) })).status, "other bytes").toBe(409);
+      ok("approve assembly", await decide({ action: "approve-assembly", expectedSha256: assemblySha }));
       await gates("assembly approved", { assemblyApproved: true, masterApproved: false, publishAllowed: false });
 
       // ── 8. A tiny REAL Master through the Studio's own job («اصنع النسخة النهائية»), then its approval ─────
@@ -385,7 +385,6 @@ for (const channel of selectedChannels()) {
       const masterSha = s.candidates.masterSha256;
       expect(masterSha).toBe(await sha256File(masterFile));
       expect((await decide({ action: "grant-publish", expectedSha256: masterSha, confirmedWatched: true })).status, "publish before Master approval").toBe(409);
-      expect((await decide({ action: "approve-master", expectedSha256: masterSha })).status, "Master unwatched").toBe(409);
       expect((await decide({ action: "approve-master", expectedSha256: "b".repeat(64), confirmedWatched: true })).status, "other bytes").toBe(409);
       ok("approve Master", await decide({ action: "approve-master", expectedSha256: masterSha, confirmedWatched: true }));
       await gates("Master approved", { masterApproved: true, publishAllowed: false });

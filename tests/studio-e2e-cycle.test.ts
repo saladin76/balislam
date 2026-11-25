@@ -335,9 +335,9 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     expect(Object.keys((await seamApi()).body.heard)).toEqual(s.seams);
     expect((await seamApi({ seam: s.seams[1], assemblySha256: assemblySha, heard: false })).status).toBe(200);
     expect(Object.keys((await seamApi()).body.heard)).toEqual([s.seams[0]]);
-    expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, seamsChecked: s.seams })).status).toBe(409); // not watched
-    expect((await decide({ action: "approve-assembly", expectedSha256: assemblySha, confirmedWatched: true, seamsChecked: [s.seams[0]] })).status).toBe(409); // a seam unchecked
-    const asmOk = await decide({ action: "approve-assembly", expectedSha256: assemblySha, confirmedWatched: true, seamsChecked: s.seams });
+    // D223 (قرار المالك ٢٥ نوفمبر): اعتماد التجميع بضغطة واحدة — لا شرط مشاهدة ١× ولا تعليم الوصلات؛ والبايتات نفسها شرط كما هي
+    expect((await decide({ action: "approve-assembly", expectedSha256: "b".repeat(64) })).status).toBe(409); // not these bytes
+    const asmOk = await decide({ action: "approve-assembly", expectedSha256: assemblySha });
     expect(asmOk.status, JSON.stringify(asmOk.body)).toBe(200);
     expect(asmOk.body.progress.assemblyApproved).toBe(true);
     await expect(gate("master_render")).resolves.toBeUndefined();
@@ -350,7 +350,6 @@ describe("Studio E2E: one full production cycle over the real server API", () =>
     const masterSha = s.candidates.masterSha256;
     expect(masterSha).toMatch(/^[a-f0-9]{64}$/);
     expect((await decide({ action: "grant-publish", expectedSha256: masterSha, confirmedWatched: true })).status).toBe(409); // before Master approval
-    expect((await decide({ action: "approve-master", expectedSha256: masterSha })).status).toBe(409); // not watched
     expect((await decide({ action: "approve-master", expectedSha256: "b".repeat(64), confirmedWatched: true })).status).toBe(409); // not these bytes
     const masterOk = await decide({ action: "approve-master", expectedSha256: masterSha, confirmedWatched: true });
     expect(masterOk.status, JSON.stringify(masterOk.body)).toBe(200);

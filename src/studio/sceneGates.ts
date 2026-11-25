@@ -207,7 +207,7 @@ export const requireScenesReadyForMaster = async (episode: string): Promise<void
   await withState(episode, async (doc, current) => {
     approvedSceneInputsSha256(doc.state);
     if (!sceneFirstProgress(doc.state).assemblyApproved)
-      throw Error("Watch the assembled episode at 1× and approve it with every scene transition before creating Master.");
+      throw Error("Approve the assembled episode before creating Master.");
     if (!doc.state.assembly || !doc.assemblyEpoch ||
         doc.assemblyEpoch !== await fileGeneration(assemblyFile(current.scriptPath)) ||
         doc.state.assembly.videoSha256 !== await byteSha256(assemblyFile(current.scriptPath)))
