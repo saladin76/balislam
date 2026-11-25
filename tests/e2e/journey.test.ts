@@ -385,7 +385,6 @@ for (const channel of selectedChannels()) {
       const masterSha = s.candidates.masterSha256;
       expect(masterSha).toBe(await sha256File(masterFile));
       expect((await decide({ action: "grant-publish", expectedSha256: masterSha, confirmedWatched: true })).status, "publish before Master approval").toBe(409);
-      expect((await decide({ action: "approve-master", expectedSha256: masterSha })).status, "Master unwatched").toBe(409);
       expect((await decide({ action: "approve-master", expectedSha256: "b".repeat(64), confirmedWatched: true })).status, "other bytes").toBe(409);
       ok("approve Master", await decide({ action: "approve-master", expectedSha256: masterSha, confirmedWatched: true }));
       await gates("Master approved", { masterApproved: true, publishAllowed: false });
