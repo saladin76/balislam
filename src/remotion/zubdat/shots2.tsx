@@ -1204,7 +1204,7 @@ export const INK_SHOTS_2: Record<string, InkShotDef> = {
                 <Lines x={0} y={-40} w={150} n={3} p={1} z={z} gap={36} />
               </g>
             ))}
-            {T("sg", 960, 590, "صيغ صحيحة متعددة", 66, ["صيغ", 0.22], ["متعددة", 0.3])}
+            {T("sg", 960, 590, "صيغ متعددة", 66, ["صيغ", 0.22], ["متعددة", 0.3])}
             {Box("c1", 1400, 700, "الثناء", 64, tThana, { font: "head" })}
             {Box("c2", 960, 700, "الافتقار", 64, tNeed, { font: "head", fill: P(tHope, tHope + 14) > 0 ? z.hl : z.paper })}
             {Box("c3", 520, 700, "طلب المغفرة", 64, tMagh, { font: "head", tEnd: c.end("المغفرة", 0.64) })}
