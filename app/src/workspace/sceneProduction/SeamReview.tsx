@@ -190,6 +190,8 @@ export const SeamReview: React.FC<{
             title={!allHeard && !canMark ? "استمع للوصلة كاملة أولًا، أو ضع علامة «سمعتها»" : undefined}>
             <Icon name="check" />{allHeard ? (pending ? "جارٍ الاعتماد…" : "اعتمد الوصلات") : "الوصلة سليمة"}
           </button>
+          {/* D223 (قرار المالك ٢٥ نوفمبر): الاعتماد بضغطة واحدة، والوصلات فحص اختياري */}
+          <button type="button" className="btn" disabled={pending} onClick={onApprove}>{pending ? "جارٍ الاعتماد…" : "اعتمد التجميع"}</button>
           <span className="ms-dv" aria-hidden="true" />
           <span className="ms-ct"><b><Num>{heardCount}</Num></b> من <Num>{seams.length}</Num> وصلة مسموعة</span>
           <button type="button" className="ms-nv" disabled={at >= seams.length - 1} onClick={() => onAt(at + 1)} aria-label="الوصلة التالية"><Icon name="chev" /></button>

@@ -214,7 +214,8 @@ export const DecisionPanel: React.FC<Final> = ({ m, p }) => {
             <FramePlayer ref={assemblyRef} src={api.previewUrl(episodeId, "episode.mp4")} label="الحلقة المجمعة" />
           </div>
           <div className="sp-side">
-            <h3>شاهد الحلقة كاملة بسرعة 1×، وافحص كل وصلة</h3>
+            <h3>الحلقة المجمّعة</h3>
+            <p className="sp-hint">شاهدها إن أردت، وافحص الوصلات اختياريًا؛ الاعتماد بضغطة واحدة (D223).</p>
             <fieldset className="scene-first-seams">
               <legend>الوصلات: {seamsDone} من {seamsAll.length}</legend>
               {seamsAll.map((seam) => (
@@ -229,9 +230,8 @@ export const DecisionPanel: React.FC<Final> = ({ m, p }) => {
                   }} />
               ))}
             </fieldset>
-            {confirm("شاهدت الحلقة كاملة 1×")}
             <div className="sp-actions">
-              <button className="btn primary" disabled={pending || !reviewed || seamsDone !== seamsAll.length} onClick={() => void act("approve-assembly", data.assembly!.sha256)}>اعتماد التجميع</button>
+              <button className="btn primary" disabled={pending} onClick={() => void act("approve-assembly", data.assembly!.sha256)}>اعتمد التجميع</button>
             </div>
           </div>
         </div>
@@ -248,8 +248,7 @@ export const DecisionPanel: React.FC<Final> = ({ m, p }) => {
           </div>
           <div className="sp-actions">
             {data.candidates.masterSha256 ? (<>
-              {confirm("شاهدتها كاملة 1×")}
-              <button className="btn primary" disabled={pending || !reviewed} onClick={() => void act("approve-master", data.candidates.masterSha256!)}>اعتماد النسخة النهائية</button>
+              <button className="btn primary" disabled={pending} onClick={() => void act("approve-master", data.candidates.masterSha256!)}>اعتمد النسخة النهائية</button>
             </>) : <MakeMaster episodeId={episodeId} hasVoiceKeys={hasVoiceKeys} onDone={() => { void refresh(); onUpdated?.(); }} />}
           </div>
           {/* بطاقة الجودة (المرحلة A): قبل الصنع على المجمّعة، وبعده على النسخة النهائية نفسها */}

@@ -291,17 +291,10 @@ try {
   await page.reload();
   await page.waitForLoadState("networkidle").catch(() => {});
   await snap("3-seams");
-  // One seam on screen at a time: «سمعتها» (kept on the server per assembly), then «الوصلة التالية».
-  for (let k = 0; k < assembled.seams.length; k++) {
-    await page.getByLabel("سمعتها").first().click();
-    await until(`seam ${k + 1} heard`, async () => Object.keys((await api("GET", `episodes/${EP}/seam-checks`)).heard ?? {}).length >= k + 1 || null, 30_000, 500);
-    if (k < assembled.seams.length - 1) await page.getByRole("button", { name: "الوصلة التالية" }).click();
-  }
-  ok(true, `٣ every seam heard from the page (${assembled.seams.length})`);
-  await tick(/شاهدت الحلقة كاملة/);
-  await click(/اعتمد الوصلات|اعتماد التجميع/);
+  // D223 (قرار المالك ٢٥ نوفمبر): اعتماد التجميع بضغطة واحدة، بلا مشاهدة ١× ولا تعليم الوصلات
+  await click(/^اعتمد التجميع$/);
   const asmOk = await until("assembly approved", async () => { const s = await state(); return s.progress.assemblyApproved ? s : null; }, 60_000);
-  ok(Boolean(asmOk), "٣ «اعتماد التجميع» after 1× and every seam");
+  ok(Boolean(asmOk), "٣ «اعتمد التجميع» in one click (D223)");
   await page.reload();
   await page.waitForLoadState("networkidle").catch(() => {});
   await click("اصنع النسخة النهائية");
@@ -309,8 +302,7 @@ try {
   ok(Boolean(made.candidates.masterSha256), "٣ the Master made from the page (tiny real render)");
   await page.reload();
   await page.waitForLoadState("networkidle").catch(() => {});
-  await tick("شاهدتها كاملة 1×");
-  await click("اعتماد النسخة النهائية");
+  await click("اعتمد النسخة النهائية");
   const masterOk = await until("Master approved", async () => { const s = await state(); return s.progress.masterApproved ? s : null; }, 60_000);
   ok(Boolean(masterOk), "٣ «اعتماد النسخة النهائية» for these exact bytes");
 

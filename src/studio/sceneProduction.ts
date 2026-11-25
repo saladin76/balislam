@@ -241,20 +241,15 @@ const assemblyApproved = (p: SceneFirstProduction): boolean => {
  * scene-to-scene seam was checked. Independent of each scene's approval and of the Master.
  */
 export const approveAssembly = (p: SceneFirstProduction, opts: {
-  by: string; at: string; videoSha256: string; watchedFullEpisodeAt1x: true; seamsChecked: readonly string[];
+  by: string; at: string; videoSha256: string; watchedFullEpisodeAt1x?: boolean; seamsChecked?: readonly string[];
 }): SceneFirstProduction => {
   requireReviewer(opts.by, opts.at);
   requireHash(opts.videoSha256, "assembled episode");
-  if (opts.watchedFullEpisodeAt1x !== true)
-    return block("The full assembled episode must be watched at normal speed.");
+  // D223 (قرار المالك ٢٥ نوفمبر): لا شرط مشاهدة ١× ولا تعليم كل وصلة؛ الاعتماد بضغطة واحدة على التجميع الحالي نفسه
   const inputsSha256 = approvedSceneInputsSha256(p);
   if (!p.assembly || p.assembly.inputsSha256 !== inputsSha256 || p.assembly.videoSha256 !== opts.videoSha256)
     return block("Review the current assembly of all approved scenes.");
   const want = sceneSeams(p);
-  const got = new Set(opts.seamsChecked);
-  const missing = want.filter((seam) => !got.has(seam));
-  if (missing.length || got.size !== want.length)
-    return block(`Check every scene-to-scene transition first: ${missing.slice(0, 6).join(", ")}${missing.length > 6 ? "…" : ""}`);
   return { ...p, assembly: { ...p.assembly, approval: { by: opts.by, at: opts.at, videoSha256: opts.videoSha256, seams: want } },
     master: undefined };
 };
@@ -262,12 +257,11 @@ export const approveAssembly = (p: SceneFirstProduction, opts: {
 /** Decision 2 of 3: the exact final Master bytes, watched in full, after an approved assembly. */
 export const approveFinalMaster = (p: SceneFirstProduction, opts: {
   by: string; at: string; masterSha256: string;
-  assembledVideoSha256: string; watchedFullEpisodeAt1x: true;
+  assembledVideoSha256: string; watchedFullEpisodeAt1x?: boolean;
 }): SceneFirstProduction => {
   requireReviewer(opts.by, opts.at);
   requireHash(opts.masterSha256, "Master");
-  if (opts.watchedFullEpisodeAt1x !== true)
-    return block("The full Master must be watched at normal speed.");
+  // D223: اعتماد النسخة النهائية بضغطة واحدة بلا تتبع للمشاهدة
   const inputsSha256 = approvedSceneInputsSha256(p);
   if (!p.assembly || p.assembly.inputsSha256 !== inputsSha256 ||
       p.assembly.videoSha256 !== opts.assembledVideoSha256)

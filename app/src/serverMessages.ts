@@ -88,7 +88,7 @@ const EXACT: Record<string, string> = {
   "Draft marks (a pending recitation) belong only to a scene review draft, never to a Master.": "لا تُصنع النسخة النهائية وفيها آية بانتظار تلاوتها؛ أرفق التلاوات أولًا.",
   "Invalid preview index": "فهرس المعاينات تالف؛ أرسل هذه الرسالة إلى Claude.",
   "Publishing is blocked.": "النشر موقوف: النسخة النهائية لم تُعتمد أو لم يُمنح إذن النشر بعد.",
-  "Watch the assembled episode at 1× and approve it with every scene transition before creating Master.": "شاهد النسخة المجمعة 1× وافحص كل وصلة واعتمدها قبل صنع النسخة النهائية.",
+  "Approve the assembled episode before creating Master.": "اعتمد التجميع قبل صنع النسخة النهائية.",
   "Approve and assemble all current audiovisual scenes before creating Master.": "اعتمد كل المشاهد واجمعها قبل صنع النسخة النهائية.",
   "Final assembly changed after approval.": "تغيّرت النسخة المجمعة بعد اعتمادها؛ تحتاج اعتمادًا جديدًا.",
   "No safe, signed scene cuts are ready for assembly.": "لا توجد مشاهد معتمدة جاهزة للتجميع بعد.",
