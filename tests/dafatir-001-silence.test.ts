@@ -20,6 +20,12 @@ import type { Plan, PlanScene } from "../src/plan/types";
 const EP = "channels/dafatir-alzaman/episodes/001-adam-beginning";
 const plan = JSON.parse(readFileSync(`${EP}/plan.json`, "utf8")) as Plan;
 const voice = (JSON.parse(readFileSync("tests/fixtures/dafatir-001-voice-timing.json", "utf8")) as { voice: EpisodeMedia["voice"] }).voice;
+// نص مشهد تغيّر قبل توليد صوته (مثل c1-s40، البند ١٠٣): يُستعمل توقيته التقديري «<id>@pending» حين يطابق نص الخطة
+for (const [k, c] of Object.entries(voice)) {
+  const id = k.endsWith("@pending") ? k.slice(0, -8) : "";
+  const sc = id ? plan.chapters.flatMap((x) => x.scenes).find((x) => x.id === id) : undefined;
+  if (sc && c?.text === sc.narration.trim()) voice[id] = c;
+}
 const media: EpisodeMedia = { mode: "url", base: "", voice, sfx: [], recitations: {} };
 const scenes: PlanScene[] = plan.chapters.flatMap((c) => c.scenes);
 const FPS = 30;
