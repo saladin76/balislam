@@ -31,7 +31,9 @@
         "scale": 2,
         "crf": 14,
         "x264Preset": "slow",
-        "audioBitrate": "320k"
+        "audioBitrate": "320k",
+        "concurrency": 1,
+        "timeoutMs": 300000
       },
       "preview": {
         "label": "معاينة 1080p",

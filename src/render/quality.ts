@@ -10,7 +10,14 @@ import config from "../../config.json";
  * - preview: المعاينات السريعة فقط (بلا صوت، فصل للتأكد، الاستوديو)، ولا تُنشر.
  */
 export type Quality = "master" | "preview";
-export type QualitySpec = { label: string; scale: number; crf: number; x264Preset: "slow" | "veryfast" | "medium" | "slower"; audioBitrate: `${number}k` };
+export type QualitySpec = {
+  label: string; scale: number; crf: number; x264Preset: "slow" | "veryfast" | "medium" | "slower"; audioBitrate: `${number}k`;
+  /** Browser tabs rendering at once. Master is 4K: on the owner's 8 GB Mac several 4K tabs swap the machine until
+   *  Remotion's 30 s first-frame timeout kills the render (25 Nov, 001 «دفاتر الزمن»), so Master renders one tab at a time. */
+  concurrency?: number;
+  /** Per-frame delayRender / first-render timeout (ms); Remotion's 30 s default is too short for a 4K frame under load. */
+  timeoutMs?: number;
+};
 export const QUALITY = config.video.quality as Record<Quality, QualitySpec>;
 
 /**
