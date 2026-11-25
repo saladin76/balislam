@@ -5,7 +5,7 @@
  * القطعة المخصوصة: الحجر من أعلى وأثر القطرات (حلقة، ثم حلقات، ثم حفرة صغيرة عند «عمرًا كاملًا»).
  */
 import React from "react";
-import { GLYPHS, Hatch, Wheat } from "../lib/drawings";
+import { GLYPHS, Hatch } from "../lib/drawings";
 import { DateRibbon, Pin } from "../horizon/book";
 import {
   BlankLine, C, DotFrame, EMBER, GOLD_D, GREEN, GoldSeal, Horizon, Ink, Knot, Leaf, NEUTRAL, Q, Seal, Sheet, Tab, Txt, WATER, Write,
@@ -312,37 +312,40 @@ const HadithLead = reverent((q) => {
   );
 });
 
-// ─── c1-s10: التوحيد ثم الاختلاف ثم الرسول ───
-const FORK = 1120;
+// ─── c1-s10: أول رسول إلى أهل الأرض (نص المراجعة العلمية، الدفعة ٥ البند ١٢٥: بلا «أجيال من التوحيد ثم الاختلاف») ───
+const LX = 1120;
 const LY = 560;
-const BR = [-170, -80, 60, 150];
+const FOLK = [520, 420, 320, 220];
 const FirstMessenger = reverent((q) => {
-  const k = cueKit(q, ["الرسل"]);
+  const k = cueKit(q, ["أول"]);
   const { t } = k;
   const title = k.draw(0, "أول", 0.9);
-  const straight = k.draw(0, "أجيال", 1.4);
-  const split = k.draw(0, "الاختلاف", 1.2);
   const light = k.on(0, "رسول", 0.6);
-  const back = prog(t, k.at("يرد", 1.2) - 0.05, k.at("يرد", 1.2) + 1.3);
+  const ground = k.draw(0, "الأرض", 1.4);
+  const src = k.on(0, "الشفاعة", 0.6);
+  const folk = k.on(0, "قومه", 0.8);
+  const warn = k.draw(0, "لينذرهم", 1.0);
+  const call = bounce(t, k.at("ويدعوهم"), k.at("ويدعوهم") + 1.2);
   const cam = k.cam(NEUTRAL, [
-    [0, "أجيال", { cx: 1300, cy: 520, s: 1.1 }, 1.2],
-    [0, "الاختلاف", { cx: 700, cy: 540, s: 1.05 }, 1.2],
-    [0, "رسول", { cx: FORK, cy: LY, s: 1.4 }, 1.0],
-    [0, "يرد", { cx: 800, cy: 540, s: 1.05 }, 1.2],
+    [0, "رسول", { cx: LX, cy: LY, s: 1.35 }, 1.0],
+    [0, "الأرض", NEUTRAL, 1.4],
+    [0, "قومه", { cx: 640, cy: 540, s: 1.15 }, 1.0],
   ]);
   const both = (
     <g>
-      <Ink d={`M1740 ${LY} H${FORK}`} p={straight} w={6} />
-      {BR.map((dy, i) => (
-        <g key={i}>
-          <Ink d={`M${FORK} ${LY} C${FORK - 200} ${LY} ${FORK - 380} ${LY + dy * 0.8} ${FORK - 620} ${LY + dy}`} p={prog(split, i * 0.12, 0.7 + i * 0.1)} w={4} c={C.inkSoft} />
-          <Ink d={`M${FORK - 620} ${LY + dy} C${FORK - 760} ${LY + dy} ${FORK - 820} ${LY + dy * 0.3} ${FORK - 900} ${LY}`} p={prog(back, i * 0.1, 0.7 + i * 0.1)} w={4} c={GOLD_D} />
-        </g>
-      ))}
-      <LightPoint x={FORK} y={LY} q={light} />
+      <Ink d={`M1740 ${LY + 40} H180`} p={ground} w={5} />
+      {FOLK.map((x, i) => <House key={i} x={x} y={LY + 40} g={i + 1} s={1.05} q={prog(folk, i * 0.2, i * 0.2 + 0.4)} />)}
+      {FOLK.map((x, i) => <Ink key={`w${i}`} d={`M${LX - 30} ${LY - 10} Q${(LX + x) / 2} ${LY - 120 - i * 12} ${x + 20} ${LY - 40}`} p={prog(warn, i * 0.15, i * 0.15 + 0.55)} w={3 + 2 * call} c={GOLD_D} dash="10 8" />)}
+      <LightPoint x={LX} y={LY} q={light} />
     </g>
   );
-  return <Leaf q={q} id="b5m" cam={cam} L={both} R={<g>{both}<Write id="b5m-t" x={1400} y={300} size={72} p={title} label="أول الرسل" /></g>} />;
+  return (
+    <Leaf q={q} id="b5m" cam={cam} L={both}
+      R={<g>{both}
+        <Write id="b5m-t" x={1400} y={300} size={72} p={title} label="أول رسول" />
+        <Tab x={1740} y={160} q={src} label="حديث الشفاعة" />
+      </g>} />
+  );
 });
 
 // ─── c1-s11 / c1-s14: الخانة الوحيدة المؤكدة ───
@@ -354,13 +357,15 @@ const OneNumber = reverent((q) => {
   const frame = S === 0 ? k.span(0, "وكم", "يقينا", 1.2) : 1;
   const label = k.draw(0, "الرقم", 0.9);
   const glow = S === 0 ? bounce(t, k.at("يقينا"), k.at("يقينا") + 1.0) : 0;
+  // المراجعة العلمية (الدفعة ٦ البند ١٢٦): «مدة لبثه في قومه» لا «عمره»، ولا ختم «تقدير»
   const num = k.draw(1, "تسعمئة", 1.3);
-  const est = S === 1 ? bounce(t, k.at("تقديرا"), k.at("تقديرا") + 1.4) : 0;
+  const lab = k.draw(1, "المدة", 1.0);
   const seal = k.on(1, "القرآن", 0.6);
+  const before = k.draw(1, "الطوفان", 1.0);
   const cam = k.cam({ cx: 1365, cy: 520, s: 1.2 }, [
     [0, "يقينا", { cx: 1365, cy: 520, s: 1.35 }, 1.0],
-    [1, "تقديرا", { cx: 1365, cy: 480, s: 1.25 }, 1.0],
-    [1, "القرآن", { cx: 1365, cy: 600, s: 1.2 }, 1.0],
+    [1, "المدة", { cx: 1365, cy: 600, s: 1.25 }, 1.0],
+    [1, "الطوفان", { cx: 1365, cy: 640, s: 1.1 }, 1.0],
   ]);
   return (
     <Leaf q={q} id="b5n" cam={cam}
@@ -370,8 +375,10 @@ const OneNumber = reverent((q) => {
         <Ink d={boxPath} p={frame} w={2} c={GOLD_D} />
         <Write id="b5n-l" x={1365} y={400} size={40} p={label} label="الرقم الوحيد" font="tajawal" color={C.inkSoft} />
         <Write id="b5n-n" x={1365} y={558} size={50} p={num} label="تسعمئة وخمسون سنة" />
-        <g transform={`translate(0 ${-120 * (1 - est)})`}><Seal x={1365} y={360} q={est} kind="تقدير" s={0.55} dim={est} /></g>
-        <GoldSeal x={1365} y={720} q={seal} label="العنكبوت ١٤" />
+        <Write id="b5n-m" x={1365} y={690} size={40} p={lab} label="مدة لبثه في قومه" font="tajawal" color={C.ink} />
+        <GoldSeal x={1730} y={540} q={seal} label="العنكبوت ١٤" />
+        <Ink d="M1365 730 V800 H1120" p={before} w={3} c={C.inkSoft} />
+        <rect x={1020} y={770} width={100} height={60} rx={6} fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="8 6" opacity={prog(before, 0.8, 1)} />
       </g>} />
   );
 });
@@ -446,19 +453,19 @@ const Village5: React.FC<{ row: number; ring: number; lit?: (i: number) => numbe
   </g>
 );
 
-// ─── c1-s19: في كل وقت وبكل طريقة ───
+// ─── c1-s19: ليلًا ونهارًا، علنًا وسرًّا (الدفعة ٦ البند ١٢٧: لا «باب بعد باب») ───
 const DayNight = reverent((q) => {
-  const k = cueKit(q, ["دعاهم"]);
+  const k = cueKit(q, ["واصل"]);
   const { t } = k;
   const row = prog(t, 0.05, 0.8);
-  const arc = prog(t, k.at("وقت", 2.0) - 0.05, k.at("وقت", 2.0) + 2.0);
-  const sun = prog(arc, 0, 0.5), moon = prog(arc, 0.5, 1);
-  const a = k.at("فردا", 0.3), b = k.end("فردا#2") + 0.3;
-  const lit = (i: number) => prog(t, mix(a, b, i / ROW.length), mix(a, b, i / ROW.length) + 0.3);
-  const ring = k.on(0, "الجموع", 0.8);
+  const moon = prog(t, k.at("الليل", 1.4) - 0.05, k.at("الليل", 1.4) + 1.4);
+  const sun = prog(t, k.at("النهار", 1.4) - 0.05, k.at("النهار", 1.4) + 1.4);
+  const ring = k.on(0, "علنا", 0.8);
+  const secret = k.on(0, "السر", 0.8);
+  const lit = (i: number) => (i === 3 ? secret : 0);
   const cam = k.cam(NEUTRAL, [
-    [0, "فردا", { cx: 1400, cy: 600, s: 1.2 }, 1.2],
-    [0, "الجموع", { cx: 620, cy: 640, s: 1.15 }, 1.0],
+    [0, "علنا", { cx: 620, cy: 640, s: 1.15 }, 1.0],
+    [0, "السر", { cx: 1400, cy: 600, s: 1.25 }, 1.0],
   ]);
   const sky = (
     <g>
@@ -545,20 +552,21 @@ const Bush: React.FC<{ x: number; y: number; q: number; s?: number }> = ({ x, y,
 
 // ─── c1-s24: وعد الاستغفار ───
 const Promise5 = reverent((q) => {
-  const k = cueKit(q, ["الاستغفار"]);
+  // الدفعة ٦ البند ١٢٨: «الأموال» و«البنين» بالكلمة وحدها (لا قمح ولا عملات ولا أشخاص)
+  const k = cueKit(q, ["استغفار"]);
   const { t } = k;
-  const istighfar = k.draw(0, "الاستغفار", 1.0);
-  const cloud = k.on(0, "بالمطر", 0.7);
+  const istighfar = k.draw(0, "استغفار", 1.0);
+  const cloud = k.on(0, "المطر", 0.7);
   const rain = cloud * (1 - 0.6 * k.on(0, "رحمة", 1.0));
-  const wheat = [0, 1, 2, 3].map((i) => prog(t, k.at("والرزق") + i * 0.15 - 0.05, k.at("والرزق") + i * 0.15 + 0.5, easeOut));
-  const dhurr = k.draw(0, "والذرية", 0.7);
+  const amwal = k.draw(0, "والأموال", 0.7);
+  const banin = k.draw(0, "والبنين", 0.7);
   const bush = [0, 1, 2].map((i) => prog(t, k.at("والبساتين") + i * 0.18 - 0.05, k.at("والبساتين") + i * 0.18 + 0.5, easeOut));
   const river = k.draw(0, "والأنهار", 1.4);
   const rahma = k.draw(0, "رحمة", 0.9);
   const ghadab = k.on(0, "غضب", 0.6);
   const cam = k.cam(NEUTRAL, [
-    [0, "بالمطر", { cx: 1400, cy: 460, s: 1.15 }, 1.0],
-    [0, "والرزق", { cx: 700, cy: 620, s: 1.15 }, 1.0],
+    [0, "المطر", { cx: 1400, cy: 460, s: 1.15 }, 1.0],
+    [0, "والأموال", { cx: 700, cy: 420, s: 1.15 }, 1.0],
     [0, "والأنهار", NEUTRAL, 1.2],
   ]);
   const river_d = `M1760 ${HY + 170} C1500 ${HY + 120} 1300 ${HY + 220} 1000 ${HY + 160} C760 ${HY + 110} 520 ${HY + 220} 170 ${HY + 150}`;
@@ -567,14 +575,11 @@ const Promise5 = reverent((q) => {
       <Village5 row={1} ring={0} />
       <Ink d={river_d} p={river} w={14} c={WATER} opacity={0.55} />
       <Ink d={river_d} p={river} w={3} c={WATER} />
-      {[[420, HY + 90], [520, HY + 100], [620, HY + 86], [720, HY + 96]].map(([x, y], i) => (
-        <g key={i} opacity={wheat[i]} transform={`translate(${x} ${y}) scale(${0.6 * (0.4 + 0.6 * wheat[i]!)})`}><Wheat /></g>
-      ))}
       {[[900, HY + 70], [1180, HY + 90], [300, HY + 60]].map(([x, y], i) => <Bush key={i} x={x!} y={y!} q={bush[i]!} />)}
     </g>
   );
   return (
-    <Leaf q={q} id="b5p" cam={cam} L={<g>{both}<Txt x={520} y={300} size={34} q={dhurr} color={C.inkSoft}>الذرية</Txt></g>}
+    <Leaf q={q} id="b5p" cam={cam} L={<g>{both}<Write id="b5p-a" x={760} y={300} size={40} p={amwal} label="الأموال" font="tajawal" color={C.inkSoft} /><Write id="b5p-b" x={480} y={300} size={40} p={banin} label="البنين" font="tajawal" color={C.inkSoft} /></g>}
       R={<g>{both}
         <Write id="b5p-i" x={1365} y={200} size={50} p={istighfar} label="الاستغفار" />
         <g opacity={cloud} transform={`translate(1500 ${330 - 20 * (1 - cloud)})`}>
@@ -595,22 +600,24 @@ const ROWS = [
   { w: "كله", label: "عمره كله" },
 ];
 const SideSheet = reverent((q) => {
-  const k = cueKit(q, ["زاد", "أعمارا", "متباعدة", "فلن"]);
+  // الدفعة ٦ البند ١٢٩: الخانة الذهبية «مدة لبثه في قومه» تعود، وإطار «نص صحيح» فارغ لمجموع عمره، بلا لسان «أهل الكتاب»
+  const k = cueKit(q, ["زاد", "أعمارا", "لبث", "فلن"]);
   const { t, S } = k;
   const slide = k.on(0, "زاد", 0.9);
   const tabs = S === 0 ? k.on(0, "روايات", 0.6) : 1;
   const lines = k.draw(1, "أعمارا", 0.9);
   const rows = ROWS.map((r) => k.on(1, r.w, 0.6));
-  const apart = k.on(2, "متباعدة", 1.0);
-  const kitab = k.on(2, "الكتاب", 0.6);
-  const sahih = k.draw(2, "حديثا", 0.9);
+  const gold = k.on(2, "القرآن", 0.7);
+  const sahih = k.draw(2, "نصا", 0.9);
+  const empty = S === 2 ? bounce(t, k.at("مجموع"), k.at("مجموع") + 1.0) : 0;
   const lift = S === 3 ? prog(t, k.at("فلن", 0.8) - 0.05, k.at("فلن", 0.8) + 0.8, easeOut) : 0;
   const fold = k.on(3, "رقما", 0.8);
   const seal = k.on(3, "رواية", 0.5);
   const cam = k.cam({ cx: 700, cy: 520, s: 1.1 }, [
     [0, "روايات", { cx: 600, cy: 380, s: 1.3 }, 1.0],
     [1, "بعث", { cx: 600, cy: 520, s: 1.3 }, 1.2],
-    [2, "متباعدة", { cx: 560, cy: 540, s: 1.25 }, 1.0],
+    [2, "القرآن", { cx: 600, cy: 360, s: 1.3 }, 1.0],
+    [2, "نصا", { cx: 560, cy: 600, s: 1.25 }, 1.0],
     [3, "رقما", { cx: 560, cy: 560, s: 1.25 }, 1.0],
   ]);
   const top = SH.y - SH.h / 2;
@@ -625,21 +632,24 @@ const SideSheet = reverent((q) => {
                 <Ink d={`M260 ${y + 30} H-260`} p={lines} w={2} c={C.inkSoft} opacity={0.6} />
                 <Txt x={250} y={y + 10} size={32} q={rows[i]!} anchor="start" color={C.ink}>{r.label}</Txt>
                 <g opacity={rows[i]}>
-                  <Hatch x={-60 + 40 * apart} y={y - 20} w={100} h={40} o={1.6} />
-                  <Hatch x={-170 - 70 * apart} y={y - 20} w={90} h={40} o={1.6} />
+                  <Hatch x={-60} y={y - 20} w={100} h={40} o={1.6} />
+                  <Hatch x={-170} y={y - 20} w={90} h={40} o={1.6} />
                 </g>
               </g>
             );
           })}
-          <DotFrame x={-150} y={225} w={200} h={70} q={sahih} />
-          <Txt x={120} y={235} size={26} q={sahih} color={C.inkSoft}>حديث صحيح:</Txt>
+          <g opacity={gold}>
+            <rect x={-290} y={-250} width={190} height={56} rx={6} fill="none" stroke={C.gold} strokeWidth={4} />
+            <Txt x={-195} y={-214} size={18} q={1} font="amiri">مدة لبثه في قومه</Txt>
+          </g>
+          <DotFrame x={-150} y={225} w={200} h={70} q={sahih} c={empty > 0 ? EMBER : C.inkSoft} />
+          <Txt x={120} y={235} size={26} q={sahih} color={C.inkSoft}>نص صحيح:</Txt>
           {fold > 0 ? <rect x={-SH.w / 2} y={SH.h / 2 - SH.h * 0.55 * fold} width={SH.w} height={SH.h * 0.55 * fold} rx={6} fill="#E6D8BE" stroke={C.ink} strokeWidth={3} /> : null}
           <Seal x={0} y={SH.h / 2 - SH.h * 0.27} q={seal} kind="رواية" s={0.7} />
         </g>
       </Sheet>
       <Tab x={SH.x + SH.w / 2 - 20} y={top - 44} q={tabs} label="المفسرون" />
       <Tab x={SH.x + 40} y={top - 44} q={tabs} label="المؤرخون" />
-      <Tab x={SH.x + SH.w / 2 - 20} y={top + SH.h + 6} q={kitab} label="منقول عن أهل الكتاب" color={EMBER} />
       {S === 3 ? (
         <g opacity={1 - lift * 0.7} transform={`translate(${SH.x + 160} ${SH.y + 40 - 160 * lift}) rotate(-35) scale(0.3)`}>
           <path d="M-100 -16 C-68 -16 -40 -8 0 0 C-40 8 -68 16 -100 16 Z" fill="#2B1E14" />
@@ -653,19 +663,22 @@ const SideSheet = reverent((q) => {
 
 // ─── c1-s32 / c1-s33: البلاغ والإنكار والشهادة ───
 const Witness = reverent((q) => {
-  const k = cueKit(q, ["البلاغ", "وتشهد"]);
+  // الدفعة ٦ البند ١٣٠: شريط مصدر «البخاري ٣٣٣٩»، ولا ختم ذهبي للقرآن (حُذف «بما أخبرها القرآن»)
+  const k = cueKit(q, ["البلاغ", "صحيح"]);
   const { t, S } = k;
   const back = k.open(0, 0.6);
   const ticks = S === 0 ? prog(t, k.at("البلاغ") - 0.05, k.last + 0.6) : 1;
   const balagh = k.draw(0, "البلاغ", 0.7);
   const deny = k.draw(0, "ينكر", 0.9);
-  const witness = k.on(1, "وتشهد", 0.6);
-  const umma = k.draw(1, "الأمة", 0.8);
-  const quran = k.on(1, "القرآن", 0.6);
+  const src = k.on(1, "صحيح", 0.6);
+  const box = k.draw(1, "يشهد", 0.8);
+  const witness = k.on(1, "فتشهد", 0.6);
+  const ballagh = k.draw(1, "بلغ", 0.8);
   const cam = k.cam({ cx: 1365, cy: 500, s: 1.15 }, [
     [0, "البلاغ", { cx: 1450, cy: 520, s: 1.3 }, 1.0],
     [0, "ينكر", { cx: 1250, cy: 500, s: 1.2 }, 1.0],
-    [1, "وتشهد", { cx: 1480, cy: 460, s: 1.35 }, 1.0],
+    [1, "يشهد", { cx: 1450, cy: 300, s: 1.3 }, 1.0],
+    [1, "فتشهد", { cx: 1480, cy: 460, s: 1.35 }, 1.0],
   ]);
   const N = 22;
   return (
@@ -682,9 +695,10 @@ const Witness = reverent((q) => {
         ))}
         <Txt x={1130} y={270} size={40} q={deny} color={C.inkSoft}>ما جاءنا</Txt>
         <rect x={1060} y={300} width={140} height={540} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="12 10" opacity={deny} />
+        <Tab x={1760} y={60} q={src} label="صحيح البخاري ٣٣٣٩" />
+        <Ink d="M1520 150 H1380 V210 H1520 Z" p={box} w={3} c={C.inkSoft} dash="8 6" />
         <Seal x={1450} y={470} q={witness} kind="شاهد" s={0.6} />
-        <Write id="b5w-u" x={1450} y={580} size={44} p={umma} label="الأمة" font="tajawal" />
-        <GoldSeal x={1600} y={470} q={quran} s={0.8} />
+        <Write id="b5w-u" x={1450} y={580} size={44} p={ballagh} label="بلّغ" font="tajawal" />
       </g>} />
   );
 });

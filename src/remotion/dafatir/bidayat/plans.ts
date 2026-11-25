@@ -24,15 +24,24 @@ export const parseBidayatPlan = (md: string): BdPlanRow[] => {
 };
 
 /**
- * مشاهد حذفتها مراجعة المتخصص (الدفعة ٥، ٢٤ نوفمبر) من سكريبتات 002–004 ولم تُحدَّث خططها بعد: لا تُبنى لها لقطة ولا تُبقى.
- * 002: رواية النار، والاسمان، والحجر، و«لم يكن على الأرض قبر بعد»، والمكان، وأبيات الرثاء المنحولة.
- * 003: شيث كله، وموضع إدريس على الخيط («تقدير»)، و«أول من خطّ بالقلم وخاط».
- * 004: «هذا الطريق تكرر في أمم كثيرة».
+ * لقطات حذفتها المراجعة العلمية (الدفعات ٥–٧، وقرار المالك ٢٥ نوفمبر): لا رسم لها ولا موضع في أي خطة، ويُختبر ذلك.
+ * 002: النار، والاسمان، ومكان القتل، والأبيات المنحولة، والدفن. 003: شيث، وموضع إدريس عليه السلام على الخيط، والقلم والخياطة.
+ * 004: قصة «رجال صالحين» بخطواتها (البند ١١٩) والسهم إلى قبائل العرب. 008: مخطط الجزيرة، والغراب والحمامة والزيتون، والبيت والحرث.
+ * 009: الأسماء، والجهات، والإسناد، و«الباقون»، و«بيت واحد».
  */
-export const BD_WITHDRAWN: Record<string, { scenes: string[]; shots: string[] }> = {
-  "002": { scenes: ["c1-s13", "c1-s14", "c1-s15", "c1-s16", "c1-s29", "c1-s36", "c1-s43", "c1-s44", "c1-s45"], shots: ["bd02-side-note", "bd02-names-wash", "bd02-place-slip", "bd02-forged-verse"] },
-  "003": { scenes: ["c1-s22", "c1-s23", "c1-s33", "c1-s34", "c1-s35"], shots: ["bd03-name-slip", "bd03-placement", "bd03-reed-pen"] },
-  "004": { scenes: ["c1-s32"], shots: ["bd04-repeat-path"] },
-};
-/** صفوف الخطة الباقية بعد مراجعة المتخصص */
-export const activeRows = (ep: string, rows: BdPlanRow[]) => rows.filter((r) => !BD_WITHDRAWN[ep]?.scenes.includes(r.id));
+export const BD_REMOVED: string[] = [
+  "bd02-side-note", "bd02-names-wash", "bd02-place-slip", "bd02-forged-verse", "bd02-mound",
+  "bd03-name-slip", "bd03-placement", "bd03-reed-pen",
+  "bd04-repeat-path", "bd04-three-steps", "bd04-majlis", "bd04-five-stelae", "bd04-open-book-path", "bd04-closed-book",
+  "bd04-stele-erode", "bd04-unknown-form", "bd04-knowledge-guard", "bd04-far-arrow",
+  "bd08-tafsir-sketch", "bd08-pale-margin", "bd08-symbol-copies", "bd08-no-foundation", "bd08-before-house",
+  "bd09-names", "bd09-compass", "bd09-isnad", "bd09-baqiya", "bd09-one-house",
+];
+
+/**
+ * لقطات تسمّيها الخطط ولم تُبنَ عمدًا: مشهدها بالكلمات وحدها (M4) حتى تُصمَّم. 009 يُعاد بناؤه حول «ماذا بقي من نوح؟»
+ * (قرار المالك، ٢٥ نوفمبر)، فلا تُبنى له لقطة جديدة قبل سكريبته الجديد.
+ */
+export const BD_WORDS_ONLY: string[] = ["bd09-new-start"];
+/** صفوف الخطة التي لها لقطة مبنية */
+export const builtRows = (rows: BdPlanRow[]) => rows.filter((r) => !BD_WORDS_ONLY.includes(r.shot));

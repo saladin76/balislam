@@ -16,7 +16,6 @@ export const BD02_META: Record<string, HzMeta> = {
   "bd02-first-mark": { nameAr: "البدايات ٢ · العلامة الأولى", tail: 1.0, exit: "turn" },
   "bd02-bare-earth": { nameAr: "البدايات ٢ · أرض لم تُحفر", tail: 1.0, exit: "fade" },
   "bd02-crow": { nameAr: "البدايات ٢ · الغراب ينبش (رمز بانتظار الاعتماد)", tail: 1.0, exit: "fade" },
-  "bd02-mound": { nameAr: "البدايات ٢ · الحفرة تمتلئ", tail: 1.0, exit: "fade" },
   "bd02-three-seals": { nameAr: "البدايات ٢ · ثلاثة أختام في صف", tail: 1.2, exit: "turn" },
   "bd02-thread-knot": { nameAr: "البدايات ٢ · العقدة الثانية تُشد ثم الثالثة", tail: 1.2, exit: "fade" },
   "bd02-crack-grows": { nameAr: "البدايات ٢ · الشق الذي يكبر والطريق المفتوح", tail: 1.0, exit: "fade" },

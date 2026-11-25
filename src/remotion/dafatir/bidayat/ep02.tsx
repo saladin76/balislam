@@ -5,7 +5,7 @@
  * كل حدث على كلمته (cueKit)، والسكون عند كلمات الذكر بالزمن المرئي (reverent).
  */
 import React from "react";
-import { Books, Lens } from "../lib/drawings";
+import { Lens } from "../lib/drawings";
 import { DateRibbon } from "../horizon/book";
 import {
   Arrow, BlankLine, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Seal, Stone, Sun, Tab, Thread, Txt, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
@@ -225,20 +225,20 @@ const GoldSealSmall: React.FC<{ x: number; y: number; q: number; label?: string 
     </g>
   );
 
-// ─── c1-s17..s19: القماش في الريح، والشق الذي وقف ───
+// ─── c1-s17..s19: القماش في الريح، والشق الذي وقف (نص المراجعة العلمية، الدفعة ٥) ───
 const WindCloth = reverent((q) => {
-  const k = cueKit(q, ["يرض", "هادئا", "فالمشكلة"]);
+  const k = cueKit(q, ["فهدد", "فأجابه", "فالمشكلة"]);
   const { t, S } = k;
-  const wind = S === 0 ? k.on(0, "يرض", 0.8) : S === 1 ? 1 - k.on(1, "هادئا", 1.0) : 0;
-  const crack = S === 2 ? 1 - prog(t, k.at("فالمشكلة", 1.2) - 0.05, k.at("فالمشكلة", 1.2) + 1.2) : k.draw(0, "سيقتله", 1.2);
-  const shade = 0.25 + 0.25 * k.on(1, "ثقيلا", 0.8);
+  const wind = S === 0 ? k.on(0, "يتقبل", 0.8) : S === 1 ? 1 - k.on(1, "فأجابه", 1.0) : 0;
+  const crack = S === 2 ? 1 - prog(t, k.at("فالمشكلة", 1.2) - 0.05, k.at("فالمشكلة", 1.2) + 1.2) : k.draw(0, "بالقتل", 1.2);
+  const shade = 0.25 + 0.25 * k.on(1, "أخوه", 0.8);
   const taqwa = k.draw(1, "التقوى", 1.0);
   const notHere = S === 2 ? bounce(t, k.at("أخيه"), k.at("أخيه") + 1.1) : 0;
   const heart = k.draw(2, "قلبه", 0.8);
   const cam = k.cam(NEUTRAL, [
-    [0, "يرض", { cx: 620, cy: 650, s: 1.3 }, 1.0],
-    [0, "سيقتله", { cx: 800, cy: 700, s: 1.15 }, 1.0],
-    [1, "ثقيلا", { cx: 1320, cy: 640, s: 1.3 }, 1.0],
+    [0, "يتقبل", { cx: 620, cy: 650, s: 1.3 }, 1.0],
+    [0, "بالقتل", { cx: 800, cy: 700, s: 1.15 }, 1.0],
+    [1, "أخوه", { cx: 1320, cy: 640, s: 1.3 }, 1.0],
     [2, "قلبه", { cx: 640, cy: 680, s: 1.35 }, 1.0],
   ]);
   const cr = crackPath(STONE_L + 110, 780, 960, 790, 31, 10, 12);
@@ -356,19 +356,19 @@ const DuskPlain = reverent((q) => {
   return <Leaf q={q} id="b2d" cam={cam} L={both} R={<g>{both}<Txt x={1620} y={230} size={40} q={ghost} color={C.inkSoft} font="amiri">التقوى</Txt></g>} />;
 });
 
-// ─── c1-s28 / c1-s30: الصخرة والظل الطويل ───
+// ─── c1-s28 / c1-s30: الصخرة والظل الطويل («كيف قتله» إطار فارغ بختم «لا نعلم»، الدفعة ٥) ───
 const LongShadow = reverent((q) => {
   const k = cueKit(q, ["وقعت", "يقينا"]);
   const fall = k.on(0, "وقعت", 1.4);
-  const frame = k.draw(0, "يصف", 0.8);
-  const unk = k.on(0, "بأي");
+  const frame = k.draw(0, "كيف", 0.8);
+  const unk = k.on(0, "نعلم");
   const seal = k.on(1, "يقينا");
   const lost = k.draw(1, "خسر", 0.8);
   const edge = k.on(1, "عظيمة", 1.2);
   const reach = 1100 + 500 * fall + 160 * edge;
   const cam = k.cam(NEUTRAL, [
     [0, "وقعت", { cx: 900, cy: 620, s: 1.05 }, 1.4],
-    [0, "يصف", { cx: 1365, cy: 440, s: 1.25 }, 1.0],
+    [0, "كيف", { cx: 1365, cy: 440, s: 1.25 }, 1.0],
     [1, "خسر", { cx: 1365, cy: 560, s: 1.2 }, 1.0],
     [1, "عظيمة", NEUTRAL, 1.2],
   ]);
@@ -401,47 +401,48 @@ const OpenBook: React.FC<{ x: number; y: number; q: number; s?: number }> = ({ x
     </g>
   );
 
-// ─── c1-s31: الصحيحان (تمهيد الحديث) ───
+// ─── c1-s31: صحيح مسلم (تمهيد الحديث؛ مسلم ١٦٧٧ وحده بعد المراجعة العلمية، الدفعة ٥ البند ١٠٤) ───
 const HadithLead = reverent((q) => {
-  const k = cueKit(q, ["الصحيحين"]);
-  const books = k.on(0, "الصحيحين", 0.6);
-  const name = k.draw(0, "حديث", 0.9);
+  const k = cueKit(q, ["صحيح"]);
+  const book = k.on(0, "صحيح", 0.6);
+  const tab = k.on(0, "مسلم", 0.5);
+  const name = k.draw(0, "عن", 0.9);
   const open = k.on(0, "النبي", 0.6);
-  const cam = k.cam(NEUTRAL, [[0, "الصحيحين", { cx: 1365, cy: 480, s: 1.2 }, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "صحيح", { cx: 1365, cy: 480, s: 1.2 }, 1.2]]);
   return (
     <Leaf q={q} id="b2hl" cam={cam}
       R={<g>
-        <g opacity={books * (1 - 0.7 * open)} transform={`translate(1365 420) scale(${0.42 * (0.85 + 0.15 * books)})`}><Books /></g>
-        <Tab x={1660} y={300} q={books} label="البخاري" />
-        <Tab x={1660} y={360} q={books} label="مسلم" />
+        <g opacity={book * (1 - open)} transform={`translate(1365 560) scale(${0.85 + 0.15 * book})`}>
+          <rect x={-150} y={-100} width={300} height={200} rx={10} fill="#8A5A3C" stroke={C.ink} strokeWidth={4} />
+          <rect x={-130} y={-80} width={260} height={160} rx={6} fill="none" stroke={GOLD_D} strokeWidth={2} />
+        </g>
+        <Tab x={1560} y={440} q={tab} label="صحيح مسلم ١٦٧٧" />
         <Write id="b2hl-n" x={1365} y={240} size={34} p={name} label="عبد الله بن مسعود رضي الله عنه" font="tajawal" color={C.inkSoft} />
-        <OpenBook x={1365} y={700} q={open} s={0.9} />
+        <OpenBook x={1365} y={500} q={open} s={0.9} />
       </g>} />
   );
 });
 
-// ─── c1-s33 / c1-s34: العلامة الأولى ───
+// ─── c1-s34: العلامة الأولى (جملة «أول نفس تُقتل ظلمًا» حُذفت في المراجعة العلمية، الدفعة ٥؛ c1-s33 «الكِفل» بالكلمة) ───
 const MARKS = [1250, 1100, 940, 800, 660, 520, 380, 250];
 const FirstMark = reverent((q) => {
-  const k = cueKit(q, ["أول", "اللحظة"]);
-  const { t, S } = k;
-  const mark = k.on(0, "أول", 0.6);
+  const k = cueKit(q, ["اللحظة"]);
+  const { t } = k;
+  const mark = k.on(0, "اللحظة", 0.6);
+  const pulse = bounce(t, k.at("أول"), k.at("أول") + 0.9);
+  const many = prog(t, k.at("كل") - 0.05, k.end("يسفك") + 0.3);
   const zulm = k.draw(0, "ظلما", 0.8);
-  const ground = k.draw(0, "الأرض", 1.2);
-  const seal = k.on(0, "النبي");
-  const pulse = S === 1 ? bounce(t, k.at("اللحظة"), k.at("اللحظة") + 0.9) : 0;
-  const many = S === 1 ? prog(t, k.at("كل") - 0.05, k.end("يسفك") + 0.3) : 0;
-  const back = S === 1 ? prog(t, k.at("يعود") - 0.05, k.end("نصيب")) : 0;
-  const sann = k.draw(1, "سن", 0.8);
+  const back = prog(t, k.at("يعود") - 0.05, k.end("نصيب"));
+  const sann = k.draw(0, "سن", 0.8);
+  const ground = k.open(0, 1.0);
   const cam = k.cam({ cx: 1300, cy: 600, s: 1.3 }, [
-    [0, "الأرض", NEUTRAL, 1.2],
-    [1, "كل", { cx: 860, cy: 600, s: 1.05 }, 1.6],
-    [1, "نصيب", { cx: 1260, cy: 600, s: 1.2 }, 1.0],
+    [0, "كل", { cx: 860, cy: 600, s: 1.05 }, 1.6],
+    [0, "نصيب", { cx: 1260, cy: 600, s: 1.2 }, 1.0],
   ]);
   const both = (
     <g>
       <Ink d="M1700 640 H1400" p={1} w={4} />
-      <Ink d="M1400 640 H160" p={S === 1 ? 1 : ground} w={4} />
+      <Ink d="M1400 640 H160" p={ground} w={4} />
       <Thread x1={1760} x2={160} y={800} p={1} knots={[{ x: 1500, kind: "ring", q: 1, tie: 0 }]} w={4} />
       <g transform={`translate(1400 640) scale(${1 + 0.3 * pulse})`} opacity={mark}>
         <path d="M0 -30 V30" stroke={C.ink} strokeWidth={7} strokeLinecap="round" />
@@ -463,7 +464,6 @@ const FirstMark = reverent((q) => {
     <Leaf q={q} id="b2fm" cam={cam} L={both}
       R={<g>{both}
         <Write id="b2fm-z" x={1400} y={720} size={46} p={zulm} label="ظلمًا" />
-        <Seal x={1600} y={300} q={seal} kind="حديث صحيح" s={0.5} />
         <Write id="b2fm-s" x={1400} y={500} size={44} p={sann} label="أول من سنّ" font="tajawal" />
       </g>} />
   );
@@ -485,26 +485,29 @@ const BareEarth = reverent((q) => {
   );
 });
 
-// ─── c1-s37 / c1-s38 / c1-s40: الغراب ينبش ───
+// ─── c1-s37 / c1-s38 / c1-s40: الغراب يحفر (نص المراجعة العلمية، الدفعة ٥: بلا «منقار ومخالب»، ولا دفن بعده) ───
 const CrowShot = reverent((q) => {
-  const k = cueKit(q, ["فأرسل", "نبش", "وتحسر"]);
+  const k = cueKit(q, ["فأرسل", "يحفر", "فتساءل"]);
   const { t, S } = k;
   const land = S === 0 ? prog(t, k.at("غرابا", 1.6) - 0.05, k.at("غرابا", 1.6) + 1.6) : 1;
-  const away = S === 2 ? prog(t, k.at("وتحسر", 1.4) - 0.05, k.at("وتحسر", 1.4) + 1.4) : 0;
-  const scratch = k.draw(1, "نبش", 1.0);
-  const beak = S === 1 ? bounce(t, k.at("بمنقاره"), k.at("بمنقاره") + 0.8) : 0;
-  const claw = S === 1 ? bounce(t, k.at("ومخالبه"), k.at("ومخالبه") + 0.8) : 0;
-  const toward = k.draw(1, "ليعلمه", 1.0);
+  const away = S === 2 ? prog(t, k.at("فتساءل", 1.4) - 0.05, k.at("فتساءل", 1.4) + 1.4) : 0;
+  const scratch = k.draw(1, "يحفر", 1.0);
+  const beak = S === 1 ? bounce(t, k.at("التراب"), k.at("التراب") + 0.8) : 0;
+  const claw = S === 1 ? bounce(t, k.at("التراب") + 0.35, k.at("التراب") + 1.15) : 0;
+  const toward = k.draw(1, "ليريه", 1.0);
   const cover = k.draw(1, "يستر", 1.2);
-  const feather = S === 2 ? prog(t, k.at("طائر", 1.4) - 0.05, k.at("طائر", 1.4) + 1.4) : 0;
+  const feather = S === 2 ? prog(t, k.at("الغراب", 1.4) - 0.05, k.at("الغراب", 1.4) + 1.4) : 0;
+  const nadam = k.draw(2, "الندم", 0.9);
+  const seal = k.on(2, "الندم", 0.6);
   const bob = S === 1 ? (Math.sin(t * 6) + 1) / 2 : 0;
   const cx = S === 2 ? mix(720, 120, away) : mix(1500, 720, land);
   const cy = S === 2 ? mix(720, 160, away) : mix(200, 720, land);
   const pose = S === 2 ? (away > 0.02 ? "fly" : "stand") : land < 1 ? "fly" : S === 1 ? "peck" : "stand";
   const cam = k.cam(NEUTRAL, [
     [0, "غرابا", { cx: 760, cy: 640, s: 1.25 }, 1.6],
-    [1, "نبش", { cx: 620, cy: 700, s: 1.5 }, 1.0],
-    [2, "عجزه", { cx: 600, cy: 700, s: 1.4 }, 1.0],
+    [1, "يحفر", { cx: 620, cy: 700, s: 1.5 }, 1.0],
+    [2, "عجز", { cx: 600, cy: 700, s: 1.4 }, 1.0],
+    [2, "الندم", NEUTRAL, 1.2],
   ]);
   const r = rng(40);
   const L = (
@@ -525,27 +528,10 @@ const CrowShot = reverent((q) => {
       <ellipse cx={500} cy={714} rx={40 * cover} ry={8 * cover} fill={CLAY} opacity={0.6 * cover} />
       <Feather x={660} y={mix(380, 716, feather)} s={0.32} q={feather} rot={-76} />
       {S < 2 || away < 1 ? <Crow x={cx} y={cy} s={0.85} q={1} pose={pose} bob={bob} flap={(Math.sin(t * 9) + 1) / 2} /> : null}
+      <Write id="b2c-n" x={620} y={560} size={60} p={nadam} label="الندم" />
     </g>
   );
-  return <Leaf q={q} id="b2c" cam={cam} L={L} R={<BareGround />} />;
-});
-
-// ─── c1-s41: الحفرة تمتلئ ───
-const Mound = reverent((q) => {
-  const k = cueKit(q, ["دفن"]);
-  const fill = k.draw(0, "دفن", 1.8);
-  const word = k.draw(0, "الندم", 0.9);
-  const seal = k.on(0, "الندم", 0.6);
-  const cam = k.cam({ cx: 620, cy: 680, s: 1.4 }, [[0, "الندم", NEUTRAL, 1.2]]);
-  return (
-    <Leaf q={q} id="b2m" cam={cam} R={<g><BareGround /><Seal x={1365} y={420} q={seal} kind="ثابت" s={0.55} /><Txt x={1365} y={480} size={28} q={seal} color={C.ink}>المائدة ٣١</Txt></g>}
-      L={<g><BareGround />
-        <ellipse cx={620} cy={716} rx={70} ry={14} fill="#4A3020" opacity={0.5 * (1 - fill)} />
-        <path d={`M550 716 C580 ${716 - 18 * fill} 660 ${716 - 18 * fill} 690 716 Z`} fill={CLAY} opacity={0.7 * fill} />
-        <Ink d="M548 717 C580 704 660 704 692 717" p={prog(fill, 0.8, 1)} w={3} />
-        <Write id="b2m-n" x={620} y={560} size={60} p={word} label="الندم" />
-      </g>} />
-  );
+  return <Leaf q={q} id="b2c" cam={cam} L={L} R={<g><BareGround /><Seal x={1365} y={420} q={seal} kind="ثابت" s={0.55} /><Txt x={1365} y={480} size={28} q={seal} color={C.ink}>المائدة ٣١</Txt></g>} />;
 });
 
 // ─── c1-s46: ثلاثة أختام في صف ───
@@ -646,17 +632,17 @@ const CrackGrows = reverent((q) => {
   return <Leaf q={q} id="b2cg" cam={cam} L={L} R={R} />;
 });
 
-// ─── c1-s51: نفس واحدة والبشر كلهم ───
+// ─── c1-s51: نفس واحدة والبشر كلهم (نص المراجعة العلمية، الدفعة ٥: ما كُتب على بني إسرائيل) ───
 const OneAndAll = reverent((q) => {
   const k = cueKit(q, ["قيمة"]);
   const { t } = k;
   const one = k.on(0, "النفس", 0.6);
   const halo = k.draw(0, "عظيمة", 0.9);
-  const mark = k.on(0, "الجريمة");
+  const mark = k.on(0, "القصة");
   const pulse = bounce(t, k.at("نفس"), k.at("نفس") + 0.9);
   const all = prog(t, k.at("البشر") - 0.05, k.end("كلهم") + 0.8);
-  const save = k.draw(0, "وإنقاذها", 0.9);
-  const warm = prog(t, k.at("جميعا") - 0.05, k.at("جميعا") + 0.8);
+  const save = k.draw(0, "وإحياءها", 0.9);
+  const warm = prog(t, k.at("كإحياء") - 0.05, k.at("كإحياء") + 0.8);
   const r = rng(77);
   const dots = Array.from({ length: 60 }, () => [mix(1740, 180, r()), 560 + (r() - 0.5) * 300] as const).filter(([x, y]) => Math.hypot(x - 1180, y - 500) > 110);
   const cam = k.cam({ cx: 1180, cy: 500, s: 1.5 }, [[0, "البشر", NEUTRAL, 1.6]]);
@@ -715,7 +701,6 @@ export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-first-mark": FirstMark,
   "bd02-bare-earth": BareEarth,
   "bd02-crow": CrowShot,
-  "bd02-mound": Mound,
   "bd02-three-seals": ThreeSeals,
   "bd02-thread-knot": ThreadKnot,
   "bd02-crack-grows": CrackGrows,

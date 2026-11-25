@@ -304,18 +304,18 @@ const NightArc: React.FC<{ t: number; arc?: number; gap?: number; mixed?: number
   </g>
 );
 
-// ─── c1-s14 / c1-s15: ورقة الحاشية ───
+// ─── c1-s14 / c1-s15: ورقة الحاشية (أثر ابن عباس بنص المراجعة العلمية، الدفعة ٥ البند ١١٢: بلا «ثم اختلفوا» في القول) ───
 const MarginNote = reverent((q) => {
-  const k = cueKit(q, ["شيء", "قال"]);
+  const k = cueKit(q, ["شيء", "وجاء"]);
   const { t } = k;
   const ask = k.draw(0, "شيء", 1.0);
-  const sheet = k.on(0, "يروى", 0.7);
-  const tab = k.on(0, "عباس");
-  const line = k.draw(0, "قول", 0.9);
-  const l1 = k.draw(1, "عشرة", 0.9), l2 = k.draw(1, "شريعة", 1.0), l3 = k.draw(1, "اختلفوا", 0.9);
+  const sheet = k.on(1, "وجاء", 0.7);
+  const tab = k.on(1, "عباس");
+  const line = k.draw(1, "قال", 0.9);
+  const l1 = k.draw(1, "عشرة", 0.9), l2 = k.draw(1, "شريعة", 1.0);
   const cam = k.cam(NEUTRAL, [
     [0, "شيء", { cx: 1300, cy: 420, s: 1.2 }, 1.0],
-    [0, "يروى", { cx: 600, cy: 480, s: 1.15 }, 1.0],
+    [1, "وجاء", { cx: 600, cy: 480, s: 1.15 }, 1.0],
     [1, "شريعة", { cx: 580, cy: 520, s: 1.25 }, 1.2],
   ]);
   const bg = <NightArc t={t} />;
@@ -326,7 +326,6 @@ const MarginNote = reverent((q) => {
           <BlankLine x={0} y={-150} w={480} p={line} />
           <Write id="b3mn-1" x={0} y={-60} size={50} p={l1} label="عشرة قرون" />
           <Write id="b3mn-2" x={0} y={40} size={50} p={l2} label="على شريعة من الحق" />
-          <Write id="b3mn-3" x={0} y={140} size={50} p={l3} label="ثم اختلفوا" />
         </Sheet>
         <Tab x={880} y={196} q={tab} label="ابن عباس رضي الله عنهما" />
       </g>}
@@ -334,17 +333,16 @@ const MarginNote = reverent((q) => {
   );
 });
 
-// ─── c1-s16: من واحد إلى اختلاف ───
+// ─── c1-s16: من واحد إلى اختلاف (أثر صحيح عن ابن عباس، صححه الحاكم والألباني: لا ختم «رواية» ولا لسان «للمتخصص»، الدفعة ٥) ───
 const OneThenMany = reverent((q) => {
-  const k = cueKit(q, ["صحابي"]);
+  const k = cueKit(q, ["أثر"]);
   const { t } = k;
-  const naql = k.draw(0, "المفسرون", 0.9);
-  const seal = k.on(0, "رواية");
-  const spec = k.on(0, "المتخصص");
-  const away = prog(t, k.end("المتخصص") + 0.2, k.end("المتخصص") + 1.0);
+  const athar = k.on(0, "أثر");
+  const naql = k.draw(0, "صححه", 0.9);
+  const away = prog(t, k.end("والألباني") + 0.2, k.end("والألباني") + 1.0);
   const one = k.on(0, "التوحيد", 0.8);
   const split = k.on(0, "الاختلاف", 0.9);
-  const cam = k.cam({ cx: 600, cy: 500, s: 1.15 }, [[0, "المتخصص", NEUTRAL, 1.2], [0, "الاختلاف", { cx: 960, cy: 520, s: 1.05 }, 1.0]]);
+  const cam = k.cam({ cx: 600, cy: 500, s: 1.15 }, [[0, "ومعناه", NEUTRAL, 1.2], [0, "الاختلاف", { cx: 960, cy: 520, s: 1.05 }, 1.0]]);
   const bg = <g><NightArc t={t} gap={split} mixed={split} />{one > 0 && split <= 0 ? <path d={ARC} fill="none" stroke={C.gold} strokeWidth={10} opacity={0.35 * bounce(one, 0, 1) + 0.2 * one} /> : null}</g>;
   return (
     <Leaf q={q} id="b3om" cam={cam}
@@ -353,12 +351,10 @@ const OneThenMany = reverent((q) => {
           <Sheet x={560} y={520} w={660} h={640} q={1} rot={-1.5}>
             <Txt x={0} y={-60} size={50} q={1} font="amiri">عشرة قرون</Txt>
             <Txt x={0} y={40} size={50} q={1} font="amiri">على شريعة من الحق</Txt>
-            <Txt x={0} y={140} size={50} q={1} font="amiri">ثم اختلفوا</Txt>
-            <Write id="b3om-n" x={0} y={230} size={32} p={naql} label="نقله المفسرون" font="tajawal" color={C.inkSoft} />
-            <Seal x={190} y={-190} q={seal} kind="رواية" s={0.5} />
+            <Write id="b3om-n" x={0} y={200} size={32} p={naql} label="صححه الحاكم والألباني" font="tajawal" color={C.inkSoft} />
           </Sheet>
           <Tab x={880} y={196} q={1} label="ابن عباس رضي الله عنهما" />
-          <Tab x={880} y={760} q={spec} label="للمتخصص" color={C.ink} />
+          <Tab x={880} y={760} q={athar} label="أثر عن ابن عباس" color={C.ink} />
         </g>
       </g>}
       R={<g>{bg}<Txt x={1365} y={300} size={44} q={one * (1 - 0.6 * split)} color={C.page} font="amiri">التوحيد</Txt></g>} />
@@ -497,12 +493,12 @@ const BaseThread: React.FC<{ tie3?: number; glow3?: number; noah?: boolean; p?: 
 // ─── c1-s24: العقدة الثالثة ───
 const ThirdKnot = reverent((q) => {
   // مراجعة المتخصص (الدفعة ٥): اسم إدريس عليه السلام يقف خارج الخيط، بلا عقدة ولا نقطة ولا موضع بين آدم ونوح
-  const k = cueKit(q, ["نصل"]);
+  const k = cueKit(q, ["ونقف"]);
   const { t } = k;
-  const gold = k.on(0, "كتابه");
+  const gold = k.on(0, "القرآن");
   const name = k.draw(0, "إدريس", 1.0);
   const glow = bounce(t, k.at("إدريس"), k.at("إدريس") + 1.6);
-  const cam = k.cam({ cx: 1300, cy: 560, s: 1.1 }, [[0, "نصل", { cx: 1365, cy: 360, s: 1.3 }, 1.6]]);
+  const cam = k.cam({ cx: 1300, cy: 560, s: 1.1 }, [[0, "ونقف", { cx: 1365, cy: 360, s: 1.3 }, 1.6]]);
   const both = (
     <g>
       <Night />
@@ -522,11 +518,12 @@ const ThirdKnot = reverent((q) => {
 
 // ─── c1-s27 / c1-s28: ما نعرفه يقينًا ───
 const ThreeWords = reverent((q) => {
-  const k = cueKit(q, ["يقينا", "الصابرين"]);
-  const seal = k.on(0, "يقينا");
-  const w1 = k.draw(0, "صادقا", 0.9), w2 = k.draw(0, "نبيا", 0.9), w3 = k.draw(0, "منزلته", 1.0);
+  // نص المراجعة العلمية (الدفعة ٥): «فوصفه بالصدق العظيم والنبوة، وأخبر برفعه مكانًا عليًّا»
+  const k = cueKit(q, ["وأثنى", "الصابرين"]);
+  const seal = k.on(0, "إدريس");
+  const w1 = k.draw(0, "بالصدق", 0.9), w2 = k.draw(0, "والنبوة", 0.9), w3 = k.draw(0, "برفعه", 1.0);
   const w4 = k.draw(1, "الصابرين", 1.0);
-  const cam = k.cam(NEUTRAL, [[0, "صادقا", { cx: 1450, cy: 640, s: 1.2 }, 1.0], [0, "منزلته", { cx: 1300, cy: 480, s: 1.15 }, 1.0], [1, "الصابرين", { cx: 1365, cy: 640, s: 1.1 }, 1.0]]);
+  const cam = k.cam(NEUTRAL, [[0, "بالصدق", { cx: 1450, cy: 640, s: 1.2 }, 1.0], [0, "برفعه", { cx: 1300, cy: 480, s: 1.15 }, 1.0], [1, "الصابرين", { cx: 1365, cy: 640, s: 1.1 }, 1.0]]);
   const STEP = "M1720 760 H1540 V640 H1340 V520 H1120 V400 H1000";
   const line = Math.max(0.05 * seal, w1 * 0.33, w2 * 0.66, w3);
   return (
@@ -535,9 +532,9 @@ const ThreeWords = reverent((q) => {
         <Seal x={1620} y={230} q={seal} kind="ثابت" s={0.5} />
         <Txt x={1620} y={295} size={28} q={seal} color={C.ink}>مريم ٥٦–٥٧</Txt>
         <Ink d={STEP} p={line} w={4} c={GOLD_D} />
-        <Write id="b3tw-1" x={1630} y={740} size={48} p={w1} label="صادقًا" />
-        <Write id="b3tw-2" x={1440} y={620} size={48} p={w2} label="نبيًّا" />
-        <Write id="b3tw-3" x={1220} y={380} size={48} p={w3} label="رفع منزلته" />
+        <Write id="b3tw-1" x={1630} y={740} size={48} p={w1} label="الصدق العظيم" />
+        <Write id="b3tw-2" x={1440} y={620} size={48} p={w2} label="النبوة" />
+        <Write id="b3tw-3" x={1220} y={380} size={48} p={w3} label="مكانًا عليًّا" />
         <Write id="b3tw-4" x={1300} y={850} size={46} p={w4} label="مع الصابرين" font="tajawal" color={C.inkSoft} />
       </g>} />
   );

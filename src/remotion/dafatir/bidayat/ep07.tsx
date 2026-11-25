@@ -298,6 +298,8 @@ const Manifest = reverent((q) => {
   const title = k.draw(0, "يركب", 0.8);
   const lines = k.draw(0, "يركب", 1.4);
   const ship = k.on(0, "السفينة");
+  // الدفعة ٦ البند ١٣٩: «فوران التنور» كلمةً بالحبر وحدها، بلا تنور ولا فقاعات
+  const tannur = k.draw(1, "بفوران", 1.0);
   const pair = k.on(1, "زوجين", 0.6);
   const ahl = k.draw(1, "وأهله", 0.7);
   const dash = k.draw(1, "إلا", 0.6);
@@ -308,6 +310,7 @@ const Manifest = reverent((q) => {
   const cam = k.cam(NEUTRAL, [
     [0, "يركب", { cx: 1365, cy: 470, s: 1.2 }, 1.0],
     [0, "السفينة", NEUTRAL, 1.0],
+    [1, "بفوران", { cx: 1365, cy: 640, s: 1.2 }, 1.0],
     [1, "زوجين", { cx: 1400, cy: 470, s: 1.3 }, 1.0],
     [1, "ومن", { cx: 1380, cy: 600, s: 1.25 }, 1.0],
     [1, "القرون", NEUTRAL, 1.0],
@@ -322,6 +325,7 @@ const Manifest = reverent((q) => {
       R={<g>{both}
         <Write id="b7mf-h" x={1365} y={200} size={48} p={head} label="الأمر" color={C.inkSoft} />
         <Write id="b7mf-t" x={1365} y={310} size={60} p={title} label="من يركب" />
+        <Write id="b7mf-f" x={1365} y={760} size={40} p={S === 1 ? tannur : 0} label="فوران التنور" font="tajawal" color={C.inkSoft} />
         {LINES.map((y, i) => <Ink key={i} d={`M1660 ${y} H1080`} p={prog(lines, i / 3, i / 3 + 0.5)} w={3} c={C.inkSoft} />)}
         {/* «زوجين»: علامتان مجردتان متقابلتان (لا حيوانات) — بانتظار اعتماد المالك */}
         <g opacity={pair}>
@@ -445,15 +449,16 @@ const Waves = reverent((q) => {
 
 // ─── c1-s23 / c1-s24: السفينة في اليمنى، والجبل في اليسرى، وخط النداء ───
 const Far = reverent((q) => {
-  const k = cueKit(q, ["نادى", "بالحقيقة"]);
+  // الدفعة ٦: «فأجابه نوح عليه السلام بأن النجاة في ذلك اليوم لمن رحمه الله»
+  const k = cueKit(q, ["نادى", "فأجابه"]);
   const { t, S } = k;
   const call = S === 0 ? prog(t, k.at("نادى") - 0.05, k.end("بعيدا") + 0.3) * 0.6 + 0.4 * k.on(0, "يدعوه", 0.8) : 1;
   const wob = S === 0 ? k.on(0, "يدعوه") : 0;
   const mount = k.draw(0, "جبلا", 1.0);
   const lift = k.on(0, "عاليا", 0.8);
   const save = k.draw(0, "ينجيه", 0.8);
-  const climb = S === 1 ? prog(t, k.at("شيء") - 0.05, k.end("يعصم") + 0.2) : 0;
-  const mercy = k.draw(1, "رحمته", 0.9);
+  const climb = S === 1 ? prog(t, k.at("النجاة") - 0.05, k.end("اليوم") + 0.2) : 0;
+  const mercy = k.draw(1, "رحمه", 0.9);
   const wy = 660 - 160 * climb;
   const sx = 1450, sy = wy - 4;
   const ex = mix(1380, 700, call);
@@ -462,8 +467,8 @@ const Far = reverent((q) => {
   for (let x = sx - 30; x >= ex; x -= 30) d += ` L${x} ${sy - 10 - (sx - x) * 0.06 + wave(x)}`;
   const cam = k.cam(NEUTRAL, [
     [0, "جبلا", { cx: 600, cy: 520, s: 1.2 }, 1.0],
-    [1, "شيء", { cx: 620, cy: 560, s: 1.15 }, 1.0],
-    [1, "رحمته", { cx: 1400, cy: 540, s: 1.2 }, 1.0],
+    [1, "النجاة", { cx: 620, cy: 560, s: 1.15 }, 1.0],
+    [1, "رحمه", { cx: 1400, cy: 540, s: 1.2 }, 1.0],
   ]);
   const both = (
     <g>
@@ -475,7 +480,7 @@ const Far = reverent((q) => {
   return (
     <Leaf q={q} id="b7f" cam={cam}
       L={<g>{both}<Txt x={580} y={250 - 40 * lift} size={40} q={save}>ينجيه؟</Txt></g>}
-      R={<g>{both}<ShipDot x={sx} y={sy} q={1} /><Write id="b7f-r" x={1450} y={sy - 110} size={50} p={mercy} label="إلا رحمته" /></g>} />
+      R={<g>{both}<ShipDot x={sx} y={sy} q={1} /><Write id="b7f-r" x={1450} y={sy - 110} size={44} p={mercy} label="النجاة لمن رحمه الله" /></g>} />
   );
 });
 
@@ -499,26 +504,23 @@ const WaveBetween = reverent((q) => {
   return <Leaf q={q} id="b7wb" cam={cam} L={both} R={<g>{both}<ShipDot x={1450} y={wy - 4} q={1} /></g>} />;
 });
 
-// ─── c1-s26: خانة اسم فارغة، وورقة أسماء مظلَّلة تُطوى ───
+// ─── c1-s26: خانة اسم فارغة (الدفعة ٦ البند ١٤٠: لا ورقة أسماء ولا ختم «رواية») ───
 const BlankName = reverent((q) => {
-  const k = cueKit(q, ["الابن"]);
+  const k = cueKit(q, ["ابن"]);
+  const { t } = k;
   const gold = k.on(0, "القرآن");
-  const box = k.draw(0, "اسم", 0.8);
-  const sheet = k.on(0, "كتب", 0.6);
-  const seal = k.on(0, "روايات");
-  const fold = k.on(0, "فلا", 0.9);
-  const cam = k.cam(NEUTRAL, [[0, "كتب", { cx: 640, cy: 480, s: 1.15 }, 1.0], [0, "فلا", { cx: 1300, cy: 420, s: 1.2 }, 1.0]]);
+  const box = k.draw(0, "القرآن", 0.8);
+  const son = k.draw(0, "ابن", 0.8);
+  const hold = bounce(t, k.at("يسميه"), k.at("يسميه") + 1.0);
+  const cam = k.cam(NEUTRAL, [[0, "ابن", { cx: 1365, cy: 400, s: 1.25 }, 1.0]]);
   return (
     <Leaf q={q} id="b7bn" cam={cam}
-      L={<Slip x={600} y={460} w={440} h={300} q={sheet} fold={fold} tab="كتب التاريخ">
-        {[-80, -20, 40].map((y, i) => <g key={i}><rect x={-170} y={y - 16} width={340} height={30} rx={4} fill={C.page} stroke={C.inkSoft} strokeWidth={2} /><Hatch x={-170} y={y - 16} w={340} h={30} o={1.6} /></g>)}
-        <Seal x={80} y={100} q={seal} kind="رواية" s={0.5} />
-      </Slip>}
       R={<g>
-        <GoldSeal x={1365} y={230} q={gold} />
+        <GoldSeal x={1365} y={200} q={gold} />
+        <Write id="b7bn-s" x={1365} y={330} size={50} p={son} label="ابن نوح" />
         <g opacity={box}>
-          <Txt x={1365} y={360} size={34} q={box} color={C.inkSoft}>الاسم</Txt>
-          <rect x={1165} y={390} width={400} height={110} rx={10} fill="none" stroke={C.ink} strokeWidth={4} />
+          <Txt x={1365} y={390} size={30} q={box} color={C.inkSoft}>الاسم</Txt>
+          <rect x={1165} y={410} width={400} height={110} rx={10} fill="none" stroke={C.ink} strokeWidth={4 + 3 * hold} />
         </g>
       </g>} />
   );
@@ -554,44 +556,52 @@ const TwoRopes = reverent((q) => {
   );
 });
 
-// ─── c1-s32 / c1-s34: حدود الماء غير المعروفة (من أعلى) ───
+// ─── c1-s32 / c1-s34: حدود الماء غير المعروفة (الدفعة ٦ البند ١٣٨: لا غمر للصفحتين ولا حدّ يحصر الماء؛ خط ماء يتلاشى طرفاه) ───
 const Edge = reverent((q) => {
-  const k = cueKit(q, ["وهل", "والقرآن"]);
+  const k = cueKit(q, ["وهل", "بالطوفان"]);
   const { t, S } = k;
-  const flood = S === 0 ? prog(t, k.at("عم") - 0.05, k.at("عم") + 1.4) : 1;
-  const all = S === 0 ? k.draw(0, "كلها", 1.0) : k.draw(1, "حدود", 1.0);
-  const part = S === 0 ? k.draw(0, "أم", 1.0) : k.draw(1, "حدود", 1.0);
-  const blink = S === 0 && k.has("وحدهم") ? Math.max(0, Math.min(1, (t - k.at("وحدهم")) * 3)) : 0;
-  const alt = blink > 0 ? (Math.sin((t - k.at("وحدهم")) * 7) > 0 ? 1 : 0) : 0.5;
-  const gold = k.on(1, "والقرآن");
-  const drown = k.draw(1, "أغرق", 1.0);
-  const sealT = k.on(1, "كذبوا");
-  const saved = S === 1 ? bounce(t, k.at("ونجا"), k.at("ونجا") + 1.4) : 0;
+  const line = S === 0 ? k.draw(0, "عم", 1.4) : 1;
+  const fadeEnds = S === 0 ? k.on(0, "كلها", 1.0) : 1;
+  const q1 = S === 0 ? k.on(0, "أم", 0.6) : 0;
+  const q2 = S === 0 ? k.on(0, "وحدهم", 0.6) : 0;
+  const gold = k.on(1, "القرآن");
+  const tufan = k.draw(1, "بالطوفان", 0.9);
+  const sealT = k.on(1, "بالطوفان", 0.7);
+  const saved = S === 1 ? bounce(t, k.at("وبنجاة"), k.at("وبنجاة") + 1.4) : 0;
+  const ends = S === 1 ? bounce(t, k.at("بحدود"), k.at("بحدود") + 1.2) : 0;
   const unk = k.on(1, "نعلم");
   const cam = k.cam(NEUTRAL, [
-    [0, "أم", { cx: 960, cy: 500, s: 1.15 }, 1.0],
-    [1, "أغرق", { cx: 1365, cy: 400, s: 1.2 }, 1.0],
-    [1, "حدود", NEUTRAL, 1.0],
+    [0, "أم", { cx: 1500, cy: 520, s: 1.2 }, 1.0],
+    [0, "وحدهم", { cx: 420, cy: 520, s: 1.2 }, 1.0],
+    [1, "بالطوفان", { cx: 1365, cy: 400, s: 1.2 }, 1.0],
+    [1, "بحدود", NEUTRAL, 1.0],
   ]);
+  const W = 560;
+  const x1 = mix(960, 1700, line), x2 = mix(960, 220, line);
   const both = (
     <g>
-      <Clay o={0.6} wet={1} />
+      <Clay o={0.6} wet={0.4} />
       <Cracks p={1} w={3} o={0.4} />
-      <rect x={mix(1780, 140, flood)} y={60} width={1780 - mix(1780, 140, flood)} height={920} fill={WATER} opacity={0.22} />
-      <g opacity={flood}><Hatch x={140} y={60} w={1640} h={920} o={1.4} /></g>
-      <rect x={185} y={115} width={1550} height={770} rx={14} fill="none" stroke={C.ink} strokeWidth={5} strokeDasharray="18 14" opacity={all * (blink > 0 ? 0.3 + 0.7 * alt : 1)} />
-      <ellipse cx={960} cy={500} rx={330} ry={230} fill="none" stroke={C.ribbon} strokeWidth={5} strokeDasharray="16 12" opacity={part * (blink > 0 ? 0.3 + 0.7 * (1 - alt) : 1)} />
+      <defs>
+        <linearGradient id="b7ed-fade" x1="0" x2="1" y1="0" y2="0">
+          <stop offset="0" stopColor={WATER} stopOpacity={1 - 0.95 * fadeEnds} />
+          <stop offset="0.18" stopColor={WATER} stopOpacity={1} />
+          <stop offset="0.82" stopColor={WATER} stopOpacity={1} />
+          <stop offset="1" stopColor={WATER} stopOpacity={1 - 0.95 * fadeEnds} />
+        </linearGradient>
+      </defs>
+      <path d={`M${x1} ${W} H${x2}`} stroke="url(#b7ed-fade)" strokeWidth={10 + 6 * ends} strokeLinecap="round" opacity={0.85} />
     </g>
   );
   return (
     <Leaf q={q} id="b7ed" cam={cam}
-      L={<g>{both}<ShipDot x={600} y={560} q={S === 1 ? 1 : 0} glow={saved} /></g>}
+      L={<g>{both}<ShipDot x={760} y={W - 6} q={S === 1 ? 1 : 0} glow={saved} /><Q x={300} y={W - 90} size={80} q={q2} /></g>}
       R={<g>{both}
+        <Q x={1620} y={W - 90} size={80} q={q1} />
         <GoldSeal x={1365} y={230} q={gold} />
-        <g opacity={gold}><rect x={1100} y={330} width={530} height={150} rx={10} fill={C.page} opacity={0.85 * gold} /></g>
-        <Write id="b7ed-g" x={1365} y={380} size={44} p={drown} label="أُغرق الذين كذّبوا" font="tajawal" />
-        <Seal x={1365} y={450} q={sealT} kind="ثابت" s={0.45} />
-        <Seal x={1560} y={800} q={unk} kind="لا نعلم" s={0.55} />
+        <Write id="b7ed-g" x={1365} y={370} size={50} p={tufan} label="الطوفان" />
+        <Seal x={1365} y={440} q={sealT} kind="ثابت" s={0.45} />
+        <Seal x={1640} y={W + 90} q={unk} kind="لا نعلم" s={0.5} />
       </g>} />
   );
 });
@@ -604,12 +614,13 @@ const AhlKitab = reverent((q) => {
   const open = S === 0 ? k.draw(0, "كتب", 1.0) : 1 - (S === 1 ? prog(t, k.at("رواية") + 0.7, k.at("رواية") + 1.5) : 0);
   const cols = COLS.map(([, w]) => k.on(0, w, 0.6));
   const g3 = S === 1 ? bounce(t, k.at("الأجيال"), k.at("الأجيال") + 1.6) : 0;
-  const rule = k.draw(1, "نصدقها", 1.2);
+  // الدفعة ٦ البند ١٤١: «ما لم يتبيّن صدقه أو كذبه: نتوقف»
+  const rule = k.draw(1, "يتبين", 1.2);
   const seal = k.on(1, "رواية");
   const cam = k.cam(NEUTRAL, [
     [0, "المطر", { cx: 600, cy: 460, s: 1.2 }, 1.0],
     [1, "الأجيال", { cx: 1300, cy: 700, s: 1.2 }, 1.0],
-    [1, "نصدقها", { cx: 1100, cy: 460, s: 1.05 }, 1.0],
+    [1, "يتبين", { cx: 1100, cy: 460, s: 1.05 }, 1.0],
   ]);
   const w = 600 * open;
   return (
@@ -634,7 +645,7 @@ const AhlKitab = reverent((q) => {
       </g>}
       R={<g>
         <Thread x1={1740} x2={980} y={800} p={1} w={4} knots={[1660, 1520, 1380].map((x, i) => ({ x, kind: "tied" as const, q: 1, glow: i === 2 ? g3 : 0, label: i === 2 ? "الأجيال الأولى" : undefined, lq: g3 > 0 ? 1 : 0 }))} labelSize={24} labelDy={48} />
-        <Write id="b7ak-r" x={1365} y={460} size={44} p={rule} label="لا نصدقها ولا نكذبها" font="tajawal" />
+        <Write id="b7ak-r" x={1365} y={460} size={44} p={rule} label="ما لم يتبيّن صدقه أو كذبه: نتوقف" font="tajawal" />
       </g>} />
   );
 });

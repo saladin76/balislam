@@ -9,7 +9,7 @@ import { SceneCloseContext } from "../src/remotion/dafatir/horizon/book";
 import { LIB_META } from "../src/remotion/dafatir/lib/meta";
 import { BD_META } from "../src/remotion/dafatir/bidayat/meta";
 import { BD_SCENES } from "../src/remotion/dafatir/bidayat";
-import { BD_WITHDRAWN, activeRows, parseBidayatPlan, type BdPlanRow } from "../src/remotion/dafatir/bidayat/plans";
+import { BD_REMOVED, BD_WORDS_ONLY, builtRows, parseBidayatPlan, type BdPlanRow } from "../src/remotion/dafatir/bidayat/plans";
 import { SACRED_WORD } from "../src/render/stillness";
 import { normalizeArabic } from "../src/script/quranMeta";
 
@@ -20,13 +20,12 @@ import { normalizeArabic } from "../src/script/quranMeta";
  */
 const DIR = "channels/dafatir-alzaman/episodes";
 const EPS = ["002", "003", "004", "005", "006", "007", "008", "009"];
-const plans: Record<string, BdPlanRow[]> = Object.fromEntries(
-  EPS.map((e) => {
-    const dir = readdirSync(DIR).find((d) => d.startsWith(`${e}-`))!;
-    // ما حذفته مراجعة المتخصص (الدفعة ٥) من السكريبت لا يُبنى ولا يُختبر (BD_WITHDRAWN)
-    return [e, activeRows(e, parseBidayatPlan(readFileSync(`${DIR}/${dir}/scenes.md`, "utf8")))];
-  }),
-);
+const dirOf = (e: string) => `${DIR}/${readdirSync(DIR).find((d) => d.startsWith(`${e}-`))!}`;
+const allRows: Record<string, BdPlanRow[]> = Object.fromEntries(EPS.map((e) => [e, parseBidayatPlan(readFileSync(`${dirOf(e)}/scenes.md`, "utf8"))]));
+// المشاهد التي لم تُبنَ لقطتها عمدًا (BD_WORDS_ONLY) تُعرض بالكلمات وحدها ولا تُختبر رسمًا
+const plans: Record<string, BdPlanRow[]> = Object.fromEntries(EPS.map((e) => [e, builtRows(allRows[e]!)]));
+/** تطبيع للمقارنة بالسكريبت: بلا تشكيل ولا ترقيم ولا علامات تنصيص */
+const flat = (s: string) => normalizeArabic(s.replace(/[«»"]/g, " ").replace(/[.،,:؛?؟!]/g, " ")).replace(/\s+/g, " ").trim();
 
 const setup = (r: BdPlanRow) => {
   const tl = buildTimeline(hzSentences(r.narration), HZ_LEAD);
@@ -45,7 +44,7 @@ const setup = (r: BdPlanRow) => {
 describe("لقطات «البدايات» — التسجيل", () => {
   it("كل لقطة جديدة في الخطط مسجلة برسمها وبياناتها، ولا لقطة مسجلة بلا موضع في خطة", () => {
     const used = new Set(Object.values(plans).flat().map((r) => r.shot));
-    expect(used.size).toBeGreaterThan(150);
+    expect(used.size).toBeGreaterThan(120);
     const missing = [...used].filter((s) => !HZ_SCENES[s] || !HZ_META[s]);
     expect(missing).toEqual([]);
     for (const k of Object.keys(BD_META)) {
@@ -56,13 +55,26 @@ describe("لقطات «البدايات» — التسجيل", () => {
     for (const k of Object.keys(BD_SCENES)) expect(BD_META[k], k).toBeTruthy();
   });
 
-  it("لا لقطة لما حذفته مراجعة المتخصص (الدفعة ٥)، ولا يبقى مشهد باقٍ عليها", () => {
-    for (const [ep, w] of Object.entries(BD_WITHDRAWN)) {
-      for (const s of w.shots) {
-        expect(HZ_SCENES[s], s).toBeUndefined();
-        expect(plans[ep]!.some((r) => r.shot === s), `${s} ما زال في مشهد باقٍ`).toBe(false);
+  it("لا لقطة لما حذفته المراجعة العلمية، ولا يبقى مشهد عليها، والمؤجَّل بالكلمات غير مسجل", () => {
+    const named = new Set(Object.values(allRows).flat().map((r) => r.shot));
+    for (const s of BD_REMOVED) {
+      expect(HZ_SCENES[s] ?? HZ_META[s], s).toBeUndefined();
+      expect(named.has(s), `${s} ما زال في خطة`).toBe(false);
+    }
+    for (const s of BD_WORDS_ONLY) expect(HZ_SCENES[s] ?? HZ_META[s], s).toBeUndefined();
+  });
+
+  it("كل جملة في صفوف اللقطات الجديدة موجودة في السكريبت الحالي (لا خطة متأخرة عن المراجعة)", () => {
+    const bad: string[] = [];
+    for (const e of EPS) {
+      const script = flat(readFileSync(`${dirOf(e)}/script.md`, "utf8"));
+      for (const r of allRows[e]!) {
+        for (const part of r.narration.split(/[«»]/).map(flat).filter((x) => x.length > 3)) {
+          if (!script.includes(part)) bad.push(`${e} ${r.id} (${r.shot}): «${part.slice(0, 50)}»`);
+        }
       }
     }
+    expect(bad).toEqual([]);
   });
 });
 

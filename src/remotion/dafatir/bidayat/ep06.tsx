@@ -48,19 +48,15 @@ const Dry: React.FC<{ p?: number; cr?: number; grid?: number }> = ({ p = 1, cr =
 const Blank: React.FC<{ x: number; y: number; q: number }> = ({ x, y, q }) =>
   q <= 0 ? null : <rect x={x - 80} y={y - 38} width={160} height={76} rx={10} fill={C.page} stroke={C.ink} strokeWidth={4} strokeDasharray="6 6" opacity={q} />;
 
-/** اللوحان المشدودان بالدُّسُر: join يقرّبهما، peg وتد خشبي، rope حبل، s حجم */
-const Pegged: React.FC<{ x: number; y: number; a: number; b: number; join: number; peg: number; rope: number; s?: number; glow?: number }> = ({ x, y, a, b, join, peg, rope, s = 1, glow = 0 }) => (
+/**
+ * لوحان مسطّحان متجاوران (القطعة المخصوصة): بلا وتد ولا حبل ولا مسمار مرسوم ولا طريقة وصل
+ * (المراجعة العلمية، الدفعة ٦ البند ١٣٢: «وفسّر الطبري الدُّسُر بالمسامير» نصًّا على لسان فقط). b يُقرّب اللوح الثاني حتى يستقر بجوار الأول.
+ */
+const Pair: React.FC<{ x: number; y: number; a: number; b: number; s?: number; glow?: number }> = ({ x, y, a, b, s = 1, glow = 0 }) => (
   <g transform={`translate(${x} ${y}) scale(${s})`}>
     {glow > 0 ? <ellipse cx={0} cy={0} rx={240} ry={90} fill={C.gold} opacity={0.22 * glow} /> : null}
-    <Plank x={0} y={mix(-60, -17, join)} w={380} h={34} q={a} />
-    <Plank x={0} y={mix(60, 17, join)} w={380} h={34} q={b} />
-    {peg > 0 ? (
-      <g opacity={Math.min(1, peg * 2)}>
-        <rect x={-92} y={mix(-110, -40, peg)} width={16} height={80} rx={6} fill="#9C7442" stroke={C.ink} strokeWidth={3} />
-        <rect x={60} y={mix(-110, -40, peg)} width={16} height={80} rx={6} fill="#9C7442" stroke={C.ink} strokeWidth={3} />
-      </g>
-    ) : null}
-    <Ink d="M128 -44 C150 -40 150 40 128 44 M140 -44 C162 -40 162 40 140 44 M152 -44 C174 -40 174 40 152 44" p={rope} w={5} c="#8B6A3E" />
+    <Plank x={0} y={-26} w={380} h={34} q={a} />
+    <Plank x={0} y={mix(110, 26, b)} w={380} h={34} q={b} />
   </g>
 );
 
@@ -268,8 +264,9 @@ const ThreeMarks = reverent((q) => {
   const boxes = k.on(0, "ثلاثة", 0.8);
   const ref = k.on(0, "الآيات");
   const m1 = k.on(1, "الأول"), m2 = k.on(2, "والثاني"), m3 = k.on(3, "والثالث");
-  const p1 = k.on(1, "صنعت", 0.7);
-  const amr = k.draw(1, "بأمر", 0.7), inaya = k.draw(1, "عناية", 0.8);
+  // الدفعة ٦ البند ١٣٤: «أمر… فصنعها بوحيٍ من ربّه، وفي حفظه وعنايته» كلماتٍ بلا رمز
+  const p1 = k.on(1, "يصنع", 0.7);
+  const amr = k.draw(1, "أمر", 0.7), wahy = k.draw(1, "بوحي", 0.7), inaya = k.draw(1, "حفظه", 0.9);
   const road = k.draw(2, "يمرون", 1.2);
   const p2 = k.on(2, "يبني", 0.7);
   const mock = k.on(2, "فيسخرون", 0.7);
@@ -278,8 +275,8 @@ const ThreeMarks = reverent((q) => {
   const dawn = k.draw(3, "العاقبة", 1.4);
   const cam = k.cam(NEUTRAL, [
     [0, "ثلاثة", { cx: 600, cy: 500, s: 1.2 }, 1.0],
-    [1, "صنعت", { cx: 1300, cy: 640, s: 1.2 }, 1.0],
-    [1, "بأمر", { cx: 600, cy: 340, s: 1.35 }, 1.0],
+    [1, "يصنع", { cx: 1300, cy: 640, s: 1.2 }, 1.0],
+    [1, "بوحي", { cx: 600, cy: 360, s: 1.35 }, 1.0],
     [2, "يمرون", { cx: 1300, cy: 700, s: 1.15 }, 1.2],
     [3, "غضبا", { cx: 600, cy: 700, s: 1.3 }, 1.0],
     [3, "العاقبة", NEUTRAL, 1.2],
@@ -289,8 +286,9 @@ const ThreeMarks = reverent((q) => {
       <Grid />
       <GoldSeal x={560} y={170} q={ref} label="هود ٣٧–٣٩" s={0.85} />
       <Mark y={340} q={boxes} label="أولًا" mark={m1}>
-        <Write id="b6tm-a" x={560} y={380} size={40} p={amr} label="بأمر" font="tajawal" />
-        <Write id="b6tm-i" x={380} y={380} size={40} p={inaya} label="وعناية" font="tajawal" />
+        <Write id="b6tm-a" x={620} y={362} size={40} p={amr} label="أمر" font="tajawal" />
+        <Write id="b6tm-w" x={450} y={362} size={40} p={wahy} label="بوحي" font="tajawal" />
+        <Write id="b6tm-i" x={530} y={402} size={30} p={inaya} label="حفظه وعنايته" font="tajawal" color={C.inkSoft} />
       </Mark>
       <Mark y={520} q={boxes} label="ثانيًا" mark={m2}>
         <Txt x={480} y={560} size={36} q={mock} color={C.inkSoft} weight={500}>يسخرون</Txt>
@@ -332,26 +330,22 @@ const PlanksRise = reverent((q) => {
   );
 });
 
-// ─── c1-s18 / c1-s19 / c1-s30: اللوحان المشدودان بالدُّسُر ───
+// ─── c1-s18 / c1-s19 / c1-s30: اللوحان المتجاوران والدُّسُر (بلا وتد ولا حبل، الدفعة ٦ البند ١٣٢) ───
 const Dusur = reverent((q) => {
   const k = cueKit(q, ["المسطح", "وصفه", "سترى"]);
-  const { t, S } = k;
+  const { S } = k;
   const a = S === 2 ? k.on(2, "ألواحا", 0.7) : k.on(0, "الألواح", 0.7);
-  const b = S === 2 ? a : k.on(0, "المسطح", 0.7);
-  const word = S === 0 ? k.draw(0, "والدسر", 0.9) : 1;
-  const tab = k.on(0, "التفسير");
-  const join = S === 2 ? 1 : k.on(0, "تشد", 1.0);
-  const peg = S === 2 ? k.on(2, "يشدها", 0.7) : k.on(0, "مسامير", 0.8);
-  const rope = S === 2 ? k.draw(2, "يشدها", 1.0) : k.draw(0, "حبال", 1.0);
-  const tight = S === 0 ? bounce(t, k.at("نحوها"), k.at("نحوها") + 1.2) : 0;
+  const b = S === 2 ? a : k.on(0, "المسطح", 0.9);
+  const tab = k.on(0, "الطبري");
+  const word = k.draw(0, "الدسر", 0.9);
+  const nails = k.draw(0, "بالمسامير", 0.9);
   const seal = S === 2 ? k.on(2, "نعرفه") : k.on(1, "القرآن");
   const lw = k.draw(1, "ألواح", 0.8);
-  const under = k.draw(1, "يشدها", 0.8);
+  const hold = k.draw(1, "يشدها", 0.9);
   const ground = S === 2 ? k.draw(2, "يابسة", 1.2) : S === 1 ? 1 : 0;
   const cam = k.cam({ cx: 1365, cy: 520, s: 1.3 }, [
-    [0, "والدسر", { cx: 1365, cy: 420, s: 1.2 }, 1.0],
-    [0, "تشد", { cx: 1365, cy: 520, s: 1.45 }, 1.0],
-    [0, "حبال", { cx: 1450, cy: 520, s: 1.5 }, 1.0],
+    [0, "الطبري", { cx: 1480, cy: 380, s: 1.2 }, 1.0],
+    [0, "بالمسامير", { cx: 1500, cy: 300, s: 1.3 }, 1.0],
     [1, "القرآن", { cx: 1365, cy: 560, s: 1.15 }, 1.0],
     [2, "يابسة", NEUTRAL, 1.2],
   ]);
@@ -359,12 +353,13 @@ const Dusur = reverent((q) => {
   return (
     <Leaf q={q} id="b6du" cam={cam} L={<g><Grid />{land}</g>}
       R={<g><Grid />{land}
-        <Pegged x={1365} y={520} a={a} b={b} join={join} peg={peg} rope={rope} glow={tight} />
-        <Write id="b6du-d" x={1365} y={300} size={60} p={S === 0 ? word : 0} label="الدُّسُر" />
-        <Tab x={1720} y={200} q={S === 0 ? tab : 0} label="أهل التفسير" />
+        <Pair x={1365} y={520} a={a} b={b} />
+        <Write id="b6du-d" x={1365} y={420} size={56} p={S === 0 ? word : 0} label="الدُّسُر" />
+        <Tab x={1760} y={200} q={S === 0 ? tab : 0} label="تفسير الطبري" />
+        <Write id="b6du-n" x={1560} y={290} size={34} p={S === 0 ? nails : 0} label="المسامير" font="tajawal" color={C.ink} />
         <Seal x={1620} y={720} q={seal} kind="ثابت" s={0.55} />
-        <Write id="b6du-l" x={1300} y={680} size={44} p={S === 1 ? lw : 0} label="ألواح" font="tajawal" />
-        <Ink d="M1560 576 H1460" p={S === 1 ? under : 0} w={4} c={C.ribbon} />
+        <Write id="b6du-l" x={1365} y={640} size={44} p={S === 1 ? lw : 0} label="ألواح" font="tajawal" />
+        <Write id="b6du-h" x={1365} y={420} size={40} p={S === 1 ? hold : 0} label="وما يشدّها" font="tajawal" color={C.inkSoft} />
       </g>} />
   );
 });
@@ -382,7 +377,7 @@ const BlankRulerShot = reverent((q) => {
         <BlankRuler x={640} y={560} q={r2} rot={-18} box={box} />
         <BlankRuler x={300} y={560} w={380} q={r3} rot={-90} box={box} />
       </g>}
-      R={<g><Grid /><Pegged x={1400} y={540} a={1} b={1} join={1} peg={1} rope={1} s={0.7} /></g>} />
+      R={<g><Grid /><Pair x={1400} y={540} a={1} b={1} s={0.7} /></g>} />
   );
 });
 
@@ -397,13 +392,18 @@ const BOXES = [
 const FourBoxes = reverent((q) => {
   const k = cueKit(q, ["الطوابق", "حديث"]);
   const bs = [k.on(0, "الخشب", 0.6), k.on(0, "الطوابق", 0.6), k.on(0, "المكان", 0.6), k.on(0, "المدة", 0.6)];
+  // الدفعة ٦ البند ١٣١: «ولا نعلم حديثًا صحيحًا يحدّد مقاسها أو نوع خشبها أو عدد طبقاتها»
+  const unk = k.on(1, "نعلم", 0.6);
   const hd = k.on(1, "حديث", 0.7);
+  const fl = k.S === 1 ? [bounce(k.t, k.at("خشبها"), k.at("خشبها") + 0.9), bounce(k.t, k.at("طبقاتها"), k.at("طبقاتها") + 0.9), 0, 0] : [0, 0, 0, 0];
   const cam = k.cam({ cx: 1365, cy: 480, s: 1.15 }, [[1, "حديث", { cx: 1365, cy: 640, s: 1.2 }, 1.0]]);
   return (
-    <Leaf q={q} id="b6fb" cam={cam} L={<g><Grid /><Pegged x={560} y={520} a={1} b={1} join={1} peg={1} rope={1} s={0.6} /></g>}
+    <Leaf q={q} id="b6fb" cam={cam} L={<g><Grid /><Pair x={560} y={520} a={1} b={1} s={0.6} /></g>}
       R={<g><Grid />
         {BOXES.map(([x, y, l], i) => <Box key={i} x={x} y={y} q={bs[i]!} label={l} />)}
+        {BOXES.map(([x, y], i) => (fl[i]! > 0 ? <rect key={`f${i}`} x={x - 160} y={y - 85} width={320} height={170} rx={10} fill="none" stroke={C.gold} strokeWidth={8} opacity={fl[i]} /> : null))}
         <Field x={1620} y={790} label="حديث صحيح:" q={hd} w={260} />
+        <Seal x={1160} y={800} q={unk} kind="لا نعلم" s={0.45} />
       </g>} />
   );
 });
@@ -451,7 +451,7 @@ const NoSketch = reverent((q) => {
       </g>}
       R={<g><Grid />
         <BlankRuler x={1365} y={420} q={ruler} box={ruler} />
-        <Pegged x={1365} y={660} a={1} b={1} join={1} peg={1} rope={1} s={0.6} />
+        <Pair x={1365} y={660} a={1} b={1} s={0.6} />
       </g>} />
   );
 });
@@ -521,7 +521,7 @@ const Meaning = reverent((q) => {
       R={<g>{line}
         <Write id="b6me-k" x={1365} y={230} size={52} p={enough} label="يكفينا" font="tajawal" color={C.inkSoft} />
         <Write id="b6me-m" x={1365} y={420} size={66} p={mean} label="معناها" color={GOLD_D} />
-        <Pegged x={1365} y={560} a={pair} b={pair} join={1} peg={pair} rope={pair} s={0.55} />
+        <Pair x={1365} y={560} a={pair} b={pair} s={0.55} />
         <BlankRuler x={mix(1365, 2050, out)} y={760} q={1 - prog(out, 0.85, 1)} />
       </g>} />
   );

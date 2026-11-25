@@ -9,7 +9,7 @@ export const BD06_META: Record<string, HzMeta> = {
   "bd06-pile": { nameAr: "البدايات ٦ · كومة أوراق وورقة صغيرة بيقين", tail: 1.0, exit: "fade" },
   "bd06-three-marks": { nameAr: "البدايات ٦ · ثلاث علامات على الهامش (هود ٣٧–٣٩)", tail: 1.0, exit: "fade" },
   "bd06-planks-rise": { nameAr: "البدايات ٦ · ألواح تُرصّ على اليابسة", tail: 1.0, exit: "fade" },
-  "bd06-dusur": { nameAr: "البدايات ٦ · اللوحان المشدودان بالدُّسُر (القطعة المخصوصة)", tail: 1.2, exit: "fade" },
+  "bd06-dusur": { nameAr: "البدايات ٦ · اللوحان المتجاوران والدُّسُر (القطعة المخصوصة)", tail: 1.2, exit: "fade" },
   "bd06-blank-ruler": { nameAr: "البدايات ٦ · مساطر بلا أرقام", tail: 1.0, exit: "fade" },
   "bd06-four-boxes": { nameAr: "البدايات ٦ · أربع خانات فارغة", tail: 1.0, exit: "fade" },
   "bd06-smudged": { nameAr: "البدايات ٦ · خانات بخط مطموس وختم «رواية»", tail: 1.0, exit: "fade" },

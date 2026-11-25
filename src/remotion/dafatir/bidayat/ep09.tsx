@@ -240,45 +240,24 @@ const KnotsShot = reverent((q) => {
   return <Leaf q={q} id="b9k" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s7: الباقون ───
-const Baqiya = reverent((q) => {
-  const k = cueKit(q, ["بنص"]);
-  const seal = k.on(0, "ثابت", 0.5);
-  const quran = k.on(0, "بنص", 0.6);
-  const dot = k.on(0, "ذرية");
-  const word = k.draw(0, "بقوا", 0.8);
-  const line = k.draw(0, "بقوا", 1.4);
-  const cam = k.cam(NEUTRAL, [[0, "ثابت", { cx: 1365, cy: 420, s: 1.25 }, 1.0], [0, "ذرية", { cx: 640, cy: 560, s: 1.2 }, 1.1]]);
-  return (
-    <Leaf q={q} id="b9b" cam={cam}
-      L={<g>
-        <Ink d="M900 620 H200" p={1} w={3} c={C.inkSoft} />
-        <Dot x={780} y={608} q={dot} r={13} />
-        <Ink d="M770 608 H420" p={line} w={6} />
-        <Write id="b9b-w" x={600} y={470} size={64} p={word} label="الباقين" />
-      </g>}
-      R={<g>
-        <Seal x={1365} y={330} q={seal} kind="ثابت" s={0.8} />
-        <QuranSeal x={1365} y={580} o={quran} s={0.95} refText="الصافات ٧٧" />
-      </g>} />
-  );
-});
-
-// ─── c1-s9: عودة الأفق مع انحسار الماء ───
+// ─── c1-s7: عودة الأفق مع انحسار الماء (الدفعة ٦ البندان ١٤٨ و١٤٩: الصافات ٧٦–٧٧، ونقاط قليلة بلا فروع ولا أسماء ولا توزيع) ───
 const AfterWater = reverent((q) => {
-  const k = cueKit(q, ["سياقها"]);
+  const k = cueKit(q, ["ثابت"]);
   const { t } = k;
-  const hz = k.draw(0, "سياقها", 1.4);
+  const seal = k.on(0, "ثابت", 0.5);
+  const quran = k.on(0, "القرآن", 0.6);
+  const hz = k.draw(0, "أنقذ", 1.4);
   const boat = k.on(0, "نوحا", 0.6);
-  const rise = prog(t, k.at("وأغرق", 1.0) - 0.05, k.at("وأغرق", 1.0) + 1.0);
-  const fall = prog(t, k.at("الأرض", 1.4) - 0.05, k.at("الأرض", 1.4) + 1.4);
+  const rise = prog(t, k.at("البلاء", 1.0) - 0.05, k.at("البلاء", 1.0) + 1.0);
+  const fall = prog(t, k.at("العظيم", 1.4) - 0.05, k.at("العظيم", 1.4) + 1.4);
   const wy = mix(900, 610, rise * (1 - fall));
-  const seed = k.on(0, "لذرية");
-  const walk = k.draw(0, "الناجين", 1.4);
+  const word = k.draw(0, "ببقاء", 0.8);
+  const seed = k.on(0, "ذريته");
+  const walk = k.draw(0, "ذريته", 1.4);
   const cam = k.cam(NEUTRAL, [
     [0, "نوحا", { cx: 1250, cy: 540, s: 1.25 }, 1.0],
-    [0, "وأغرق", { cx: 760, cy: 620, s: 1.05 }, 1.0],
-    [0, "لذرية", { cx: 1200, cy: 560, s: 1.2 }, 1.0],
+    [0, "البلاء", { cx: 760, cy: 620, s: 1.05 }, 1.0],
+    [0, "ذريته", { cx: 1200, cy: 560, s: 1.2 }, 1.0],
   ]);
   const both = (
     <g>
@@ -286,10 +265,17 @@ const AfterWater = reverent((q) => {
       <Hatch x={200} y={600} w={700} h={180} o={hz * (1 - fall * 0.6)} />
       {rise > 0 ? <Waterline y={wy} p={1} t={t} rows={2} fill={0.3} /> : null}
       <g opacity={boat} transform={`translate(1300 ${560 + 4 * Math.sin(t * 1.5)}) scale(0.7)`}><Boat /></g>
-      {[0, 1, 2, 3, 4].map((i) => <Dot key={i} x={1220 - i * 34 - walk * (120 + i * 70)} y={600 + (i % 2) * 18} q={seed} r={6} />)}
+      {[0, 1, 2].map((i) => <Dot key={i} x={1220 - i * 40 - walk * (90 + i * 50)} y={600 + (i % 2) * 18} q={seed} r={6} />)}
     </g>
   );
-  return <Leaf q={q} id="b9a" cam={cam} L={both} R={<g>{both}<Sunset y={560} o={hz * 0.6} /></g>} />;
+  return (
+    <Leaf q={q} id="b9a" cam={cam} L={both}
+      R={<g>{both}<Sunset y={560} o={hz * 0.6} />
+        <Seal x={1560} y={250} q={seal} kind="ثابت" s={0.6} />
+        <QuranSeal x={1250} y={250} o={quran} s={0.8} refText="الصافات ٧٦–٧٧" />
+        <Write id="b9a-b" x={1100} y={460} size={40} p={word} label="الباقين" font="tajawal" color={C.inkSoft} />
+      </g>} />
+  );
 });
 
 // ─── c1-s10: ثلاث خانات تبقى فارغة ───
@@ -319,202 +305,39 @@ const Blanks = reverent((q) => {
   );
 });
 
-// ─── c1-s11: بيت واحد على الأفق الجديد ───
-const OneHouse = reverent((q) => {
-  const k = cueKit(q, ["الأصل"]);
-  const { t } = k;
-  const asl = k.draw(0, "الأصل", 0.9);
-  const water = k.on(0, "الطوفان", 0.4) * (1 - prog(t, k.at("الطوفان") + 0.4, k.at("الطوفان") + 1.6));
-  const fresh = k.draw(0, "جديد", 1.2);
-  const house = k.on(0, "بيت", 0.6);
-  const under = k.draw(0, "واحد", 0.7);
-  const cam = k.cam(NEUTRAL, [[0, "الطوفان", { cx: 1100, cy: 620, s: 1.1 }, 1.0], [0, "بيت", { cx: 1365, cy: 600, s: 1.3 }, 1.0]]);
-  const both = (
-    <g>
-      <Horizon y={620} p={1} sky="plain" texture={0.3} skyO={1 - fresh} />
-      <Horizon y={620} p={fresh} sky="morning" texture={0} />
-      {water > 0 ? <Ink d="M1760 640 H160" p={1} w={3} c={WATER} opacity={water} /> : null}
-    </g>
-  );
-  return (
-    <Leaf q={q} id="b9h" cam={cam} L={both}
-      R={<g>{both}
-        <Sunset y={620} o={fresh * 0.5} />
-        <Write id="b9h-a" x={1365} y={230} size={64} p={asl} label="الأصل" />
-        <g opacity={house} transform={`translate(1365 620) scale(${1.6 * (0.8 + 0.2 * house)})`}>
-          <path d={GLYPHS[0]} fill="#E8D6B3" stroke={C.ink} strokeWidth={2.5} strokeLinejoin="round" />
-        </g>
-        <Txt x={1365} y={720} size={42} q={house} color={C.ink}>بيت واحد</Txt>
-        <Ink d="M1460 740 H1270" p={under} w={4} c={C.gold} />
-      </g>} />
-  );
-});
-
-// ─── c1-s12: ثلاثة أسماء بالحبر بلا رسم ───
-const NAME_Y = [380, 500, 620];
-const Names = reverent((q) => {
-  const k = cueKit(q, ["الأسماء"]);
-  const head = k.draw(0, "الأسماء", 0.8);
-  const books = k.on(0, "كتب", 0.6);
-  const lines = k.draw(0, "ثلاثة", 0.9);
-  const n = [k.draw(0, "سام", 0.6), k.draw(0, "وحام", 0.6), k.draw(0, "ويافث", 0.6)];
-  const cam = k.cam(NEUTRAL, [[0, "كتب", { cx: 640, cy: 460, s: 1.2 }, 1.0], [0, "ثلاثة", { cx: 1365, cy: 500, s: 1.2 }, 1.0]]);
-  return (
-    <Leaf q={q} id="b9n" cam={cam}
-      L={<g>
-        <g opacity={books} transform={`translate(560 480) scale(${0.36 * (0.85 + 0.15 * books)})`}><Books /></g>
-        <Tab x={760} y={680} q={books} label="التفسير والتاريخ" />
-      </g>}
-      R={<g>
-        <Write id="b9n-h" x={1400} y={220} size={60} p={head} label="الأسماء" />
-        <Q x={1220} y={228} size={64} q={head} />
-        {NAME_Y.map((y, i) => (
-          <g key={i}>
-            <Ink d={`M1600 ${y + 14} H1130`} p={lines} w={3} c={C.inkSoft} />
-            <Write id={`b9n-${i}`} x={1365} y={y} size={58} p={n[i]!} label={["سام", "حام", "يافث"][i]!} />
-          </g>
-        ))}
-      </g>} />
-  );
-});
-
-// ─── c1-s13: ثلاث جهات بخطوط متقطعة لا خريطة ───
-/** الأسماء على اليمنى: يافث أعلى (الشمال)، سام وسطًا (إلى الصفحة اليسرى)، حام أسفل (الجنوب) */
-const CX = 1560;
-const NamesCol: React.FC<{ o?: number }> = ({ o = 1 }) => (
-  <g opacity={o}>
-    <Txt x={CX} y={380} size={50} q={1} font="amiri">يافث</Txt>
-    <Txt x={CX} y={510} size={50} q={1} font="amiri">سام</Txt>
-    <Txt x={CX} y={640} size={50} q={1} font="amiri">حام</Txt>
-  </g>
-);
-const DASH: Record<string, string> = { n: `M${CX} 335 V170`, w: `M${CX - 70} 495 C1300 495 1000 500 640 500`, s: `M${CX} 660 V830` };
-/** خط متقطع يُمد بنسبة p (قناع بالطول) */
-const DashLine: React.FC<{ d: string; p: number; id: string; o?: number }> = ({ d, p, id, o = 1 }) =>
-  p <= 0 ? null : (
-    <g opacity={o}>
-      <mask id={`m-${id}`}>
-        <path d={d} fill="none" stroke="#fff" strokeWidth={14} pathLength={1} strokeDasharray="1" strokeDashoffset={1 - p} />
-      </mask>
-      <path d={d} fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="12 10" mask={`url(#m-${id})`} />
-    </g>
-  );
-const Rose: React.FC<{ x: number; y: number; q: number }> = ({ x, y, q }) =>
-  q <= 0 ? null : (
-    <g opacity={q} transform={`translate(${x} ${y})`}>
-      <circle r={44} fill="none" stroke={C.inkSoft} strokeWidth={2} />
-      <path d="M0 -56 L8 0 L0 56 L-8 0 Z" fill={C.ink} opacity={0.7} />
-      <Txt x={0} y={-66} size={26} q={1} color={C.ink}>ش</Txt>
-      <Txt x={0} y={92} size={26} q={1} color={C.ink}>ج</Txt>
-    </g>
-  );
-const Compass = reverent((q) => {
-  const k = cueKit(q, ["تنسب"]);
-  const seal = k.on(0, "رواية", 0.5);
-  const w = k.draw(0, "سام", 1.4), arab = k.on(0, "للعرب");
-  const s = k.draw(0, "الجنوب", 0.9);
-  const n = k.draw(0, "الشمال", 0.9), rum = k.on(0, "والروم");
-  const cam = k.cam(NEUTRAL, [
-    [0, "سام", { cx: 1100, cy: 500, s: 1.05 }, 1.2],
-    [0, "وحام", { cx: 1500, cy: 700, s: 1.25 }, 1.0],
-    [0, "ويافث", { cx: 1500, cy: 300, s: 1.25 }, 1.0],
-  ]);
-  const both = <DashLine id="b9c-w" d={DASH.w!} p={w} />;
-  return (
-    <Leaf q={q} id="b9c" cam={cam}
-      L={<g>{both}<Txt x={540} y={514} size={46} q={arab}>العرب</Txt><Rose x={300} y={780} q={1} /></g>}
-      R={<g>{both}
-        <NamesCol />
-        <DashLine id="b9c-n" d={DASH.n!} p={n} />
-        <DashLine id="b9c-s" d={DASH.s!} p={s} />
-        <Txt x={CX - 130} y={190} size={40} q={n}>الشمال</Txt>
-        <Txt x={CX - 130} y={240} size={40} q={rum}>الروم</Txt>
-        <Txt x={CX - 130} y={820} size={40} q={s}>الجنوب</Txt>
-        <Seal x={1240} y={760} q={seal} kind="رواية" s={0.55} />
-      </g>} />
-  );
-});
-
-// ─── c1-s14: سلسلة الإسناد بحلقة متصدعة ───
-const Isnad = reverent((q) => {
-  const k = cueKit(q, ["إسنادها"]);
-  const { t } = k;
-  const fade = prog(t, k.at("الرواية") - 0.05, k.at("الرواية") + 0.9);
-  const tab = k.on(0, "الحديث");
-  const chain = prog(t, k.at("إسنادها") - 0.05, k.at("إسنادها") + 1.4);
-  const crack = k.draw(0, "كلام", 0.6);
-  const note = k.draw(0, "كلام", 1.0);
-  const cam = k.cam(NEUTRAL, [[0, "إسنادها", { cx: 1365, cy: 520, s: 1.2 }, 1.2], [0, "كلام", { cx: 1290, cy: 560, s: 1.4 }, 0.8]]);
-  const LINKS = [1640, 1550, 1460, 1370, 1280, 1190, 1100];
-  return (
-    <Leaf q={q} id="b9i" cam={cam}
-      L={<DashLine id="b9i-w" d={DASH.w!} p={1} o={1 - fade} />}
-      R={<g>
-        <g opacity={1 - fade * 0.85}><NamesCol /></g>
-        <DashLine id="b9i-w2" d={DASH.w!} p={1} o={1 - fade} />
-        <DashLine id="b9i-n" d={DASH.n!} p={1} o={1 - fade} />
-        <DashLine id="b9i-s" d={DASH.s!} p={1} o={1 - fade} />
-        <Tab x={1720} y={170} q={tab} label="أهل الحديث" />
-        {LINKS.map((x, i) => {
-          const p = prog(chain, i / LINKS.length, (i + 1) / LINKS.length);
-          const vert = i % 2 === 1;
-          const bad = i === 3;
-          return (
-            <g key={i}>
-              <Ink d={vert ? `M${x} ${520 - 34} C${x + 26} ${486} ${x + 26} ${554} ${x} ${554} C${x - 26} ${554} ${x - 26} ${486} ${x} ${486}` : `M${x + 48} 520 C${x + 48} 494 ${x - 48} 494 ${x - 48} 520 C${x - 48} 546 ${x + 48} 546 ${x + 48} 520`} p={p} w={6} c={bad && crack > 0 ? EMBER : C.ink} />
-              {bad ? <Ink d={crackPath(x + 8, 488, x - 6, 552, 14, 5, 6)} p={crack} w={4} c={C.page} /> : null}
-              {bad ? <Ink d={crackPath(x + 8, 488, x - 6, 552, 14, 5, 6)} p={crack} w={2} c={EMBER} /> : null}
-            </g>
-          );
-        })}
-        <Write id="b9i-k" x={1370} y={660} size={44} p={note} label="في إسنادها كلام" font="tajawal" />
-      </g>} />
-  );
-});
-
-// ─── c1-s16: حدّ الدفتر — الهامش الأحمر، وخلفه هيكل شجرة باهت بلا أسماء ───
+// ─── c1-s16: حدّ الدفتر — الهامش الأحمر، و«ثلاثة فروع» كلمتان باهتتان خلفه (الدفعتان ٦ و٧: بلا شجرة ولا فروع ولا خريطة) ───
 const MX = 720;
 const Margin = reverent((q) => {
   const k = cueKit(q, ["حده"]);
   const { t } = k;
   const name = k.draw(0, "دفتر", 0.9);
   const rule = prog(t, k.at("حده", 1.2) - 0.05, k.at("حده", 1.2) + 1.2);
-  const tree = k.draw(0, "خريطة", 1.4);
-  const three = k.on(0, "ثلاثة", 0.6);
-  const unk = k.on(0, "نعلم");
-  const cam = k.cam(NEUTRAL, [[0, "حده", { cx: 700, cy: 520, s: 1.12 }, 1.2], [0, "خريطة", { cx: 460, cy: 520, s: 1.2 }, 1.2]]);
-  const TIPS3: Pt[] = [[260, 310], [440, 260], [620, 320]];
-  const branches = [
-    "M440 830 V600", "M440 600 C380 520 300 420 260 310", "M440 600 V260", "M440 600 C500 520 580 420 620 320",
-    "M300 420 L220 380", "M330 470 L250 500", "M440 420 L380 360", "M440 460 L500 420", "M560 440 L640 430", "M590 380 L520 330",
-  ];
+  const sabit = k.on(0, "ذرية", 0.5);
+  const three = k.draw(0, "ثلاثة", 1.0);
+  const unk = k.on(0, "فروع", 0.6);
+  const cam = k.cam(NEUTRAL, [[0, "حده", { cx: 700, cy: 520, s: 1.12 }, 1.2], [0, "ثلاثة", { cx: 460, cy: 520, s: 1.2 }, 1.2]]);
   return (
     <Leaf q={q} id="b9m" cam={cam}
       L={<g>
         <Write id="b9m-d" x={560} y={160} size={38} p={name} label="دفتر الزمن" color={C.inkSoft} font="tajawal" />
-        <g opacity={0.45}>
-          {branches.map((d, i) => (
-            <path key={i} d={d} fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="10 9" opacity={prog(tree, i / branches.length * 0.7, i / branches.length * 0.7 + 0.3)} />
-          ))}
-          {TIPS3.map(([x, y], i) => <circle key={i} cx={x} cy={y} r={14 * three} fill={C.page} stroke={C.ink} strokeWidth={3} opacity={three} />)}
-        </g>
-        <Seal x={440} y={560} q={unk} kind="لا نعلم" s={0.6} />
+        <g opacity={0.45}><Write id="b9m-3" x={420} y={520} size={56} p={three} label="ثلاثة فروع" color={C.inkSoft} font="tajawal" /></g>
+        <Seal x={420} y={600} q={unk} kind="لا نعلم" s={0.6} />
         <Ink d={`M${MX} 130 V880`} p={rule} w={5} c={C.ribbon} />
         <g opacity={Math.min(1, rule * 4) * (1 - prog(rule, 0.92, 1))} transform={`translate(${MX + 40} ${mix(130, 880, rule)}) rotate(90) scale(0.32)`}><Ruler /></g>
+        <Seal x={MX + 120} y={320} q={sabit} kind="ثابت" s={0.45} />
       </g>} />
   );
 });
 
-// ─── c1-s17: سجل بأربعة أسطر وأختامها ───
-const ROWS = [280, 410, 540, 670];
+// ─── c1-s17: سجل بسطرين وختمه (الدفعة ٦ البند ١٥٠: حُذف سطرا «الأسماء» و«توزيع الأمم») ───
+const ROWS = [380, 560];
 const Ledger = reverent((q) => {
-  const k = cueKit(q, ["وتوزيع"]);
-  const r = [k.draw(0, "الأسماء", 0.7), k.draw(0, "وتوزيع", 0.8), k.draw(0, "والطرق", 0.7), k.draw(0, "والسنوات", 0.7)];
-  const s1 = k.on(0, "رواية", 0.5), s2 = k.on(0, "رواية#2", 0.5);
+  const k = cueKit(q, ["والطرق"]);
+  const r = [k.draw(0, "والطرق", 0.7), k.draw(0, "والسنوات", 0.7)];
   const road = k.draw(0, "والطرق", 1.0);
   const unk = k.on(0, "نعلمها", 0.6);
-  const cam = k.cam(NEUTRAL, [[0, "الأسماء", { cx: 1365, cy: 360, s: 1.25 }, 1.0], [0, "والطرق", { cx: 1365, cy: 600, s: 1.25 }, 1.2]]);
-  const LAB = ["الأسماء", "توزيع الأمم", "الطرق", "السنوات"];
+  const cam = k.cam(NEUTRAL, [[0, "والطرق", { cx: 1365, cy: 400, s: 1.25 }, 1.0], [0, "نعلمها", { cx: 1365, cy: 480, s: 1.1 }, 1.2]]);
+  const LAB = ["الطرق", "السنوات"];
   return (
     <Leaf q={q} id="b9l" cam={cam}
       R={<g>
@@ -524,11 +347,9 @@ const Ledger = reverent((q) => {
             <Ink d={`M1720 ${y + 26} H1020`} p={r[i]!} w={2} c={C.inkSoft} />
           </g>
         ))}
-        <Seal x={1200} y={ROWS[0]! - 12} q={s1} kind="رواية" s={0.5} />
-        <Seal x={1200} y={ROWS[1]! - 12} q={s2} kind="رواية" s={0.5} />
-        <g transform={`translate(1230 ${ROWS[2]! + 8}) scale(0.18)`}><Roads g={[road, road, road, road]} /></g>
-        <DateRibbon x={1240} y={ROWS[3]! - 60} s={0.38} o={r[3]!} />
-        <g transform={`rotate(-6 1230 ${ROWS[2]! + 60})`}><Seal x={1230} y={ROWS[2]! + 60} q={unk} kind="لا نعلم" s={0.9} w={360} /></g>
+        <g transform={`translate(1230 ${ROWS[0]! + 8}) scale(0.18)`}><Roads g={[road, road, road, road]} /></g>
+        <DateRibbon x={1240} y={ROWS[1]! - 60} s={0.38} o={r[1]!} />
+        <g transform={`rotate(-6 1300 ${(ROWS[0]! + ROWS[1]!) / 2})`}><Seal x={1300} y={(ROWS[0]! + ROWS[1]!) / 2} q={unk} kind="لا نعلم" s={0.9} w={360} /></g>
       </g>} />
   );
 });
@@ -829,13 +650,8 @@ const Atlas = reverent((q) => {
 export const BD09_SCENES: Record<string, React.FC<BdProps>> = {
   "bd09-road": RoadShot,
   "bd09-knots": KnotsShot,
-  "bd09-baqiya": Baqiya,
   "bd09-after-water": AfterWater,
   "bd09-blanks": Blanks,
-  "bd09-one-house": OneHouse,
-  "bd09-names": Names,
-  "bd09-compass": Compass,
-  "bd09-isnad": Isnad,
   "bd09-margin": Margin,
   "bd09-ledger": Ledger,
   "bd09-hadith-lead": HadithLead,

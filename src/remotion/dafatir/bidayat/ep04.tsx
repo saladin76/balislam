@@ -72,52 +72,6 @@ const Card: React.FC<{ id: string; x: number; y: number; q: number; memo: number
     </g>
   );
 
-const STELAE_X = [1640, 1500, 1365, 1230, 1090];
-const SEAT = (i: number): [number, number] => {
-  const a = ((200 + i * 35) * Math.PI) / 180;
-  return [1365 + 260 * Math.cos(a), 470 - 170 * Math.sin(a)];
-};
-
-/** كتاب صغير مفتوح بسطور حبر (lines) أو مغلق (close) */
-const SmallBook: React.FC<{ x: number; y: number; q: number; lines?: number; close?: number; dust?: number; s?: number }> = ({ x, y, q, lines = 0, close = 0, dust = 0, s = 1 }) => {
-  if (q <= 0) return null;
-  const k = 1 - close;
-  return (
-    <g opacity={Math.min(1, q * 1.4)} transform={`translate(${x} ${y}) scale(${s * (0.8 + 0.2 * q)})`}>
-      <path d={`M0 -10 C${-60 * k} -30 ${-150 * k} -30 ${-150 * k - 4} -14 V100 C${-150 * k} 86 ${-60 * k} 86 0 104 Z`} fill={C.page} stroke={C.ink} strokeWidth={4} />
-      <path d="M0 -10 C60 -30 150 -30 154 -14 V100 C150 86 60 86 0 104 Z" fill={close > 0.95 ? "#6B4A2E" : C.page} stroke={C.ink} strokeWidth={4} />
-      {close < 0.5
-        ? [0, 1, 2, 3].map((i) => (
-            <g key={i}>
-              <Ink d={`M130 ${10 + i * 20} H24`} p={prog(lines, i / 4, (i + 1) / 4)} w={2.5} c={C.inkSoft} />
-              <Ink d={`M-24 ${10 + i * 20} H-130`} p={prog(lines, i / 4, (i + 1) / 4)} w={2.5} c={C.inkSoft} />
-            </g>
-          ))
-        : null}
-      <path d="M0 -10 V104" stroke={C.ink} strokeWidth={3} />
-      {dust > 0 ? <Hatch x={0} y={-20} w={160} h={124} o={dust * 2.4} /> : null}
-    </g>
-  );
-};
-
-/** سلّم الخطوات الثلاث على الصفحة اليسرى (درجات نازلة بخانات) */
-const STEP = (i: number) => ({ x: 720 - i * 200, y: 380 + i * 150 });
-const Stairs: React.FC<{ p: number; fill?: number[]; nums?: number; small?: boolean }> = ({ p, fill = [0, 0, 0], nums = 0 }) => (
-  <g>
-    {[0, 1, 2].map((i) => {
-      const { x, y } = STEP(i);
-      const q = prog(p, i / 3, (i + 1) / 3);
-      return (
-        <g key={i}>
-          <Ink d={`M${x + 110} ${y} H${x - 110} V${y + 150}`} p={q} w={5} />
-          <rect x={x - 100} y={y - 70} width={200} height={62} rx={6} fill={i === 2 ? "#4A2E1F" : C.ink} opacity={0.12 * (fill[i] ?? 0) * (i === 2 ? 2 : 1)} stroke={C.inkSoft} strokeWidth={2} strokeDasharray="8 6" strokeOpacity={q} />
-          <Txt x={x + 130} y={y - 20} size={34} q={nums} font="amiri" color={C.ink}>{["١", "٢", "٣"][i]}</Txt>
-        </g>
-      );
-    })}
-  </g>
-);
-
 // ─── c1-s1: حجر الظهيرة ───
 const NoonStone = reverent((q) => {
   const k = cueKit(q, ["حجرا"]);
@@ -229,7 +183,8 @@ const BetweenScene: React.FC<{ q: BdProps; id: string; adam: number; noah: numbe
       R={<g>{both}
         <DateRibbon x={1200} y={150} s={0.9} o={ribbon} />
         <Seal x={1200} y={260} q={unk} kind="لا نعلم" s={0.45} />
-        <Tab x={1740} y={130} q={tab} label="رواية · ابن عباس" />
+        <Tab x={1740} y={130} q={tab} label="أثر عن ابن عباس" />
+        <Txt x={1500} y={210} size={24} q={tab} color={C.inkSoft} font="tajawal">صححه الحاكم والألباني</Txt>
       </g>} />
   );
 };
@@ -243,7 +198,8 @@ const TenCenturies = reverent((q) => {
   const { t } = k;
   const ten = prog(t, k.at("عشرة") - 0.05, k.end("قرون") + 0.6);
   const cam = k.cam(NEUTRAL, [[0, "عشرة", { cx: 1000, cy: 620, s: 1.12 }, 1.2]]);
-  return <BetweenScene q={q} id="b4tc" adam={1} noah={1} arc={1} ribbon={0} unk={0} tab={k.on(0, "وروي")} ten={ten} ruler={k.draw(0, "الحق", 1.0)} cam={cam} />;
+  // أثر صحيح عن ابن عباس (المراجعة العلمية، الدفعة ٥ البند ١٢٠): «أثر عن ابن عباس، صححه الحاكم والألباني»، وعدد السنين خانة فارغة
+  return <BetweenScene q={q} id="b4tc" adam={1} noah={1} arc={1} ribbon={k.on(0, "السنوات")} unk={0} tab={k.on(0, "وجاء")} ten={ten} ruler={k.draw(0, "الحق", 1.0)} cam={cam} />;
 });
 
 // ─── c1-s8: العالم بلا أضواء ───
@@ -326,14 +282,14 @@ const StraightLine = reverent((q) => {
   return <Leaf q={q} id="b4sl" cam={cam} L={g} R={g} />;
 });
 
-// ─── c1-s11 / c1-s42: رأس الحديث ───
+// ─── c1-s11 / c1-s42: رأس الحديث (نص المراجعة العلمية، الدفعة ٥) ───
 const HadithLead = reverent((q) => {
-  const k = cueKit(q, ["يرويه", "حذر"]);
+  const k = cueKit(q, ["قدسي", "هدي"]);
   const { S } = k;
   const name = S === 0 ? k.draw(0, "النبي", 0.9) : k.draw(1, "النبي", 0.9);
-  const tab = S === 0 ? k.on(0, "يرويه", 0.6) : k.on(1, "أمته", 0.6);
-  const warn = k.draw(1, "حذر", 0.8);
-  const cam = k.cam(NEUTRAL, [[0, "النبي", { cx: 1365, cy: 420, s: 1.2 }, 1.0], [1, "حذر", { cx: 1300, cy: 420, s: 1.2 }, 1.0]]);
+  const tab = S === 0 ? k.on(0, "قدسي", 0.6) : k.on(1, "قال", 0.6);
+  const warn = k.draw(1, "ونجتنب", 0.8);
+  const cam = k.cam(NEUTRAL, [[0, "النبي", { cx: 1365, cy: 420, s: 1.2 }, 1.0], [1, "ونجتنب", { cx: 1300, cy: 420, s: 1.2 }, 1.0]]);
   return (
     <Leaf q={q} id="b4hl" cam={cam}
       L={S === 0 ? <Ink d="M960 620 H160" p={1} w={6} c={C.ink} /> : null}
@@ -351,17 +307,19 @@ const HadithLead = reverent((q) => {
   );
 });
 
-// ─── c1-s13: الميل والصرف ───
+// ─── c1-s13 / c1-s14: الميل والصرف (نص المراجعة العلمية، الدفعة ٥: «واجتالتهم، أي صرفتهم عن دينهم»؛ بلا سلّم خطوات) ───
 const Veer = reverent((q) => {
-  const k = cueKit(q, ["مائلين"]);
-  const { t } = k;
-  const dashes = k.on(0, "خلقوا", 0.8);
-  const lean = k.on(0, "مائلين", 1.0);
-  const glow = bounce(t, k.at("الحق"), k.at("الحق") + 1.2);
-  const branch = k.draw(0, "يصرفهم", 1.2);
+  const k = cueKit(q, ["واجتالتهم", "فكيف"]);
+  const { t, S } = k;
+  const dashes = k.open(0, 0.8);
+  const lean = k.on(0, "واجتالتهم", 1.0);
+  const glow = S === 0 ? bounce(t, k.at("دينهم"), k.at("دينهم") + 1.2) : 0;
+  const branch = k.draw(0, "صرفتهم", 1.2);
+  const blink = S === 1 ? bounce(t, k.at("صرفهم"), k.at("صرفهم") + 1.0) : 0;
+  const qm = k.on(1, "الخطوة", 0.6);
   const r = rng(14);
   const ds = Array.from({ length: 34 }, () => [mix(200, 1720, r()), r() > 0.5 ? mix(260, 460, r()) : mix(580, 780, r()), r() * 60 - 30] as const);
-  const cam = k.cam(NEUTRAL, [[0, "يصرفهم", { cx: 640, cy: 620, s: 1.2 }, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "صرفتهم", { cx: 640, cy: 620, s: 1.2 }, 1.2], [1, "الخطوة", { cx: 760, cy: 560, s: 1.35 }, 1.2]]);
   const g = (
     <g>
       <path d="M1760 520 H160" stroke={C.gold} strokeWidth={18} opacity={0.35 * glow} />
@@ -373,58 +331,33 @@ const Veer = reverent((q) => {
         const yy = mix(y, y + (y < 520 ? 70 : 140), off);
         return <path key={i} d="M0 -18 V18" stroke={C.inkSoft} strokeWidth={4} strokeLinecap="round" transform={`translate(${x - 60 * off} ${yy}) rotate(${ang - 90})`} opacity={prog(dashes, i / 34, i / 34 + 0.3) * (1 - 0.4 * off)} />;
       })}
-      <path d="M760 520 C640 560 520 640 300 720" fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="10 10" opacity={branch} />
+      <path d="M760 520 C640 560 520 640 300 720" fill="none" stroke={blink > 0 ? C.ribbon : C.inkSoft} strokeWidth={4 + 2 * blink} strokeDasharray="10 10" opacity={branch} />
+      <Q x={760} y={440} size={80} q={qm} />
     </g>
   );
   return <Leaf q={q} id="b4vr" cam={cam} L={g} R={g} />;
 });
 
-// ─── c1-s14 / c1-s21 / c1-s33: سلّم الخطوات الثلاث ───
-const ThreeSteps = reverent((q) => {
-  const k = cueKit(q, ["صرفهم", "تأمل", "محبة"]);
-  const { S } = k;
-  const branch = S === 0 ? 1 : 0;
-  const stairs = S === 0 ? k.draw(0, "الخطوة", 1.4) : 1;
-  const ring1 = k.draw(0, "الأولى", 0.8) * (S === 0 ? 1 : 0);
-  const nums = k.on(1, "الخطوات", 0.8);
-  const tab = k.on(1, "رواها") * (S === 1 ? 1 : 0);
-  const w = [k.draw(2, "محبة", 0.8), k.draw(2, "مبالغة", 0.8), k.draw(2, "نسيانا", 0.8)];
-  const cam = k.cam(NEUTRAL, [
-    [0, "الخطوة", { cx: 560, cy: 540, s: 1.15 }, 1.2],
-    [1, "تأمل", { cx: 540, cy: 540, s: 1.25 }, 1.2],
-    [2, "يقل", { cx: 720, cy: 360, s: 1.4 }, 1.2],
-    [2, "مبالغة", { cx: 540, cy: 540, s: 1.15 }, 1.2],
-  ]);
-  return (
-    <Leaf q={q} id="b4st" cam={cam}
-      L={<g>
-        <Stairs p={stairs} fill={S === 2 ? w : [0, 0, 0]} nums={nums} />
-        <Ring x={STEP(0).x} y={STEP(0).y - 40} r={120} p={ring1} c={C.ribbon} />
-        {S === 2 ? (["محبة", "مبالغة", "نسيان"] as const).map((lab, i) => (
-          <Write key={i} id={`b4st-${i}`} x={STEP(i).x} y={STEP(i).y - 26} size={40} p={w[i]!} label={lab} font="tajawal" color={i === 2 ? "#2B1408" : C.ink} />
-        )) : null}
-        <Tab x={940} y={300} q={tab} label="ابن عباس" />
-      </g>}
-      R={<path d="M1760 520 H960" stroke={C.ink} strokeWidth={6} opacity={branch} />} />
-  );
-});
-
-// ─── c1-s15 / c1-s17: الخانات الخمس ───
+// ─── c1-s15 / c1-s17 / c1-s18: الخانات الخمس (بعد المراجعة العلمية، الدفعة ٥ البند ١١٩: نقف عند القرآن، والأثر المختلف في إسناده لا يُروى) ───
 const SLOT_X = [1660, 1510, 1365, 1220, 1070];
 const FiveSlots = reverent((q) => {
-  const k = cueKit(q, ["يوصي", "جاءت"]);
+  const k = cueKit(q, ["يوصي", "يتواصون", "نشأت"]);
   const { t, S } = k;
   const seal = k.on(0, "القرآن");
   const boxes = S === 0 ? prog(t, k.at("خمسة") - 0.05, k.at("خمسة") + 1.2) : 1;
   const lines = S === 0 ? k.draw(0, "أسماء", 1.0) : 1;
   const blink = S === 1 ? bounce(t, k.at("أسماء"), k.at("أسماء") + 1.0) : 0;
+  const shine = S === 1 ? bounce(t, k.at("القرآن"), k.at("القرآن") + 1.0) : S === 2 ? bounce(t, k.at("القرآن"), k.at("القرآن") + 1.2) : 0;
   const label = k.on(0, "قوم");
-  const qm = k.on(1, "أين");
-  const arrow = k.draw(1, "جاءت", 1.0);
-  const cam = k.cam(NEUTRAL, [[0, "خمسة", { cx: 1365, cy: 520, s: 1.25 }, 1.0], [1, "أين", { cx: 1365, cy: 460, s: 1.2 }, 1.0]]);
+  const qm = k.on(2, "كيف");
+  const arrow = k.draw(2, "أثر", 1.0);
+  const tab = k.on(2, "إسناده", 0.6);
+  const halt = k.on(2, "فنقف", 0.6);
+  const cam = k.cam(NEUTRAL, [[0, "خمسة", { cx: 1365, cy: 520, s: 1.25 }, 1.0], [2, "كيف", { cx: 1365, cy: 460, s: 1.2 }, 1.0], [2, "فنقف", NEUTRAL, 1.2]]);
   return (
     <Leaf q={q} id="b4fs" cam={cam}
       R={<g>
+        {shine > 0 ? <circle cx={1650} cy={220} r={110} fill={C.gold} opacity={0.25 * shine} /> : null}
         <GoldSeal x={1650} y={220} q={seal} label="نوح · ٢٣" s={0.9} />
         <Txt x={1365} y={420} size={34} q={label} color={C.inkSoft}>قوم نوح</Txt>
         {SLOT_X.map((x, i) => {
@@ -437,214 +370,9 @@ const FiveSlots = reverent((q) => {
           );
         })}
         <Q x={1365} y={430} size={90} q={qm} />
-        <Arrow d="M1365 650 C1365 760 1500 800 1720 820" p={arrow} hx={1720} hy={820} ang={8} dashed />
-      </g>} />
-  );
-});
-
-// ─── c1-s22 / c1-s23: المجلس الخالي ───
-const Majlis = reverent((q) => {
-  const k = cueKit(q, ["صالحون", "ماتوا"]);
-  const { t, S } = k;
-  const step1 = k.on(0, "الأولى", 0.6);
-  const seats = S === 0 ? prog(t, k.at("رجال") - 0.05, k.end("صالحون") + 0.6) : 1;
-  const warm = S === 0 ? prog(t, k.at("أحبهم") - 0.05, k.end("لصلاحهم") + 0.3) : 1;
-  const die = S === 1 ? prog(t, k.at("ماتوا") - 0.05, k.at("ماتوا") + 1.4) : 0;
-  const cold = k.on(1, "فحزن", 1.2);
-  const cam = k.cam(NEUTRAL, [[0, "رجال", { cx: 1365, cy: 470, s: 1.2 }, 1.2], [1, "فحزن", { cx: 1200, cy: 500, s: 1.05 }, 1.4]]);
-  return (
-    <Leaf q={q} id="b4mj" cam={cam} tintL={cold > 0 ? `rgba(90,110,130,${0.12 * cold})` : undefined}
-      L={<g transform="translate(300 160) scale(0.45) translate(-300 -160)" opacity={0.9}><Stairs p={1} fill={[step1, 0, 0]} /></g>}
-      R={<g>
-        {cold > 0 ? <rect x={960} y={60} width={820} height={900} fill="rgba(90,110,130,1)" opacity={0.12 * cold} /> : null}
-        {[0, 1, 2, 3, 4].map((i) => {
-          const [x, y] = SEAT(i);
-          const w = warm * (1 - prog(die, i / 5, (i + 1) / 5));
-          return (
-            <g key={i} opacity={prog(seats, i / 5, (i + 1) / 5)}>
-              <ellipse cx={x} cy={y} rx={78} ry={56} fill={C.ember} opacity={0.3 * w} />
-              <path d={`M${x + 26 + 30 * cold} ${y + 14} L${x + 70 + 80 * cold} ${y + 30}`} stroke="#2B1E14" strokeWidth={16} strokeLinecap="round" opacity={0.18 + 0.1 * cold} />
-              <rect x={x - 46} y={y - 26} width={92} height={52} rx={14} fill={STELE} stroke={C.ink} strokeWidth={4} />
-            </g>
-          );
-        })}
-      </g>} />
-  );
-});
-
-// ─── c1-s24 / c1-s25: الأنصاب الخمسة الصمّاء ───
-const STELE_Y = 640;
-const FiveStelae = reverent((q) => {
-  const k = cueKit(q, ["فكرة", "ففعلوا"]);
-  const { t, S } = k;
-  const step2 = k.on(0, "الثانية", 0.6);
-  const sketch = S === 0 ? k.draw(0, "فكرة", 1.0) * (1 - k.on(0, "علامات", 0.8)) : 0;
-  const rise = S === 0 ? prog(t, k.at("علامات") - 0.05, k.at("علامات") + 1.6) : 1;
-  const cards = k.on(0, "وسموها", 0.7);
-  const memo = k.draw(0, "لتتذكروهم", 1.0);
-  const settle = S === 1 ? k.on(1, "ففعلوا", 1.0) : S > 1 ? 1 : 0.4;
-  const clear = k.draw(1, "يعبدها", 0.9);
-  const cam = k.cam(NEUTRAL, [[0, "علامات", { cx: 1365, cy: 560, s: 1.2 }, 1.2], [1, "يعبدها", { cx: 1365, cy: 640, s: 1.25 }, 1.0]]);
-  return (
-    <Leaf q={q} id="b4fst" cam={cam}
-      L={<g transform="translate(300 160) scale(0.45) translate(-300 -160)" opacity={0.9}><Stairs p={1} fill={[1, step2, 0]} /></g>}
-      R={<g>
-        <Horizon y={STELE_Y} p={1} sky="noon" texture={0} />
-        {STELAE_X.map((x, i) => (
-          <g key={i}>
-            <path d={`M${x - 40} ${STELE_Y - 10} C${x - 30} ${STELE_Y - 60} ${x + 30} ${STELE_Y - 60} ${x + 40} ${STELE_Y - 10}`} fill="none" stroke={C.inkSoft} strokeWidth={2} opacity={0.6 * sketch} />
-            <Stele x={x} y={STELE_Y} q={prog(rise, i / 5, (i + 1) / 5)} len={i === 4 ? settle : 1} />
-            <Card id={`b4fst-c${i}`} x={x} y={STELE_Y + 70} q={cards} memo={memo} />
-            <path d={`M${x - 46} ${STELE_Y + 104} H${x + 46}`} stroke={C.ink} strokeWidth={3} opacity={clear} />
-          </g>
-        ))}
-      </g>} />
-  );
-});
-
-// ─── c1-s26: الكتاب المفتوح والممر ───
-const PATH = "M1760 820 C1600 800 1500 760 1365 760 C1220 760 1120 800 980 830";
-const OpenBookPath = reverent((q) => {
-  const k = cueKit(q, ["يمر"]);
-  const { t } = k;
-  const book = k.on(0, "جيل", 0.7);
-  const lines = k.draw(0, "يعرف", 1.0);
-  const path = prog(t, k.at("يمر") - 0.05, k.end("يسجد") + 0.6);
-  const memo = 0.7 + 0.3 * k.on(0, "ويتذكر", 0.6);
-  const cam = k.cam(NEUTRAL, [[0, "جيل", { cx: 1000, cy: 520, s: 1.15 }, 1.0], [0, "يمر", { cx: 1365, cy: 680, s: 1.15 }, 1.4]]);
-  return (
-    <Leaf q={q} id="b4ob" cam={cam}
-      L={<g>
-        <SmallBook x={640} y={460} q={book} lines={lines} s={1.3} />
-        <path d="M960 830 C860 840 760 850 640 850" fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="10 12" opacity={prog(path, 0.8, 1)} />
-      </g>}
-      R={<g>
-        <Horizon y={STELE_Y} p={1} sky="noon" texture={0} />
-        {STELAE_X.map((x, i) => (
-          <g key={i}>
-            <Stele x={x} y={STELE_Y} q={1} />
-            <Card id={`b4ob-c${i}`} x={x} y={STELE_Y + 70} q={1} memo={1} dim={memo} />
-          </g>
-        ))}
-        <clipPath id="b4ob-clip"><rect x={1780 - 820 * path} y={700} width={820 * path} height={200} /></clipPath>
-        <path d={PATH} fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="10 12" clipPath="url(#b4ob-clip)" opacity={path > 0 ? 1 : 0} />
-      </g>} />
-  );
-});
-
-// ─── c1-s27: الكتاب يُغلق ───
-const ClosedBook = reverent((q) => {
-  const k = cueKit(q, ["الأخطر"]);
-  const step3 = k.on(0, "الثالثة", 0.6);
-  const red = k.draw(0, "الأخطر", 0.8);
-  const gone = k.on(0, "مات", 1.2);
-  const close = k.on(0, "ونسي", 0.8);
-  const dust = k.on(0, "العلم", 1.0);
-  const cam = k.cam(NEUTRAL, [[0, "ونسي", { cx: 700, cy: 500, s: 1.25 }, 1.0]]);
-  return (
-    <Leaf q={q} id="b4cb" cam={cam} tintL={gone > 0 ? `rgba(224,122,63,${0.1 * gone})` : undefined}
-      L={<g>
-        <g transform="translate(300 160) scale(0.45) translate(-300 -160)"><Stairs p={1} fill={[1, 1, step3]} /></g>
-        <Ink d={`M${STEP(2).x * 0.45 + 165 + 50} ${(STEP(2).y + 10) * 0.45 + 88} h-110`} p={red} w={3} c={C.ribbon} />
-        <SmallBook x={640} y={460} q={1} lines={1} close={close} dust={dust} s={1.3} />
-      </g>}
-      R={<g>
-        {gone > 0 ? <rect x={960} y={60} width={820} height={900} fill={C.ember} opacity={0.08 * gone} /> : null}
-        <Horizon y={STELE_Y} p={1} sky="dusk" texture={0} skyO={gone} />
-        {STELAE_X.map((x, i) => (
-          <g key={i}>
-            <Stele x={x} y={STELE_Y} q={1} len={1 + gone} />
-            <Card id={`b4cb-c${i}`} x={x} y={STELE_Y + 70} q={1} memo={1} />
-          </g>
-        ))}
-        <path d={PATH} fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="10 12" opacity={1 - gone} />
-      </g>} />
-  );
-});
-
-// ─── c1-s28 / c1-s29: الذكرى تُمحى ───
-const SteleErode = reverent((q) => {
-  const k = cueKit(q, ["أبناء", "عبدت"]);
-  const { t, S } = k;
-  const path = k.draw(0, "أبناء", 1.2);
-  const erase = S === 0 ? prog(t, k.at("يعرفون") - 0.05, k.at("يعرفون") + 1.4) : 1;
-  const qm = k.on(0, "لماذا", 0.6);
-  const deep = k.on(0, "الحجارة", 0.8);
-  const longer = k.on(1, "ثم", 1.0);
-  const wash = k.on(1, "عبدت", 1.2);
-  const cam = k.cam(NEUTRAL, [[0, "يعرفون", { cx: 1365, cy: 680, s: 1.3 }, 1.0], [0, "الحجارة", { cx: 1365, cy: 560, s: 1.2 }, 1.2]]);
-  return (
-    <Leaf q={q} id="b4se" cam={cam} tintL={`rgba(224,122,63,0.08)`}
-      R={<g>
-        <rect x={960} y={60} width={820} height={900} fill={C.ember} opacity={0.08} />
-        <Horizon y={STELE_Y} p={1} sky="dusk" texture={0} />
-        <ellipse cx={1365} cy={STELE_Y - 60} rx={420} ry={200} fill="#4A4448" opacity={0.3 * wash} />
-        {STELAE_X.map((x, i) => (
-          <g key={i}>
-            <Stele x={x} y={STELE_Y} q={1} len={2 + 0.4 * deep + 1.2 * longer} fill={mix(0, 1, deep) > 0.5 ? "#9C9488" : STELE} />
-            <Card id={`b4se-c${i}`} x={x} y={STELE_Y + 70} q={1} memo={1 - prog(erase, i * 0.1, i * 0.1 + 0.6)} qm={qm} />
-          </g>
-        ))}
-        <path d="M1760 860 C1600 840 1500 800 1365 800" fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="10 12" opacity={path} />
-      </g>} />
-  );
-});
-
-// ─── c1-s30: الهيئة المجهولة ───
-const UnknownForm = reverent((q) => {
-  const k = cueKit(q, ["منصوبة"]);
-  const stele = k.on(0, "حجارة", 0.7);
-  const frame = k.draw(0, "شكلها", 0.8);
-  const tab = k.on(0, "والرواية");
-  const seal = k.on(0, "تصف");
-  const cam = k.cam(NEUTRAL, [[0, "حجارة", { cx: 1365, cy: 520, s: 1.2 }, 1.0]]);
-  return (
-    <Leaf q={q} id="b4uf" cam={cam}
-      R={<g>
-        <Stele x={1520} y={640} q={stele} h={220} w={80} />
-        <DotFrame x={1520} y={520} w={170} h={290} q={stele} />
-        <DotFrame x={1220} y={520} w={220} h={290} q={frame} c={C.ink} />
-        <Seal x={1220} y={520} q={seal} kind="لا نعلم" s={0.5} />
-        <Tab x={1740} y={200} q={tab} label="رواية" />
-      </g>} />
-  );
-});
-
-// ─── c1-s34 / c1-s44: العلم الحارس ───
-const KnowledgeGuard = reverent((q) => {
-  const k = cueKit(q, ["تتكرر", "حارس"]);
-  const { t, S } = k;
-  const word = S === 0 ? k.draw(0, "العلم", 0.9) : 1;
-  const right = k.on(0, "بقي", 0.7);
-  const clear = k.draw(0, "تعبد", 0.8);
-  const left = k.on(0, "نسي", 0.7);
-  const dark = k.on(0, "عبدت", 1.0);
-  const reopen = k.on(1, "العلم", 0.9);
-  const guard = k.draw(1, "حارس", 0.9);
-  const fadeR = S === 1 ? prog(t, k.at("ينسى") - 0.05, k.at("ينسى") + 1.0) : 0;
-  const qm = k.on(1, "معناه", 0.6);
-  const cam = k.cam(NEUTRAL, [
-    [0, "بقي", { cx: 1365, cy: 560, s: 1.15 }, 1.0],
-    [0, "نسي", { cx: 560, cy: 560, s: 1.15 }, 1.0],
-    [1, "حارس", { cx: 560, cy: 560, s: 1.15 }, 1.0],
-    [1, "ينسى", { cx: 1365, cy: 600, s: 1.15 }, 1.0],
-  ]);
-  return (
-    <Leaf q={q} id="b4kg" cam={cam}
-      L={<g>
-        <rect x={150} y={300} width={810} height={600} fill="#3A3438" opacity={0.18 * dark * (1 - 0.6 * reopen)} />
-        <SmallBook x={400} y={600} q={left} lines={1} close={1 - reopen} dust={left * (1 - reopen) * 0.8} />
-        <Stele x={680} y={720} q={left} />
-        <Card id="b4kg-l" x={680} y={790} q={left} memo={0} />
-        <Ring x={420} y={640} r={130} p={guard} c={GOLD_D} />
-        <Txt x={420} y={820} size={34} q={guard} color={GOLD_D}>حارس</Txt>
-      </g>}
-      R={<g>
-        <Write id="b4kg-w" x={1365} y={240} size={90} p={word} label="العلم" />
-        <SmallBook x={1200} y={600} q={right} lines={1} />
-        <Stele x={1520} y={720} q={right} />
-        <Card id="b4kg-r" x={1520} y={790} q={right} memo={1 - fadeR} qm={qm} />
-        <path d="M1460 826 H1580" stroke={C.ink} strokeWidth={3} opacity={clear * (1 - fadeR)} />
+        <g opacity={1 - 0.6 * halt}><Arrow d="M1365 650 C1365 740 1440 780 1560 800" p={arrow} hx={1560} hy={800} ang={8} dashed /></g>
+        <path d="M1590 770 V830" stroke={C.ink} strokeWidth={6} strokeLinecap="round" opacity={halt} />
+        <Tab x={1760} y={790} q={tab} label="أثر · في إسناده خلاف" color={C.inkSoft} />
       </g>} />
   );
 });
@@ -658,7 +386,6 @@ const KnotPlaced = reverent((q) => {
   const seal = k.on(1, "القرآن");
   const people = k.draw(1, "قوم", 0.8);
   const flood = k.on(1, "الطوفان", 0.8);
-  const tab = k.on(1, "رواية");
   const ribbon = k.on(1, "بالسنة");
   const pin = k.on(1, "بالمكان", 0.6);
   const unk = k.on(1, "نعلم#2");
@@ -684,45 +411,7 @@ const KnotPlaced = reverent((q) => {
         <Pin x={720} y={420 + hover} o={pin} />
         <Seal x={600} y={560} q={unk} kind="لا نعلم" s={0.5} />
       </g>}
-      R={<g>{both}<Tab x={1740} y={200} q={tab} label="رواية · ابن عباس" /></g>} />
-  );
-});
-
-// ─── c1-s37 / c1-s38: السهم البعيد ───
-const FarArrow = reverent((q) => {
-  const k = cueKit(q, ["انتقلت", "جزيرة"]);
-  const { t, S } = k;
-  const tab = k.on(0, "ابن");
-  const arrow = k.draw(0, "انتقلت", 1.3);
-  const far = k.on(0, "قبائل", 0.7);
-  const long = k.draw(0, "طويل", 1.2);
-  const mark = k.on(1, "باب", 0.9);
-  const settle = k.on(1, "موضعه", 0.8);
-  const name = k.draw(1, "جزيرة", 1.0);
-  const cam = k.cam(NEUTRAL, [
-    [0, "قبائل", { cx: 420, cy: 700, s: 1.3 }, 1.4],
-    [1, "باب", { cx: 400, cy: 640, s: 1.3 }, 1.0],
-    [1, "الإسلام", { cx: 760, cy: 720, s: 1.2 }, 1.2],
-  ]);
-  void t;
-  const both = (
-    <g>
-      <Line04 k4={1} veer={1} />
-      <path d={`M${K4 - 40} ${TY - 40} C600 ${TY - 120} 400 ${TY - 120} 240 ${TY - 60}`} fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="10 10" opacity={arrow} />
-      <path d={`M240 ${TY - 60} l20 -14 l-2 20 z`} fill={C.inkSoft} opacity={prog(arrow, 0.9, 1)} />
-    </g>
-  );
-  return (
-    <Leaf q={q} id="b4fa" cam={cam}
-      L={<g>{both}
-        <Dot x={240} y={TY - 60} q={far} r={12} />
-        <path d={`M${K4} ${TY + 100} C600 ${TY + 90} 400 ${TY + 96} 220 ${TY + 92}`} fill="none" stroke={C.ribbon} strokeWidth={3} strokeDasharray="4 8" opacity={long} />
-        <g opacity={mark} transform={`translate(240 ${mix(150, 260, settle)})`}>
-          <path d="M-22 -120 H22 V140 L0 118 L-22 140 Z" fill={C.ribbon} stroke={C.ink} strokeWidth={2} />
-        </g>
-        <Write id="b4fa-n" x={360} y={TY - 130} size={30} p={name} label="جزيرة العرب قبل الإسلام" font="tajawal" />
-      </g>}
-      R={<g>{both}<Tab x={1740} y={200} q={tab} label="رواية · ابن عباس" /></g>} />
+      R={both} />
   );
 });
 
@@ -732,15 +421,16 @@ const WhatRemains = reverent((q) => {
   const { t, S } = k;
   const title = k.draw(0, "بقي", 0.9);
   const knot = k.on(0, "العقدة", 0.6);
+  // نص المراجعة العلمية (الدفعة ٥): «أن الإنسان خُلق على الحق، وأن الانحراف يأتي بعد ذلك ممن يصرفه عنه»
   const one = k.on(1, "أولا");
-  const wide = S === 1 ? bounce(t, k.at("الانحراف"), k.at("خطوة") + 0.4) : 0;
-  const small = k.on(1, "خطوة", 0.8);
-  const circ = k.draw(1, "بريئة", 0.8);
+  const haqq = S === 1 ? bounce(t, k.at("الحق"), k.at("الحق") + 1.0) : 0;
+  const wide = k.on(1, "الانحراف", 1.0);
+  const circ = k.draw(1, "يصرفه", 0.8);
   const l2 = k.draw(2, "محبة", 0.9);
   const ok = k.draw(2, "حق", 0.6);
   const mub = k.draw(2, "المبالغة", 0.8);
   const red = k.draw(2, "خطير", 0.7);
-  const ang = 3 + 32 * wide * (1 - small) + (S === 1 && small < 1 ? 0 : 0);
+  const ang = 3 + 32 * wide;
   const cam = k.cam(NEUTRAL, [[1, "الانحراف", { cx: 1365, cy: 440, s: 1.25 }, 1.0], [2, "محبة", { cx: 1365, cy: 640, s: 1.2 }, 1.0]]);
   return (
     <Leaf q={q} id="b4wr" cam={cam}
@@ -750,6 +440,7 @@ const WhatRemains = reverent((q) => {
         <Txt x={1690} y={420} size={44} q={one} font="amiri">١</Txt>
         {S >= 1 ? (
           <g>
+            {haqq > 0 ? <path d="M1620 440 H1100" stroke={C.gold} strokeWidth={14} opacity={0.35 * haqq} /> : null}
             <Ink d="M1620 440 H1100" p={one} w={3} c={C.inkSoft} />
             <path d={`M1620 440 L${1620 - 520 * Math.cos((ang * Math.PI) / 180)} ${440 + 520 * Math.sin((ang * Math.PI) / 180)}`} stroke={C.ink} strokeWidth={5} opacity={one} />
             <Ring x={1620} y={440} r={70} p={circ} c={C.ribbon} />
@@ -838,7 +529,7 @@ const ClosingSlip = reverent((q) => {
           <BlankLine x={0} y={30} w={320} p={line} pen={pen} touch={pen > 0.9 ? 1 : 0} />
         </Slip>
         <Stele x={800} y={680} q={1} dotted h={170} />
-        <Card id="b4cs-c" x={800} y={750} q={1 - fade} memo={1} />
+        <Card id="b4cs-c" x={800} y={750} q={1 - fade} memo={0} />
         <Ring x={800} y={600} r={110} p={alone} dash c={C.inkSoft} />
       </g>} />
   );
@@ -858,17 +549,8 @@ export const BD04_SCENES: Record<string, React.FC<BdProps>> = {
   "bd04-straight-line": StraightLine,
   "bd04-hadith-lead": HadithLead,
   "bd04-veer": Veer,
-  "bd04-three-steps": ThreeSteps,
   "bd04-five-slots": FiveSlots,
-  "bd04-majlis": Majlis,
-  "bd04-five-stelae": FiveStelae,
-  "bd04-open-book-path": OpenBookPath,
-  "bd04-closed-book": ClosedBook,
-  "bd04-stele-erode": SteleErode,
-  "bd04-unknown-form": UnknownForm,
-  "bd04-knowledge-guard": KnowledgeGuard,
   "bd04-knot-placed": KnotPlaced,
-  "bd04-far-arrow": FarArrow,
   "bd04-what-remains": WhatRemains,
   "bd04-thread-forward": ThreadForward,
   "bd04-next-knot": NextKnot,
@@ -877,7 +559,4 @@ export const BD04_SCENES: Record<string, React.FC<BdProps>> = {
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */
 export const BD04_STILLS: Record<string, string> = {
-  "bd04-five-stelae": "c1-s24",
-  "bd04-three-steps": "c1-s33",
-  "bd04-knowledge-guard": "c1-s34",
 };
