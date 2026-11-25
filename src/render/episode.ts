@@ -235,6 +235,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       ...(opts.scenePreview ? { enforceAudioTrack: true } : {}),
       outputLocation: tempOutput,
       browserExecutable: browserExecutable(),
+      ...(q.concurrency ? { concurrency: q.concurrency } : {}),
+      ...(q.timeoutMs ? { timeoutInMilliseconds: q.timeoutMs } : {}),
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
     // المرحلة A (المهمة ٣): ما يُنشر (الحلقة والشورتس) بعلو −14 LUFS بقياسين وكسب خطي (src/studio/quality/normalize.ts)
