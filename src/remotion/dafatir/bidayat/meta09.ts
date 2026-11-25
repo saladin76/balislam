@@ -5,8 +5,6 @@ export const BD09_META: Record<string, HzMeta> = {
   "bd09-road": { nameAr: "البدايات ٩ · الطريق المتفرّع (من أعلى)", tail: 1.2, exit: "fade" },
   "bd09-knots": { nameAr: "البدايات ٩ · الخيط بعقده الثماني والعقدة التاسعة الفارغة", tail: 1.0, exit: "fade" },
   "bd09-after-water": { nameAr: "البدايات ٩ · عودة الأفق مع انحسار الماء", tail: 1.0, exit: "fade" },
-  "bd09-blanks": { nameAr: "البدايات ٩ · ثلاث خانات تبقى فارغة", tail: 1.0, exit: "fade" },
-  "bd09-margin": { nameAr: "البدايات ٩ · حدّ الدفتر: الهامش الأحمر (شجرة بلا أسماء بانتظار الاعتماد)", tail: 1.0, exit: "turn" },
   "bd09-ledger": { nameAr: "البدايات ٩ · سجل بأربعة أسطر وأختامها", tail: 1.0, exit: "fade" },
   "bd09-hadith-lead": { nameAr: "البدايات ٩ · رقعة الحديث تنبسط", tail: 0.8, exit: "none" },
   "bd09-gate-word": { nameAr: "البدايات ٩ · باب التعارف", tail: 1.0, exit: "fade" },
