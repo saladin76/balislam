@@ -376,7 +376,7 @@ const OneNumber = reverent((q) => {
         <Write id="b5n-l" x={1365} y={400} size={40} p={label} label="الرقم الوحيد" font="tajawal" color={C.inkSoft} />
         <Write id="b5n-n" x={1365} y={558} size={50} p={num} label="تسعمئة وخمسون سنة" />
         <Write id="b5n-m" x={1365} y={690} size={40} p={lab} label="مدة لبثه في قومه" font="tajawal" color={C.ink} />
-        <GoldSeal x={1730} y={540} q={seal} label="العنكبوت ١٤" />
+        <GoldSeal x={1590} y={790} q={seal} label="العنكبوت ١٤" />
         <Ink d="M1365 730 V800 H1120" p={before} w={3} c={C.inkSoft} />
         <rect x={1020} y={770} width={100} height={60} rx={6} fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="8 6" opacity={prog(before, 0.8, 1)} />
       </g>} />

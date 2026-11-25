@@ -369,10 +369,10 @@ const FiveSlots = reverent((q) => {
             </g>
           );
         })}
-        <Q x={1365} y={430} size={90} q={qm} />
+        <Q x={1365} y={330} size={90} q={qm} />
         <g opacity={1 - 0.6 * halt}><Arrow d="M1365 650 C1365 740 1440 780 1560 800" p={arrow} hx={1560} hy={800} ang={8} dashed /></g>
         <path d="M1590 770 V830" stroke={C.ink} strokeWidth={6} strokeLinecap="round" opacity={halt} />
-        <Tab x={1760} y={790} q={tab} label="أثر · في إسناده خلاف" color={C.inkSoft} />
+        <Tab x={1760} y={860} q={tab} label="أثر · في إسناده خلاف" color={C.inkSoft} />
       </g>} />
   );
 });

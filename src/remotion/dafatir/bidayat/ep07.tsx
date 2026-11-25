@@ -583,7 +583,7 @@ const Edge = reverent((q) => {
       <Clay o={0.6} wet={0.4} />
       <Cracks p={1} w={3} o={0.4} />
       <defs>
-        <linearGradient id="b7ed-fade" x1="0" x2="1" y1="0" y2="0">
+        <linearGradient id="b7ed-fade" gradientUnits="userSpaceOnUse" x1={x2} x2={x1} y1={W} y2={W}>
           <stop offset="0" stopColor={WATER} stopOpacity={1 - 0.95 * fadeEnds} />
           <stop offset="0.18" stopColor={WATER} stopOpacity={1} />
           <stop offset="0.82" stopColor={WATER} stopOpacity={1} />
