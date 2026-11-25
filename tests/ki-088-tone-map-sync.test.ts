@@ -12,6 +12,8 @@ const read = (f: string) => readFileSync(path.join(E, f), "utf8");
 const v167 = read("tone-map.v1.67.json"); // the map as the master gate refused it (18 Nov)
 const current = JSON.parse(read("tone-map.json"));
 const tashkeel = read("tashkeel.md");
+/** مشاهد تغيّر نصها بقرار المالك بعد الإصدار المؤرشف v1.67 (البند ١٠٣، ٢٥ نوفمبر): خارج إعادة إنتاج ١٨ نوفمبر */
+const CHANGED_AFTER = new Set(["c1-s40"]);
 const plan = JSON.parse(read("plan.json")) as Plan;
 const map = JSON.parse(v167);
 const inPlan = new Set(plan.chapters.flatMap((c) => c.scenes.map((x) => x.id)));
@@ -25,8 +27,9 @@ describe("KI-088: the tone map follows the current tashkeel, by text", () => {
 
   it("matches all 84 segments to their lines by text, in order; nothing unmatched", () => {
     const r = analyzeToneMapSync(map.segments, tashkeel);
-    expect(r.unmatched).toEqual([]);
-    expect(r.rows).toHaveLength(map.segments.length);
+    // البند ١٠٣ (٢٥ نوفمبر): نص c1-s40 تغيّر بقرار المالك بعد v1.67، فمقاطعه القديمة وحدها بلا سطر
+    expect(r.unmatched.filter((x) => !CHANGED_AFTER.has(x.scene))).toEqual([]);
+    expect(r.rows.length + r.unmatched.length).toBe(map.segments.length);
     expect(map.segments.length).toBe(84); // owner-pin-ok: the archived v1.67 as the gate refused it, not live content
   });
 
@@ -39,16 +42,18 @@ describe("KI-088: the tone map follows the current tashkeel, by text", () => {
   });
 
   it("owner decision «لا تغيّر شيئًا في النطق الحالي»: every text stays as recorded; the differing words become written exceptions", () => {
-    const r = syncToneMap(v167, tashkeel, { at: "2026-11-18T23:00:00.000Z", plan: read("plan.json"), script: read("script.md"), keepRecorded: true, dropScenes });
+    // c1-s40 تغيّر نصه بعد v1.67 (البند ١٠٣): يُستبعد من إعادة الإنتاج، والخطة تُقرأ بدونه
+    const planRepro = { ...plan, chapters: plan.chapters.map((c) => ({ ...c, scenes: c.scenes.filter((x) => !CHANGED_AFTER.has(x.id)) })) };
+    const r = syncToneMap(v167, tashkeel, { at: "2026-11-18T23:00:00.000Z", plan: JSON.stringify(planRepro), script: read("script.md"), keepRecorded: true, dropScenes: [...dropScenes, ...CHANGED_AFTER] });
     const next = JSON.parse(r.raw);
-    expect(() => validatePartsContext(next, plan, tashkeel)).not.toThrow();
+    expect(() => validatePartsContext(next, planRepro, tashkeel)).not.toThrow();
     expect(dropScenes).toEqual(["c1-s1"]); // owner-pin-ok: the reproduction is fixed to the archived v1.67 and the 16 Nov plan // the basmala scene left the plan on 16 Nov; its part cannot be voiced anyway
     expect(next.previous.at(-1)).toEqual({ version: map.version, path: `tone-map.${map.version}.json` });
     for (const k of ["decisions", "sceneTones", "recitations", "direction", "legend", "order"]) expect(next[k], k).toEqual(map[k]);
     const old = new Map(map.segments.map((x: { id: string }) => [x.id, x]));
     for (const x of next.segments) for (const k of ["text", "marked", "emphasis", "tone", "pauses", "speed", "wpm", "feel", "transition", "audioPart"]) expect(x[k], `${x.id}.${k}`).toEqual((old.get(x.id) as Record<string, unknown>)[k]);
     expect(r.changedScenes).toEqual([]);
-    expect(next.tashkeelSyncs.at(-1).keptRecorded.segments.map((x: { id: string }) => x.id)).toEqual(["s099", "s102", "s125", "s147", "s162"]); // owner-pin-ok: the five words kept as recorded on 18 Nov, against the archived v1.67
+    expect(next.tashkeelSyncs.at(-1).keptRecorded.segments.map((x: { id: string }) => x.id)).toEqual(["s099", "s102", "s125", "s162"]); // owner-pin-ok: the four words kept as recorded against the archived v1.67 (s147 left with c1-s40, item 103): the five words kept as recorded on 18 Nov, against the archived v1.67
   });
 
   it("the map on main (v1.68) passes the gate as is", () => {

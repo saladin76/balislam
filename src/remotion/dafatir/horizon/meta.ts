@@ -57,7 +57,7 @@ export const EP001_META: Record<string, HzMeta> = {
   stances: { nameAr: "موقفان: استكبر وأصر / تاب وأناب، وباب التوبة", tail: 1.6, exit: "turn" },
   "earth-words": { nameAr: "مستقر ومتاع إلى حين، وحياة وموت وإخراج", tail: 1.2, exit: "fade" },
   bridge: { nameAr: "نقطة التحول: أفق الخبر يتصل بأفق التاريخ البشري", tail: 1.4, exit: "fade" },
-  "no-map": { nameAr: "خريطة بلا معالم: روايات، ودبوس لا يستقر، وتاريخ فارغ", tail: 1.4, exit: "fade" },
+  "no-map": { nameAr: "خريطة بلا معالم: الهبوط إلى الأرض، ودبوس لا يستقر، وعلامات استفهام", tail: 1.4, exit: "fade" },
   limit: { nameAr: "نؤمن به ونثبته، ولا نزيد عليه إلا بدليل", tail: 1.6, exit: "turn" },
   "gen-fan": { nameAr: "النسل مراوح أجيال من أصل واحد (النساء 1)", tail: 1.2, exit: "fade" },
   lineline: { nameAr: "خط الأجيال: معايش تتنوع، وفجوات بلا سجل، وأسئلة", tail: 1.4, exit: "fade" },
