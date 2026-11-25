@@ -82,7 +82,7 @@ export const decideSceneProduction = async (episode: string,
       masterEpoch = undefined;
       next = submitAssembly(p, resultSha256);
     } else if (command.action === "approve-assembly") {
-      if (command.confirmedWatched !== true) throw Error("Watch the full assembled episode at 1× first.");
+      // قرار المالك (٢٥ نوفمبر، D223): اعتماد التجميع بضغطة واحدة، بلا شرط مشاهدة ١× ولا تعليم الوصلات (في القنوات الثلاث)
       const file = assemblyFile(current.scriptPath);
       await verifyVideoEvidence(file);
       resultSha256 = await byteSha256(file);
@@ -90,8 +90,7 @@ export const decideSceneProduction = async (episode: string,
       if (!assemblyEpoch || assemblyEpoch !== await fileGeneration(file))
         throw Error("Assembled episode changed after it was recorded; record it again.");
       masterEpoch = undefined;
-      next = approveAssembly(p, { by, at, videoSha256: resultSha256, watchedFullEpisodeAt1x: true,
-        seamsChecked: command.seamsChecked ?? [] });
+      next = approveAssembly(p, { by, at, videoSha256: resultSha256 });
     } else if (command.action === "grant-publish") {
       if (command.confirmedWatched !== true) throw Error("Confirm the publish decision explicitly.");
       const file = masterFile(current.scriptPath);
@@ -101,7 +100,7 @@ export const decideSceneProduction = async (episode: string,
         throw Error("Master changed after the owner's final approval.");
       next = grantPublish(p, { by, at, masterSha256: resultSha256 });
     } else if (command.action === "approve-master") {
-      if (command.confirmedWatched !== true) throw Error("Full-episode human 1× review is required.");
+      // D223: «اعتمد النسخة النهائية» بضغطة واحدة، بلا تتبع للمشاهدة
       const file = masterFile(current.scriptPath);
       await verifyVideoEvidence(file);
       resultSha256 = await byteSha256(file);

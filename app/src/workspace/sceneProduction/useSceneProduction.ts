@@ -182,11 +182,10 @@ export const useSceneProduction = (props: SceneProductionProps) => {
     const fail = (msg: string) => { setError(msg); return false; };
     const note = noteText ?? noteDraft;
     if (!data || pending) return false;
-    if (["approve-script", "approve-storyboard", "approve-scene", "approve-assembly", "approve-master", "grant-publish"].includes(action) && !reviewed)
+    // D223: اعتماد التجميع والنسخة النهائية بضغطة واحدة (بلا تأكيد مشاهدة ولا وصلات)
+    if (["approve-script", "approve-storyboard", "approve-scene", "grant-publish"].includes(action) && !reviewed)
       return fail("أكّد المراجعة البشرية الفعلية قبل الاعتماد.");
     const seamsChecked = action === "approve-assembly" ? (data.seams ?? []).filter((x) => seams[x]) : undefined;
-    if (action === "approve-assembly" && seamsChecked!.length !== (data.seams ?? []).length)
-      return fail("افحص كل وصلة بين مشهدين في النسخة المجمعة وعلّمها قبل اعتماد التجميع.");
     if (action === "correct-scene" && !note.trim())
       return fail("اكتب ملاحظة التصحيح قبل إعادة المشهد.");
     setPending(true);

@@ -115,8 +115,7 @@ describe("Studio scene-first audiovisual review", () => {
     // No Master before the assembled cut and every seam are approved.
     expect(() => approveFinalMaster(p, master)).toThrow(/transitions/);
     expect(sceneSeams(p)).toEqual(["c1-s1>c1-s2"]);
-    expect(() => approveAssembly(p, { by: "owner", at, videoSha256: h("1"), watchedFullEpisodeAt1x: true, seamsChecked: [] }))
-      .toThrow(/transition/);
+    // D223: الوصلات لا تُشترط لاعتماد التجميع (تُسجَّل كلها في الاعتماد)
     expect(() => approveAssembly(p, { by: "owner", at, videoSha256: h("3"), watchedFullEpisodeAt1x: true, seamsChecked: ["c1-s1>c1-s2"] }))
       .toThrow(/current assembly/);
     const assembled = approveAssembly(p, { by: "owner", at, videoSha256: h("1"), watchedFullEpisodeAt1x: true, seamsChecked: ["c1-s1>c1-s2"] });
