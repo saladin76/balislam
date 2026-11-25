@@ -9,6 +9,9 @@
  * - الصورة لا تكرر العنوان: كلمات الغلاف لا تكون كلها من عنوان واحد من عناوين الحلقة؛
  * - لا غلافان بالنص نفسه، والسؤال ينتهي بـ«؟»، ولا أثر لأدوات الإنتاج ولا إثارة رخيصة؛
  * - غلاف المشهد من مشهد في الخطة، وليس مشهد آية أو بسملة أو دعاء أو حديث (توقير).
+ * - مشهد عادي في كلامه ذكر لله (D196 v6، قرار المالك ٢٥ نوفمبر): يُؤخذ غلافه من لحظة لا ذكر فيها — `atSeconds` لازم،
+ *   ويقع في عبارة بلا ذكر (العبارة بين علامتي ترقيم . ؟ ! ، ؛ :)، خارج نافذة ±٠٫٢٥ ث حول كل ذكر لله وخارج الدعاء،
+ *   بتوقيت كلمات الصوت الحقيقي (`coverStillWindows`). بلا توقيت حقيقي يُرفض المشهد كله كما كان.
  * - بؤرة اللقطة (`focus`) لا تقطع نصًا من المشهد عند حافة الغلاف: كل كلمة في اللقطة داخل الإطار كلها أو خارجه كلها
  *   (يُراجَع بالعين عند اختيار البؤرة؛ لا فحص آلي لموضع النص داخل صورة المشهد).
  * - لا غلاف يشطب كلمات من القرآن أو يقطعها بخط أو علامة، ولو كانت على لسان إبليس أو غيره (قرار المالك ٢٣ نوفمبر:
@@ -19,6 +22,8 @@
  */
 import { normalizeArabic } from "../script/quranMeta";
 import { findTraces } from "./traces";
+import { isSacredSentence } from "../plan/sceneCues";
+import { SACRED_WORD, duaRanges } from "../render/stillnessSpans";
 
 export const THUMB_KINDS = ["title", "scene", "question"] as const;
 export type ThumbKind = (typeof THUMB_KINDS)[number];
@@ -60,7 +65,12 @@ export type ThumbnailConcept = {
 export type ThumbIssue = { level: "error" | "warning"; where: string; message: string; suggestion?: string };
 /** ما يلزم الفحص من الخطة: المشاهد (لغلاف المشهد) والعناوين (لقاعدة «لا تكرر العنوان»). */
 export type ThumbContext = { titles: string[]; scenes?: ThumbScene[] };
-export type ThumbScene = { id: string; sacred: boolean };
+/**
+ * sacred: مشهد آية أو بسملة أو دعاء أو حديث أو شاشة النهاية — لا يُستعمل غلافًا أبدًا (`isSacredScene`).
+ * dhikr: في كلام المشهد ذكر لله أو دعاء أو اقتباس؛ يُقبل غلافه من لحظة خارج `still` وحدها (D196 v6).
+ * still: نوافذ (بالثواني من بداية المشهد) لا تُؤخذ منها لقطة؛ غيابها = لا توقيت حقيقي فلا تُعرف لحظة آمنة.
+ */
+export type ThumbScene = { id: string; sacred: boolean; dhikr?: boolean; still?: [number, number][] };
 
 const norm = (s: string) => normalizeArabic(s).replace(/[^\p{L}\p{N}\s]/gu, " ").replace(/\s+/g, " ").trim();
 /** كلمات الغلاف كما تُقرأ على الصورة (علامات الترقيم لا تُعد كلمة). */
@@ -72,6 +82,45 @@ const CLICKBAIT = ["لن تصدق", "صادم", "صدمه", "كارثه", "فض�
 export const isSacredScene = (s: { template: string; ayahKey?: string; props?: Record<string, string> }): boolean =>
   Boolean(s.ayahKey || s.props?.verseKey || s.props?.verseText || s.props?.basmala) ||
   ["verse-card", "dua-board", "hadith-card", "end-screen"].includes(s.template) || /basmala|بسمل/i.test(s.props?.shot ?? "");
+
+/** حول كل ذكر لله (كالسكون المقصود في stillnessSpans) */
+export const COVER_SACRED_PAD = 0.25;
+type TimedVoiceWord = { word: string; start: number; end: number };
+/**
+ * D196 v6: نوافذ المشهد التي لا يُؤخذ منها غلاف، بالثواني من بداية المشهد (كلمات الصوت كما يرسمها المشهد: HorizonShot
+ * يقرؤها بلا إزاحة، timelineFromWords(…, 0)): كل عبارة فيها ذكر لله أو دعاء أو اقتباس (isSacredSentence) كاملة، وكل كلمة
+ * ذكر (SACRED_WORD) والدعاء المقتبس (duaRanges)، كلها ±٠٫٢٥ ث. العبارة تنتهي بـ. ؟ ! ، ؛ : ولا تنتهي داخل «…».
+ * undefined إن لم يطابق عدد كلمات الصوت نص المشهد (لا تُخمَّن لحظة آمنة).
+ */
+export const coverStillWindows = (narration: string, words: TimedVoiceWord[]): [number, number][] | undefined => {
+  const toks = narration.split(/\s+/).filter((w) => w && w !== "|");
+  if (!toks.length || toks.length !== words.length) return undefined;
+  const P = COVER_SACRED_PAD;
+  const out: [number, number][] = [];
+  let from = 0, quote = 0;
+  toks.forEach((tok, i) => {
+    quote += (tok.match(/[«﴿]/g)?.length ?? 0) - (tok.match(/[»﴾]/g)?.length ?? 0);
+    if ((quote <= 0 && /[.؟?!،,؛:]["»﴾)]*$/.test(tok)) || i === toks.length - 1) {
+      if (isSacredSentence(toks.slice(from, i + 1).join(" "))) out.push([words[from]!.start - P, words[i]!.end + P]);
+      from = i + 1; quote = Math.max(0, quote);
+    }
+  });
+  words.forEach((w, i) => { if (SACRED_WORD.test(normalizeArabic(toks[i]!))) out.push([w.start - P, w.end + P]); });
+  for (const [a, b] of duaRanges(toks)) out.push([words[a]!.start - P, words[b]!.end + P]);
+  return out.sort((x, y) => x[0] - y[0]);
+};
+
+/** مشاهد الخطة لفحص الأغلفة: المقدس دائمًا، ونوافذ الذكر من كلمات الصوت الحالي إن طابق نص المشهد. */
+export const thumbScenes = (
+  scenes: { id: string; template: string; narration?: string; ayahKey?: string; props?: Record<string, string> }[],
+  voice?: Record<string, { text: string; words: TimedVoiceWord[] } | undefined>,
+): ThumbScene[] => scenes.map((s) => {
+  const narration = s.narration ?? "";
+  const clip = voice?.[s.id];
+  const dhikr = isSacredSentence(narration) || SACRED_WORD.test(normalizeArabic(narration));
+  const still = dhikr && clip && clip.text.trim() === narration.trim() ? coverStillWindows(narration, clip.words) : undefined;
+  return { id: s.id, sacred: isSacredScene(s), ...(dhikr ? { dhikr } : {}), ...(still ? { still } : {}) };
+});
 
 /** كل كلمات الغلاف موجودة في عنوان واحد = الغلاف يكرر العنوان. */
 const repeatsTitle = (text: string, titles: string[]) => {
@@ -122,6 +171,13 @@ export const thumbnailIssues = (concepts: ThumbnailConcept[] | undefined, ctx: T
         const s = sceneById.get(c.sceneId);
         if (!s) err(where, `المشهد ${c.sceneId} ليس في خطة الحلقة.`);
         else if (s.sacred) err(where, `المشهد ${c.sceneId} مشهد آية أو بسملة أو دعاء؛ لا يُستعمل غلافًا.`);
+        else if (s.dhikr) {
+          // D196 v6: لحظة بلا ذكر من المشهد نفسه، لا المشهد كله
+          const at = c.atSeconds;
+          if (!s.still) err(where, `في كلام المشهد ${c.sceneId} ذكر لله ولا توقيت لكلمات صوته يطابق نصه؛ لا تُعرف لحظة خالية من الذكر، فلا يُستعمل غلافًا بعد.`);
+          else if (at === undefined || !Number.isFinite(at)) err(where, `في كلام المشهد ${c.sceneId} ذكر لله: حدّد لحظة اللقطة في عبارة لا ذكر فيها.`);
+          else if (s.still.some(([a, b]) => at >= a && at <= b)) err(where, `لحظة اللقطة ${at} ث من المشهد ${c.sceneId} في عبارة فيها ذكر الله أو قريبة منه؛ اختر لحظة في عبارة لا ذكر فيها.`);
+        }
       }
       if (c.atSeconds !== undefined && !(Number.isFinite(c.atSeconds) && c.atSeconds >= 0)) err(where, "لحظة اللقطة غير صالحة.");
     }

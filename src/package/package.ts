@@ -22,7 +22,7 @@ import { unlink } from "node:fs/promises";
 import type { Plan } from "../plan/types";
 import type { PublishKit } from "./social";
 import { sceneStartsFor } from "./chapters";
-import { THUMB_KIND_LABEL, THUMB_ON_HOLD, conceptOrder, isSacredScene, renderableConcepts, thumbnailIssues } from "./thumbnails";
+import { THUMB_KIND_LABEL, THUMB_ON_HOLD, conceptOrder, renderableConcepts, thumbScenes, thumbnailIssues } from "./thumbnails";
 
 /** عنوان الشورت من حزمة النشر (publish.json ← shorts، بالترتيب نفسه)، أو عنوان المقطع في الخطة؛ بلا حزمة ولا عنوان: لا شيء */
 export const shortTitleFor = async (scriptPath: string, seg: { n: number; title?: string }): Promise<string | undefined> => {
@@ -130,7 +130,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const kit = existsSync(kitFile) ? JSON.parse(await readFile(kitFile, "utf8")) : generatePublishKit(plan, script, media, channel);
     if (!existsSync(kitFile)) await writeFile(kitFile, JSON.stringify(kit, null, 2) + "\n");
     // جودة النشر: لا عنوان عام ولا جملة مكررة ولا نص مبتور ولا وسم مكرر (قبل أي رندر مكلف)
-    const kq = kitIssues(kit, { ...thumbCtx(plan), starts: sceneStartsFor(plan, media, channelInfo(channel), real),
+    const kq = kitIssues(kit, { ...thumbCtx(plan, media.voice), starts: sceneStartsFor(plan, media, channelInfo(channel), real),
       channel: channel.id, book: ((parseScript(script).frontmatter ?? {}) as { book?: string }).book, series: plan.series?.name });
     if (kq.some((i) => i.level === "error")) throw new Error(kitBlockMessage(kq));
     await writeFile(path.join(dir, "social.md"), kitToMarkdown(kit, plan.title, chaptersText(plan, media, channelInfo(loadChannel()), real, kit.long.chapters)));
@@ -147,7 +147,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
   if (plan.series) assertNoTraces([{ name: "السلسلة", text: [plan.series.name, plan.series.template.publish?.titlePattern ?? "", plan.series.template.publish?.playlist ?? "", ...(plan.series.template.publish?.tags ?? [])].join("\n") }]);
 
   // الأغلفة الثلاثة (عنوان، مشهد، سؤال) مع النسخة الأساسية فقط؛ الحلقة القديمة بلا أغلفة: العنوان والبديلان كما كان
-  if (stage === "episode") files.push(...await renderThumbnailSet({ scriptPath, script, plan, dir, id, lang, onProgress: log }));
+  if (stage === "episode") files.push(...await renderThumbnailSet({ scriptPath, script, plan, dir, id, lang, onProgress: log, voice: media.voice }));
 
   if (!opts.skipVideo) {
     let last = -1;
@@ -230,10 +230,10 @@ const writeHandoffSet = async (dir: string, id: string, files: string[]) => {
   await writeFile(handoffSetFileFor(dir, id), JSON.stringify(set, null, 2) + "\n");
 };
 
-/** سياق فحص الأغلفة من الخطة: عنوان الحلقة ومشاهدها (المشهد موجود وليس آية). */
-export const thumbCtx = (plan: Plan) => ({
+/** سياق فحص الأغلفة من الخطة: عنوان الحلقة ومشاهدها (المشهد موجود وليس آية، ولحظته خارج الذكر بكلمات الصوت، D196 v6). */
+export const thumbCtx = (plan: Plan, voice?: Parameters<typeof thumbScenes>[1]) => ({
   title: plan.title,
-  scenes: plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, sacred: isSacredScene(s) })),
+  scenes: thumbScenes(plan.chapters.flatMap((c) => c.scenes), voice),
 });
 
 /**
@@ -242,7 +242,8 @@ export const thumbCtx = (plan: Plan) => ({
  */
 const FRAME_FROM_LABEL = { master: "من Master", still: "من لقطة 4K للمشهد", cut: "من فيديو المشهد 1080 (تعذّرت لقطة 4K)" } as const;
 
-export const renderThumbnailSet = async (o: { scriptPath: string; script: string; plan: Plan; dir: string; id: string; lang: string; onProgress?: (m: string) => void }): Promise<string[]> => {
+export const renderThumbnailSet = async (o: { scriptPath: string; script: string; plan: Plan; dir: string; id: string; lang: string; onProgress?: (m: string) => void;
+  /** كلمات الصوت لكل مشهد (لحظة غلاف مشهد فيه ذكر، D196 v6) */ voice: Parameters<typeof thumbScenes>[1] }): Promise<string[]> => {
   const log = o.onProgress ?? (() => {});
   const { plan, dir, id } = o;
   const fm = (parseScript(o.script).frontmatter ?? {}) as { alt_titles?: string[]; thumbnail_element?: string; book?: string };
@@ -251,7 +252,7 @@ export const renderThumbnailSet = async (o: { scriptPath: string; script: string
   const kit = existsSync(kitFile) ? (JSON.parse(await readFile(kitFile, "utf8")) as PublishKit) : null;
   const concepts = kit?.long.thumbnails;
   if (concepts) {
-    const bad = thumbnailIssues(concepts, { titles: [plan.title, ...kit!.long.titles.map((t) => t.text)], scenes: thumbCtx(plan).scenes }).filter((i) => i.level === "error");
+    const bad = thumbnailIssues(concepts, { titles: [plan.title, ...kit!.long.titles.map((t) => t.text)], scenes: thumbCtx(plan, o.voice).scenes }).filter((i) => i.level === "error");
     if (bad.length) throw new Error(`الأغلفة الثلاثة لا تحقق قواعدها (عدّلها من «٤ النشر ← الأغلفة الثلاثة»): ${bad.map((i) => `${i.where}: ${i.message}`).join(" | ")}`);
   }
   for (const f of await readdir(dir)) if (new RegExp(`^${id}-thumbnail-\\d+\\.png$`).test(f)) await unlink(path.join(dir, f));
@@ -310,7 +311,7 @@ export const makeThumbnails = async (episode: string, onProgress?: (m: string) =
   await mkdir(dir, { recursive: true });
   const id = plan.episode || episode;
   const lang = plan.lang ?? loadChannel().language;
-  const names = await renderThumbnailSet({ scriptPath, script, plan, dir, id, lang, onProgress });
+  const names = await renderThumbnailSet({ scriptPath, script, plan, dir, id, lang, onProgress, voice: await (await import("../voice/generate")).loadVoiceIndex(episode) });
   await rebindThumbnails(dir, id, names);
   return { dir, files: names };
 };

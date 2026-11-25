@@ -64,10 +64,10 @@
         "kind": "scene",
         "text": "باب التوبة",
         "sceneId": "c1-s35",
-        "atSeconds": 14.5,
+        "atSeconds": 14.9,
         "focus": {
-          "x": 0.9,
-          "y": 0.46,
+          "x": 0.78,
+          "y": 0.39,
           "zoom": 1.55
         }
       },
