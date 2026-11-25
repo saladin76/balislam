@@ -288,6 +288,39 @@ export const SAFE_LIFT = 40;
 export const LiveFrameContext = React.createContext<{ s: number; y: number } | null>(null);
 /** أقل cy لكاميرا الدفتر يُبقي CONTENT_BOTTOM فوق CAPTION_TOP: ((B − cy)·s)·ls + 540 + ly ≤ CAPTION_TOP */
 export const captionSafeCy = (s: number, live: { s: number; y: number }) => CONTENT_BOTTOM - (CAPTION_TOP - 540 - live.y) / (s * live.s);
+/** أطول رفع للكادر (بإحداثيات العالم) يقبله تقييد الترجمة قبل أن يتنازل التكبير؛ تحته يبقى التقييد كما كان */
+export const SAFE_SHIFT = 120;
+/** هامش أعلى الإطار لما يُحفظ في الكادر (عنوان الصفحة وما أعلنه المشهد) */
+export const TOP_MARGIN = 12;
+/** أعلى عنوان الصفحة pageHead (WriteIn بحجم ٥٤ على سطره y) في عالم الدفتر */
+export const pageHeadTop = (y: number) => y - 62;
+/**
+ * D217، تصحيح (مراجعة v17، ٢٤ نوفمبر): تقييد الترجمة كان يرفع الكادر وحده مهما كبر الرفع، فالمشهد المكبَّر على أعلى الصفحة
+ * (cy ٣٠٠–٤٠٠ بتكبير ١٫٣–١٫٨) يُدفع ٢٠٠–٣٧٠ نقطة فيخرج من أعلى الإطار ما كانت الكاميرا تنظر إليه: عنوان الصفحة، وختم السورة،
+ * وإطار السؤال، فتبقى صفحة فارغة والراوي يتكلم. الآن:
+ * - إن احتاج الحفاظ على الترجمة رفعًا أكبر من SAFE_SHIFT تنازل التكبير (حتى الدفتر كله، k = 1) فلا يبتعد ما يُنظر إليه عن الإطار؛
+ * - وما يُعلن حفظه أعلى الصفحة (keep.top: عنوان الصفحة، رأس بطاقة، عنوان مكتوب) يبقى داخل الإطار بهامش TOP_MARGIN، بتصغير التكبير
+ *   حتى يتسع الإطار للشريط [top، bottom] كله فوق الترجمة؛
+ * - keep.bottom أسفل ما يُرسم إن كان تحت CONTENT_BOTTOM (أرض لقطة قديمة).
+ * دالة خالصة متصلة في مدخلاتها (لا قفز)، وتثبت إن ثبتت الكاميرا (نوافذ الذكر والآية).
+ */
+export const frameSafeCam = <T extends { cx: number; cy: number; s: number }>(cam: T, live: { s: number; y: number }, keep: { top?: number; bottom?: number } = {}): T => {
+  const B = keep.bottom ?? CONTENT_BOTTOM;
+  const A = CAPTION_TOP - 540 - live.y;
+  const k0 = cam.s * live.s;
+  let k = k0;
+  if (cam.cy < B - A / k - SAFE_SHIFT) k = Math.max(Math.min(k, 1), A / (B - cam.cy - SAFE_SHIFT));
+  if (keep.top !== undefined) k = Math.min(k, (CAPTION_TOP - TOP_MARGIN) / (B - keep.top));
+  const lo = B - A / k;
+  const hi = keep.top !== undefined ? keep.top + (540 + live.y - TOP_MARGIN) / k : Infinity;
+  return { ...cam, cy: Math.min(Math.max(cam.cy, lo), hi), s: k === k0 ? cam.s : k / live.s };
+};
+/** كاميرا اللقطات القديمة (بلا Book) داخل الإطار الآمن بوضع الكاميرا الحية الحالي؛ بلا وضع حي (الاختبارات والمختبر) كما هي */
+export const SafeCamera: React.FC<{ cx: number; cy: number; s: number; keep?: { top?: number; bottom?: number }; children: React.ReactNode }> = ({ keep, children, ...cam }) => {
+  const live = React.useContext(LiveFrameContext);
+  const c = live ? frameSafeCam(cam, live, keep) : cam;
+  return <Camera cx={c.cx} cy={c.cy} s={c.s}>{children}</Camera>;
+};
 /** ارتفاع بطاقة الآية على الصفحة (تقدير بسخاء من طول النص، كما يرسمها VerseCard) */
 export const verseCardHeight = (text: string) => {
   const len = text.length;

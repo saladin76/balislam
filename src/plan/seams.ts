@@ -20,6 +20,7 @@ import { defaultPauseMs, lastSentenceOf, paceExemption, pausedGap } from "../voi
 import { hasBasmala } from "../voice/basmala";
 import { engineEnabled } from "./engine";
 import { parseTransition, transitionIssues } from "./transitions";
+import { HZ_META } from "../remotion/dafatir/horizon/meta";
 
 export const SEAM = {
   /** ذوبان صورة المشهد السابق تحت التالي (الحد الأعلى) */
@@ -75,7 +76,10 @@ export const seamTarget = (scene: PlanScene, media: Pick<EpisodeMedia, "voice">)
 
 const keptReason = (a: PlanScene, b: PlanScene, after: PlanScene | undefined, media: Pick<EpisodeMedia, "voice" | "recitations">, channelId?: string): string | null => {
   if (a.template === "verse-card" || b.template === "verse-card") return "آية: الوقفة قبل التلاوة وبعدها مقصودة";
-  const ea = paceExemption(a, b), eb = paceExemption(b, after);
+  // D217: في «خط الأفق» لم يعد تمهيد الآية (verse-intro/verse-tag) ساكنًا كله — السكون على كلمات الذكر ونافذة البطاقة وحدهما
+  // (داخل المشهد)، فلا تُبقي الوصلة حوله ذيله وسكوته (تصحيح v17: ١٫٥ ث قبل البقرة ٣٠ و١٫١ ث بعدها). ذكر الله (dhikr) كما هو.
+  const exempt = (x: PlanScene, y?: PlanScene) => (x.template === "horizon-shot" && HZ_META[String(x.props?.shot ?? "")]?.still === "verse-intro" ? null : paceExemption(x, y));
+  const ea = exempt(a, b), eb = exempt(b, after);
   if (ea || eb) return (ea ?? eb)!.replace(/^.*?: /, "");
   if (hasBasmala(a.narration) || hasBasmala(b.narration) || media.voice[a.id]?.basmala || media.voice[b.id]?.basmala) return "البسملة: تسجيلك كما هو";
   if (!voicedClip(a, media) || !voicedClip(b, media)) return a.narration.trim() && b.narration.trim() ? "صوت أحد المشهدين لم يُركَّب بعد" : "مشهد بلا كلام: وقفة بصرية";

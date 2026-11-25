@@ -162,7 +162,8 @@ const Species: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       <QuranSeal x={cx - 290} y={200} o={seal * (front ? 1 : 0)} s={0.7} refText="لم يسمّها" />
     </g>
   );
-  return <Book id="c52" t={t} dur={dur} exit={exit} cam={cam} R={R} />;
+  // تصحيح D217 (v17): رأس البطاقة «بطاقة فهرسة» لا يخرج من أعلى الإطار في الاقتراب من الاحتمالات
+  return <Book id="c52" t={t} dur={dur} exit={exit} cam={cam} R={R} keepTop={296} />;
 };
 
 // ─── c5-s3: تحذير من عداوة الشيطان (امتداد لختام الفصل الرابع)، ثم الآية ───
@@ -361,6 +362,8 @@ const Stances: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
         <Word x={1365} y={330} size={58} p={adam} color={C.ink}>
           آدم عليه السلام
         </Word>
+        {/* تفاعلية v18 (كان ساكنًا 6.0–7.1): خط ذهبي تحت اسمه عند «عليه السلام» (كما في «تكريم» D143) */}
+        <Ink d="M1540 356 H1190" w={3} p={prog(t, at(tl, "عليه") - 0.05, at(tl, "فقد") - 0.1)} c={C.gold} />
         <circle cx={1580} cy={500} r={11 * adam} fill={C.ink} />
         <Ink d="M1580 500 C1470 498 1340 504 1190 510" w={9} p={away} />
         <Ink d="M1190 510 C1110 514 1090 590 1178 600 C1300 612 1430 592 1546 570" w={9} p={back} c={C.gold} />
@@ -399,14 +402,17 @@ const Stances: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
       </Word>
     </g>
   );
-  return <Book id="c58" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} />;
+  // تصحيح D217 (v17): عنوان «الفرق بين موقفين» (y 225) لا يخرج من أعلى الإطار
+  return <Book id="c58" t={t} dur={dur} exit={exit} cam={cam} R={R} L={L} keepTop={178} />;
 };
 
 // ═══════════════ الفصل السادس ═══════════════
 
 // ─── c6-s2: على الأفق: مستقر ومتاع إلى حين، وفوقه الحياة، وتحته الموت، ومنه الإخراج (الأعراف 24–25) ───
 const EarthWords: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
-  const seal = pop(t, at(tl, "الأعراف"));
+  // تصحيح D217 (v17، 6:53.2): الختم يصل مع أول الجملة «وفي سورة الأعراف» لا مع آخرها، فلا تبدأ على صفحة شبه فارغة
+  // (أول كلمة بزمنها، قبل نافذة لفظ الجلالة في «أخبرنا الله» بأكثر من ثانية)
+  const seal = pop(t, Math.min(at(tl, "سورة") - 0.15, at(tl, "الأعراف")));
   const hz = prog(t, at(tl, "الأرض") - 0.1, at(tl, "الأرض") + 0.8);
   const w = [at(tl, "مستقرا"), at(tl, "ومتاعا"), at(tl, "إلى", 1)].map((a) => pop(t, a));
   const limit = prog(t, at(tl, "حين") - 0.05, at(tl, "حين") + 0.5);
@@ -537,7 +543,7 @@ const RUMORS: [number, number, number][] = [
   [1500, 700, 70],
   [1380, 300, 55],
 ];
-const NoMap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
+const NoMapV1: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
   const map = prog(t, 0.05, 0.8);
   const r0 = at(tl, "روايات") - 0.1;
   const r1 = end(tl, "مختلفة") + 0.3;
@@ -635,6 +641,114 @@ const NoMap: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
     />
   );
 };
+
+const NoMapV2: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {
+  // المراجعة العلمية (الدفعة ٥، البند ١٠٣): «وأين هبط آدم عليه السلام؟ أخبرنا القرآن بالهبوط إلى الأرض،
+  // ولا نعلم نصًا صحيحًا صريحًا يعيّن موضع هبوطه.» — الفقرة عن المكان وحده، بلا روايات ولا تاريخ.
+  const map = prog(t, 0.05, 0.8);
+  // «أخبرنا القرآن بالهبوط إلى الأرض»: خط منقّط ينزل من أعلى الصفحة إلى الخريطة
+  const descent = prog(t, at(tl, "بالهبوط") - 0.05, end(tl, "الأرض") + 0.2, easeOut);
+  const pin = prog(t, at(tl, "نصا") - 0.1, at(tl, "صريحا") + 0.2, easeOut);
+  // «يعيّن موضع هبوطه»: علامات استفهام في مواضع كثيرة من الخريطة، ولا موضع يثبت
+  const r0 = at(tl, "يعين") - 0.1;
+  const r1 = end(tl, "هبوطه") + 0.3;
+  const fadeR = 0;
+  const hover0 = Math.sin(t * 2.4) * 10;
+  const ribbon = 0;
+  const dash = 0;
+  const aside = prog(t, end(tl, "هبوطه") + 0.2, end(tl, "هبوطه") + 0.8);
+  // الدبوس معلق يتردد ولا يستقر، ثم يسكن جانبًا
+  const hover = hover0 * (1 - aside);
+  const cam = camPath(t, { cx: 960, cy: 540, s: 1.05 }, [
+    // «وأين هبط آدم عليه السلام؟»: الكادر يجول في الخريطة الخالية من المعالم
+    { a: at(tl, "هبط") - 0.1, b: at(tl, "أخبرنا") - 0.2, cx: 800, cy: 500, s: 1.12 },
+    // «بالهبوط إلى الأرض»: مع الخط النازل
+    { a: at(tl, "بالهبوط") - 0.2, b: end(tl, "الأرض") + 0.2, cx: 1180, cy: 430, s: 1.15 },
+    // «نصًا صحيحًا صريحًا»: اقتراب من الدبوس المعلق الذي لا يستقر
+    { a: at(tl, "نعلم") - 0.2, b: end(tl, "صريحا") + 0.1, cx: 1180, cy: 400, s: 1.28 },
+    // «يعيّن موضع هبوطه»: الخريطة كلها وعلاماتها
+    { a: r0 - 0.1, b: r1, ...NEUTRAL },
+  ]);
+  const grid = (
+    <g opacity={0.5 * map}>
+      {Array.from({ length: 16 }, (_, i) => (
+        <line key={`v${i}`} x1={230 + i * 100} x2={230 + i * 100} y1={170} y2={880} stroke={C.inkSoft} strokeWidth={1.5} strokeDasharray="4 8" />
+      ))}
+      {Array.from({ length: 8 }, (_, i) => (
+        <line key={`h${i}`} x1={200} x2={1730} y1={190 + i * 98} y2={190 + i * 98} stroke={C.inkSoft} strokeWidth={1.5} strokeDasharray="4 8" />
+      ))}
+    </g>
+  );
+  const compass = (
+    <g opacity={map} transform="translate(330 790)">
+      <circle r={56} fill="none" stroke={C.ink} strokeWidth={3} />
+      <path d="M0 -70 L12 0 L0 70 L-12 0 Z" fill={C.ink} opacity={0.7} />
+      <path d="M-70 0 L0 12 L70 0 L0 -12 Z" fill={C.ink} opacity={0.35} />
+    </g>
+  );
+  const rumors = (
+    <g opacity={1 - fadeR}>
+      {RUMORS.map(([x, y, r], i) => {
+        const a = mix(r0, r1 - 0.3, i / (RUMORS.length - 1));
+        const q = prog(t, a, a + 0.4, easeOut);
+        return (
+          <g key={i} opacity={q}>
+            <circle cx={x} cy={y} r={r * (0.7 + 0.3 * q)} fill={C.ribbon} opacity={0.2} />
+            <circle cx={x} cy={y} r={r * (0.7 + 0.3 * q)} fill="none" stroke={EMBER} strokeWidth={5} strokeDasharray="12 9" />
+            <SText x={x} y={y + 22} size={64} o={q} color={EMBER}>
+              ؟
+            </SText>
+          </g>
+        );
+      })}
+    </g>
+  );
+  const both = (
+    <g>
+      {grid}
+      {rumors}
+    </g>
+  );
+  return (
+    <Book
+      id="c64"
+      t={t}
+      dur={dur}
+      exit={exit}
+      cam={cam}
+      R={
+        <g>
+          {p.head ? <ChapterHead label={p.head} /> : null}
+          {both}
+          {/* «بالهبوط إلى الأرض»: خط منقّط نازل إلى الخريطة */}
+          <path d="M1180 120 L1180 620" fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="10 12" pathLength={1} opacity={descent * (1 - 0.6 * aside)} style={{ strokeDashoffset: 0 }} />
+          <circle cx={1180} cy={120 + 500 * descent} r={9} fill={C.ink} opacity={descent * (1 - descent * 0.4)} />
+          {/* الدبوس معلق لا يستقر على موضع */}
+          <g opacity={pin * (1 - 0.6 * aside)}>
+            <line x1={1180} x2={1180} y1={300 + hover} y2={640} stroke={C.ink} strokeWidth={2} strokeDasharray="4 10" />
+            <Pin x={1180} y={300 + hover - 30 * (1 - pin)} s={1.3} />
+          </g>
+          <g opacity={ribbon * (1 - 0.6 * aside)} transform={`translate(0 ${(1 - ribbon) * -60})`}>
+            <DateRibbon x={1600} y={300} s={1.1} />
+            <SText x={1600} y={470} size={60} o={dash} font="tajawal" weight={700} color={C.inkText}>
+              —
+            </SText>
+          </g>
+        </g>
+      }
+      L={
+        <g>
+          {both}
+          {compass}
+        </g>
+      }
+    />
+  );
+};
+
+// c1-s40: الصياغة القديمة (روايات وزمن) حتى يُحفظ نص البند ١٠٣ وصوته، ثم الجديدة (المكان وحده)
+const NoMap: React.FC<HzProps> = (props) =>
+  props.tl.words.some((w) => w.w.startsWith("بالهبوط")) ? <NoMapV2 {...props} /> : <NoMapV1 {...props} />;
 
 // ─── c6-s5: ما أخبرنا الله به داخل إطار نؤمن به ونثبته، وحدٌّ لا نزيد بعده إلا بدليل ───
 const Limit: React.FC<HzProps> = ({ t, tl, dur, exit, p }) => {

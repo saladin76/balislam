@@ -633,7 +633,8 @@ const Timeline_: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
       ) : null}
     </g>
   );
-  return <Book id="ltl" t={t} dur={dur} exit={exit} from={from} cam={cam} R={<Head p={p} />} over={over} />;
+  // تصحيح D217 (v17): العنوان (y 300) لا يخرج من أعلى الإطار في الاقتراب من العلامات
+  return <Book id="ltl" t={t} dur={dur} exit={exit} from={from} cam={cam} R={<Head p={p} />} over={over} keepTop={p.title ? 250 : undefined} />;
 };
 
 // ───────────────────────── شواهد أثرية ─────────────────────────

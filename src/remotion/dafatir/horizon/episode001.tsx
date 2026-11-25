@@ -7,7 +7,7 @@ import React from "react";
 import { at, end, type Timeline } from "./timeline";
 import { C, CoverLeaf, Dusk, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
 import { BlankBookOver, Book, ChapterHead, DateRibbon, EXIT_BEAT, NEUTRAL, SceneCloseContext, Pin, QuranSeal, SText, WriteIn, camPath, fonts, type Cam, type Exit } from "./book";
-import { Shot2, Shot4, Shot5, Shot6 } from "./shots";
+import { SHOT4_KEEP, Shot2, Shot4, Shot5, Shot6 } from "./shots";
 import { GATE, GLYPHS, Hatch, RUINS, Sunset } from "../lib/drawings";
 import { HZ_META } from "./meta";
 import { HZ_SCENES_B } from "./episode001b";
@@ -597,7 +597,7 @@ const TwoTitles: React.FC<HzProps> = ({ t, tl, dur, exit, from, p }) => {
 };
 
 // ─────────── لقطتان مصممتان قبل هذا البناء (اختبار «خط الأفق»)، بخروج بخفوت الحبر ───────────
-const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, endCam: Cam): React.FC<HzProps> =>
+const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, endCam: Cam, keep?: { top?: number; bottom?: number }): React.FC<HzProps> =>
   // inner: اللقطة نفسها بلا خطافات، لفحص كلماتها على النص الحالي (src/plan/shotWords.ts)
   Object.assign(function Legacy({ t, tl, dur, exit, p }: HzProps) {
     // الخفوت يبدأ حين يُغلق الراوي الفكرة (كالدفتر)، لا بعد ذيل ساكن
@@ -606,7 +606,7 @@ const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, e
     return (
       // خفوت الحبر: الدفتر الفارغ بالكادر نفسه تحت اللقطة، واللقطة تخفت فوقه
       <>
-        {exit === "fade" && t > f0 - 0.05 ? <BlankBookOver id="lg" cam={endCam} o={1} /> : null}
+        {exit === "fade" && t > f0 - 0.05 ? <BlankBookOver id="lg" cam={endCam} o={1} keep={keep} /> : null}
         <div style={{ position: "absolute", inset: 0, opacity: exit === "fade" ? 1 - prog(t, f0, dur - 0.15) : 1 }}>
           <Comp t={t} tl={tl} refText={p.ref} />
         </div>
@@ -653,7 +653,7 @@ export const HZ_SCENES: Record<string, React.FC<HzProps>> = {
   greater: Greater,
   index: IndexScene,
   begin: Begin,
-  interpreters: legacy(Shot4, { cx: 900, cy: 575, s: 1.12 }),
+  interpreters: legacy(Shot4, { cx: 900, cy: 575, s: 1.12 }, SHOT4_KEEP),
   question: Question,
   known: Known,
   "two-titles": TwoTitles,

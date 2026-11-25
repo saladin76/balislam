@@ -7,7 +7,7 @@
 import React from "react";
 import { VerseRefPanel } from "./verseRef";
 import { at, buildTimeline, end, type Timeline } from "./timeline";
-import { BookShadow, C, Camera, CoverLeaf, Defs, Ink, LightPool, Page, PageStack, Spine, FlipLeaf, VerseCard, VersePageContext, Words, easeOut, mix, prog, rng, verseRef as verseRefLabel, W } from "./kit";
+import { BookShadow, C, Camera, CoverLeaf, SafeCamera, Defs, Ink, LightPool, Page, PageStack, Spine, FlipLeaf, VerseCard, VersePageContext, Words, easeOut, mix, prog, rng, verseRef as verseRefLabel, W } from "./kit";
 import { timelineFromWords } from "./timeline";
 import { FINDS, GATE, Hatch, RUINS, Sunset, stone, type FindDef as Find } from "../lib/drawings";
 export { FINDS, GATE, Hatch, RUINS, Sunset };
@@ -261,6 +261,12 @@ const Shot3: React.FC<ShotProps> = ({ t, q }) => (
 const S4 = mk(["أخبر الله ملائكته أنه جاعل في الأرض خليفة.", "وقد ذكر المفسرون في معنى الخلافة أقوالا، منها أن البشر يخلف بعضهم بعضا في عمارة الأرض والحياة عليها."], 0.8, 1.2);
 const LINEAGE = [830, 724, 618, 512, 406, 300];
 const CARD = { x: 245, y: 240, w: 620, h: 320 };
+/**
+ * تصحيح D217 (مراجعة v17، ٢٤ نوفمبر: «جيلًا بعد جيل» في الترجمة فوق شريط الأرض والتهشير أسفل اليسرى، 1:13–1:15):
+ * اللقطة القديمة بكاميرتها لم تكن تحت تقييد الترجمة. الآن داخل الإطار الآمن: من لسان «من أقوال المفسرين» (أعلى الحاشية
+ * بعد ارتفاعها) إلى أسفل الأرض والتهشير (y ≈ 912).
+ */
+export const SHOT4_KEEP = { top: CARD.y - 56, bottom: 916 };
 
 /** refText (الأمر 019، E1): لوحة مرجع الآية ثابتة على الصفحة اليمنى من الإطار الأول، بلا نص آية ولا حركة؛ والكادر يحفظها مع الحاشية */
 export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, refText }) => {
@@ -307,7 +313,8 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
   ];
   const ruled = "repeating-linear-gradient(180deg, transparent 0 46px, rgba(74,46,31,0.13) 46px 48px)";
   return (
-    <Camera
+    <SafeCamera
+      keep={SHOT4_KEEP}
       {...camAt(t, framed ? { cx: 960, cy: 500, s: 1.0 } : { cx: 590, cy: 500, s: 1.12 }, [
         // مع إطار لفظ الآية أو لوحة مرجعها: يبقى الإطار والحاشية معًا في الكادر (الفصل بينهما هو موضوع اللقطة)
         { a: at(tl, "المفسرون") - 0.2, b: at(tl, "المفسرون") + 1.0, cx: framed ? 900 : 555, cy: framed ? 440 : 410, s: framed ? 1.12 : 1.26 },
@@ -414,7 +421,7 @@ export const Shot4: React.FC<ShotProps & { refText?: string }> = ({ t, tl, q, re
           </div>
         );
       })}
-    </Camera>
+    </SafeCamera>
   );
 };
 

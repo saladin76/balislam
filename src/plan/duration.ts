@@ -5,8 +5,27 @@ import type { EpisodeMedia } from "./media";
 import { recitationSeconds } from "../quran/recitationTimeline";
 import { HZ_META, hzEstimateSeconds, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
 import { timelineFromWords } from "../remotion/dafatir/horizon/timeline";
+import { SILENCE_POLICY } from "../remotion/dafatir/audio/silence";
+import type { VoiceClip } from "../voice/generate";
 
 const words = (s: string) => s.split(/\s+/).filter(Boolean).length;
+
+/**
+ * ذيل مشهد «خط الأفق» المسجَّل في توقيت صوته (timing.tail، يُحسب عند تركيب الصوت) لا يزيد على ذيل تصميمه الحالي
+ * (HZ_META.tail، أو أقل خروج بصري إن كان أطول، أو باقي التسجيل بعد آخر صوت). تصحيح D217 (v17): ذيل الختام صار ١٫٠ ث في
+ * التصميم، لكن صوته رُكّب قبل ذلك بذيل ٣٫٢ فبقي في الحلقة سكوت ٣٫١ ث في آخرها؛ ولا يُعاد تركيب صوت لذلك.
+ */
+const horizonTail = (scene: PlanScene, timing: NonNullable<VoiceClip["timing"]>, duration: number) => {
+  const shot = String(scene.props.shot ?? "");
+  const m = HZ_META[shot];
+  if (!m) return timing.tail;
+  const exit = ((scene.props as Record<string, string | undefined>).exit || m.exit) as keyof typeof SILENCE_POLICY.exitMin;
+  const cap = Math.max(m.tail, SILENCE_POLICY.exitMin[exit] ?? 0, duration - timing.speechEnd);
+  return Math.min(timing.tail, cap);
+};
+/** مدة مشهد «خط الأفق» من توقيت صوته بالذيل المقصوص (horizonTail) */
+const horizonTimedSeconds = (scene: PlanScene, timing: NonNullable<VoiceClip["timing"]>, duration: number) =>
+  timing.seconds - (timing.tail - horizonTail(scene, timing, duration));
 
 /** أقصر مدة مقبولة لمشهد مهما قصر صوته. */
 const MIN_SECONDS = 2.5;
@@ -59,7 +78,7 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
       const m = HZ_META[shot];
       // دفاتر الزمن بأجزاء خريطة النبرة: المدة المقررة بسياسة الصمت (رأس + آخر كلام + ذيل الحد بمالك واحد)،
       // لا مدة الملف + ذيل التصميم (لا يجتمع صمت التسجيل مع الذيل ولا الذيل مع صمت ما قبل التلاوة)
-      const base = voiced.timing ? voiced.timing.seconds : voiced.duration + (m?.tail ?? config.voice.tailSeconds);
+      const base = voiced.timing ? horizonTimedSeconds(scene, voiced.timing, voiced.duration) : voiced.duration + (m?.tail ?? config.voice.tailSeconds);
       // أقل مدة بحسب التصميم (minEnd) مقدرة على التوقيت التقديري ثم مقيسة بنسبة طول الصوت الحقيقي
       // استشهاد بصري صامت (الأمر 032): زمن قراءة الآية يُحسب على كلمات الصوت الحقيقي نفسها التي يرسم بها HorizonShot
       // البطاقة، فلا يقصر المشهد عنه ولا يطول بتقدير؛ و0.9 ث بعده كما في التقدير (خروج البطاقة وقلب الصفحة)
@@ -105,7 +124,7 @@ export const sceneHoldFloor = (scene: PlanScene, media?: Pick<EpisodeMedia, "voi
     const shot = String(scene.props.shot ?? "");
     const m = HZ_META[shot];
     const props = scene.props as Record<string, string | undefined>;
-    const tail = voiced.timing ? voiced.timing.tail : (m?.tail ?? config.voice.tailSeconds);
+    const tail = voiced.timing ? horizonTail(scene, voiced.timing, voiced.duration) : (m?.tail ?? config.voice.tailSeconds);
     let floor = Math.max(end, S - tail);
     if (props.verseText && props.verseKey) {
       try {
