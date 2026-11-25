@@ -28,7 +28,7 @@ import { compareWithSeries, seriesIdOf, type SeriesDiffReport, type SeriesEpisod
 import type { PublishKit } from "../../package/social";
 import { packagingCard, shortsCard } from "../../package/qualityCard";
 import { sceneStartsFor } from "../../package/chapters";
-import { isSacredSentence } from "../../plan/sceneCues";
+import { thumbScenes } from "../../package/thumbnails";
 import type { Plan } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 
@@ -123,7 +123,8 @@ const citationCount = async (scriptPath: string) => {
 const readyItems = async (scriptPath: string, plan: Plan, media: Omit<EpisodeMedia, "base" | "mode">) => {
   let kit: PublishKit;
   try { kit = JSON.parse(await readFile(path.join(path.dirname(scriptPath), "publish.json"), "utf8")) as PublishKit; } catch { return undefined; }
-  const scenes = plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, sacred: s.template === "verse-card" || s.template === "dua-board" || isSacredSentence(s.narration) }));
+  // D196 v6: القاعدة نفسها التي تمنع بها الحزمة (thumbScenes): مشاهد الآية دائمًا، والذكر بلحظته من كلمات الصوت
+  const scenes = thumbScenes(plan.chapters.flatMap((c) => c.scenes), media.voice);
   try {
     return { packaging: packagingCard(kit, { title: plan.title, scenes, thumbStyle: (await import("../../channel/index")).loadChannel().brand?.thumbnail, starts: sceneStartsFor(plan, { ...media, base: "", mode: "static" } as EpisodeMedia) }), shorts: shortsCard(kit) };
   } catch { return undefined; }
