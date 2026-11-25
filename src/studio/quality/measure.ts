@@ -115,7 +115,8 @@ export const isMeasuring = async (episode: string, target: CardTarget) => runnin
 const citationCount = async (scriptPath: string) => {
   try {
     const items = reviewItems(parseScript(await readFile(scriptPath, "utf8"), scriptPath), await loadLedger(scriptPath));
-    return { total: items.length, open: items.filter((i) => i.status !== "verified").length };
+    return { total: items.length, open: items.filter((i) => i.status !== "verified").length,
+      hadiths: items.filter((i) => i.kind === "hadith").map((i) => ({ ref: i.ref, status: i.status })) };
   } catch { return undefined; }
 };
 

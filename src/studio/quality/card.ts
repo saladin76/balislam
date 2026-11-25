@@ -8,6 +8,7 @@
  * - warn: يُعرض للمالك ولا يمنع (قاعدة قائمة تقول إنه لا يمنع، أو قرار ينتظر المالك).
  * - later: بند لم يُبنَ بعد (مهمة لاحقة أو تيرمينال آخر)؛ يُعرض بمن يبنيه ولا يمنع.
  */
+import { duaAttributionProblems, PROPHETIC_ATTRIBUTION, type HadithCitation } from "../../plan/duaAttribution";
 import type { Plan, PlanScene } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 import { normalizeArabic } from "../../script/quranMeta";
@@ -175,7 +176,18 @@ const REFERRAL = /الحلقه (القادمه|التاليه|السابقه|ا�
 /** نص كل ما يظهر أو يُقال في المشهد (التعليق وحقوله النصية) */
 const sceneText = (s: PlanScene) => bare([s.narration, ...Object.values(s.props ?? {})].join(" "));
 
-export const scriptItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">, citations?: { total: number; open: number }): CardItem[] => {
+export type CitationCount = { total: number; open: number; hadiths?: HadithCitation[] };
+
+/** D225: «ﷺ» أو «النبي» أو «رسول» في مصدر لوحة الدعاء لحديث موثّق في سجل التوثيق وحده، وإلا ✗ يمنع النسخة النهائية */
+export const duaAttributionItem = (plan: Plan, citations?: CitationCount): CardItem | null => {
+  const boards = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.template === "dua-board");
+  if (!boards.some((s) => PROPHETIC_ATTRIBUTION.test(String(s.props?.source ?? "")))) return null;
+  const problems = duaAttributionProblems(boards, citations?.hadiths ?? [], true);
+  return { id: "dua-attribution", label: "نسبة الدعاء إلى النبي ﷺ", need: "حديث موثّق في سجل التوثيق يذكره مصدر اللوحة",
+    ...(problems.length ? { status: "fail", reason: problems.map((p) => `${p.sceneId}: ${p.reason}`).join(" ") } : { status: "pass" }) };
+};
+
+export const scriptItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "recitations">, citations?: CitationCount): CardItem[] => {
   const all = plan.chapters.flatMap((c) => c.scenes);
   const cta = all.some((s) => COMMENT_CTA.test(sceneText(s)));
   const ref = all.some((s) => REFERRAL.test(sceneText(s)));
@@ -187,6 +199,7 @@ export const scriptItems = (plan: Plan, media?: Pick<EpisodeMedia, "voice" | "re
         : { status: "pass", value: `${ar(citations.total, 0)} من ${ar(citations.total, 0)}` }) },
     { id: "comment-cta", label: "دعوة للتعليق", need: "دعوة المشاهد للتعليق", status: cta ? "pass" : "warn", ...(cta ? {} : { reason: "لا دعوة للتعليق في الكلام ولا في شاشة الختام (للعلم)." }) },
     { id: "referral", label: "إحالة للحلقات", need: "إحالة لحلقة أو سلسلة", status: ref ? "pass" : "warn", ...(ref ? {} : { reason: "لا إحالة لحلقة أخرى أو للسلسلة (للعلم)." }) },
+    ...[duaAttributionItem(plan, citations)].filter((i): i is CardItem => !!i),
   ];
 };
 
@@ -228,7 +241,7 @@ export const BLOCKING: ReadonlySet<ItemStatus> = new Set(["fail", "unmeasured"])
 export const buildCard = (input: {
   target: CardTarget; plan: Plan; media?: Pick<EpisodeMedia, "voice" | "recitations">;
   measured: (FileMeasurements & { file: { size: number; mtimeMs: number }; at: string }) | null;
-  citations?: { total: number; open: number };
+  citations?: CitationCount;
   ready?: { packaging: ReadyItems; shorts: ReadyItems };
   /** D204: المقارنة بالحلقة السابقة في السلسلة (null: لم تُقرأ) */
   series?: SeriesDiffReport | null;
