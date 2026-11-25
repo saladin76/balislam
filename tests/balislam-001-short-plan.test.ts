@@ -30,7 +30,9 @@ describe("بالإسلام 001 — the short plan", () => {
     }
   });
   it("a scene kept from the 163-scene design keeps its design exactly (the owner reviewed it)", () => {
-    const kept = live.filter((s) => before.has(s.id));
+    // البند ١٥٣ (قرار المالك ٢٥ نوفمبر، الخيار أ): لوحة الدعاء صارت دعاء مسلم ٧٧٠، فتغيّرت خصائصها بقراره
+    const ownerChanged = new Set(["c1-s68", "c1-s69", "c1-s70", "c1-s71"]);
+    const kept = live.filter((s) => before.has(s.id) && !ownerChanged.has(s.id));
     expect(kept.length).toBeGreaterThan(live.length / 2);
     for (const s of kept) {
       expect(s.template, s.id).toBe(before.get(s.id)!.template);
