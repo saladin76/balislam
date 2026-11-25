@@ -530,7 +530,8 @@ describe("خريطة الأداء الصوتي — الإصدار الحالي v
       expect(lines[s.tashkeelLine - 1]!.trim(), `مقطع ${s.n}`).toBe(s.text);
       expect(s.marked.replace(/ ?[|‖]/g, "").replace(/\*\*/g, ""), `علامات ${s.n}`).toBe(s.text);
     }
-    for (const sc of spoken) expect(plain(v18.segments.filter((s) => s.scene === sc.id).map((s) => s.text).join(" ")), sc.id).toBe(plain(sc.narration!));
+    // c1-s40 تغيّر نصه بقرار المالك بعد هذا الإصدار (البند ١٠٣، ٢٥ نوفمبر)؛ نصه الحالي في الخريطة الحية tone-map.json
+    for (const sc of spoken.filter((x) => x.id !== "c1-s40")) expect(plain(v18.segments.filter((s) => s.scene === sc.id).map((s) => s.text).join(" ")), sc.id).toBe(plain(sc.narration!));
     expect(v18.segments.filter((s) => order031.added.includes(s.n)).map((s) => s.scene)).toEqual(["c1-s6", "c1-s37", "c1-s48", "c1-s48"]);
   });
 
