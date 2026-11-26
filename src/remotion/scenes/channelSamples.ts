@@ -105,6 +105,17 @@ export const channelSamples: Record<string, Record<string, Record<string, unknow
       riseWord: "الحضور",
       narration: "كثيرٌ منّا يصلّي ولا يشعر، لأنّه ينتظر الشعور قبل الحضور. واللهُ أقربُ إلينا ممّا نظن.",
     },
+    // «دفتر القارئ» (D227، بنماذج المالك D228): المصطلح في دائرة حمراء، بمحتوى القناة نفسها
+    "reader-notebook": {
+      shot: "term-circle",
+      label: "مفاتيح الصلاة",
+      keyWord: "يستوقفنا",
+      labelWord: "مفاتيح",
+      term: "العجلة",
+      termWord: "العجلة",
+      circleWord: "نسابق",
+      narration: "أول ما يستوقفنا في «مفاتيح الصلاة» هو العجلة. فقد ندخل الصلاة وكأننا نسابق الوقت لننتهي منها.",
+    },
     "big-question": {
       eyebrow: "السؤال",
       question: "لماذا نقرأ كثيرًا ولا يبقى إلا القليل؟",
