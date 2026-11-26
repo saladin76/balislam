@@ -95,7 +95,8 @@ const readJson = async <T>(f: string, fallback: T): Promise<T> => { try { return
 
 export const assertCommitMatchesWorkingTree = async (repo: string, channel: string, episodeFolder: string) => {
   const ep = `channels/${channel}/episodes/${episodeFolder}`;
-  const epState = await git(repo, ["status", "--porcelain", "--", ep]);
+  // versions/ أرشيف نسخ سابقة محلي (فيه فيديو لا يُرفع)، والرندر لا يقرؤه؛ فلا يمنع الإرسال.
+  const epState = await git(repo, ["status", "--porcelain", "--", ep, `:(exclude)${ep}/versions`]);
   if (epState.code !== 0) throw new Error(`git status: ${epState.err}`);
   const code = await git(repo, ["status", "--porcelain", "--untracked-files=no", "--", "src", "public", "bin", "config.json", "package.json", "package-lock.json", "tsconfig.json", "brand",
     `channels/${channel}`, `:(exclude)channels/${channel}/episodes`]);
