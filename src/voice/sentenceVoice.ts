@@ -81,6 +81,8 @@ export type SentenceActionOptions = {
    * كلمة المالك والتشكيل والنبرة والآية لا تُتجاوز أبدًا.
    */
   testOnlySkipApprovalGates?: boolean;
+  /** D229: مانع التوليد لمشهد بعينه (استثناء صوت مشاهد محددة من تجميد القناة)؛ نص الرفض أو null */
+  generateGate?: (sceneId: string) => Promise<string | null>;
 };
 export type SentenceActionResult = { read: SentencesRead; planChanged: boolean; composed?: { sceneId: string; composed: boolean; reason?: string }; message?: string; fix?: WordFixOutcome;
   /** D136: nothing was generated; the owner must confirm first (nothing that would be sent changed) */
@@ -286,6 +288,8 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         break;
       }
       case "generate": {
+        const gate = opts.generateGate ? await opts.generateGate(scene.id) : null;
+        if (gate) throw new Error(gate);
         let s = one();
         // «ولّد الجملة كاملة بهذا النطق»: التصحيح يُحفظ مع الجملة (ولقاموس القناة إن طُلب) ثم تُولَّد كاملة
         if (cmd.say !== undefined && sayOf(ctx, s)) throw new Error(SAY_WORD_FIX);
@@ -306,6 +310,8 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
         break;
       }
       case "fixword": {
+        const fixGate = opts.generateGate ? await opts.generateGate(scene.id) : null;
+        if (fixGate) throw new Error(fixGate);
         const s = one();
         const c = correctionFor(s, cmd.word, cmd.say);
         if (cmd.save && isNoopSay(c.word, c.say)) throw new Error(NOOP_SAY);

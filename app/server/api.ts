@@ -323,11 +323,19 @@ export const balApi = (): Plugin => ({
           };
           // D213 بناء المخزون: سكريبت «مسودة» لا يدخل الإنتاج، والقناة المجمّدة (D211) لا رندر ولا صوت فيها.
           // يسري على كل ما يولّد صوتًا أو يرندر أو يعتمد التجهيز؛ القراءة والتحرير المكتوب مسموحان.
+          // D229: صوت مستثنى من التجميد لمشاهد بعينها: البوابة العامة لا ترفض الصوت هنا، ويُفحص مشهد كل توليد أدناه.
+          let voiceScoped = false;
           if (req.method === "POST" && PRODUCTION_ACTIONS.has(parts[2] ?? "")) {
-            const { productionBlockFor } = await load("/src/studio/stockStore.ts");
-            const blocked = await productionBlockFor(ch, scriptPath);
+            const { productionBlockFor, voiceExceptionFor } = await load("/src/studio/stockStore.ts");
+            voiceScoped = (parts[2] === "voice" || parts[2] === "sentences") && await voiceExceptionFor(ch, scriptPath);
+            const blocked = voiceScoped ? null : await productionBlockFor(ch, scriptPath);
             if (blocked) return send(res, 409, { error: blocked });
           }
+          const scopedVoiceBlock = async (scenes: readonly string[] | null) => {
+            if (!voiceScoped) return null;
+            const { productionBlockFor } = await load("/src/studio/stockStore.ts");
+            return productionBlockFor(ch, scriptPath, scenes);
+          };
           if (parts[2] === "scene-production" && parts.length === 3) {
             const { inspectSceneProduction, decideSceneProduction } =
               await load("/src/studio/sceneService.ts");
@@ -776,7 +784,7 @@ export const balApi = (): Plugin => ({
             const body = await readBody(req);
             const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
             let result;
-            try { result = await sv.sentenceAction(ep, body, { client: elevenLabsFromEnv() }); }
+            try { result = await sv.sentenceAction(ep, body, { client: elevenLabsFromEnv(), ...(voiceScoped ? { generateGate: (sceneId: string) => scopedVoiceBlock([sceneId]) } : {}) }); }
             catch (error) { return refuse(error); }
             // سرعة الإلقاء: صوت المشهد الذي تغيّر يتبع السرعة المختارة (مجانًا، من التسجيل الجديد نفسه)
             await paceAfterVoice(result.composed?.composed ? [result.composed.sceneId] : []);
@@ -799,6 +807,8 @@ export const balApi = (): Plugin => ({
             const tu = await load("/src/voice/toneUpgrade.ts");
             try {
               if (b?.dryRun !== false) return send(res, 200, { plan: await tu.toneUpgradePlan(ep) });
+              const scoped = await scopedVoiceBlock(null);
+              if (scoped) return send(res, 409, { error: scoped });
               const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
               assertSceneOwner();
               const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
@@ -820,6 +830,8 @@ export const balApi = (): Plugin => ({
               return send(res, 400, { error: "طلب الصوت غير صالح؛ حدّث الصفحة." });
             try {
               if (!dryRun) {
+                const scoped = await scopedVoiceBlock(Array.isArray(b?.scenes) ? b.scenes : null);
+                if (scoped) return send(res, 409, { error: scoped });
                 const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
                 assertSceneOwner();
                 const sv = await load("/src/voice/sentenceVoice.ts");
