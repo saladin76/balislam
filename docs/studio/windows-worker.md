@@ -52,7 +52,21 @@ schtasks /Create /F /TN "bal-render-worker" /SC ONLOGON /RL LIMITED /TR "cmd /c 
 - علامتا التنصيص حول قيمة `/TR` تحميان `&&` و`>>` و`2>&1` في سطر الأوامر، فتصل كما هي إلى المهمة، ثم ينفذها `cmd /c` عند كل دخول. طول القيمة أقل من حد ٢٦١ حرفًا.
 - السجل في `C:\bal-render\worker.log`. للإيقاف: `schtasks /End /TN "bal-render-worker"`، وللحذف: `schtasks /Delete /TN "bal-render-worker" /F`، وللتشغيل الآن: `schtasks /Run /TN "bal-render-worker"`.
 
+### الإعداد الفعلي (٢٦ نوفمبر)
+
+- المجلد المشترك `F:\bal-share` (مشارك باسم `bal-share`، بحساب مخصص للمشاركة فقط)، والعامل يعمل بالمسار المحلي:
+
+```bat
+schtasks /Create /F /TN "bal-render-worker" /SC ONLOGON /RL LIMITED /TR "cmd /c cd /d C:\bal-render && npx bal worker --share F:\bal-share >> C:\bal-render\worker.log 2>&1"
+```
+
+- النسخة على ويندوز خفيفة (`--depth 1`)، والعامل يجلب commit المهمة بنفسه قبل checkout.
+- أول تجربة: الشورت ١ من «دفاتر الزمن» 001 في ١٨ دقيقة. اجتاز تحقق الماك كله (البصمة، والصيغة، والمدة، والأثر، والحركة)، ورُفض الاستيراد فقط لأن شورت الماك موجود بالاسم نفسه. وطابق شورت الماك: الصوت نفسه (−14.1 LUFS)، والصورة نفسها بعد إزالة حبيبات الورق (PSNR ≈ 40 dB). الملف أكبر (٣٨ ميجابت/ث مقابل ١١)، لأن حبيبات الورق تخرج بنمط مختلف.
+
 ## على الماك
+
+**إعادة التوصيل آليًا:** مهمة launchd `com.bal.share-mount` (`~/Library/LaunchAgents/`) تشغّل `.handoff/scratchpad-25nov/share-mount.sh` عند الدخول وكل ٥ دقائق. إن لم يكن `/Volumes/bal-share` موصولًا، والجهاز ظاهرًا على الشبكة، وكلمة السر محفوظة في Keychain، يوصله بـ `mount volume "smb://balshare@192.168.1.129/bal-share"` بلا نافذة. السجل في `share-mount.log` بجواره. يحتاج: عنوانًا ثابتًا للويندوز من الراوتر (DHCP reservation)، وحفظ كلمة السر مرة في Keychain (Connect to Server مع «Remember this password in my keychain»).
+
 
 اربط المجلد المشترك مرة (Finder ← Go ← Connect to Server ← `smb://Salah/bal-share`)، فيظهر في `/Volumes/bal-share`. ثم:
 
