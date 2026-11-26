@@ -9,7 +9,7 @@
  *   من، ومتى، وأي نموذج، ومن أي ستوري بورد.
  *
  * المفتاح: معرّف القالب («reader-notebook»)، أو القالب ولقطته («horizon-shot/lib-term»).
- * البوابة (assertTemplatesApproved) في قلب الرندر (renderComposition): أي مشهد بمفتاح غير معتمد يوقف الرندر كله،
+ * البوابة (assertTemplatesApproved) في قلب رندر الحلقة (قبل التجميع): أي مشهد بمفتاح غير معتمد يوقف الرندر كله،
  * وكذلك المفتاح المجهول (لا في legacy ولا في السجل)، فلا يتسلل قالب لم يُسجَّل.
  */
 import { readFileSync, writeFileSync, renameSync } from "node:fs";

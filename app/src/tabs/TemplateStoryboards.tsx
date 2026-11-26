@@ -37,7 +37,7 @@ export const TemplateStoryboards: React.FC = () => {
         const scenes = [...new Set(sb.variants.map((v) => v.scene))].sort((a, b) => a - b);
         return (
           <article key={sb.folder} className="group">
-            <h4>{sb.folder} <small>{ar(scenes.length)} مشاهد · {ar(sb.variants.length)} نموذج</small></h4>
+            <h4>{sb.folder} <small>{ar(scenes.length)} مشاهد، {ar(sb.variants.length)} نموذج</small></h4>
             {sb.issues.map((x) => <p key={x} className="warn">{x}</p>)}
             {scenes.map((s) => (
               <div key={s}>
@@ -47,7 +47,7 @@ export const TemplateStoryboards: React.FC = () => {
                     <figure key={v.file} style={{ width: 360, margin: 0 }}>
                       <img src={api.storyboardImageUrl(sb.folder, v.file)} alt={v.title ?? v.variant} style={{ width: "100%", borderRadius: 6 }} loading="lazy" />
                       <figcaption>
-                        <strong>{v.variant}</strong>{v.title ? ` · ${v.title}` : ""}
+                        <strong>{v.variant}</strong>{v.title ? `، ${v.title}` : ""}
                         {v.motion && <p className="help">الحركة: {v.motion}</p>}
                         {v.why && <p className="help">{v.why}</p>}
                         {keys.filter(([, t]) => t.status !== "معتمد من المالك" && (!t.variants?.length || t.variants.includes(v.variant))).map(([key, t]) => (
