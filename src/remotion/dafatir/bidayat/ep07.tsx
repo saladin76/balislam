@@ -184,11 +184,11 @@ const Seep = reverent((q) => {
 // ─── c1-s3 / c1-s4: الخيط الأحمر طافيًا على خط الماء، والعقدة ٧ ───
 const KX = [1680, 1540, 1400, 1260, 1110, 800, 560];
 const ThreadShot = reverent((q) => {
-  const k = cueKit(q, ["خيط", "نعقد"]);
+  const k = cueKit(q, ["خيط", "يصل"]);
   const { t, S } = k;
   const draw = S === 0 ? k.draw(0, "خيط", 1.6) : 1;
   const ext = k.draw(1, "واليوم", 0.9);
-  const tie7 = k.on(1, "عقدة", 0.8);
+  const tie7 = k.on(1, "يصل", 0.8);
   const ring7 = k.on(1, "واليوم", 0.6);
   const name7 = k.draw(1, "الطوفان", 0.9);
   const rise = k.on(1, "الطوفان", 1.0);
@@ -210,7 +210,7 @@ const ThreadShot = reverent((q) => {
   const cam = k.cam(NEUTRAL, [
     [0, "دعوة", { cx: 1150, cy: 660, s: 1.3 }, 1.2],
     [0, "السفينة", { cx: 820, cy: 680, s: 1.3 }, 1.2],
-    [1, "عقدة", { cx: 620, cy: 680, s: 1.35 }, 1.0],
+    [1, "يصل", { cx: 620, cy: 680, s: 1.35 }, 1.0],
   ]);
   const both = (
     <g>
@@ -711,9 +711,9 @@ const NextKnot = reverent((q) => {
 
 // ─── c1-s42 / c1-s43: الأرض بعد الطوفان مبلولة ملتئمة ───
 const WetEarth = reverent((q) => {
-  const k = cueKit(q, ["يبقى", "القرب"]);
+  const k = cueKit(q, ["بقي", "القرب"]);
   const { t, S } = k;
-  const wet = k.on(0, "يبقى", 1.0);
+  const wet = k.on(0, "بقي", 1.0);
   const mount = S === 0 ? k.draw(0, "الجبل", 0.8) * (1 - prog(t, k.at("العالي") + 0.5, k.at("العالي") + 1.2)) : 0;
   const ship = k.draw(0, "السفينة", 0.8);
   const shine = S === 0 ? bounce(t, k.at("السفينة") + 0.4, k.at("السفينة") + 1.6) : 0;

@@ -146,7 +146,7 @@ const RING = Array.from({ length: 11 }, (_, i) => {
 
 // ─── c1-s1..s3، c1-s34، c1-s36، c1-s37: الحجر والقطرة ───
 const DropStone = reverent((q) => {
-  const k = cueKit(q, ["تسقط", "يتغير", "يصبر", "نتعلم", "أياما", "نهاية"]);
+  const k = cueKit(q, ["تسقط", "يتغير", "لبث", "نتعلم", "أياما", "نهاية"]);
   const { t, S, dur } = { ...k, dur: q.dur };
   let n0 = 0;
   let hits: { h: number; form?: number }[] = [];
@@ -179,7 +179,7 @@ const DropStone = reverent((q) => {
     hang = k.on(5, "الصبر", 0.9);
   }
   const yom = k.on(1, "يوم"), sana = k.on(1, "سنة");
-  const sabr = S === 2 ? k.draw(2, "يصبر", 0.8) : 0;
+  const sabr = S === 2 ? k.draw(2, "لبث", 0.8) : 0;
   const learn = S === 3 ? k.draw(3, "نتعلم", 0.8) : 0;
   const sabr2 = S === 4 ? k.draw(4, "الصبر", 0.8) : 0;
   const close = { cx: SX, cy: 520, s: 2.0 };
@@ -195,7 +195,7 @@ const DropStone = reverent((q) => {
       <Drips t={t} n0={n0} hits={hits} crater={crater} hang={hang} />
       <Txt x={1210} y={720} size={34} q={yom} color={C.inkSoft}>يوم</Txt>
       <Txt x={1520} y={720} size={34} q={sana} color={C.inkSoft}>سنة</Txt>
-      <Write id="b5d-s" x={SX} y={330} size={50} p={sabr} label="يصبر" />
+      <Write id="b5d-s" x={SX} y={330} size={50} p={sabr} label="لبث" />
       <Write id="b5d-l" x={SX} y={330} size={46} p={learn} label="نتعلم" color={C.inkSoft} />
       <Write id="b5d-r" x={SX} y={330} size={50} p={sabr2} label="الصبر" />
     </g>
