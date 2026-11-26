@@ -38,7 +38,7 @@ export const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, li
     const sb = storyboardStatus(ctx.plan, await loadStoryboard(ctx.scriptPath));
     const blocked = unapprovedScenes(sb, [scene.id]);
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
-    // D234: لا صوت لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الاستثناء الصريح الوحيد: مشاهد D229)
+    // D234: لا صوت لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الاستثناءات الصريحة في EDITOR_GATE_EXCEPTIONS، فارغة اليوم)
     const { assertEditorPassed } = await import("../studio/scriptPipelineStore");
     await assertEditorPassed(ctx.scriptPath, { voiceScenes: [scene.id] });
   }

@@ -39,7 +39,7 @@ export const upgradeTones = async (episode: string, opts: { client: ElevenLabsCl
   if (!opts.client) throw new Error("مفاتيح ElevenLabs غير موجودة. أضف المفتاح واختر الصوت من تبويب «الإعدادات» في الاستوديو.");
   const plan = await toneUpgradePlan(episode);
   if (plan.scenes.length && !opts.testOnlySkipApprovalGates) {
-    // D234: لا صوت لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الاستثناء الصريح الوحيد: مشاهد D229)
+    // D234: لا صوت لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الاستثناءات الصريحة في EDITOR_GATE_EXCEPTIONS، فارغة اليوم)
     const { assertEditorPassed } = await import("../studio/scriptPipelineStore");
     const { resolveScriptPath } = await import("../script/episodes");
     await assertEditorPassed(await resolveScriptPath(episode), { voiceScenes: plan.scenes });

@@ -371,7 +371,7 @@ const generateVoiceLocked = async (episode: string, scriptPath: string, opts: Ge
   if (todo.length && !opts.testOnlySkipGates) {
     const { requireScenesProducible } = await import("../studio/sceneService");
     await requireScenesProducible(episode, [...new Set(todo.map(sceneOf))]);
-    // D234: لا صوت لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الاستثناء الصريح الوحيد: مشاهد D229)
+    // D234: لا صوت لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الاستثناءات الصريحة في EDITOR_GATE_EXCEPTIONS، فارغة اليوم)
     const { assertEditorPassed } = await import("../studio/scriptPipelineStore");
     await assertEditorPassed(scriptPath, { voiceScenes: [...new Set(todo.map(sceneOf))] });
   }

@@ -1095,19 +1095,20 @@ program
   .option("--limit <n>", "أقصى عدد سكريبتات في الدفعة", "10")
   .option("--all", "كل ما ينتظر المحرر في دفعة واحدة")
   .option("--include-sent", "أعد إدراج ما أُرسل في دفعة سابقة ولم يُسجَّل مروره بعد")
+  .option("--include-frozen", "أدرج سكريبتات القنوات المجمّدة (D211، D235)؛ تُستبعد افتراضيًا")
   .option("--dir <dir>", "مجلد الدفعات (الافتراضي ~/Desktop/للمراجعة/محرر-المحتوى)")
   .option("--dry-run", "اعرض ما ينتظر المحرر بلا كتابة ملف")
-  .action(async (opts: { limit: string; all?: boolean; includeSent?: boolean; dir?: string; dryRun?: boolean }) => {
+  .action(async (opts: { limit: string; all?: boolean; includeSent?: boolean; includeFrozen?: boolean; dir?: string; dryRun?: boolean }) => {
     const st = await import("../studio/scriptPipelineStore");
     if (opts.dryRun) {
-      const q = await st.editorQueue();
+      const q = await st.editorQueue(undefined, { includeFrozen: opts.includeFrozen });
       for (const x of q) console.log(`${x.channel} ${x.episode} | ${x.state.partial ? `جزئي: ${x.state.pending.length} جملة متغيّرة` : `كاملًا: ${x.state.total} جملة`} | ${x.title}`);
       console.log(`ينتظر المحرر: ${q.length}`);
       return;
     }
     const limit = opts.all ? undefined : Number(opts.limit);
     if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) throw new Error("--limit عدد صحيح موجب.");
-    const r = await st.writeEditorBatch({ ...(opts.dir ? { dir: opts.dir } : {}), ...(limit ? { limit } : {}), includeSent: opts.includeSent });
+    const r = await st.writeEditorBatch({ ...(opts.dir ? { dir: opts.dir } : {}), ...(limit ? { limit } : {}), includeSent: opts.includeSent, includeFrozen: opts.includeFrozen });
     if (!r.file) { console.log(r.waiting ? `كل ما ينتظر المحرر (${r.waiting}) أُرسل في دفعات سابقة؛ استعمل --include-sent لإعادته.` : "لا سكريبت ينتظر المحرر."); return; }
     console.log(`دفعة المحرر ${r.n}: ${r.file}`);
     for (const x of r.items) console.log(`- ${x.channel} ${x.episode}: ${x.state.partial ? `${x.state.pending.length} جملة متغيّرة` : "كاملًا"} — ${x.title}`);

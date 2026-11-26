@@ -1,7 +1,7 @@
 /**
  * D234 (قاعدة ثابتة): مسودة ← محرر المحتوى ← المراجعة العلمية بطبقتيها ← اعتماد المالك ← صوت ← رندر.
  * يتأكد أن: الجمل تُتتبَّع جملةً جملة (المتغيّرة وحدها تعود للمحرر)، والحالة بالترتيب الثابت، و«اعتمدت السكريبت» لا يُقبل
- * قبل المحرر والمراجعة، والبوابة ترفض الصوت والرندر برسالة تسمي الحالة، والاستثناء الصريح الوحيد D229 (صوت مشاهد بعينها
+ * قبل المحرر والمراجعة، والبوابة ترفض الصوت والرندر برسالة تسمي الحالة، وآلية الاستثناء الصريح (فارغة اليوم: D229 أُلغي بـ D235؛ صوت مشاهد بعينها
  * من «بالإسلام» 001)، وأن كل مدخل صوت ورندر يستدعي البوابة.
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -90,25 +90,25 @@ describe("D234: حالة السكريبت بالترتيب الثابت", () => 
   });
 });
 
-describe("D234/D229: الاستثناء الصريح الوحيد", () => {
+describe("D234: الاستثناءات الصريحة (آلية بلا استثناء اليوم؛ D229 أُلغي بـ D235)", () => {
   const voiceOnly = [{ episode: "001", scenes: ["c1-s1", "c1-s2"], decision: "D229" }];
-  it("استثناء واحد مسجّل: صوت «بالإسلام» 001 بقرار D229", () => {
-    expect(EDITOR_GATE_EXCEPTIONS).toEqual([{ channel: "balislam", episode: "001", decision: "D229", voiceOnly: true }]);
+  const one = [{ channel: "balislam", episode: "001", decision: "D229" }];
+  it("لا استثناء مسجّل: صوت أي مشهد يمر بالمحرر", () => {
+    expect(EDITOR_GATE_EXCEPTIONS).toEqual([]);
+    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1"], voiceOnly })).toBeNull();
   });
-  it("صوت مشاهد الاستثناء وحدها؛ لا رندر، ولا مشهد آخر، ولا قناة أو حلقة أخرى، ولا قرار غير D229", () => {
-    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1"], voiceOnly })).toBe("D229"); // owner-pin-ok: بيانات مصطنعة في الاختبار أو قرار المالك نفسه
-    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1", "c1-s2"], voiceOnly })).toBe("D229"); // owner-pin-ok: بيانات مصطنعة في الاختبار أو قرار المالك نفسه
-    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: null, voiceOnly })).toBeNull(); // رندر أو صوت الحلقة كلها
-    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1", "c2-s1"], voiceOnly })).toBeNull();
-    expect(editorGateException({ channel: "balislam", episode: "002", voiceScenes: ["c1-s1"], voiceOnly: [{ ...voiceOnly[0]!, episode: "002" }] })).toBeNull();
-    expect(editorGateException({ channel: "zubdat-alkutub", episode: "001", voiceScenes: ["c1-s1"], voiceOnly })).toBeNull();
-    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1"], voiceOnly: [{ ...voiceOnly[0]!, decision: "D999" }] })).toBeNull();
+  it("الآلية: صوت مشاهد استثناء مسجّل وحدها؛ لا رندر، ولا مشهد آخر، ولا قناة أو حلقة أخرى، ولا قرار آخر", () => {
+    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1", "c1-s2"], voiceOnly }, one)).toBe("D229"); // owner-pin-ok: بيانات مصطنعة
+    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: null, voiceOnly }, one)).toBeNull(); // رندر أو صوت الحلقة كلها
+    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1", "c2-s1"], voiceOnly }, one)).toBeNull();
+    expect(editorGateException({ channel: "balislam", episode: "002", voiceScenes: ["c1-s1"], voiceOnly: [{ ...voiceOnly[0]!, episode: "002" }] }, one)).toBeNull();
+    expect(editorGateException({ channel: "zubdat-alkutub", episode: "001", voiceScenes: ["c1-s1"], voiceOnly }, one)).toBeNull();
+    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1"], voiceOnly: [{ ...voiceOnly[0]!, decision: "D999" }] }, one)).toBeNull();
   });
-  it("في المستودع: «بالإسلام» 001 بلا مرور محرر، ومشاهد D229 وحدها معفاة من بوابة الصوت", () => {
+  it("في المستودع: «بالإسلام» مجمّدة كاملًا (D235) بلا استثناء صوت", () => {
     const stock = JSON.parse(read("channels/balislam/stock.json"));
-    const scenes: string[] = stock.frozen.voiceOnly.find((v: { decision: string }) => v.decision === "D229").scenes;
-    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: scenes, voiceOnly: stock.frozen.voiceOnly })).toBe("D229"); // owner-pin-ok: بيانات مصطنعة في الاختبار أو قرار المالك نفسه
-    expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: [...scenes, "c9-s9"], voiceOnly: stock.frozen.voiceOnly })).toBeNull();
+    expect(stock.frozen).toBeTruthy();
+    expect(stock.frozen.voiceOnly ?? []).toEqual([]);
   });
 });
 
@@ -125,20 +125,24 @@ describe("D234: البوابة وسجل المحرر (ملفات مؤقتة)", (
     writeFileSync(path.join(tmp, "balislam", "channel.json"), "{}");
     writeFileSync(script, SCRIPT);
     writeFileSync(path.join(ep2, "script.md"), SCRIPT.replace("كيف يبدأ", "متى يبدأ"));
-    writeFileSync(path.join(tmp, "balislam", "stock.json"), JSON.stringify({ version: 1, phase: 1, frozen: { decision: "D211", voiceOnly: [{ episode: "001", scenes: ["c1-s1"], decision: "D229" }] },
+    writeFileSync(path.join(tmp, "balislam", "stock.json"), JSON.stringify({ version: 1, phase: 1,
       slots: [{ week: 1, title: "س", batch: 2, episode: "001" }, { week: 2, title: "ص", batch: 1, episode: "010", specialist: [] }] }));
+    // قناة مجمّدة: سكريبتاتها لا تذهب للمحرر إلا بـ --include-frozen
+    mkdirSync(path.join(tmp, "zubdat-alkutub", "episodes", "002-z"), { recursive: true });
+    writeFileSync(path.join(tmp, "zubdat-alkutub", "channel.json"), "{}");
+    writeFileSync(path.join(tmp, "zubdat-alkutub", "episodes", "002-z", "script.md"), SCRIPT);
+    writeFileSync(path.join(tmp, "zubdat-alkutub", "stock.json"), JSON.stringify({ version: 1, phase: 1, frozen: { decision: "D235" }, slots: [] }));
   });
   afterAll(() => {
     if (prev === undefined) delete process.env.BAL_CHANNELS_DIR; else process.env.BAL_CHANNELS_DIR = prev;
     rmSync(tmp, { recursive: true, force: true });
   });
 
-  it("ترفض الصوت والرندر قبل المحرر برسالة تسمي الحالة، وتعفي مشهد D229 وحده", async () => {
+  it("ترفض الصوت والرندر قبل المحرر برسالة تسمي الحالة، بلا استثناء", async () => {
     const st = await import("../src/studio/scriptPipelineStore");
     await expect(st.assertEditorPassed(script)).rejects.toThrow(/«بانتظار المحرر» \(D234\).*لم يراجعه بعد \(5 جملة\)/);
     await expect(st.assertEditorPassed(script, { voiceScenes: ["c1-s2"] })).rejects.toThrow(/بانتظار المحرر/);
-    await expect(st.assertEditorPassed(script, { voiceScenes: ["c1-s1"] })).resolves.toBeUndefined();
-    await expect(st.assertEditorPassed(path.join(ep2, "script.md"), { voiceScenes: ["c1-s1"] })).rejects.toThrow(/بانتظار المحرر/);
+    await expect(st.assertEditorPassed(script, { voiceScenes: ["c1-s1"] })).rejects.toThrow(/بانتظار المحرر/);
     await expect(st.assertEditorPassed(path.join(tmp, "balislam", "episodes", "999-none", "script.md"))).rejects.toThrow(/لا سكريبت/); // يُغلق ولا يُفتح
   });
 
@@ -181,6 +185,14 @@ describe("D234: البوابة وسجل المحرر (ملفات مؤقتة)", (
     const again = await st.writeEditorBatch({ dir });
     expect(again.file).toBeNull();
     expect(st.sentShaFor(dir, 1, "balislam", "001")).toBe(r.items[1]!.scriptSha256);
+  });
+
+  it("القناة المجمّدة خارج دفعة المحرر افتراضيًا، وتدخل بـ --include-frozen", async () => {
+    const st = await import("../src/studio/scriptPipelineStore");
+    expect((await st.editorQueue()).some((x) => x.channel === "zubdat-alkutub")).toBe(false);
+    expect((await st.editorQueue(undefined, { includeFrozen: true })).map((x) => `${x.channel}/${x.episode}`)).toContain("zubdat-alkutub/002"); // owner-pin-ok: بيانات مصطنعة
+    const r = await st.writeEditorBatch({ dir: path.join(tmp, "batches-frozen"), includeFrozen: true });
+    expect(r.items.some((x) => x.channel === "zubdat-alkutub")).toBe(true);
   });
 });
 
@@ -242,7 +254,7 @@ describe("D234: البذور في المستودع", () => {
         expect(isOwnerContentPath(f)).toBe(true);
       }
   });
-  it("«دفاتر الزمن» 001 المنشورة موروثة صراحة (D234)؛ و«بالإسلام» 001 بلا مرور (استثناؤها D229 في الكود وحده)", () => {
+  it("«دفاتر الزمن» 001 المنشورة موروثة صراحة (D234)؛ و«بالإسلام» 001 بلا مرور", () => {
     const rec = JSON.parse(read("channels/dafatir-alzaman/episodes/001-adam-beginning/editor-review.json")) as EditorReview;
     expect(rec.passes[0]!.grandfathered).toMatch(/D234/);
     expect(existsSync(path.join(root, "channels/balislam/episodes/001-know-the-truth/editor-review.json"))).toBe(false);

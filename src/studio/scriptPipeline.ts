@@ -9,7 +9,7 @@
  * - **اعتماد المالك:** «اعتمدت السكريبت» في «بانتظارك» (D213، موقّع محليًا) لا يُقبل قبل المحرر والمراجعة العلمية.
  *   والحلقة التي ليست «مسودة» فتح المالك إنتاجها بسجل «إنتاج المشاهد» (D76) فاعتمادها هناك.
  * - **البوابة:** الصوت والرندر يُرفضان لأي سكريبت فيه جملة لم تمرّ بالمحرر (scriptPipelineStore.ts: assertEditorPassed).
- *   الاستثناء الوحيد صريح: صوت مشاهد الدقيقة الأولى من «بالإسلام» 001 بقرار المالك D229 (EDITOR_GATE_EXCEPTIONS).
+ *   الاستثناءات صريحة بقرار المالك في EDITOR_GATE_EXCEPTIONS (فارغة: استثناء D229 أُلغي بـ D235).
  *
  * نقي بلا نظام ملفات: القراءة والكتابة في scriptPipelineStore.ts.
  */
@@ -168,21 +168,19 @@ export const editorGateMessage = (e: EditorState): string =>
     : `لم يراجعه بعد (${e.total} جملة)`}. الترتيب: مسودة ← المحرر ← المراجعة العلمية ← اعتمادك ← صوت ← رندر.`;
 
 /**
- * الاستثناءات الصريحة من بوابة المحرر، كل واحد بقرار المالك. لا يُضاف إليها شيء إلا بقرار جديد.
- * D229: صوت جمل الدقيقة الأولى من «بالإسلام» 001 وحدها (مشاهد `frozen.voiceOnly` في stock.json بقرار D229)؛
- * الصوت وحده لتلك المشاهد، والرندر وأي مشهد آخر يبقى ممنوعًا حتى يمرّ السكريبت بالمحرر.
+ * الاستثناءات الصريحة من بوابة المحرر، كل واحد بقرار المالك (صوت مشاهد بعينها في حلقة بعينها، بقرار مسجّل في
+ * `frozen.voiceOnly` من stock.json). لا يُضاف إليها شيء إلا بقرار جديد. فارغة اليوم: استثناء D229 لصوت الدقيقة الأولى
+ * من «بالإسلام» 001 أُلغي بـ D235 (تجميد «بالإسلام» كاملًا).
  */
-export const EDITOR_GATE_EXCEPTIONS: readonly { channel: string; episode: string; decision: string; voiceOnly: true }[] = Object.freeze([
-  { channel: "balislam", episode: "001", decision: "D229", voiceOnly: true as const },
-]);
+export const EDITOR_GATE_EXCEPTIONS: readonly { channel: string; episode: string; decision: string; voiceOnly: true }[] = Object.freeze([]);
 
 /** هل يُعفى هذا الطلب من بوابة المحرر؟ صوت (لا رندر) لمشاهد كلها في استثناء القرار المسجّل في stock.json نفسه. */
 export const editorGateException = (o: {
   channel: string; episode?: string; voiceScenes?: readonly string[] | null;
   voiceOnly?: readonly { episode: string; scenes: string[]; decision: string }[];
-}): string | null => {
+}, exceptions: readonly { channel: string; episode: string; decision: string }[] = EDITOR_GATE_EXCEPTIONS): string | null => {
   if (!o.episode || !o.voiceScenes?.length) return null;
-  for (const x of EDITOR_GATE_EXCEPTIONS) {
+  for (const x of exceptions) {
     if (x.channel !== o.channel || x.episode !== o.episode) continue;
     const entry = (o.voiceOnly ?? []).find((v) => v.episode === x.episode && v.decision === x.decision);
     if (entry && o.voiceScenes.every((s) => entry.scenes.includes(s))) return x.decision;
