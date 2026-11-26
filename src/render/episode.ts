@@ -1,4 +1,5 @@
 import { planOrder, sceneNames } from "../i18n/sceneNames";
+import { assertTemplatesApproved } from "../plan/templateApproval";
 import type { ChannelConfig } from "../channel/types";
 import { versesAreCitations } from "../quran/citation";
 import path from "node:path";
@@ -234,6 +235,8 @@ export type RenderCompositionOptions = {
 export const renderComposition = async (o: RenderCompositionOptions): Promise<string> => {
   const log = o.onProgress ?? (() => {});
   const { plan, media } = o;
+  // D228: لا يُرندر مشهد بقالب أو لقطة غير معتمدة من المالك (ستوري بورد ← اختيار النموذج ← اعتماده)
+  assertTemplatesApproved(plan);
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
   // never other channels' staged voice/recitation in the Remotion bundle.
