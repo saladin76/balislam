@@ -281,7 +281,7 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
       ...(o.scenePreview ? { enforceAudioTrack: true } : {}),
       outputLocation: tempOutput,
       browserExecutable: browserExecutable(),
-      ...((o.concurrency ?? q.concurrency) ? { concurrency: o.concurrency ?? q.concurrency } : {}),
+      ...(o.concurrency ? { concurrency: o.concurrency } : q.concurrency ? { concurrency: q.concurrency } : {}),
       ...(q.timeoutMs ? { timeoutInMilliseconds: q.timeoutMs } : {}),
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
