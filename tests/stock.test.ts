@@ -88,3 +88,33 @@ describe("«اعتمدت السكريبت» وقالب المخزون (ملفا�
     expect(v.approval.approved).toBe(false);
   });
 });
+
+describe("D229: استثناء صوت الدقيقة الأولى من تجميد القناة", () => {
+  const frozen = { decision: "D211", voiceOnly: [{ episode: "001", scenes: ["c1-s4", "c1-s5"], decision: "D229" }] };
+  it("يسمح بصوت المشاهد المستثناة وحدها في حلقتها، ويبقى كل ما سواها مجمّدًا", () => {
+    expect(productionRefusal({ frozen, episode: "001", voiceScenes: ["c1-s4"] })).toBeNull();
+    expect(productionRefusal({ frozen, episode: "001", voiceScenes: ["c1-s4", "c1-s5"] })).toBeNull();
+    expect(productionRefusal({ frozen, episode: "001", voiceScenes: ["c1-s4", "c1-s30"] })).toContain("مجمّد");
+    expect(productionRefusal({ frozen, episode: "001", voiceScenes: null })).toContain("مجمّد"); // الصوت كله أو الرندر
+    expect(productionRefusal({ frozen, episode: "001" })).toContain("مجمّد");
+    expect(productionRefusal({ frozen, episode: "002", voiceScenes: ["c1-s4"] })).toContain("مجمّد");
+    expect(productionRefusal({ status: "مسودة", frozen, episode: "001", voiceScenes: ["c1-s4"] })).toContain("مسودة");
+  });
+  it("الاستثناء في stock.json يُفحص: حلقة ومشاهد وقرار", () => {
+    const base = { version: 1, phase: 1, slots: [] } as unknown as Stock;
+    expect(stockIssues({ ...base, frozen: { decision: "D211", voiceOnly: [{ episode: "1", scenes: [], decision: "" }] } })).toContain("استثناء الصوت من التجميد: الحلقة (ثلاث خانات) والمشاهد والقرار مطلوبة.");
+    expect(stockIssues({ ...base, frozen })).toEqual([]);
+  });
+  it("بالإسلام: التجميد باقٍ، والاستثناء لصوت جمل الدقيقة الأولى من 001 وحدها", () => {
+    const s = JSON.parse(readFileSync(path.join(__dirname, "..", "channels", "balislam", "stock.json"), "utf8")) as Stock;
+    expect(s.frozen?.decision).toBe("D211"); // owner-pin-ok: قرار المالك D211 نفسه
+    expect(s.frozen?.voiceOnly).toEqual([{ episode: "001", scenes: ["c1-s1", "c1-s2", "c1-s3", "c1-s4", "c1-s5", "c1-s9", "c1-s10", "c1-s12", "c1-s13", "c1-s14", "c1-s15", "c1-s17"], decision: "D229" }]); // owner-pin-ok: نص قرار المالك D229 (المشاهد بعينها)
+  });
+  it("الخادم يفحص مشهد كل توليد عند الاستثناء (الجملة وتصحيح الكلمة والمشهد وترقية النبرة)", () => {
+    const api = readFileSync(path.join(__dirname, "..", "app", "server", "api.ts"), "utf8");
+    expect(api).toContain("generateGate: (sceneId: string) => scopedVoiceBlock([sceneId])");
+    expect(api.match(/await scopedVoiceBlock\(/g)?.length).toBe(2); // owner-pin-ok: عدد مواضع البوابة في الكود لا محتوى المالك
+    const sv = readFileSync(path.join(__dirname, "..", "src", "voice", "sentenceVoice.ts"), "utf8");
+    expect(sv.match(/opts\.generateGate \? await opts\.generateGate\(scene\.id\)/g)?.length).toBe(2); // owner-pin-ok: عدد مواضع البوابة في الكود لا محتوى المالك
+  });
+});

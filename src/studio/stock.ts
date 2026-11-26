@@ -34,7 +34,11 @@ export type Stock = {
   version: 1;
   phase: number;
   /** D211: تجميد إنتاج الفيديو في القناة (لا رندر ولا صوت)؛ العمل المكتوب مستمر */
-  frozen?: { decision: string; note?: string };
+  /**
+   * تجميد القناة (D211). voiceOnly (D229): استثناء المالك لصوت مشاهد بعينها في حلقة بعينها (مثل جمل الدقيقة الأولى)؛
+   * الصوت وحده لتلك المشاهد، والرندر وكل ما سواها يبقى مجمّدًا.
+   */
+  frozen?: { decision: string; note?: string; voiceOnly?: { episode: string; scenes: string[]; decision: string }[] };
   slots: StockSlot[];
 };
 
@@ -46,6 +50,9 @@ export const stockIssues = (s: Stock | null | undefined, series?: readonly { id:
   if (!s || s.version !== 1 || !Array.isArray(s.slots)) return ["ترتيب النشر: الصيغة غير صالحة."];
   if (!Number.isInteger(s.phase) || s.phase < 1) out.push("ترتيب النشر: رقم المرحلة غير صالح.");
   if (s.frozen && (typeof s.frozen.decision !== "string" || !s.frozen.decision.trim())) out.push("التجميد: اذكر القرار.");
+  for (const v of s.frozen?.voiceOnly ?? [])
+    if (!EP.test(String(v?.episode)) || !Array.isArray(v?.scenes) || !v.scenes.length || v.scenes.some((x) => typeof x !== "string" || !/^[a-z0-9][a-z0-9-]{0,70}$/.test(x)) || typeof v?.decision !== "string" || !v.decision.trim())
+      out.push("استثناء الصوت من التجميد: الحلقة (ثلاث خانات) والمشاهد والقرار مطلوبة.");
   const eps = new Set<string>();
   s.slots.forEach((x, i) => {
     const at = `الخانة ${i + 1}`;
@@ -68,6 +75,14 @@ export const stockIssues = (s: Stock | null | undefined, series?: readonly { id:
   return out;
 };
 
+/** D229: هل استثنى المالك صوت هذه المشاهد (كلها، ولا شيء غيرها) في هذه الحلقة من تجميد القناة؟ */
+export const frozenVoiceAllowed = (frozen: Stock["frozen"], episode?: string, scenes?: readonly string[] | null): boolean =>
+  Boolean(frozen && episode && scenes?.length && (frozen.voiceOnly ?? []).some((x) => x.episode === episode && scenes.every((s) => x.scenes.includes(s))));
+
+/** D229: هل في الحلقة استثناء صوت من التجميد (فيُفحص المشهد نفسه عند التوليد بدل الرفض العام)؟ */
+export const hasFrozenVoiceException = (frozen: Stock["frozen"], episode?: string): boolean =>
+  Boolean(frozen && episode && (frozen.voiceOnly ?? []).some((x) => x.episode === episode && x.scenes.length));
+
 /** حالة سكريبت الحلقة من ترويسته */
 export const isDraftStatus = (status: unknown): boolean => typeof status === "string" && status.trim() === DRAFT_STATUS;
 
@@ -75,9 +90,10 @@ export const isDraftStatus = (status: unknown): boolean => typeof status === "st
  * لماذا يُمنع الإنتاج (صوت أو رندر) لهذه الحلقة الآن؛ null = لا مانع من هذه الجهة.
  * المسودة أولًا (لكل القنوات)، ثم تجميد القناة.
  */
-export const productionRefusal = (o: { status?: unknown; frozen?: Stock["frozen"] }): string | null => {
+export const productionRefusal = (o: { status?: unknown; frozen?: Stock["frozen"]; episode?: string; voiceScenes?: readonly string[] | null }): string | null => {
   if (isDraftStatus(o.status))
     return "هذه الحلقة «مسودة» (بناء المخزون): لا صوت ولا رندر قبل اعتماد المالك للسكريبت ومراجعة المتخصص وتغيير حالتها.";
+  if (o.frozen && frozenVoiceAllowed(o.frozen, o.episode, o.voiceScenes)) return null;
   if (o.frozen) return `إنتاج الفيديو في هذه القناة مجمّد بقرار المالك (${o.frozen.decision}): لا رندر ولا صوت، والعمل المكتوب مستمر.`;
   return null;
 };

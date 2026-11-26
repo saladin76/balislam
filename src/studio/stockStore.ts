@@ -9,7 +9,7 @@ import { listScriptEpisodeDirs } from "../script/episodes";
 import { workflowSigningKey } from "./signingKey";
 import { listSeries } from "../channel/seriesStore";
 import { seriesIdIssue } from "../channel/series";
-import { DRAFT_STATUS, productionRefusal, stockIssues, stockViews, type EpisodeFacts, type Stock, type StockEpisodeView } from "./stock";
+import { DRAFT_STATUS, hasFrozenVoiceException, isDraftStatus, productionRefusal, stockIssues, stockViews, type EpisodeFacts, type Stock, type StockEpisodeView } from "./stock";
 
 export const STOCK_FILE = "stock.json";
 /** اعتماد المالك لسكريبت المسودة: محلي موقّع بمفتاح الجهاز، لا يُرفع (مثل سجل إنتاج المشاهد) */
@@ -120,10 +120,24 @@ export const approveDraftScript = async (ch: string, num: string): Promise<{ at:
 };
 
 /** المانع من الإنتاج لحلقة بمسار سكريبتها (المسودة، ثم تجميد القناة) */
-export const productionBlockFor = async (ch: string, scriptPath: string): Promise<string | null> => {
+export const productionBlockFor = async (ch: string, scriptPath: string, voiceScenes?: readonly string[] | null): Promise<string | null> => {
   const status = existsSync(scriptPath) ? scriptFrontmatter(await readFile(scriptPath, "utf8")).status : undefined;
   const stock = existsSync(stockPath(ch)) ? readStock(ch) : null;
-  return productionRefusal({ status, frozen: stock?.frozen });
+  return productionRefusal({ status, frozen: stock?.frozen, episode: episodeOfScript(scriptPath), voiceScenes });
+};
+
+/** رقم الحلقة من مجلد سكريبتها (001-…) */
+const episodeOfScript = (scriptPath: string) => /^(\d{3})(?:-|$)/.exec(path.basename(path.dirname(scriptPath)))?.[1];
+
+/**
+ * D229: صوت مستثنى من تجميد القناة لهذه الحلقة (والحلقة ليست مسودة)؛ فلا يُرفض الطلب كله عند البوابة العامة،
+ * ويُفحص مشهد التوليد نفسه بـ productionBlockFor(ch, sp, [المشهد]).
+ */
+export const voiceExceptionFor = async (ch: string, scriptPath: string): Promise<boolean> => {
+  const status = existsSync(scriptPath) ? scriptFrontmatter(await readFile(scriptPath, "utf8")).status : undefined;
+  if (isDraftStatus(status)) return false;
+  const stock = existsSync(stockPath(ch)) ? readStock(ch) : null;
+  return hasFrozenVoiceException(stock?.frozen, episodeOfScript(scriptPath));
 };
 
 /** قالب حلقة المخزون: script.md وresearch.md وscenes.md وpublish.json مسودة (templates/stock/) */
