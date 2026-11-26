@@ -807,10 +807,10 @@ export const balApi = (): Plugin => ({
             const tu = await load("/src/voice/toneUpgrade.ts");
             try {
               if (b?.dryRun !== false) return send(res, 200, { plan: await tu.toneUpgradePlan(ep) });
-              const scoped = await scopedVoiceBlock(null);
-              if (scoped) return send(res, 409, { error: scoped });
               const { assertSceneOwner } = await load("/src/studio/sceneService.ts");
               assertSceneOwner();
+              const scoped = await scopedVoiceBlock(null);
+              if (scoped) return send(res, 409, { error: scoped });
               const { elevenLabsFromEnv } = await load("/src/voice/elevenlabs.ts");
               const result = await tu.upgradeTones(ep, { client: elevenLabsFromEnv() });
               const plan = await io.readPlanFile(scriptPath);
