@@ -105,10 +105,10 @@ describe("D229: استثناء صوت الدقيقة الأولى من تجمي�
     expect(stockIssues({ ...base, frozen: { decision: "D211", voiceOnly: [{ episode: "1", scenes: [], decision: "" }] } })).toContain("استثناء الصوت من التجميد: الحلقة (ثلاث خانات) والمشاهد والقرار مطلوبة.");
     expect(stockIssues({ ...base, frozen })).toEqual([]);
   });
-  it("بالإسلام: التجميد باقٍ، والاستثناء لصوت جمل الدقيقة الأولى من 001 وحدها", () => {
+  it("بالإسلام: تجميد كامل (D235)، ولا استثناء صوت بعد إلغاء D229", () => {
     const s = JSON.parse(readFileSync(path.join(__dirname, "..", "channels", "balislam", "stock.json"), "utf8")) as Stock;
     expect(s.frozen?.decision).toBe("D211"); // owner-pin-ok: قرار المالك D211 نفسه
-    expect(s.frozen?.voiceOnly).toEqual([{ episode: "001", scenes: ["c1-s1", "c1-s2", "c1-s3", "c1-s4", "c1-s5", "c1-s9", "c1-s10", "c1-s12", "c1-s13", "c1-s14", "c1-s15", "c1-s17"], decision: "D229" }]); // owner-pin-ok: نص قرار المالك D229 (المشاهد بعينها)
+    expect(s.frozen?.voiceOnly).toBeUndefined(); // owner-pin-ok: قرار المالك D235 (تجميد كامل)
   });
   it("الخادم يفحص مشهد كل توليد عند الاستثناء (الجملة وتصحيح الكلمة والمشهد وترقية النبرة)", () => {
     const api = readFileSync(path.join(__dirname, "..", "app", "server", "api.ts"), "utf8");
