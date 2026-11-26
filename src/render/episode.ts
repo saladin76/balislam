@@ -223,6 +223,8 @@ export type RenderCompositionOptions = {
   /** Re-checked after the expensive render, before the file is published (the Master ledger gate). */
   afterRender?: () => Promise<void>;
   onProgress?: (pct: number, msg: string) => void;
+  /** D232 trials only (the worker refuses it on a studio job): browser tabs, to measure; production follows config.json. */
+  concurrency?: number;
 };
 
 /**
@@ -279,7 +281,7 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
       ...(o.scenePreview ? { enforceAudioTrack: true } : {}),
       outputLocation: tempOutput,
       browserExecutable: browserExecutable(),
-      ...(q.concurrency ? { concurrency: q.concurrency } : {}),
+      ...((o.concurrency ?? q.concurrency) ? { concurrency: o.concurrency ?? q.concurrency } : {}),
       ...(q.timeoutMs ? { timeoutInMilliseconds: q.timeoutMs } : {}),
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });

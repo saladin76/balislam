@@ -59,10 +59,33 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
    */
   allowPendingRecitation?: boolean }) => {
   if (!(/^[a-z0-9][a-z0-9_-]{0,70}-audio$/.test(opts.slot) || /^scene-[a-z0-9][a-z0-9-]{0,70}-av$/.test(opts.slot))) throw new Error("خانة معاينة AV غير آمنة.");
+  const { scriptPath, plan, media, pendingRecitation } = await shotsRenderInputs(episode, ids, {
+    sceneDraft: /^scene-[a-z0-9-]+-av$/.test(opts.slot), allowPendingRecitation: opts.allowPendingRecitation });
+  const outFile = path.join(path.dirname(scriptPath), "out", `${opts.slot}-audio-preview.mp4`);
+  const file = await renderEpisode({ episode, orientation: "landscape", quality: "preview",
+    plan, media, outFile, onProgress: opts.onProgress,
+    scenePreview: /^scene-[a-z0-9-]+-av$/.test(opts.slot),
+    ...(pendingRecitation.length ? { draftMarks: { pendingRecitation } } : {}),
+  });
+  const timing = plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, seconds: Math.round((sceneFrames(s, media) / 30) * 10) / 10, voice: media.voice[s.id]?.duration ?? null, recitation: s.ayahKey ? media.recitations[s.ayahKey]?.duration ?? null : null }));
+  // A scene edited while Remotion was running must never publish its stale cut.
+  await opts.verifyBeforePublish?.();
+  const up = await putEpisodePreview(episode, opts.slot, file, { title: opts.title, note: opts.note });
+  // نجحت النسخة الجديدة: لا تبقى المعاينة الصامتة القديمة معروضة بجوارها
+  if (opts.replaces && opts.replaces !== opts.slot) await removePreview(scriptPath, opts.replaces);
+  return { file: up.file, version: up.version, timing, pendingRecitation };
+};
+
+/**
+ * D232: what a scene/shots review cut renders, computed on the Mac: the studio's own render and the Windows worker's scene job
+ * use the same plan cut, staged media snapshot and draft marks, after the same gap check. Renders nothing itself.
+ */
+export const shotsRenderInputs = async (episode: string, ids: string[], o: { sceneDraft: boolean; allowPendingRecitation?: boolean }) => {
   const scriptPath = await resolveScriptPath(episode);
   const full = await loadPlan(episode);
   if (!full) throw new Error("لا توجد خطة للحلقة.");
-  const sceneDraft = /^scene-[a-z0-9-]+-av$/.test(opts.slot);
+  const sceneDraft = o.sceneDraft;
+  const opts = { allowPendingRecitation: o.allowPendingRecitation };
   // A scene cut carries the channel intro only if it opens the episode: the assembly concatenates the cuts,
   // so it then holds one intro at the start exactly like the Master, not one per scene (funnel audit, D36).
   const { plan, mediaPlan } = cutPlans(full, ids, sceneDraft);
@@ -84,17 +107,5 @@ export const renderShotsPreview = async (episode: string, ids: string[], opts: {
     e.gaps = gaps;
     throw e;
   }
-  const outFile = path.join(path.dirname(scriptPath), "out", `${opts.slot}-audio-preview.mp4`);
-  const file = await renderEpisode({ episode, orientation: "landscape", quality: "preview",
-    plan, media, outFile, onProgress: opts.onProgress,
-    scenePreview: /^scene-[a-z0-9-]+-av$/.test(opts.slot),
-    ...(pendingRecitation.length ? { draftMarks: { pendingRecitation } } : {}),
-  });
-  const timing = plan.chapters.flatMap((c) => c.scenes).map((s) => ({ id: s.id, seconds: Math.round((sceneFrames(s, media) / 30) * 10) / 10, voice: media.voice[s.id]?.duration ?? null, recitation: s.ayahKey ? media.recitations[s.ayahKey]?.duration ?? null : null }));
-  // A scene edited while Remotion was running must never publish its stale cut.
-  await opts.verifyBeforePublish?.();
-  const up = await putEpisodePreview(episode, opts.slot, file, { title: opts.title, note: opts.note });
-  // نجحت النسخة الجديدة: لا تبقى المعاينة الصامتة القديمة معروضة بجوارها
-  if (opts.replaces && opts.replaces !== opts.slot) await removePreview(scriptPath, opts.replaces);
-  return { file: up.file, version: up.version, timing, pendingRecitation };
+  return { scriptPath, plan, media, pendingRecitation };
 };

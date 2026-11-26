@@ -948,6 +948,53 @@ program
     if (r.refused.length) process.exitCode = 1;
   });
 
+// D232: كل الرندر على الويندوز. حالة الجهاز، والتجربة الكاملة (المشاهد ← التجميع ← 4K) التي لا تدخل الحزمة ولا السجل.
+program
+  .command("worker-status")
+  .description("D232: حالة جهاز الرندر (النبض، والطابور، وتقدم المهمة الجارية)")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (opts: { share: string }) => {
+    const { workerStatus } = await import("../render/worker/macJobs");
+    const s = await workerStatus(path.resolve(opts.share));
+    console.log(s.message);
+    if (s.heartbeat) console.log(`النبض: ${s.heartbeat.host} ${s.heartbeat.state} منذ ${s.heartbeatAgeSec} ث @ ${s.heartbeat.commit?.slice(0, 8) ?? "?"}`);
+    console.log(`في الطابور: ${s.queued.length}${s.queued.length ? ` (${s.queued.slice(0, 5).join("، ")}${s.queued.length > 5 ? "…" : ""})` : ""}`);
+    if (!s.online) process.exitCode = 2;
+  });
+
+program
+  .command("worker-trial")
+  .description("D232: تجربة رندر حلقة كاملة على الويندوز (المشاهد ثم التجميع ثم 4K)؛ لا تدخل الحزمة ولا السجل الموقّع، والماك لا يرندر")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .requiredOption("--tag <tag>", "وسم التجربة، مثل dafatir-001")
+  .requiredOption("--out <dir>", "مجلد التجربة على الماك (سجلها ونسخ المراجعة الصغيرة)")
+  .option("--stages <list>", "scenes,assembly,master (الافتراضي كلها بالترتيب)")
+  .option("--scenes <ids>", "مشاهد بعينها مفصولة بفواصل (الافتراضي كل المشاهد)")
+  .option("--concurrency <n>", "تبويبات المتصفح لـMaster التجربة (للقياس)")
+  .action(async (episode: string, opts: { share: string; tag: string; out: string; stages?: string; scenes?: string; concurrency?: string }) => {
+    const stages = opts.stages ? opts.stages.split(",").map((x) => x.trim()) : undefined;
+    if (stages?.some((s) => !["scenes", "assembly", "master"].includes(s))) throw new Error("المراحل: scenes وassembly وmaster.");
+    const { submitTrial } = await import("../render/worker/macJobs");
+    const r = await submitTrial(episode, path.resolve(opts.share), {
+      tag: opts.tag, outDir: path.resolve(opts.out), stages: stages as ("scenes" | "assembly" | "master")[] | undefined,
+      scenes: opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean), concurrency: opts.concurrency ? Number(opts.concurrency) : undefined,
+      log: (m) => console.log(m),
+    });
+    console.log(`التجربة ${r.tag}: ${r.jobs.length} مهمة بالـcommit ${r.commit.slice(0, 8)}. للقراءة: bal worker-trial-collect --share ${opts.share} --out ${opts.out}`);
+  });
+
+program
+  .command("worker-trial-collect")
+  .description("D232: نتائج التجربة وأوقاتها بعد التحقق (البصمة والصيغة والأبعاد والمدة والأثر)؛ ينسخ نسخ المراجعة 1080p وحدها")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك")
+  .requiredOption("--out <dir>", "مجلد التجربة على الماك")
+  .option("--no-copy", "لا تنسخ شيئًا (الأوقات والتحقق فقط)")
+  .action(async (opts: { share: string; out: string; copy?: boolean }) => {
+    const { collectTrial } = await import("../render/worker/macJobs");
+    await collectTrial(path.resolve(opts.share), path.resolve(opts.out), { copy: opts.copy, log: (m) => console.log(m) });
+  });
+
 program
   .command("worker")
   .description("D226: عامل الرندر على الجهاز الثاني: يرندر شورتس المجلد المشترك واحدًا بعد واحد (لا دفع ولا اعتماد)")

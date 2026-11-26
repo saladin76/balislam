@@ -7,12 +7,18 @@
  *
  * كل مسار في المهمة نسبي بشرطات أمامية، ويُفحص بنمط صارم (لا `..` ولا مسار مطلق ولا شرطة خلفية)، ثم يُركَّب
  * بـ path.join على النظام الذي يعمل عليه (ويندوز أو ماك).
+ *
+ * D232 (كل الرندر على الويندوز): الإصدار 2 من المهمة يعمّم الأنواع: `scene` (مشهد صوت وصورة 1080p)، و`assembly`
+ * و`prefinal` (وصل قطع المشاهد)، و`master` (الحلقة 4K)، و`short`، و`trial` (خطة معطاة، كدقيقة تجريبية)؛ و`thumbnail`
+ * محجوز لم يُنفَّذ بعد. الإصدار 1 (الشورت وحده، D226) يبقى مقبولًا كما هو. الحلقة تقرأ من المهمة «الغلاف» فقط
+ * (validateEnvelope) قبل checkout؛ والفحص الكامل في العملية الفرعية بكود commit المهمة نفسه، فلا يحتاج نوع جديد
+ * إعادة تشغيل العامل. العامل يكتب تقدمه في `running/<id>.progress.json` ونبضه في `render-queue/worker.heartbeat.json`.
  */
 import path from "node:path";
 import os from "node:os";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rename, rm, writeFile, open } from "node:fs/promises";
+import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile, open } from "node:fs/promises";
 import type { EpisodeMedia } from "../../plan/media";
 import type { Plan } from "../../plan/types";
 
@@ -55,7 +61,14 @@ export type WorkerJob = {
 export type WorkerResult = {
   id: string; sha256: string; bytes: number; durationSec: number; width: number; height: number;
   commit: string; worker: string; startedAt: string; finishedAt: string; logTail: string;
+  /** D232: أوقات المراحل (ISO) ووصف الجهاز وأدنى ذاكرة حرة أثناء الرندر؛ لا تُستعمل في التحقق، للقياس فقط */
+  timings?: WorkerTimings;
+  machine?: { cpus: number; cpuModel: string; totalMB: number; platform: string };
+  memory?: { minFreeMB: number };
+  /** نسخة مراجعة 1080p (لـMaster 4K) بجوار الملف: الماك يحتفظ بها، والكبير يبقى في المجلد المشترك */
+  review?: { file: string; sha256: string; bytes: number; width: number; height: number };
 };
+export type WorkerTimings = { claimedAt?: string; startedAt: string; bundledAt?: string; renderedAt?: string; finishedAt: string; stages: { stage: string; at: string }[] };
 
 export class JobError extends Error {}
 const fail = (m: string): never => { throw new JobError(`مهمة رندر غير صالحة: ${m}`); };
@@ -153,12 +166,12 @@ const jobFile = (dir: string, id: string) => {
 };
 
 /** المهام المنتظرة، الأقدم أولًا (وقت الإنشاء ثم الاسم). الملف التالف لا يوقف الطابور: يُتجاوز. */
-export const pendingJobs = async (share: string): Promise<WorkerJob[]> => {
+export const pendingJobs = async (share: string): Promise<JobEnvelope[]> => {
   const p = queuePaths(share);
   if (!existsSync(p.jobs)) return [];
-  const out: WorkerJob[] = [];
+  const out: JobEnvelope[] = [];
   for (const f of (await readdir(p.jobs)).filter((x) => x.endsWith(".json") && !x.startsWith(".")).sort()) {
-    try { out.push(validateJob(JSON.parse(await readFile(path.join(p.jobs, f), "utf8")))); } catch { /* يظهر في المهمة نفسها حين تُؤخذ */ }
+    try { out.push(validateEnvelope(JSON.parse(await readFile(path.join(p.jobs, f), "utf8")))); } catch { /* يظهر في المهمة نفسها حين تُؤخذ */ }
   }
   return out.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
 };
@@ -174,7 +187,7 @@ export const writeJsonAtomic = async (file: string, value: unknown) => {
  * يأخذ المهمة بنقل ذري من jobs/ إلى running/: عاملان على المهمة نفسها ينجح أحدهما فقط (الآخر ENOENT ← null).
  * ثم يكتب من أخذها ومتى.
  */
-export const claimJob = async (share: string, id: string, worker: string, now = new Date()): Promise<WorkerJob | null> => {
+export const claimJob = async (share: string, id: string, worker: string, now = new Date()): Promise<JobEnvelope | null> => {
   const p = await ensureQueue(share);
   const from = jobFile(p.jobs, id);
   const to = jobFile(p.running, id);
@@ -186,9 +199,9 @@ export const claimJob = async (share: string, id: string, worker: string, now = 
     if (code === "ENOENT" || code === "EPERM" || code === "EBUSY" || code === "EEXIST") return null;
     throw e;
   }
-  let job: WorkerJob;
+  let job: JobEnvelope;
   try {
-    job = validateJob(JSON.parse(await readFile(to, "utf8")));
+    job = validateEnvelope(JSON.parse(await readFile(to, "utf8")));
   } catch (e) {
     await failJob(share, id, (e as Error).message, "");
     return null;
@@ -198,8 +211,8 @@ export const claimJob = async (share: string, id: string, worker: string, now = 
   return claimed;
 };
 
-export const runningJob = async (share: string, id: string): Promise<WorkerJob> =>
-  validateJob(JSON.parse(await readFile(jobFile(queuePaths(share).running, id), "utf8")));
+export const runningJob = async (share: string, id: string): Promise<AnyJob> =>
+  validateAnyJob(JSON.parse(await readFile(jobFile(queuePaths(share).running, id), "utf8")));
 
 /** الفشل: failed/<id>/ فيه error.json وملف المهمة (إن وُجد). لا يُحذف أي شيء آخر. */
 export const failJob = async (share: string, id: string, error: string, logTail: string) => {
@@ -210,24 +223,29 @@ export const failJob = async (share: string, id: string, error: string, logTail:
   await writeFile(path.join(dir, "error.json"), JSON.stringify({ id, error, logTail: tail(logTail), at: new Date().toISOString(), worker: workerName() }, null, 2) + "\n");
   for (const src of [jobFile(p.running, id), jobFile(p.jobs, id)])
     if (existsSync(src)) { await rename(src, path.join(dir, "job.json")); break; }
+  await rm(progressFile(share, id), { force: true });
 };
 
 /** النجاح: يُبنى done/.<id>.partial ثم يُنقل كاملًا إلى done/<id>/ (الماك لا يرى نتيجة ناقصة). */
-export const completeJob = async (share: string, job: WorkerJob, mp4: string, result: WorkerResult) => {
+export const completeJob = async (share: string, job: Pick<WorkerJob, "id">, mp4: string, result: WorkerResult, extra: { name: string; file: string }[] = []) => {
   const p = await ensureQueue(share);
   const partial = path.join(p.done, `.${job.id}.partial`);
   const dir = path.join(p.done, job.id);
   if (existsSync(dir)) fail(`نتيجة سابقة موجودة: ${job.id}`);
   await rm(partial, { recursive: true, force: true });
   await mkdir(partial, { recursive: true });
-  const { copyFile } = await import("node:fs/promises");
   await copyFile(mp4, path.join(partial, doneVideoName(job)));
   // البصمة من النسخة في المجلد المشترك نفسها (لا من الملف المحلي)
   const copied = await sha256File(path.join(partial, doneVideoName(job)));
   if (copied !== result.sha256) fail("تغيّرت الفيديو أثناء النسخ إلى المجلد المشترك.");
+  for (const x of extra) {
+    if (!/^[A-Za-z0-9._-]+$/.test(x.name) || x.name === doneVideoName(job)) fail(`اسم ملف إضافي غير آمن: ${x.name}`);
+    await copyFile(x.file, path.join(partial, x.name));
+  }
   await writeFile(path.join(partial, "result.json"), JSON.stringify(result, null, 2) + "\n");
   await rename(jobFile(p.running, job.id), path.join(partial, "job.json"));
   await rename(partial, dir);
+  await rm(progressFile(share, job.id), { force: true });
   return dir;
 };
 export const doneVideoName = (job: Pick<WorkerJob, "id">) => `${job.id}.mp4`;
@@ -272,4 +290,195 @@ export const acquireLock = async (share: string, now = () => Date.now(), host = 
     }
   }
   return null;
+};
+
+/* ── D232: الإصدار 2 — كل أنواع الرندر ── */
+
+export const JOB_KINDS = ["scene", "assembly", "prefinal", "master", "short", "thumbnail", "trial"] as const;
+export type JobKind = (typeof JOB_KINDS)[number];
+/** أنواع ترندر تكوين Remotion، وأنواع تصل قطع المشاهد (ffmpeg) */
+export const RENDER_KINDS: readonly JobKind[] = ["scene", "master", "short", "trial"];
+export const JOIN_KINDS: readonly JobKind[] = ["assembly", "prefinal"];
+/** studio: ناتجه يُستورد بعد التحقق؛ trial: تجربة لا تدخل الحزمة ولا السجل أبدًا (تبقى في المجلد المشترك ومجلد مؤقت على الماك) */
+export type JobPurpose = "studio" | "trial";
+
+export type RenderSpec = {
+  orientation: "landscape" | "portrait";
+  quality: "preview" | "master";
+  /** المشاهد المعروضة: كل الخطة، أو فصل، أو مقطع (sceneIds) */
+  scope: { all: true } | { chapter: number } | { sceneIds: string[] };
+  /** قطعة مراجعة مشهد (بلا ضبط علوّ ولا Master) */
+  scenePreview: boolean;
+  timingMode: "estimated" | "approved" | "scene-preview";
+  shortTitle?: string;
+  draftMarks?: { pendingRecitation: string[] };
+  /** تبويبات المتصفح؛ في التجارب وحدها (للقياس)، والإنتاج يتبع config.json */
+  concurrency?: number;
+  /** يصنع العامل أيضًا نسخة مراجعة 1080p بجوار ملف 4K (الماك يحتفظ بها وحدها) */
+  review1080?: boolean;
+};
+/** قطع المشاهد للوصل: كل قطعة ناتج مهمة مشهد في done/<job>/ ببصمتها (من result.json إن لم يحددها الماك) */
+export type JoinSpec = { cuts: { sceneId: string; job: string; sha256?: string }[] };
+
+export type WorkerJobV2 = {
+  version: 2;
+  id: string;
+  channel: WorkerChannel;
+  episode: string;
+  kind: JobKind;
+  purpose: JobPurpose;
+  /** وسم التجربة: trial وحدها */
+  trial?: string;
+  /** رقم الشورت (short وحده) */
+  n?: number;
+  /** معرّف المشهد (scene وحده) */
+  sceneId?: string;
+  commit: string;
+  media: string;
+  render?: RenderSpec;
+  join?: JoinSpec;
+  expected: { durationSec: number; width: number; height: number };
+  inputs: { planSha256: string; plan: Plan; media: EpisodeMedia; narrationGain: Record<string, number> };
+  createdAt: string;
+  claimedBy?: string;
+  claimedAt?: string;
+};
+export type AnyJob = WorkerJob | WorkerJobV2;
+/** ما تقرؤه الحلقة قبل checkout: يكفي لأخذ المهمة وجلب commitها */
+export type JobEnvelope = { version: number; id: string; channel: WorkerChannel; episode: string; kind: string; commit: string; createdAt: string; claimedBy?: string; claimedAt?: string };
+
+/** الأبعاد المتوقعة من الجودة والاتجاه (config.json: 1920×1080 × المقياس) */
+export const sizeFor = (quality: RenderSpec["quality"], orientation: RenderSpec["orientation"]) => {
+  const k = quality === "master" ? 2 : 1;
+  return orientation === "landscape" ? { width: 1920 * k, height: 1080 * k } : { width: 1080 * k, height: 1920 * k };
+};
+
+const KNOWN2 = new Set(["version", "id", "channel", "episode", "kind", "purpose", "trial", "n", "sceneId", "commit", "media", "render", "join", "expected", "inputs", "createdAt", "claimedBy", "claimedAt"]);
+const SCENE_ID = /^[A-Za-z0-9_-]{1,80}$/;
+const exactKeys = (o: unknown, allowed: string[], required: string[], what: string): Record<string, unknown> => {
+  if (!isObj(o)) return fail(`${what} مفقود.`);
+  for (const k of Object.keys(o)) if (!allowed.includes(k)) fail(`${what}: حقل غير معروف ${k}`);
+  for (const k of required) if (!(k in o)) fail(`${what}: ${k} مفقود.`);
+  return o;
+};
+
+/** الغلاف: الإصدار 1 يُفحص كاملًا كما كان؛ والإصدار 2 فأعلى بالحقول التي تحتاجها الحلقة وحدها. */
+export const validateEnvelope = (raw: unknown): JobEnvelope => {
+  if (!isObj(raw)) return fail("ليست كائن JSON.");
+  if (raw.version === 1) return validateJob(raw) as unknown as JobEnvelope;
+  if (!Number.isInteger(raw.version) || (raw.version as number) < 2 || (raw.version as number) > 9) fail("الإصدار غير مدعوم.");
+  if (typeof raw.id !== "string" || !ID.test(raw.id) || raw.id.length > 120) fail("المعرّف غير صالح.");
+  if (!WORKER_CHANNELS.includes(raw.channel as WorkerChannel)) fail(`قناة غير معروفة: ${String(raw.channel)}`);
+  if (typeof raw.episode !== "string" || !EPISODE.test(raw.episode)) fail("مجلد الحلقة غير صالح.");
+  if (typeof raw.kind !== "string" || !ID.test(raw.kind)) fail("النوع غير صالح.");
+  if (typeof raw.commit !== "string" || !SHA1.test(raw.commit)) fail("الـcommit يجب أن يكون بصمة كاملة (40 حرفًا).");
+  if (typeof raw.createdAt !== "string" || Number.isNaN(Date.parse(raw.createdAt))) fail("وقت الإنشاء غير صالح.");
+  return raw as unknown as JobEnvelope;
+};
+
+/** الفحص الكامل لمهمة الإصدار 2 (في العملية الفرعية بكود commit المهمة، وعلى الماك قبل الكتابة وبعد العودة). */
+export const validateJobV2 = (raw: unknown): WorkerJobV2 => {
+  validateEnvelope(raw);
+  const r = raw as Record<string, unknown>;
+  for (const k of Object.keys(r)) if (!KNOWN2.has(k)) fail(`حقل غير معروف: ${k}`);
+  if (r.version !== 2) fail("الإصدار غير مدعوم.");
+  if (!JOB_KINDS.includes(r.kind as JobKind)) fail(`نوع غير مدعوم: ${String(r.kind)}`);
+  const kind = r.kind as JobKind;
+  if (kind === "thumbnail") fail("الأغلفة على العامل لم تُنفَّذ بعد (D232، المرحلة التالية).");
+  if (r.purpose !== "studio" && r.purpose !== "trial") fail("الغرض studio أو trial فقط.");
+  if (kind === "trial" && r.purpose !== "trial") fail("نوع trial غرضه trial.");
+  if (r.purpose === "trial") {
+    if (typeof r.trial !== "string" || !ID.test(r.trial) || r.trial.length > 60) fail("وسم التجربة غير صالح.");
+    if (!String(r.id).startsWith("trial-")) fail("معرّف مهمة التجربة يبدأ بـtrial-.");
+  } else if (r.trial !== undefined || String(r.id).startsWith("trial-")) fail("وسم التجربة ومعرّفها للتجارب وحدها.");
+  if (kind === "short") { if (!Number.isInteger(r.n) || (r.n as number) < 1 || (r.n as number) > 999) fail("رقم الشورت غير صالح."); }
+  else if (r.n !== undefined) fail("رقم الشورت للشورت وحده.");
+  if (kind === "scene") { if (typeof r.sceneId !== "string" || !SCENE_ID.test(r.sceneId)) fail("معرّف المشهد غير صالح."); }
+  else if (r.sceneId !== undefined) fail("معرّف المشهد لمهمة المشهد وحدها.");
+  const parts = safeRelative(r.media);
+  if (parts.length !== 5 || parts[0] !== QUEUE_DIR || parts[1] !== "media" || parts[2] !== r.channel || parts[3] !== r.episode || !HASH24.test(parts[4]!))
+    fail("مسار لقطة الوسائط لا يطابق render-queue/media/<القناة>/<الحلقة>/<البصمة>.");
+  const ex = exactKeys(r.expected, ["durationSec", "width", "height"], ["durationSec", "width", "height"], "المتوقَّع");
+  if (typeof ex.durationSec !== "number" || !Number.isFinite(ex.durationSec) || ex.durationSec <= 0 || ex.durationSec > 4 * 3600) fail("المدة المتوقعة غير صالحة.");
+  if (RENDER_KINDS.includes(kind)) {
+    if (r.join !== undefined) fail("الوصل لأنواع الوصل وحدها.");
+    const s = exactKeys(r.render, ["orientation", "quality", "scope", "scenePreview", "timingMode", "shortTitle", "draftMarks", "concurrency", "review1080"],
+      ["orientation", "quality", "scope", "scenePreview", "timingMode"], "مواصفات الرندر");
+    if (s.orientation !== "landscape" && s.orientation !== "portrait") fail("الاتجاه غير صالح.");
+    if (s.quality !== "preview" && s.quality !== "master") fail("الجودة غير صالحة.");
+    if (typeof s.scenePreview !== "boolean") fail("scenePreview غير صالح.");
+    if (!["estimated", "approved", "scene-preview"].includes(s.timingMode as string)) fail("وضع التوقيت غير صالح.");
+    const scope = s.scope;
+    const sk = isObj(scope) ? Object.keys(scope).sort().join(",") : "";
+    if (sk === "all") { if ((scope as { all: unknown }).all !== true) fail("النطاق غير صالح."); }
+    else if (sk === "chapter") { const c = (scope as { chapter: unknown }).chapter; if (!Number.isInteger(c) || (c as number) < 1) fail("رقم القسم غير صالح."); }
+    else if (sk === "sceneIds") { const ids = (scope as { sceneIds: unknown }).sceneIds; if (!Array.isArray(ids) || !ids.length || ids.some((x) => typeof x !== "string" || !SCENE_ID.test(x))) fail("مشاهد النطاق غير صالحة."); }
+    else fail("النطاق: all أو chapter أو sceneIds فقط.");
+    if (s.shortTitle !== undefined && (typeof s.shortTitle !== "string" || s.shortTitle.length > 200 || s.orientation !== "portrait")) fail("عنوان الشورت غير صالح.");
+    if (s.draftMarks !== undefined) {
+      const d = exactKeys(s.draftMarks, ["pendingRecitation"], ["pendingRecitation"], "علامات المسودة") as { pendingRecitation: unknown };
+      if (!s.scenePreview || s.quality === "master" || !Array.isArray(d.pendingRecitation) || d.pendingRecitation.some((x) => typeof x !== "string" || !SCENE_ID.test(x))) fail("علامات المسودة لقطعة مراجعة مشهد وحدها.");
+    }
+    if (s.concurrency !== undefined && (r.purpose !== "trial" || !Number.isInteger(s.concurrency) || (s.concurrency as number) < 1 || (s.concurrency as number) > 8)) fail("التبويبات للتجارب وحدها (1…8).");
+    if (s.review1080 !== undefined && (typeof s.review1080 !== "boolean" || s.quality !== "master")) fail("نسخة المراجعة 1080p لملف 4K وحده.");
+    if (s.scenePreview && (s.quality !== "preview" || kind === "master" || kind === "short")) fail("قطعة مراجعة المشهد بجودة المعاينة وحدها، ولا تكون Master ولا شورت.");
+    if (kind === "scene" && (!s.scenePreview || s.orientation !== "landscape" || sk !== "sceneIds" || (scope as { sceneIds: string[] }).sceneIds.join() !== r.sceneId)) fail("مهمة المشهد: قطعة مراجعة أفقية لمشهدها وحده.");
+    if (kind === "master" && (s.quality !== "master" || s.orientation !== "landscape" || sk !== "all" || s.scenePreview)) fail("Master: الحلقة كاملة أفقية بأعلى جودة.");
+    if (kind === "short" && (s.quality !== "master" || s.orientation !== "portrait" || sk === "all")) fail("الشورت: مقطع عمودي بأعلى جودة.");
+    const size = sizeFor(s.quality as RenderSpec["quality"], s.orientation as RenderSpec["orientation"]);
+    if (ex.width !== size.width || ex.height !== size.height) fail(`الأبعاد المتوقعة ${size.width}×${size.height} لهذه الجودة.`);
+  } else {
+    if (r.render !== undefined) fail("مواصفات الرندر لأنواع الرندر وحدها.");
+    const j = exactKeys(r.join, ["cuts"], ["cuts"], "الوصل") as { cuts: unknown };
+    if (!Array.isArray(j.cuts) || !j.cuts.length || j.cuts.length > 400) fail("قطع الوصل غير صالحة.");
+    for (const c of j.cuts as unknown[]) {
+      const x = exactKeys(c, ["sceneId", "job", "sha256"], ["sceneId", "job"], "قطعة");
+      if (typeof x.sceneId !== "string" || !SCENE_ID.test(x.sceneId)) fail("معرّف مشهد القطعة غير صالح.");
+      if (typeof x.job !== "string" || !ID.test(x.job) || x.job.length > 120) fail("مهمة القطعة غير صالحة.");
+      if (x.sha256 !== undefined && (typeof x.sha256 !== "string" || !SHA256.test(x.sha256))) fail("بصمة القطعة غير صالحة.");
+    }
+    if (ex.width !== 1920 || ex.height !== 1080) fail("الوصل بجودة المعاينة 1920×1080.");
+  }
+  const i = exactKeys(r.inputs, ["planSha256", "plan", "media", "narrationGain"], ["planSha256", "plan", "media", "narrationGain"], "مدخلات الرندر") as unknown as WorkerJobV2["inputs"];
+  if (typeof i.planSha256 !== "string" || !SHA256.test(i.planSha256) || planSha256(i.plan) !== i.planSha256) fail("بصمة الخطة لا تطابق الخطة.");
+  if (!isObj(i.plan) || !Array.isArray((i.plan as Plan).chapters)) fail("الخطة غير صالحة.");
+  if (!isObj(i.media) || i.media.mode !== "static" || typeof i.media.base !== "string") fail("وصف الوسائط غير صالح.");
+  const snap = snapshotHashOf(i.media.base);
+  if (!snap || snap.channel !== r.channel || snap.episode !== r.episode || snap.hash !== parts[4]) fail("وصف الوسائط لا يطابق لقطتها.");
+  if (!isObj(i.narrationGain) || Object.values(i.narrationGain).some((g) => typeof g !== "number" || !Number.isFinite(g) || g <= 0 || g > 4)) fail("ربح العلوّ غير صالح.");
+  for (const k of ["claimedBy", "claimedAt"] as const) if (r[k] !== undefined && typeof r[k] !== "string") fail(`${k} غير صالح.`);
+  return raw as WorkerJobV2;
+};
+
+export const validateAnyJob = (raw: unknown): AnyJob => (isObj(raw) && raw.version === 1 ? validateJob(raw) : validateJobV2(raw));
+export const isV2 = (job: AnyJob): job is WorkerJobV2 => job.version === 2;
+
+/* ── D232: التقدم والنبض ── */
+
+export type JobProgress = { id: string; percent: number; stage: string; at: string; startedAt: string };
+export const progressFile = (share: string, id: string) => {
+  if (!ID.test(id)) fail("المعرّف غير صالح.");
+  return path.join(queuePaths(share).running, `${id}.progress.json`);
+};
+export const isProgressName = (name: string) => name.endsWith(".progress.json");
+export const writeProgress = async (share: string, p: JobProgress) => {
+  const file = progressFile(share, p.id);
+  if (!existsSync(path.dirname(file))) return;
+  await writeJsonAtomic(file, p).catch(() => undefined);
+};
+export const readProgress = async (share: string, id: string): Promise<JobProgress | null> => {
+  try { return JSON.parse(await readFile(progressFile(share, id), "utf8")) as JobProgress; } catch { return null; }
+};
+
+export type Heartbeat = { host: string; pid: number; at: string; state: "idle" | "busy"; job?: string; commit?: string; protocol: 2 };
+export const heartbeatFile = (share: string) => path.join(queuePaths(share).root, "worker.heartbeat.json");
+/** نبض أقدم من هذا = جهاز الرندر غير متصل */
+export const HEARTBEAT_STALE_MS = 2 * 60 * 1000;
+export const writeHeartbeat = async (share: string, hb: Omit<Heartbeat, "at" | "host" | "pid" | "protocol">, now = new Date()) => {
+  await ensureQueue(share);
+  const value: Heartbeat = { host: workerName(), pid: process.pid, at: now.toISOString(), protocol: 2, ...hb };
+  const file = heartbeatFile(share);
+  const tmp = path.join(path.dirname(file), `.worker.heartbeat.${process.pid}.tmp`);
+  await writeFile(tmp, JSON.stringify(value, null, 2) + "\n");
+  await rename(tmp, file);
 };
