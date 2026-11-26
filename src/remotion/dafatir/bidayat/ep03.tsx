@@ -364,10 +364,10 @@ const OneThenMany = reverent((q) => {
 // ─── c1-s17 / c1-s18: العقد العشر ───
 const TEN = Array.from({ length: 10 }, (_, i) => 1540 - i * 112);
 const TenKnots = reverent((q) => {
-  const k = cueKit(q, ["كم", "رقما"]);
+  const k = cueKit(q, ["تعني", "رقما"]);
   const { t, S } = k;
-  const tie = S === 0 ? prog(t, k.at("وعشرة") - 0.05, k.at("وعشرة") + 1.6, (x) => x) : 1;
-  const qm = k.on(0, "كم", 0.6);
+  const tie = S === 0 ? prog(t, k.at("عشرة") - 0.05, k.at("عشرة") + 1.6, (x) => x) : 1;
+  const qm = k.on(0, "تعني", 0.6);
   const hundred = k.on(0, "مئة"), gen = k.on(0, "جيلا");
   const seal = k.on(0, "نعرف");
   const box = k.draw(1, "رقما", 0.8);
@@ -623,8 +623,6 @@ const Dimming = reverent((q) => {
   const split = k.on(0, "تبق", 1.2);
   const k4 = k.on(0, "القادمة", 0.7);
   const ask = k.draw(0, "الشرك", 1.0);
-  const sal = k.on(0, "الصالحون");
-  const stone = k.on(0, "أصنام", 0.7);
   const K4 = 440;
   const cam = k.cam(NEUTRAL, [[0, "القادمة", { cx: 520, cy: 520, s: 1.3 }, 1.0]]);
   const both = (
@@ -641,9 +639,8 @@ const Dimming = reverent((q) => {
     <Leaf q={q} id="b3dm" cam={cam}
       L={<g>{both}
         <Write id="b3dm-q" x={K4} y={470} size={44} p={ask} label="كيف بدأ الشرك؟" color={C.page} />
-        <Stone x={300} y={HY + 6} w={70} h={80} q={stone} fill="#9A9184" shade={0.3} />
       </g>}
-      R={<g>{both}<Txt x={1365} y={300} size={50} q={sal} color={C.page} font="amiri">الصالحون</Txt></g>} />
+      R={both} />
   );
 });
 

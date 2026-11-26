@@ -72,23 +72,6 @@ const Card: React.FC<{ id: string; x: number; y: number; q: number; memo: number
     </g>
   );
 
-// ─── c1-s1: حجر الظهيرة ───
-const NoonStone = reverent((q) => {
-  const k = cueKit(q, ["حجرا"]);
-  const { t } = k;
-  const line = prog(t, 0.05, k.end("يعبد"));
-  const sun = prog(t, 0.05, 0.7);
-  const stone = k.on(0, "حجرا", 0.6);
-  const cam = k.cam(NEUTRAL, [[0, "حجرا", { cx: 600, cy: 560, s: 1.3 }, 1.2]]);
-  const both = <Horizon y={HZ_Y} p={line} sky="noon" texture={0.5} />;
-  return (
-    <Leaf q={q} id="b4ns" cam={cam} R={both}
-      L={<g>{both}<Sun x={360} y={220} r={36} q={sun} c={C.sand} />
-        <Stele x={600} y={HZ_Y + 20} q={stone} h={120} w={90} len={0.35} />
-      </g>} />
-  );
-});
-
 // ─── c1-s2: المزولة ───
 const ShadowDial = reverent((q) => {
   const k = cueKit(q, ["يحدث"]);
@@ -142,13 +125,10 @@ const ThreadNoon = reverent((q) => {
 
 // ─── c1-s4: العقدة الداكنة ───
 const DarkKnot = reverent((q) => {
-  const k = cueKit(q, ["مختلفة"]);
-  const { t } = k;
-  const knot = k.on(0, "نعقد", 0.7);
-  const w1 = bounce(t, k.at("اكتشاف"), k.at("اكتشاف") + 1.4);
-  const w2 = bounce(t, k.at("بناء"), k.at("بناء") + 1.4);
-  const veer = k.draw(0, "انحراف", 1.2);
-  const cam = k.cam({ cx: 1100, cy: 720, s: 1.2 }, [[0, "نعقد", { cx: 820, cy: 720, s: 1.4 }, 1.1], [0, "انحراف", { cx: 640, cy: 740, s: 1.15 }, 1.2]]);
+  const k = cueKit(q, ["نتابع"]);
+  const knot = k.on(0, "نتابع", 0.7);
+  const veer = k.draw(0, "الانحراف", 1.2);
+  const cam = k.cam({ cx: 1100, cy: 720, s: 1.2 }, [[0, "نتابع", { cx: 820, cy: 720, s: 1.4 }, 1.1], [0, "الانحراف", { cx: 640, cy: 740, s: 1.15 }, 1.2]]);
   const both = (
     <g>
       <Horizon y={HZ_Y} p={1} sky="noon" texture={0.4} />
@@ -156,11 +136,7 @@ const DarkKnot = reverent((q) => {
     </g>
   );
   return (
-    <Leaf q={q} id="b4dk" cam={cam} R={both}
-      L={<g>{both}
-        <Txt x={760} y={680} size={40} q={w1} color={C.inkSoft}>اكتشاف</Txt>
-        <Txt x={560} y={680} size={40} q={w2} color={C.inkSoft}>بناء</Txt>
-      </g>} />
+    <Leaf q={q} id="b4dk" cam={cam} R={both} L={both} />
   );
 });
 
@@ -239,32 +215,6 @@ const WorldUnlit = reverent((q) => {
   );
 });
 
-// ─── c1-s9: ثلاثة عدّادات ───
-const Counter = reverent((q) => {
-  const k = cueKit(q, ["عداد"]);
-  const box = k.draw(0, "عداد", 0.9);
-  const under = k.draw(0, "صادقا", 0.8);
-  const past = k.on(0, "الحلقتين", 0.7);
-  const seal = k.on(0, "نعلم");
-  const cam = k.cam(NEUTRAL, [[0, "عداد", { cx: 1365, cy: 420, s: 1.25 }, 1.0], [0, "الحلقتين", { cx: 1365, cy: 560, s: 1.1 }, 1.0]]);
-  return (
-    <Leaf q={q} id="b4ct" cam={cam}
-      R={<g>
-        <Ink d="M1165 330 H1565 V480 H1165 Z" p={box} w={5} />
-        <Txt x={1365} y={380} size={32} q={box} color={C.inkSoft}>عدّاد الحلقة ٠٠٤</Txt>
-        <Ink d="M1180 500 H1550" p={under} w={4} c={C.gold} />
-        <Seal x={1365} y={440} q={seal} kind="لا نعلم" s={0.5} />
-        {[[1250, "٠٠٢"], [1480, "٠٠٣"]].map(([x, n], i) => (
-          <g key={i} opacity={prog(past, i * 0.3, i * 0.3 + 0.7)}>
-            <rect x={(x as number) - 100} y={600} width={200} height={110} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} />
-            <Txt x={x as number} y={636} size={26} q={1} color={C.inkSoft}>{`الحلقة ${n}`}</Txt>
-            <Seal x={x as number} y={680} q={1} kind="لا نعلم" s={0.35} />
-          </g>
-        ))}
-      </g>} />
-  );
-});
-
 // ─── c1-s10: الخط المستقيم ───
 const StraightLineScene: React.FC<{ line: number; seal: number; word: number }> = ({ line, seal, word }) => (
   <g>
@@ -309,17 +259,17 @@ const HadithLead = reverent((q) => {
 
 // ─── c1-s13 / c1-s14: الميل والصرف (نص المراجعة العلمية، الدفعة ٥: «واجتالتهم، أي صرفتهم عن دينهم»؛ بلا سلّم خطوات) ───
 const Veer = reverent((q) => {
-  const k = cueKit(q, ["واجتالتهم", "فكيف"]);
+  const k = cueKit(q, ["واجتالتهم", "ننتقل"]);
   const { t, S } = k;
   const dashes = k.open(0, 0.8);
   const lean = k.on(0, "واجتالتهم", 1.0);
   const glow = S === 0 ? bounce(t, k.at("دينهم"), k.at("دينهم") + 1.2) : 0;
   const branch = k.draw(0, "صرفتهم", 1.2);
-  const blink = S === 1 ? bounce(t, k.at("صرفهم"), k.at("صرفهم") + 1.0) : 0;
-  const qm = k.on(1, "الخطوة", 0.6);
+  const leave = k.on(1, "ننتقل", 0.9);
+  const people = k.draw(1, "قوم", 0.9);
   const r = rng(14);
   const ds = Array.from({ length: 34 }, () => [mix(200, 1720, r()), r() > 0.5 ? mix(260, 460, r()) : mix(580, 780, r()), r() * 60 - 30] as const);
-  const cam = k.cam(NEUTRAL, [[0, "صرفتهم", { cx: 640, cy: 620, s: 1.2 }, 1.2], [1, "الخطوة", { cx: 760, cy: 560, s: 1.35 }, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "صرفتهم", { cx: 640, cy: 620, s: 1.2 }, 1.2], [1, "ننتقل", { cx: 560, cy: 560, s: 1.2 }, 1.2]]);
   const g = (
     <g>
       <path d="M1760 520 H160" stroke={C.gold} strokeWidth={18} opacity={0.35 * glow} />
@@ -331,11 +281,10 @@ const Veer = reverent((q) => {
         const yy = mix(y, y + (y < 520 ? 70 : 140), off);
         return <path key={i} d="M0 -18 V18" stroke={C.inkSoft} strokeWidth={4} strokeLinecap="round" transform={`translate(${x - 60 * off} ${yy}) rotate(${ang - 90})`} opacity={prog(dashes, i / 34, i / 34 + 0.3) * (1 - 0.4 * off)} />;
       })}
-      <path d="M760 520 C640 560 520 640 300 720" fill="none" stroke={blink > 0 ? C.ribbon : C.inkSoft} strokeWidth={4 + 2 * blink} strokeDasharray="10 10" opacity={branch} />
-      <Q x={760} y={440} size={80} q={qm} />
+      <path d="M760 520 C640 560 520 640 300 720" fill="none" stroke={C.inkSoft} strokeWidth={4} strokeDasharray="10 10" opacity={branch * (1 - 0.7 * leave)} />
     </g>
   );
-  return <Leaf q={q} id="b4vr" cam={cam} L={g} R={g} />;
+  return <Leaf q={q} id="b4vr" cam={cam} L={<g>{g}<Write id="b4vr-q" x={560} y={420} size={44} p={people} label="قوم نوح عليه السلام" /></g>} R={g} />;
 });
 
 // ─── c1-s15 / c1-s17 / c1-s18: الخانات الخمس (بعد المراجعة العلمية، الدفعة ٥ البند ١١٩: نقف عند القرآن، والأثر المختلف في إسناده لا يُروى) ───
@@ -379,7 +328,7 @@ const FiveSlots = reverent((q) => {
 
 // ─── c1-s35 / c1-s36: موضع العقدة ───
 const KnotPlaced = reverent((q) => {
-  const k = cueKit(q, ["نضع", "الطوفان"]);
+  const k = cueKit(q, ["تقع", "الطوفان"]);
   const { t, S } = k;
   const knots = k.on(0, "خيط", 0.8);
   const blink = S === 0 ? bounce(t, k.at("خيط"), k.at("خيط") + 1.2) : 0;
@@ -391,7 +340,7 @@ const KnotPlaced = reverent((q) => {
   const unk = k.on(1, "نعلم#2");
   const hover = Math.sin(t * 3) * 14;
   const cam = k.cam(NEUTRAL, [
-    [0, "نضع", { cx: 1100, cy: 740, s: 1.2 }, 1.2],
+    [0, "تقع", { cx: 1100, cy: 740, s: 1.2 }, 1.2],
     [1, "القرآن", { cx: 760, cy: 700, s: 1.3 }, 1.0],
     [1, "بالسنة", NEUTRAL, 1.2],
   ]);
@@ -515,22 +464,19 @@ const NextKnot = reverent((q) => {
 
 // ─── c1-s49: ورقة السؤال ───
 const ClosingSlip = reverent((q) => {
-  const k = cueKit(q, ["العادة"]);
-  const slip = k.on(0, "العادة", 0.7);
-  const fade = k.on(0, "نسيته", 1.0);
-  const alone = k.on(0, "بقيت", 0.8);
-  const pen = k.on(0, "اكتبها", 0.6);
-  const line = k.draw(0, "اكتبها", 1.0);
-  const cam = k.cam(NEUTRAL, [[0, "العادة", { cx: 560, cy: 520, s: 1.2 }, 1.0]]);
+  const k = cueKit(q, ["المحبة"]);
+  const slip = k.on(0, "المحبة", 0.7);
+  const over = k.draw(0, "والمبالغة", 1.0);
+  const pen = k.on(0, "اكتب", 0.6);
+  const line = k.draw(0, "اكتب", 1.0);
+  const cam = k.cam(NEUTRAL, [[0, "المحبة", { cx: 560, cy: 520, s: 1.2 }, 1.0]]);
   return (
     <Leaf q={q} id="b4cs" cam={cam}
       L={<g>
         <Slip x={480} y={500} w={420} h={260} q={slip} rot={-2} dx={0}>
           <BlankLine x={0} y={30} w={320} p={line} pen={pen} touch={pen > 0.9 ? 1 : 0} />
         </Slip>
-        <Stele x={800} y={680} q={1} dotted h={170} />
-        <Card id="b4cs-c" x={800} y={750} q={1 - fade} memo={0} />
-        <Ring x={800} y={600} r={110} p={alone} dash c={C.inkSoft} />
+        <Ink d="M330 430 H730" p={over} w={4} c={C.ribbon} />
       </g>} />
   );
 });
@@ -538,14 +484,12 @@ const ClosingSlip = reverent((q) => {
 void Field; void Sheet; void Scribble; void Qalam;
 
 export const BD04_SCENES: Record<string, React.FC<BdProps>> = {
-  "bd04-noon-stone": NoonStone,
   "bd04-shadow-dial": ShadowDial,
   "bd04-thread-noon": ThreadNoon,
   "bd04-dark-knot": DarkKnot,
   "bd04-between": Between,
   "bd04-ten-centuries": TenCenturies,
   "bd04-world-unlit": WorldUnlit,
-  "bd04-counter": Counter,
   "bd04-straight-line": StraightLine,
   "bd04-hadith-lead": HadithLead,
   "bd04-veer": Veer,

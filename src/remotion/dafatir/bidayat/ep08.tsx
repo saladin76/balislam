@@ -382,13 +382,13 @@ const LensMiss = reverent((q) => {
 
 // ─── c1-s18: من المكان إلى ما بعده ───
 const TurnAfter = reverent((q) => {
-  const k = cueKit(q, ["فلننتقل"]);
+  const k = cueKit(q, ["استقرت"]);
   const { t } = k;
-  const fold = k.on(0, "المكان", 1.2);
-  const clear = k.on(0, "ماذا", 0.8);
+  const fold = k.on(0, "وماذا", 1.2);
+  const clear = k.on(0, "حدث", 0.8);
   const line = k.draw(0, "حدث", 0.9);
-  const step = k.on(0, "وقفت", 1.0);
-  const cam = k.cam({ cx: 1100, cy: 520, s: 1.2 }, [[0, "فلننتقل", NEUTRAL, 1.4]]);
+  const step = k.on(0, "استقرت", 1.0);
+  const cam = k.cam({ cx: 1100, cy: 520, s: 1.2 }, [[0, "وماذا", NEUTRAL, 1.4]]);
   const s = 1 - 0.65 * fold;
   return (
     <Leaf q={q} id="b8ta" cam={cam}
@@ -588,14 +588,14 @@ const Handoff = reverent((q) => {
 const KS = 1150;
 const ROW = [1560, 760, 400];
 const KnotSeals = reverent((q) => {
-  const k = cueKit(q, ["نعقد"]);
+  const k = cueKit(q, ["نلخص"]);
   const { t } = k;
   const glow = bounce(t, k.at("حجر"), k.at("حجر") + 1.2);
   const seals = [k.on(0, "ثابت", 0.5), k.on(0, "رواية", 0.5), k.on(0, "نعلم", 0.5)];
   const card = k.on(0, "الجودي", 0.6);
   const pull = k.on(0, "البقايا", 0.8);
-  const ask = k.draw(0, "نعقد", 0.9);
-  const cam = k.cam({ cx: KS, cy: 520, s: 1.5 }, [[0, "نعقد", { cx: KS, cy: 520, s: 1.75 }, 1.0], [0, "ثابت", { cx: 1300, cy: 560, s: 1.15 }, 1.0], [0, "رواية", { cx: 800, cy: 560, s: 1.1 }, 1.0], [0, "البقايا", NEUTRAL, 1.2]]);
+  const ask = k.draw(0, "نلخص", 0.9);
+  const cam = k.cam({ cx: KS, cy: 520, s: 1.5 }, [[0, "نلخص", { cx: KS, cy: 520, s: 1.75 }, 1.0], [0, "ثابت", { cx: 1300, cy: 560, s: 1.15 }, 1.0], [0, "رواية", { cx: 800, cy: 560, s: 1.1 }, 1.0], [0, "البقايا", NEUTRAL, 1.2]]);
   const both = (
     <g>
       <Thread x1={1760} x2={160} y={520} p={1} sag={8 * (1 - pull)} knots={[{ x: KS, kind: "stone", q: 1, glow }]} />
