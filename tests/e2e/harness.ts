@@ -161,3 +161,16 @@ export const generateVoiceConfirmed = async (st: Pick<Studio, "call">, ep: strin
   const job = await waitFor("voice + drafts", () => st.call("GET", `episodes/${ep}/scene-prepare`), (x) => x.body.job && x.body.job.status !== "running", 1_200_000, 1000);
   return { plan, job };
 };
+
+/**
+ * D234: the coordinator records the content editor's pass on the script as it is now (`bal editor-pass`), so the
+ * journey can go on to voice and render; the editor gate itself is tested in tests/script-pipeline-gate.test.ts.
+ */
+export const passEditor = async (st: Pick<Studio, "channelsDir" | "channel">, ep: string) => {
+  const { readdir } = await import("node:fs/promises");
+  const eps = path.join(st.channelsDir, st.channel, "episodes");
+  const dir = (await readdir(eps)).find((d) => d.startsWith(`${ep}-`));
+  if (!dir) throw Error(`episode ${ep} not found for the editor pass`);
+  const { recordEditorPass } = await import("../../src/studio/scriptPipelineStore");
+  return recordEditorPass(path.join(eps, dir, "script.md"), { by: "محرر الاختبار", recordedBy: "e2e" });
+};

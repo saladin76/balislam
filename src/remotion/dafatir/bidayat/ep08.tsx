@@ -549,9 +549,9 @@ const FirstMorning = reverent((q) => {
 
 // ─── c1-s28: العقدة التاسعة الفارغة ───
 const Handoff = reverent((q) => {
-  const k = cueKit(q, ["انتشر"]);
-  const branch = k.draw(0, "انتشر", 1.2);
-  const qm = k.on(0, "الأمم");
+  const k = cueKit(q, ["ذرية"]);
+  const branch = k.draw(0, "ذرية", 1.2);
+  const qm = k.on(0, "نوح");
   const ext = k.draw(0, "الخيط", 1.2);
   const k9 = k.on(0, "القادمة", 0.7);
   const rib = k.on(0, "البدايات", 0.7);

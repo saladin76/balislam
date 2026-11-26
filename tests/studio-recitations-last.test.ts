@@ -20,6 +20,7 @@ import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { sceneFrames } from "../src/plan/duration";
 import { prepValidTail } from "./fixtures/prepValidScript";
+import { passEditor } from "./fixtures/editorPass";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -142,6 +143,7 @@ beforeAll(async () => {
 
   await writeFile(path.join(epDir, "script.md"),
     `---\ntitle: "التلاوة آخرًا"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\nالصبر مفتاح الفرج.\n\n[آية: النجم 39 | ${VERSE}]\n\nوالرضا راحة القلب.\n` + prepValidTail(["- آية | النجم 39 | القارئ: …"]));
+  await passEditor(path.join(epDir, "script.md"));
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify(planOf(), null, 2));
   const voice = path.join(epDir, "voice");
   await mkdir(voice);

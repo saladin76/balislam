@@ -22,6 +22,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { RenderPool, type TaskDef } from "../src/render/pool";
+import { passEditor } from "./fixtures/editorPass";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -125,6 +126,7 @@ beforeAll(async () => {
   process.env.ELEVENLABS_MODEL_ID = "eleven_multilingual_v2";
 
   await writeFile(path.join(epDir, "script.md"), validScript());
+  await passEditor(path.join(epDir, "script.md"));
   await writeFile(path.join(epDir, "tashkeel.md"), "الصَّبْرُ مِفْتَاحُ الفَرَجِ. وَالشُّكْرُ يَحْفَظُ النِّعْمَةَ. وَالرِّضَا رَاحَةُ القَلْبِ.\n");
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify(planOf(), null, 2));
   const voice = path.join(epDir, "voice");

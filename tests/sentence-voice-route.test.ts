@@ -10,6 +10,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
+import { passEditor } from "./fixtures/editorPass";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -46,6 +47,7 @@ beforeAll(async () => {
   await writeFile(process.env.BAL_ENV_FILE, `BAL_WORKFLOW_HMAC_KEY=${process.env.BAL_WORKFLOW_HMAC_KEY}\n`);
   const narration = "الصَّبْرُ مِفْتَاحُ الفَرَجِ. وَالشُّكْرُ زِينَةُ النِّعَمِ.";
   await writeFile(path.join(epDir, "script.md"), `---\ntitle: "اختبار"\nepisode: "985"\n---\n## الفصل 1 · تجربة\n${narration}\n`);
+  await passEditor(path.join(epDir, "script.md"));
   await writeFile(path.join(epDir, "tashkeel.md"), `${narration}\n`);
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify({ episode: "985", title: "اختبار", tone: "calm", chapters: [{ number: 1, title: "تجربة", scenes: [
     { id: "c1-s1", template: "alley-tale", line: 6, narration, sfx: [], props: {} }] }] }, null, 2));
@@ -104,6 +106,8 @@ describe("Studio API robustness (QA, 10 Nov 2026)", () => {
   }, 60_000);
 
   it("while «جهّز كل المشاهد» runs, deleting the episode and rendering it are refused with an Arabic message (M5, H4)", async () => {
+    // D234: the text edited above went back to the editor; the coordinator records its pass, so the busy refusal is what answers
+    await passEditor(path.join(root, CH, "episodes", "985-sentence-route", "script.md"));
     const { startPrepareJob, PREPARE_RUNNING_MESSAGE } = await import("../app/server/prepare");
     const { busy } = await import("../app/server/jobQueue");
     let finish!: () => void;

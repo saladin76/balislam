@@ -18,7 +18,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { browserPlanRevision } from "../../src/plan/revision";
 import { findTraces } from "../../src/package/traces";
 import { CASES, selectedChannels, type ChannelCase } from "./channels";
-import { ffmpeg, fixturesDir, generateVoiceConfirmed, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
+import { ffmpeg, fixturesDir, generateVoiceConfirmed, probe, sha256File, startStudio, tree, waitFor, type Studio, passEditor } from "./harness";
 
 const EP = "001";
 const COUNT = 25;
@@ -120,6 +120,7 @@ for (const channel of selectedChannels()) {
       ok("create", await st.call("POST", "episodes", { episode: EP, slug: c.slug, domain: c.domain, title: c.title }));
       const script = await st.call("PUT", `episodes/${EP}/script`, { text: withExtra(channel, await fx("script.md"), "script") });
       ok("script", script);
+      await passEditor(st, EP); // D234
       expect(script.body.check.issues.filter((i: any) => i.level === "error"), "script errors").toEqual([]);
       ok("research", await st.call("PUT", `episodes/${EP}/research`, { text: await fx("research.md") }));
       await writeFile(path.join(epDir, "tashkeel.md"), withExtra(channel, await fx("tashkeel.md"), "tashkeel"));

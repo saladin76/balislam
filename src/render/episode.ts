@@ -1,5 +1,6 @@
 import { planOrder, sceneNames } from "../i18n/sceneNames";
 import { assertTemplatesApproved } from "../plan/templateApproval";
+import { assertEditorPassed, scriptPathFromRenderMedia } from "../studio/scriptPipelineStore";
 import type { ChannelConfig } from "../channel/types";
 import { versesAreCitations } from "../quran/citation";
 import path from "node:path";
@@ -147,6 +148,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const scriptPath = await resolveScriptPath(opts.episode);
   await assertNoLinkedPath(scriptPath, true);
   assertRenderChannelOwnership(scriptPath, loadChannel().id);
+  // D234: لا رندر (معاينة مشهد أو تجميع أو نسخة نهائية) لسكريبت فيه جملة لم تمرّ بمحرر المحتوى، قبل تجهيز الوسائط
+  await assertEditorPassed(scriptPath);
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
   const requestedOutput = opts.outFile ?? path.join(await outDirFor(opts.episode),
     `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
@@ -237,6 +240,10 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   const { plan, media } = o;
   // D228: لا يُرندر مشهد بقالب أو لقطة غير معتمدة من المالك (ستوري بورد ← اختيار النموذج ← اعتماده)
   assertTemplatesApproved(plan);
+  // D234: ولا رندر لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الحلقة من وصف وسائطها؛ على الماك وعلى العامل بالـcommit نفسه)
+  const editorScript = scriptPathFromRenderMedia(media.base);
+  if (!editorScript) throw new Error("وسائط الرندر لا تسمّي حلقتها؛ لا يُعرف سكريبتها لفحص المحرر (D234).");
+  await assertEditorPassed(editorScript);
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
   // never other channels' staged voice/recitation in the Remotion bundle.
