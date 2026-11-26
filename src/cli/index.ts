@@ -917,6 +917,58 @@ program
     console.log(`جاهز في ${path.relative(projectRoot, r.dir)}:\n- ${r.files.join("\n- ")}`);
   });
 
+// D226: جهاز رندر ثانٍ (ويندوز) للشورتس. الماك يرسل ويستلم ويتحقق؛ العامل يرندر فقط (docs/studio/windows-worker.md).
+program
+  .command("worker-submit")
+  .description("D226: إرسال الشورتس إلى جهاز الرندر الثاني بعد اعتماد النسخة النهائية (المجلد المشترك)")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--short <n>", "شورت واحد برقمه")
+  .option("--shorts", "كل الشورتس (الافتراضي)")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (episode: string, opts: { short?: string; shorts?: boolean; share: string }) => {
+    await assertProducible(episode);
+    const only = opts.short !== undefined ? Number(opts.short) : undefined;
+    if (only !== undefined && (!Number.isInteger(only) || only < 1)) throw new Error("رقم الشورت غير صالح.");
+    const { submitWorkerShorts } = await import("../render/worker/macSide");
+    const r = await submitWorkerShorts(episode, path.resolve(opts.share), { only, log: (m) => console.log(m) });
+    console.log(`أُرسلت ${r.written.length} مهمة (والموجودة من قبل ${r.skipped.length}) بالـcommit ${r.commit.slice(0, 8)}. بعد انتهاء العامل: bal worker-collect ${episode} --share ${opts.share}`);
+  });
+
+program
+  .command("worker-collect")
+  .description("D226: استلام شورتس جهاز الرندر الثاني بعد التحقق منها على الماك (البصمة والأبعاد والمدة والحركة والأثر)")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .option("--replace", "نقل شورت قديم بالاسم نفسه إلى superseded/ بدل الرفض")
+  .action(async (episode: string, opts: { share: string; replace?: boolean }) => {
+    const { collectWorkerShorts } = await import("../render/worker/macSide");
+    const r = await collectWorkerShorts(episode, path.resolve(opts.share), { replace: opts.replace, log: (m) => console.log(m) });
+    for (const x of r.refused) console.error(`مرفوض ${x.id}:\n  - ${x.reasons.join("\n  - ")}`);
+    console.log(`استُلم ${r.imported.length}، ورُفض ${r.refused.length}. المرفوض لا يدخل الحزمة أبدًا.`);
+    if (r.refused.length) process.exitCode = 1;
+  });
+
+program
+  .command("worker")
+  .description("D226: عامل الرندر على الجهاز الثاني: يرندر شورتس المجلد المشترك واحدًا بعد واحد (لا دفع ولا اعتماد)")
+  .requiredOption("--share <path>", "المجلد المشترك على هذا الجهاز، مثل D:\\bal-share أو \\\\Salah\\bal-share")
+  .option("--once", "مهمة واحدة على الأكثر ثم خروج")
+  .action(async (opts: { share: string; once?: boolean }) => {
+    const { runWorker } = await import("../render/worker/loop");
+    await runWorker(path.resolve(opts.share), { once: opts.once, repo: projectRoot });
+  });
+
+program
+  .command("worker-render", { hidden: true })
+  .description("D226 (داخلي، يشغّله bal worker وحده): رندر مهمة واحدة من running/ — ناتج غير موثوق حتى worker-collect")
+  .requiredOption("--share <path>", "المجلد المشترك")
+  .requiredOption("--job <id>", "معرّف المهمة")
+  .action(async (opts: { share: string; job: string }) => {
+    if (process.env.BAL_RENDER_WORKER !== "1") throw new Error("هذا الأمر يشغّله «bal worker» وحده.");
+    const { renderWorkerJob } = await import("../render/worker/untrustedRender");
+    await renderWorkerJob(path.resolve(opts.share), opts.job, (m) => console.log(m));
+  });
+
 program
   .command("retention")
   .description("قارئ الاحتفاظ: من تصدير «Audience retention» في YouTube Studio إلى أكبر تسرب ومكانه في السكريبت (يقرأ ولا يكتب)")

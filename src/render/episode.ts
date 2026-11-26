@@ -188,6 +188,52 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
         throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
     }
   }
+  const timingMode = opts.scenePreview ? "scene-preview" as const
+    : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
+  // One narration bed (owner, 16 Nov): every narrated scene at the episode's own median loudness, in the Master exactly as
+  // in the assembly (src/studio/narrationLoudness.ts). A single-scene review cut keeps its own level.
+  const narrationGain = opts.scenePreview ? undefined
+    : (await (await import("../studio/narrationLoudness")).narrationLoudness(scriptPath, plan, media)).gain;
+  return renderComposition({
+    plan, media, orientation: opts.orientation, chapter: opts.chapter, segment: opts.segment, shortTitle: opts.shortTitle,
+    quality: opts.quality ?? "preview", scenePreview: opts.scenePreview, draftMarks: opts.draftMarks, timingMode, narrationGain,
+    output: requestedOutput, onProgress: log,
+    // The Master ledger is checked again after the expensive render, before the file is published.
+    afterRender: opts.quality === "master" ? async () => {
+      const { requireScenesReadyForMaster } = await import("../studio/sceneService");
+      await requireScenesReadyForMaster(opts.episode);
+    } : undefined,
+  });
+};
+
+export type RenderCompositionOptions = {
+  plan: Plan;
+  media: EpisodeMedia;
+  orientation: Orientation;
+  chapter?: number;
+  segment?: { sceneIds: string[] };
+  shortTitle?: string;
+  quality: Quality;
+  scenePreview?: boolean;
+  draftMarks?: { pendingRecitation: string[] };
+  timingMode: "estimated" | "approved" | "scene-preview";
+  narrationGain?: Record<string, number>;
+  output: string;
+  /** Re-checked after the expensive render, before the file is published (the Master ledger gate). */
+  afterRender?: () => Promise<void>;
+  onProgress?: (pct: number, msg: string) => void;
+};
+
+/**
+ * The render itself, with NO gate of its own (D226): the Remotion bundle of this media snapshot, renderMedia at the
+ * quality's settings, loudness and metadata cleaning, then an atomic publish. Every caller gates before it:
+ * renderEpisode (the ledger, recitation, storyboard and Master gates above), and the Windows render worker
+ * (src/render/worker/untrustedRender.ts), whose output is UNTRUSTED until `bal worker-collect` verifies it on the Mac.
+ * tests/render-worker-gates.test.ts allows no other caller.
+ */
+export const renderComposition = async (o: RenderCompositionOptions): Promise<string> => {
+  const log = o.onProgress ?? (() => {});
+  const { plan, media } = o;
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
   // never other channels' staged voice/recitation in the Remotion bundle.
@@ -195,20 +241,15 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   try {
   const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
-  const timingMode = opts.scenePreview ? "scene-preview" as const
-    : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
-  const shown = opts.segment ? segmentPlan(plan, { n: 1, title: "", sceneIds: opts.segment.sceneIds }) : { plan, chapter: opts.chapter };
-  // One narration bed (owner, 16 Nov): every narrated scene at the episode's own median loudness, in the Master exactly as
-  // in the assembly (src/studio/narrationLoudness.ts). A single-scene review cut keeps its own level.
-  const narrationGain = opts.scenePreview ? undefined
-    : (await (await import("../studio/narrationLoudness")).narrationLoudness(scriptPath, plan, media)).gain;
-  const inputProps = { plan: shown.plan, orientation: opts.orientation, chapter: shown.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel),
+  const { timingMode, narrationGain } = o;
+  const shown = o.segment ? segmentPlan(plan, { n: 1, title: "", sceneIds: o.segment.sceneIds }) : { plan, chapter: o.chapter };
+  const inputProps = { plan: shown.plan, orientation: o.orientation, chapter: shown.chapter, media, timingMode, identity: loadChannelIdentity(), channel: channelInfo(channel),
     ...(narrationGain && Object.keys(narrationGain).length ? { narrationGain } : {}),
-    ...(opts.orientation === "portrait" && opts.shortTitle?.trim() ? { shortTitle: opts.shortTitle.trim() } : {}),
-    ...(opts.draftMarks?.pendingRecitation.length ? { draftMarks: { pendingRecitation: opts.draftMarks.pendingRecitation } } : {}) };
-  const composition = await selectComposition({ serveUrl, id: `episode-${opts.orientation}`, inputProps, browserExecutable: browserExecutable() });
-  const q = qualitySpec(opts.quality ?? "preview");
-  const output = requestedOutput;
+    ...(o.orientation === "portrait" && o.shortTitle?.trim() ? { shortTitle: o.shortTitle.trim() } : {}),
+    ...(o.draftMarks?.pendingRecitation.length ? { draftMarks: { pendingRecitation: o.draftMarks.pendingRecitation } } : {}) };
+  const composition = await selectComposition({ serveUrl, id: `episode-${o.orientation}`, inputProps, browserExecutable: browserExecutable() });
+  const q = qualitySpec(o.quality);
+  const output = o.output;
   // اترك الملف السابق كما هو عند فشل عملية توليد جديدة؛ لا تُعرَض نتيجة جزئية.
   if (!/\.mp4$/i.test(output)) throw new Error("ملف الرندر النهائي يجب أن يكون MP4.");
   await mkdir(path.dirname(output), { recursive: true });
@@ -232,7 +273,7 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       colorSpace: "bt709",
       // A silent placeholder verse draft still carries an (empty) audio track, so every scene cut can be
       // reviewed with sound and concatenated with the others.
-      ...(opts.scenePreview ? { enforceAudioTrack: true } : {}),
+      ...(o.scenePreview ? { enforceAudioTrack: true } : {}),
       outputLocation: tempOutput,
       browserExecutable: browserExecutable(),
       ...(q.concurrency ? { concurrency: q.concurrency } : {}),
@@ -240,16 +281,13 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });
     // المرحلة A (المهمة ٣): ما يُنشر (الحلقة والشورتس) بعلو −14 LUFS بقياسين وكسب خطي (src/studio/quality/normalize.ts)
-    if (opts.quality === "master" && !opts.scenePreview) {
+    if (o.quality === "master" && !o.scenePreview) {
       const { normalizeProgramLoudness } = await import("../studio/quality/normalize");
       const r = await normalizeProgramLoudness(tempOutput, q.audioBitrate);
       if (r.type !== "silent") log(100, `علو الصوت: ${r.before.toFixed(1)} ← ${r.after?.toFixed(1)} LUFS`);
     }
     await cleanMetadata(tempOutput, { title: plan.title, artist: channel.name });
-    if (opts.quality === "master") {
-      const { requireScenesReadyForMaster } = await import("../studio/sceneService");
-      await requireScenesReadyForMaster(opts.episode);
-    }
+    await o.afterRender?.();
     return await publishOutputWithoutOverwrite(tempOutput, output);
   } finally {
     await unlink(tempOutput).catch(() => {});
