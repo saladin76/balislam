@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { api, type StockOverview } from "../api";
 import { OwnerText } from "../ui/OwnerText";
+import { TemplateStoryboards } from "./TemplateStoryboards";
 import type { StockEpisodeView } from "../../../src/studio/stock";
 
 /**
@@ -66,6 +67,7 @@ export const Awaiting: React.FC = () => {
   const batches = [...new Set(drafts.map((v) => v.batch))].sort((a, b) => (a ?? 999) - (b ?? 999));
   return (
     <div className="awaiting">
+      <TemplateStoryboards />
       <p className="help">
         المسودات لا تدخل الإنتاج: لا صوت ولا رندر قبل اعتماد السكريبت ومراجعة المتخصص وتغيير حالتها. ترتيب النشر أسابيع لا مواعيد:
         يبدأ النشر بعد اعتمادك الشكل و«دفاتر الزمن 001» ومراجعة المتخصص. {waiting ? `بانتظارك ${ar(waiting)} من ${ar(drafts.length)}.` : drafts.length ? "لا شيء بانتظارك الآن." : "لا مسودات بعد."}

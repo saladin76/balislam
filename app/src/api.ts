@@ -430,6 +430,10 @@ export const api = {
   stock: () => call<StockOverview>("/api/stock"),
   saveStock: (stock: Stock) => call<{ ok: boolean; saved: Stock }>("/api/stock", { method: "PUT", json: { stock } }),
   stockFile: (ch: string, ep: string, name: string) => call<{ name: string; text: string | null }>(`/api/stock/${ch}/${ep}/file?name=${encodeURIComponent(name)}`),
+  /** D228: القوالب الجديدة بحالتها والستوري بورد بنماذجه */
+  templateApprovals: () => call<{ templates: Record<string, import("../../src/plan/templateApproval").TemplateApproval>; storyboards: import("../../src/studio/storyboards").Storyboard[] }>("/api/template-approvals"),
+  storyboardImageUrl: (folder: string, file: string) => `/api/template-approvals/image?folder=${encodeURIComponent(folder)}&file=${encodeURIComponent(file)}`,
+  approveTemplate: (key: string, variant: string) => call<{ ok: boolean }>("/api/template-approvals/approve", { method: "POST", json: { key, variant } }),
   approveDraftScript: (ch: string, ep: string) => call<{ ok: boolean; at: string }>(`/api/stock/${ch}/${ep}/approve-script`, { method: "POST", json: {} }),
   saveSeries: (series: SeriesConfig) => call<{ ok: boolean; series: SeriesConfig; derived: DerivedSeriesIdentity }>(`/api/series/${series.id}`, { method: "PUT", json: { series } }),
   deleteSeries: (id: string) => call<{ ok: boolean }>(`/api/series/${id}`, { method: "DELETE" }),
