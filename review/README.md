@@ -33,7 +33,7 @@
 | [الدفعة ١: البنود ١–٢٥](batch-01.md) | رمضان ١٤٤٨ | ٢٥ | رُوجعت ([المراجعة](results/batch-01-reviewer.md) · [التدقيق](results/batch-01-auditor.md)) |
 | [الدفعة ٢: البنود ٢٦–٥٠](batch-02.md) | رمضان ١٤٤٨ | ٢٥ | رُوجعت ([المراجعة](results/batch-02-reviewer.md) · [التدقيق](results/batch-02-auditor.md)) |
 | [الدفعة ٣: البنود ٥١–٧٥](batch-03.md) | رمضان ١٤٤٨ | ٢٥ | رُوجعت ([المراجعة](results/batch-03-reviewer.md) · [التدقيق](results/batch-03-auditor.md)) |
-| [الدفعة ٤: البنود ٧٦–١٠٠](batch-04.md) | رمضان ١٤٤٨، دفاتر الزمن: «البدايات» | ٢٥ | — |
+| [الدفعة ٤: البنود ٧٦–١٠٠](batch-04.md) | رمضان ١٤٤٨، دفاتر الزمن: «البدايات» | ٢٥ | رُوجعت ([المراجعة](results/batch-04-reviewer.md) · [التدقيق](results/batch-04-auditor.md)) |
 | [الدفعة ٥: البنود ١٠١–١٢٥](batch-05.md) | دفاتر الزمن: «البدايات» | ٢٥ | رُوجعت ([المراجعة](results/batch-05-reviewer.md) · [التدقيق](results/batch-05-auditor.md)) |
 | [الدفعة ٦: البنود ١٢٦–١٥٠](batch-06.md) | دفاتر الزمن: «البدايات» | ٢٥ | رُوجعت ([المراجعة](results/batch-06-reviewer.md) · [التدقيق](results/batch-06-auditor.md)) |
 | [الدفعة ٧: البنود ١٥١–١٧٥](batch-07.md) | دفاتر الزمن: «البدايات»، بالإسلام | ٢٥ | رُوجعت ([المراجعة](results/batch-07-reviewer.md) · [التدقيق](results/batch-07-auditor.md)) |
