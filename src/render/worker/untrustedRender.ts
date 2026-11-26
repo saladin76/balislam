@@ -27,6 +27,7 @@ import {
   type JoinSpec, type WorkerJob, type WorkerJobV2, type WorkerResult, type WorkerTimings,
 } from "./protocol";
 import { headCommit } from "./git";
+import { assertOneMachine, machineOfResult } from "./provenance";
 import { probeVideo } from "./probe";
 import { projectRoot } from "../../config/paths";
 
@@ -125,7 +126,7 @@ export const resolveJoinCut = async (share: string, job: WorkerJobV2, cut: JoinS
   const file = path.join(dir, doneVideoName(src));
   const sha = await sha256File(file);
   if (sha !== (cut.sha256 ?? result.sha256)) throw new Error(`بصمة قطعة المشهد ${cut.sceneId} لا تطابق.`);
-  return { sceneId: cut.sceneId, file, sha256: sha };
+  return { sceneId: cut.sceneId, file, sha256: sha, machine: machineOfResult(result), commit: result.commit };
 };
 
 /** نسخة مراجعة 1080p من ملف 4K (الماك يحتفظ بها وحدها؛ الكبير يبقى في المجلد المشترك). */
@@ -222,6 +223,9 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
       progress(0, "قطع المشاهد");
       const cuts = [];
       for (const c of job.join!.cuts) cuts.push(await resolveJoinCut(share, job, c));
+      // D233: قطع الحلقة كلها من جهاز واحد، وهو هذا الجهاز (لا يُوصل هنا ما رُندر على جهاز آخر)
+      const only = assertOneMachine(cuts, job.kind === "prefinal" ? "نسخة قبل النهائية" : "تجميع");
+      if (only && only !== workerName()) throw new Error(`لا تجميع هنا: قطع الحلقة رُندرت على «${only}» لا على هذا الجهاز (${workerName()}) (D233). أعد رندر المشاهد على هذا الجهاز أو اجمعها على جهازها.`);
       say(`وصل ${cuts.length} قطعة…`);
       progress(10, "وصل المشاهد");
       const { joinSceneCuts } = await import("../../studio/assembleScenes");

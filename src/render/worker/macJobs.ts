@@ -24,6 +24,7 @@ import { episodeFrames } from "../../remotion/scenes/Episode";
 import { findTraces } from "../../package/traces";
 import { projectRoot } from "../../config/paths";
 import { probeVideo, type VideoProbe } from "./probe";
+import { assertOneMachine, episodeSceneMachines, machineOfResult, MAC_MACHINE, type SceneMachine } from "./provenance";
 import { assertCommitMatchesWorkingTree, publishSnapshot, DURATION_TOLERANCE_SEC } from "./macSide";
 import {
   doneVideoName, ensureQueue, heartbeatFile, HEARTBEAT_STALE_MS, isProgressName, planSha256, queuePaths, readProgress, sha256File, sizeFor,
@@ -96,6 +97,8 @@ export const fullEpisodeInputs = async (ep: string, o: { requireApprovedQuran: b
 
 /** وصل قطع المشاهد (التجميع أو «قبل النهائية») 1080p على الويندوز، من نواتج مهام المشاهد في done/. */
 export const buildJoinJob = async (kind: "assembly" | "prefinal", inputs: Awaited<ReturnType<typeof fullEpisodeInputs>>, cuts: { sceneId: string; job: string; sha256?: string }[], b: Base, share: string): Promise<WorkerJobV2> => {
+  // D233: ما انتهى من قطعها في done/ من جهاز واحد (والعامل يفحصها كلها ثانية قبل الوصل)
+  await assertCutsOneMachine(share, cuts, kind === "prefinal" ? "نسخة قبل النهائية" : "تجميع");
   const mediaRel = await publishSnapshot(share, inputs.media);
   const sha = planSha256(inputs.plan);
   return validateJobV2({
@@ -105,10 +108,32 @@ export const buildJoinJob = async (kind: "assembly" | "prefinal", inputs: Awaite
   });
 };
 
+/** D233: أجهزة قطع الوصل المنتهية في done/ (من result.json؛ بلا نتيجة بعد = لم تُرندر، لا تُحسب) */
+export const assertCutsOneMachine = async (share: string, cuts: { sceneId: string; job: string }[], what: string) => {
+  const q = queuePaths(share);
+  const rows: SceneMachine[] = [];
+  for (const c of cuts) {
+    const f = path.join(q.done, c.job, "result.json");
+    if (!existsSync(f)) continue;
+    let r: WorkerResult | null = null;
+    try { r = JSON.parse(await readFile(f, "utf8")) as WorkerResult; } catch { r = null; }
+    rows.push({ sceneId: c.sceneId, machine: machineOfResult(r) });
+  }
+  return assertOneMachine(rows, what);
+};
+
 /** Master 4K (ونسخة مراجعة 1080p بجوارها). فحوص المحتوى للنسخة النهائية قبل الإرسال (assertMasterReady). */
 export const buildMasterJob = async (ep: string, inputs: Awaited<ReturnType<typeof fullEpisodeInputs>>, b: Base, share: string, o: { concurrency?: number } = {}): Promise<WorkerJobV2> => {
   const { assertMasterReady, voiceTimingMode } = await import("../episode");
   await assertMasterReady({ scriptPath: inputs.scriptPath, plan: inputs.plan, media: inputs.media, channel: loadChannel() });
+  // D233: Master للاستوديو على الويندوز من مشاهد رُندرت كلها على جهاز رندر واحد (لا خلط، ولا مشاهد الماك تحت Master الويندوز).
+  // التجربة لا تمس مشاهد الاستوديو، ومشاهدها مهام على العامل نفسه.
+  if (b.purpose === "studio") {
+    const machine = assertOneMachine(await episodeSceneMachines(path.join(path.dirname(inputs.scriptPath), "previews"),
+      inputs.plan.chapters.flatMap((c) => c.scenes.map((s) => s.id))), "Master");
+    if (machine === MAC_MACHINE)
+      throw new Error("لا Master على جهاز الرندر: مشاهد الحلقة رُندرت على الماك (D233: كل حلقة تُرندر كاملة على جهاز واحد). أعد رندر المشاهد على جهاز الرندر أولًا.");
+  }
   const mediaRel = await publishSnapshot(share, inputs.media);
   const render: RenderSpec = { orientation: "landscape", quality: "master", scope: { all: true }, scenePreview: false,
     timingMode: await voiceTimingMode(inputs.scriptPath, inputs.plan, inputs.media), review1080: true, ...(o.concurrency ? { concurrency: o.concurrency } : {}) };

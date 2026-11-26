@@ -27,6 +27,7 @@ import { putEpisodePreview } from "../render/episodePreviews";
 import { verifyVideoEvidence } from "./videoEvidence";
 import { filterScriptArgs, localFilterScriptForm, otherForm, refusedOption } from "../render/ffmpegFilterScript";
 import { approvedSceneCutsForAssembly, currentSceneCutsForPreFinal } from "./sceneService";
+import { assertOneMachine, previewMachines } from "../render/worker/provenance";
 
 const exec = promisify(execFile);
 const safeId = (value: string) => /^[a-z0-9][a-z0-9-]{0,70}$/.test(value);
@@ -248,6 +249,8 @@ export const assemblePreFinalPreview = async (
     throw Error("No safe scene cuts are ready for the pre-final preview.");
   const scriptPath = await resolveScriptPath(episode);
   const previews = path.join(path.dirname(scriptPath), "previews");
+  // D233: every cut of the episode from one machine (the Windows and Mac Chrome draw Arabic text a few pixels apart)
+  assertOneMachine(await previewMachines(previews, cuts), "نسخة قبل النهائية");
   const id = randomUUID();
   const manifest = path.join(previews, `.scene-prefinal-${id}.filter`);
   const tempVideo = path.join(previews, `.scene-prefinal-${id}.mp4`);
@@ -282,6 +285,8 @@ export const assembleApprovedSceneAv = async (
 
   const scriptPath = await resolveScriptPath(episode);
   const previews = path.join(path.dirname(scriptPath), "previews");
+  // D233: every cut of the episode from one machine
+  assertOneMachine(await previewMachines(previews, cuts), "تجميع");
   const id = randomUUID();
   const manifest = path.join(previews, `.scene-assembly-${id}.filter`);
   const tempVideo = path.join(previews, `.scene-assembly-${id}.mp4`);

@@ -154,6 +154,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   if (opts.quality === "master") {
     const { requireScenesReadyForMaster } = await import("../studio/sceneService");
     await requireScenesReadyForMaster(opts.episode);
+    // D233: the whole episode on one machine. Master renders here, on the Mac, so its scene cuts must be the Mac's too.
+    const { assertOneMachine, episodeSceneMachines, MAC_MACHINE } = await import("./worker/provenance");
+    const machine = assertOneMachine(await episodeSceneMachines(path.join(path.dirname(scriptPath), "previews"),
+      plan.chapters.flatMap((c) => c.scenes.map((s) => s.id))), "Master");
+    if (machine && machine !== MAC_MACHINE)
+      throw new Error(`لا Master على الماك: مشاهد الحلقة رُندرت على جهاز الرندر «${machine}» (D233: كل حلقة تُرندر كاملة على جهاز واحد). اصنع Master على الجهاز نفسه.`);
   }
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
