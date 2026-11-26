@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "notes": [
+    {
+      "id": "n5ec44273ee",
+      "channel": "dafatir-alzaman",
+      "episode": "003-al-ajyal-al-ula",
+      "sceneId": "",
+      "kind": "error",
+      "note": "خطة الحلقة غير موجودة.",
+      "raw": "[خطأ] خطة الحلقة غير موجودة.",
+      "tone": null,
+      "timecode": null,
+      "createdAt": "2026-11-26T15:08:34.664Z",
+      "sceneInputSha256": "",
+      "previewSha256": "",
+      "ledgerSeq": 0,
+      "status": "open",
+      "fixedBy": null,
+      "answer": null,
+      "error": {
+        "id": "ed035d8342a",
+        "at": "2026-11-26T15:08:19.580Z",
+        "source": "server",
+        "kind": "route",
+        "route": "/api/episodes/003/tashkeel",
+        "method": "GET",
+        "message": "خطة الحلقة غير موجودة.",
+        "stack": "Error: خطة الحلقة غير موجودة.\n    at loadCtx (./src/voice/sentenceContext.ts:143:19)\n    at async Module.readTashkeel (./src/voice/tashkeelEdit.ts:130:14)\n    at async handlePreparationRoutes (file://./node_modules/.vite-temp/vite.config.ts.timestamp-1795699354223-1ef041d6beed1.mjs:3111:51)\n    at async handleStudioRoutes (file://./node_modules/.vite-temp/vite.config.ts.timestamp-1795699354223-1ef041d6beed1.mjs:4676:37)\n    at async file://./node_modules/.vite-temp/vite.config.ts.timestamp-1795699354223-1ef041d6beed1.mjs:5100:10\n    at async file://./node_modules/.vite-temp/vite.config.ts.timestamp-1795699354223-1ef041d6beed1.mjs:5066:12",
+        "label": null,
+        "episode": "003",
+        "commit": "253c97650e16",
+        "log": [
+          "2026-11-15T16:10:43.447Z server/route POST /api/episodes/001/scene-av-render ep 001 [ecfa0590106] The scene is not current or its inputs changed.",
+          "2026-11-24T11:57:49.728Z server/route GET /api/episodes/002/tashkeel ep 002 [ee17998cff6] خطة الحلقة غير موجودة.",
+          "2026-11-26T13:10:28.928Z server/route GET /api/template-approvals/image [ef5983169f5] ملف الوسائط خارج نطاق Studio.",
+          "2026-11-26T13:10:41.987Z server/route GET /api/template-approvals/image [e05d0fcc09c] ملف الوسائط خارج نطاق Studio.",
+          "2026-11-26T15:08:19.580Z server/route GET /api/episodes/003/tashkeel ep 003 [ed035d8342a] خطة الحلقة غير موجودة."
+        ]
+      }
+    }
+  ]
+}
