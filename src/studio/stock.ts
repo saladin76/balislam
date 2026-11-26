@@ -11,6 +11,7 @@
  */
 
 import { seriesIdIssue } from "../channel/series";
+import { STATUS_OWNER, editorState, scriptPipeline, type EditorState, type ScriptPipeline } from "./scriptPipeline";
 
 export const DRAFT_STATUS = "مسودة";
 /** أيام النشر (D168): السبت بالإسلام، والاثنين دفاتر الزمن، والأربعاء زبدة الكتب */
@@ -92,7 +93,7 @@ export const isDraftStatus = (status: unknown): boolean => typeof status === "st
  */
 export const productionRefusal = (o: { status?: unknown; frozen?: Stock["frozen"]; episode?: string; voiceScenes?: readonly string[] | null }): string | null => {
   if (isDraftStatus(o.status))
-    return "هذه الحلقة «مسودة» (بناء المخزون): لا صوت ولا رندر قبل اعتماد المالك للسكريبت ومراجعة المتخصص وتغيير حالتها.";
+    return "هذه الحلقة «مسودة» (بناء المخزون): لا صوت ولا رندر قبل مرورها بالمحرر والمراجعة العلمية واعتماد المالك للسكريبت وتغيير حالتها (D234).";
   if (o.frozen && frozenVoiceAllowed(o.frozen, o.episode, o.voiceScenes)) return null;
   if (o.frozen) return `إنتاج الفيديو في هذه القناة مجمّد بقرار المالك (${o.frozen.decision}): لا رندر ولا صوت، والعمل المكتوب مستمر.`;
   return null;
@@ -114,6 +115,8 @@ export type StockEpisodeView = {
   files: { script: boolean; research: boolean; scenes: boolean; publish: boolean };
   specialist: string[];
   approval: { approved: boolean; at?: string; stale?: boolean };
+  /** D234: حالة السكريبت بالترتيب الثابت (المحرر ← المراجعة العلمية ← اعتمادك ← جاهز للإنتاج) */
+  pipeline: ScriptPipeline;
   note?: string;
 };
 
@@ -125,7 +128,11 @@ export type EpisodeFacts = {
   series?: string;
   files: StockEpisodeView["files"];
   approval: StockEpisodeView["approval"];
+  /** D234: جمل السكريبت التي لم تمرّ بالمحرر (من editor-review.json) */
+  editor: EditorState;
 };
+
+const NO_SCRIPT: EditorState = editorState("", null);
 
 /**
  * يدمج ترتيب النشر مع الحلقات الموجودة: كل خانة بحلقتها إن وُجدت، وكل مسودة ليست في الترتيب تظهر بلا أسبوع
@@ -146,15 +153,21 @@ export const stockViews = (channel: string, stock: Stock, episodes: EpisodeFacts
         ...(s.episode ? { episode: s.episode } : {}), ...(e ? { dir: e.dir } : {}), batch: s.batch,
         draft: e ? isDraftStatus(e.status) : true, exists: Boolean(e),
         files: e?.files ?? { script: false, research: false, scenes: false, publish: false },
-        specialist: s.specialist ?? [], approval: e?.approval ?? { approved: false }, ...(s.note ? { note: s.note } : {}),
+        specialist: s.specialist ?? [], approval: e?.approval ?? { approved: false },
+        pipeline: scriptPipeline({ editor: e?.editor ?? NO_SCRIPT, specialist: s.specialist ?? [], draft: e ? isDraftStatus(e.status) : true, approval: e?.approval ?? { approved: false } }),
+        ...(s.note ? { note: s.note } : {}),
       };
     });
   for (const e of episodes)
     if (!seen.has(e.number) && isDraftStatus(e.status))
       views.push({ channel, week: null, day, title: e.title, ...(e.series ? { series: e.series } : {}), episode: e.number, dir: e.dir,
-        batch: null, draft: true, exists: true, files: e.files, specialist: [], approval: e.approval, note: "مسودة خارج ترتيب النشر" });
+        batch: null, draft: true, exists: true, files: e.files, specialist: [], approval: e.approval,
+        pipeline: scriptPipeline({ editor: e.editor, specialist: null, draft: true, approval: e.approval }), note: "مسودة خارج ترتيب النشر" });
   return views;
 };
 
-/** ما ينتظر المالك: المسودات الموجودة فعلًا وغير المعتمدة (أو تغيّر سكريبتها بعد اعتماده) */
-export const awaitingOwner = (v: StockEpisodeView): boolean => v.exists && v.draft && (!v.approval.approved || Boolean(v.approval.stale));
+/**
+ * ما ينتظر المالك: المسودات الموجودة فعلًا التي مرّت بالمحرر والمراجعة العلمية ولم يعتمدها (أو تغيّر سكريبتها بعد اعتماده).
+ * قبل المحرر والمراجعة لا تنتظره (D234).
+ */
+export const awaitingOwner = (v: StockEpisodeView): boolean => v.exists && v.draft && v.pipeline.status === STATUS_OWNER;

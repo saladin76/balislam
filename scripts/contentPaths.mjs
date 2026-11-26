@@ -32,6 +32,8 @@ export const CONTENT_PATH_RES = [
   /^channels\/zubdat-alkutub\/library\/(scholars|books)\.json$/,
   // مواسم السنة الهجرية لكل قناة (عمود «بالإسلام»، عاشرًا/٦)
   /^channels\/[a-z0-9-]+\/seasons\.json$/,
+  // D234: سجل مرور محرر المحتوى لكل حلقة (بصمات الجمل، ومن راجع ومتى)؛ يسجّله المنسّق بعد رد المحرر
+  /^channels\/[a-z0-9-]+\/episodes\/[^/]+\/editor-review\.json$/,
   // ترتيب النشر وبناء المخزون (D213): الأسابيع والدفعات وتجميد القناة (D211)
   /^channels\/[a-z0-9-]+\/stock\.json$/,
   // إعدادات الاستوديو العامة (الأسرار في .env لا هنا)

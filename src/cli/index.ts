@@ -1090,6 +1090,59 @@ program
   });
 
 program
+  .command("editor-batch")
+  .description("D234: دفعة محرر المحتوى التالية: ملف بالسكريبتات التي تنتظره (روابطها على GitHub، والجمل المتغيّرة وحدها لمن راجعه قبل) في ~/Desktop/للمراجعة/محرر-المحتوى/")
+  .option("--limit <n>", "أقصى عدد سكريبتات في الدفعة", "10")
+  .option("--all", "كل ما ينتظر المحرر في دفعة واحدة")
+  .option("--include-sent", "أعد إدراج ما أُرسل في دفعة سابقة ولم يُسجَّل مروره بعد")
+  .option("--dir <dir>", "مجلد الدفعات (الافتراضي ~/Desktop/للمراجعة/محرر-المحتوى)")
+  .option("--dry-run", "اعرض ما ينتظر المحرر بلا كتابة ملف")
+  .action(async (opts: { limit: string; all?: boolean; includeSent?: boolean; dir?: string; dryRun?: boolean }) => {
+    const st = await import("../studio/scriptPipelineStore");
+    if (opts.dryRun) {
+      const q = await st.editorQueue();
+      for (const x of q) console.log(`${x.channel} ${x.episode} | ${x.state.partial ? `جزئي: ${x.state.pending.length} جملة متغيّرة` : `كاملًا: ${x.state.total} جملة`} | ${x.title}`);
+      console.log(`ينتظر المحرر: ${q.length}`);
+      return;
+    }
+    const limit = opts.all ? undefined : Number(opts.limit);
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) throw new Error("--limit عدد صحيح موجب.");
+    const r = await st.writeEditorBatch({ ...(opts.dir ? { dir: opts.dir } : {}), ...(limit ? { limit } : {}), includeSent: opts.includeSent });
+    if (!r.file) { console.log(r.waiting ? `كل ما ينتظر المحرر (${r.waiting}) أُرسل في دفعات سابقة؛ استعمل --include-sent لإعادته.` : "لا سكريبت ينتظر المحرر."); return; }
+    console.log(`دفعة المحرر ${r.n}: ${r.file}`);
+    for (const x of r.items) console.log(`- ${x.channel} ${x.episode}: ${x.state.partial ? `${x.state.pending.length} جملة متغيّرة` : "كاملًا"} — ${x.title}`);
+    console.log(`في الدفعة ${r.items.length} من ${r.waiting} ينتظر المحرر.`);
+  });
+
+program
+  .command("editor-pass")
+  .description("D234: يسجّل مرور محرر المحتوى على سكريبت كما هو الآن (يسجّله المنسّق بعد أن يسلّمه المالك رد المحرر)؛ الجمل المتغيّرة بعده تعود إليه وحدها")
+  .argument("<channel>", "القناة (balislam | dafatir-alzaman | zubdat-alkutub)")
+  .argument("<episode>", "رقم الحلقة (ثلاث خانات)")
+  .option("--by <name>", "من راجع", "محرر المحتوى")
+  .option("--recorded-by <name>", "من سجّل المرور", "المنسّق")
+  .option("--batch <n>", "رقم دفعة المحرر: يُرفض التسجيل إن تغيّر السكريبت بعد إرسالها")
+  .option("--dir <dir>", "مجلد الدفعات (الافتراضي ~/Desktop/للمراجعة/محرر-المحتوى)")
+  .option("--at <date>", "تاريخ رد المحرر (ISO)")
+  .option("--grandfathered <reason>", "مرور بلا مراجعة فعلية لسبب صريح بقرار المالك (مثل حلقة منشورة قبل D234)")
+  .option("--note <note>", "ملاحظة")
+  .action(async (channel: string, episode: string, opts: { by: string; recordedBy: string; batch?: string; dir?: string; at?: string; grandfathered?: string; note?: string }) => {
+    const { listChannels } = await import("../channel");
+    if (!listChannels().includes(channel)) throw new Error(`قناة غير معروفة: ${channel}`);
+    if (!/^\d{3}$/.test(episode)) throw new Error("رقم الحلقة ثلاث خانات.");
+    process.env.BAL_CHANNEL = channel;
+    const st = await import("../studio/scriptPipelineStore");
+    const scriptPath = await resolveScriptPath(episode);
+    const batch = opts.batch !== undefined ? Number(opts.batch) : undefined;
+    if (batch !== undefined && !Number.isInteger(batch)) throw new Error("--batch رقم الدفعة.");
+    const expectSha = batch !== undefined ? st.sentShaFor(opts.dir ?? st.defaultEditorBatchDir(), batch, channel, episode) : null;
+    if (batch !== undefined && !expectSha) throw new Error(`الحلقة ${channel} ${episode} ليست في دفعة المحرر ${batch}.`);
+    const r = await st.recordEditorPass(scriptPath, { by: opts.by, recordedBy: opts.recordedBy, ...(opts.at ? { at: opts.at } : {}),
+      ...(batch !== undefined ? { batch } : {}), ...(expectSha ? { expectSha } : {}), ...(opts.grandfathered ? { grandfathered: opts.grandfathered } : {}), ...(opts.note ? { note: opts.note } : {}) });
+    console.log(`سُجّل مرور المحرر: ${channel} ${episode} (${r.reviewed} جملة كانت تنتظره) ← ${path.relative(projectRoot, r.file)}`);
+  });
+
+program
   .command("thumbnails")
   .description("الأغلفة الثلاثة وحدها (عنوان، مشهد، سؤال) من publish.json: بلا فيديو ولا صوت ولا مساس بالنسخة النهائية")
   .argument("<episode>", "رقم الحلقة")

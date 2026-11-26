@@ -9,6 +9,7 @@ import type { RouteCtx } from "../routeContext.ts";
  * - PUT /api/stock {stock}: للمالك وحده، بعد الفحص (بلا تواريخ).
  * - GET /api/stock/<القناة>/<الحلقة>/file?name=script.md|research.md|scenes.md|publish.draft.json: للقراءة.
  * - POST /api/stock/<القناة>/<الحلقة>/approve-script: «اعتمدت السكريبت» (المالك وحده، موقّع؛ لا صوت ولا رندر).
+ *   D234: يُرد 409 قبل أن يمرّ السكريبت بالمحرر والمراجعة العلمية (الحالة في الرسالة).
  * - POST /api/stock/<القناة>/scaffold {number, slug, title, series?, domain}: حلقة مخزون جديدة من القالب (مسودة).
  */
 export const handleStockRoutes = async (ctx: RouteCtx): Promise<boolean> => {
@@ -59,6 +60,8 @@ export const handleStockRoutes = async (ctx: RouteCtx): Promise<boolean> => {
     if (parts[3] === "approve-script" && req.method === "POST") {
       const refused = await ownerRefusal(ctx);
       if (refused) return send(res, 403, { error: refused }), true;
+      const notYet = await channelMod.runWithChannel(target, () => store.draftApprovalRefusal(target, num));
+      if (notYet) return send(res, 409, { error: notYet }), true;
       return send(res, 200, { ok: true, ...(await channelMod.runWithChannel(target, () => store.approveDraftScript(target, num))) }), true;
     }
     return send(res, 405, { error: "طلب غير مدعوم." }), true;

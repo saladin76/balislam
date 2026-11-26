@@ -38,6 +38,9 @@ export const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, li
     const sb = storyboardStatus(ctx.plan, await loadStoryboard(ctx.scriptPath));
     const blocked = unapprovedScenes(sb, [scene.id]);
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
+    // D234: لا صوت لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الاستثناء الصريح الوحيد: مشاهد D229)
+    const { assertEditorPassed } = await import("../studio/scriptPipelineStore");
+    await assertEditorPassed(ctx.scriptPath, { voiceScenes: [scene.id] });
   }
   const v = voiceOf(ctx, scene, list, s, mode);
   if (!v.tone) throw new Error("اختر نبرة لهذه الجملة، أو نبرة الحلقة (تحرير المشهد ← «نبرة الصوت في الحلقة») فتسري على كل جملة بلا نبرة خاصة.");

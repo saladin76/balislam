@@ -10,6 +10,8 @@ import { workflowSigningKey } from "./signingKey";
 import { listSeries } from "../channel/seriesStore";
 import { seriesIdIssue } from "../channel/series";
 import { DRAFT_STATUS, hasFrozenVoiceException, isDraftStatus, productionRefusal, stockIssues, stockViews, type EpisodeFacts, type Stock, type StockEpisodeView } from "./stock";
+import { ownerApprovalRefusal, scriptPipeline, editorState } from "./scriptPipeline";
+import { editorGateRefusal, readEditorReview } from "./scriptPipelineStore";
 
 export const STOCK_FILE = "stock.json";
 /** اعتماد المالك لسكريبت المسودة: محلي موقّع بمفتاح الجهاز، لا يُرفع (مثل سجل إنتاج المشاهد) */
@@ -82,6 +84,7 @@ export const episodeFacts = async (ch: string): Promise<EpisodeFacts[]> => {
       ...(typeof fm.series === "string" ? { series: fm.series } : {}),
       files: { script: true, research: existsSync(path.join(dir, "research.md")), scenes: existsSync(path.join(dir, "scenes.md")), publish: existsSync(path.join(dir, "publish.draft.json")) },
       approval: readApproval(dir, ch, num, sha(text)),
+      editor: editorState(text, readEditorReview(dir, ch, num)),
     });
   }
   return out;
@@ -110,8 +113,25 @@ export const readStockFile = async (ch: string, num: string, name: string): Prom
   return existsSync(f) ? readFile(f, "utf8") : null;
 };
 
+/**
+ * D234: لماذا لا يُقبل «اعتمدت السكريبت» الآن (قبل المحرر والمراجعة العلمية)، أو null. يُفحص في الخادم قبل الاعتماد،
+ * ولا يظهر الزر في «بانتظارك» قبلهما.
+ */
+export const draftApprovalRefusal = async (ch: string, num: string): Promise<string | null> => {
+  const dir = await episodeDir(ch, num);
+  const text = await readFile(path.join(dir, "script.md"), "utf8");
+  const slot = readStock(ch).slots.find((x) => x.episode === num);
+  const pipeline = scriptPipeline({
+    editor: editorState(text, readEditorReview(dir, ch, num)), specialist: slot ? slot.specialist ?? [] : null,
+    draft: isDraftStatus(scriptFrontmatter(text).status), approval: readApproval(dir, ch, num, sha(text)),
+  });
+  return ownerApprovalRefusal(pipeline);
+};
+
 /** «اعتمدت السكريبت»: اعتماد المالك لنص المسودة كما هو الآن (موقّع؛ أي تعديل بعده يُظهره «تغيّر بعد اعتمادك»). لا صوت ولا رندر. */
 export const approveDraftScript = async (ch: string, num: string): Promise<{ at: string }> => {
+  const refused = await draftApprovalRefusal(ch, num);
+  if (refused) throw new StockError([refused]);
   const dir = await episodeDir(ch, num);
   const text = await readFile(path.join(dir, "script.md"), "utf8");
   const body = { version: 1 as const, channel: ch, episode: num, scriptSha256: sha(text), at: new Date().toISOString() };
@@ -119,11 +139,16 @@ export const approveDraftScript = async (ch: string, num: string): Promise<{ at:
   return { at: body.at };
 };
 
-/** المانع من الإنتاج لحلقة بمسار سكريبتها (المسودة، ثم تجميد القناة) */
-export const productionBlockFor = async (ch: string, scriptPath: string, voiceScenes?: readonly string[] | null): Promise<string | null> => {
+/**
+ * المانع من الإنتاج لحلقة بمسار سكريبتها: المسودة، ثم تجميد القناة، ثم بوابة المحرر (D234، باستثناء D229 الصريح لصوت
+ * مشاهد بعينها). voiceScenes: طلب صوت لمشاهد محددة (لا رندر). editor: false لطلب يجمع التحرير المكتوب والتوليد
+ * (`sentences`): تعديل جملة ليس إنتاجًا، والتوليد نفسه تفحصه بوابة المحرر في voiceGates.
+ */
+export const productionBlockFor = async (ch: string, scriptPath: string, voiceScenes?: readonly string[] | null, o: { editor?: boolean } = {}): Promise<string | null> => {
   const status = existsSync(scriptPath) ? scriptFrontmatter(await readFile(scriptPath, "utf8")).status : undefined;
   const stock = existsSync(stockPath(ch)) ? readStock(ch) : null;
-  return productionRefusal({ status, frozen: stock?.frozen, episode: episodeOfScript(scriptPath), voiceScenes });
+  return productionRefusal({ status, frozen: stock?.frozen, episode: episodeOfScript(scriptPath), voiceScenes })
+    ?? (o.editor === false ? null : await editorGateRefusal(scriptPath, { voiceScenes }));
 };
 
 /** رقم الحلقة من مجلد سكريبتها (001-…) */
