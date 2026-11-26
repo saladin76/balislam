@@ -328,7 +328,8 @@ export const balApi = (): Plugin => ({
           if (req.method === "POST" && PRODUCTION_ACTIONS.has(parts[2] ?? "")) {
             const { productionBlockFor, voiceExceptionFor } = await load("/src/studio/stockStore.ts");
             voiceScoped = (parts[2] === "voice" || parts[2] === "sentences") && await voiceExceptionFor(ch, scriptPath);
-            const blocked = voiceScoped ? null : await productionBlockFor(ch, scriptPath);
+            // D234: بوابة المحرر هنا لكل فعل إنتاج إلا «sentences» (فيه التحرير المكتوب؛ توليده تفحصه voiceGates)
+            const blocked = voiceScoped ? null : await productionBlockFor(ch, scriptPath, undefined, { editor: parts[2] !== "sentences" });
             if (blocked) return send(res, 409, { error: blocked });
           }
           const scopedVoiceBlock = async (scenes: readonly string[] | null) => {
