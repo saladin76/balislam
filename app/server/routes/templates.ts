@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { captureRouteError } from "../errors.ts";
 import { ownerRefusal } from "../routeContext.ts";
 import type { RouteCtx } from "../routeContext.ts";
@@ -9,7 +10,7 @@ import type { RouteCtx } from "../routeContext.ts";
  * - POST /api/template-approvals/approve {key, variant}: اعتماد المالك لنموذج (المالك وحده؛ يُسجَّل من ومتى وأي نموذج).
  */
 export const handleTemplateApprovalRoutes = async (ctx: RouteCtx): Promise<boolean> => {
-  const { req, res, parts, send, readBody, load, serveFile } = ctx;
+  const { req, res, parts, send, readBody, load } = ctx;
   if (parts[0] !== "template-approvals") return false;
   try {
     const A = await load("/src/plan/templateApproval.ts");
@@ -20,7 +21,12 @@ export const handleTemplateApprovalRoutes = async (ctx: RouteCtx): Promise<boole
       const q = new URL(req.url ?? "/", "http://x").searchParams;
       const file = S.storyboardImage(q.get("folder") ?? "", q.get("file") ?? "");
       if (!file) return send(res, 404, { error: "الصورة غير موجودة." }), true;
-      return serveFile(req, res, file, /\.png$/i.test(file) ? "image/png" : /\.webp$/i.test(file) ? "image/webp" : "image/jpeg"), true;
+      // الستوري بورد على سطح المكتب خارج جذر الاستوديو، فلا يصلح serveFile (يرفض ما خارج الجذر)؛
+      // storyboardImage حصرت الملف بمساره الحقيقي داخل مجلد الستوري بورد وحده (صورة فقط، بلا روابط رمزية للخارج).
+      res.setHeader("content-type", /\.png$/i.test(file) ? "image/png" : /\.webp$/i.test(file) ? "image/webp" : "image/jpeg");
+      res.setHeader("cache-control", "no-store");
+      res.end(readFileSync(file));
+      return true;
     }
     if (parts[1] === "approve" && req.method === "POST") {
       const refused = await ownerRefusal(ctx);
