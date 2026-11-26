@@ -39,7 +39,9 @@ export type Stock = {
    * تجميد القناة (D211). voiceOnly (D229): استثناء المالك لصوت مشاهد بعينها في حلقة بعينها (مثل جمل الدقيقة الأولى)؛
    * الصوت وحده لتلك المشاهد، والرندر وكل ما سواها يبقى مجمّدًا.
    */
-  frozen?: { decision: string; note?: string; voiceOnly?: { episode: string; scenes: string[]; decision: string }[] };
+  frozen?: { decision: string; note?: string; voiceOnly?: { episode: string; scenes: string[]; decision: string }[];
+    /** D234: إيقاف تحريري صريح (مثل إعادة هيكلة «بالإسلام»، D235): سكريبتات القناة لا تُرسل للمحرر إلا بـ --include-paused. التجميد وحده (D211) يوقف الإنتاج لا التحرير. */
+    editorialPause?: boolean };
   slots: StockSlot[];
 };
 
@@ -51,6 +53,7 @@ export const stockIssues = (s: Stock | null | undefined, series?: readonly { id:
   if (!s || s.version !== 1 || !Array.isArray(s.slots)) return ["ترتيب النشر: الصيغة غير صالحة."];
   if (!Number.isInteger(s.phase) || s.phase < 1) out.push("ترتيب النشر: رقم المرحلة غير صالح.");
   if (s.frozen && (typeof s.frozen.decision !== "string" || !s.frozen.decision.trim())) out.push("التجميد: اذكر القرار.");
+  if (s.frozen?.editorialPause !== undefined && typeof s.frozen.editorialPause !== "boolean") out.push("الإيقاف التحريري: true أو false.");
   for (const v of s.frozen?.voiceOnly ?? [])
     if (!EP.test(String(v?.episode)) || !Array.isArray(v?.scenes) || !v.scenes.length || v.scenes.some((x) => typeof x !== "string" || !/^[a-z0-9][a-z0-9-]{0,70}$/.test(x)) || typeof v?.decision !== "string" || !v.decision.trim())
       out.push("استثناء الصوت من التجميد: الحلقة (ثلاث خانات) والمشاهد والقرار مطلوبة.");

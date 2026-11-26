@@ -109,6 +109,9 @@ describe("D234: الاستثناءات الصريحة (آلية بلا استث�
     const stock = JSON.parse(read("channels/balislam/stock.json"));
     expect(stock.frozen).toBeTruthy();
     expect(stock.frozen.voiceOnly ?? []).toEqual([]);
+    expect(stock.frozen.editorialPause).toBe(true); // D235: إعادة الهيكلة توقف التحرير أيضًا، فلا تُرسل للمحرر
+    // «زبدة الكتب» مجمّدة إنتاجًا وحده (D211): الكتابة والتحرير مستمران، فتبقى في دفعات المحرر (D236)
+    expect(JSON.parse(read("channels/zubdat-alkutub/stock.json")).frozen?.editorialPause).toBeFalsy();
   });
 });
 
@@ -127,11 +130,11 @@ describe("D234: البوابة وسجل المحرر (ملفات مؤقتة)", (
     writeFileSync(path.join(ep2, "script.md"), SCRIPT.replace("كيف يبدأ", "متى يبدأ"));
     writeFileSync(path.join(tmp, "balislam", "stock.json"), JSON.stringify({ version: 1, phase: 1,
       slots: [{ week: 1, title: "س", batch: 2, episode: "001" }, { week: 2, title: "ص", batch: 1, episode: "010", specialist: [] }] }));
-    // قناة مجمّدة: سكريبتاتها لا تذهب للمحرر إلا بـ --include-frozen
+    // قناة موقوفة تحريريًا صراحة: سكريبتاتها لا تذهب للمحرر إلا بـ --include-paused
     mkdirSync(path.join(tmp, "zubdat-alkutub", "episodes", "002-z"), { recursive: true });
     writeFileSync(path.join(tmp, "zubdat-alkutub", "channel.json"), "{}");
     writeFileSync(path.join(tmp, "zubdat-alkutub", "episodes", "002-z", "script.md"), SCRIPT);
-    writeFileSync(path.join(tmp, "zubdat-alkutub", "stock.json"), JSON.stringify({ version: 1, phase: 1, frozen: { decision: "D235" }, slots: [] }));
+    writeFileSync(path.join(tmp, "zubdat-alkutub", "stock.json"), JSON.stringify({ version: 1, phase: 1, frozen: { decision: "D235", editorialPause: true }, slots: [] }));
   });
   afterAll(() => {
     if (prev === undefined) delete process.env.BAL_CHANNELS_DIR; else process.env.BAL_CHANNELS_DIR = prev;
@@ -187,12 +190,14 @@ describe("D234: البوابة وسجل المحرر (ملفات مؤقتة)", (
     expect(st.sentShaFor(dir, 1, "balislam", "001")).toBe(r.items[1]!.scriptSha256);
   });
 
-  it("القناة المجمّدة خارج دفعة المحرر افتراضيًا، وتدخل بـ --include-frozen", async () => {
+  it("الموقوفة تحريريًا (editorialPause) خارج دفعة المحرر افتراضيًا وتدخل بـ --include-paused؛ والمجمّدة إنتاجًا وحده (D211) تبقى فيها", async () => {
     const st = await import("../src/studio/scriptPipelineStore");
     expect((await st.editorQueue()).some((x) => x.channel === "zubdat-alkutub")).toBe(false);
-    expect((await st.editorQueue(undefined, { includeFrozen: true })).map((x) => `${x.channel}/${x.episode}`)).toContain("zubdat-alkutub/002"); // owner-pin-ok: بيانات مصطنعة
-    const r = await st.writeEditorBatch({ dir: path.join(tmp, "batches-frozen"), includeFrozen: true });
+    expect((await st.editorQueue(undefined, { includePaused: true })).map((x) => `${x.channel}/${x.episode}`)).toContain("zubdat-alkutub/002"); // owner-pin-ok: بيانات مصطنعة
+    const r = await st.writeEditorBatch({ dir: path.join(tmp, "batches-paused"), includePaused: true });
     expect(r.items.some((x) => x.channel === "zubdat-alkutub")).toBe(true);
+    writeFileSync(path.join(tmp, "zubdat-alkutub", "stock.json"), JSON.stringify({ version: 1, phase: 1, frozen: { decision: "D211" }, slots: [] }));
+    expect((await st.editorQueue()).map((x) => `${x.channel}/${x.episode}`)).toContain("zubdat-alkutub/002"); // owner-pin-ok: بيانات مصطنعة
   });
 });
 

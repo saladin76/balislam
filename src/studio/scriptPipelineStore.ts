@@ -126,14 +126,15 @@ const frontmatterField = (text: string, key: string): string | undefined => {
   return m?.[1];
 };
 
-/** كل سكريبت في القنوات غير المجمّدة فيه جمل تنتظر المحرر، مرتبًا بدفعة ترتيب النشر ثم الأسبوع ثم القناة (رمضان أولًا) */
-export const editorQueue = async (root = channelsDir(), o: { includeFrozen?: boolean } = {}): Promise<EditorQueueItem[]> => {
+/** كل سكريبت في القنوات غير الموقوفة تحريريًا فيه جمل تنتظر المحرر، مرتبًا بدفعة ترتيب النشر ثم الأسبوع ثم القناة (رمضان أولًا) */
+export const editorQueue = async (root = channelsDir(), o: { includePaused?: boolean } = {}): Promise<EditorQueueItem[]> => {
   const out: EditorQueueItem[] = [];
   const channels = existsSync(root) ? readdirSync(root).filter((d) => existsSync(path.join(root, d, "channel.json"))).sort() : [];
   for (const ch of channels) {
     const stock = readStockAt(path.join(root, ch));
-    // القناة المجمّدة (D211، D235) لا ترسل سكريبتاتها للمحرر إلا بطلب صريح (--include-frozen)
-    if (stock?.frozen && !o.includeFrozen) continue;
+    // القناة الموقوفة تحريريًا صراحة (`frozen.editorialPause`، مثل «بالإسلام» في إعادة هيكلتها D235) لا ترسل سكريبتاتها للمحرر
+    // إلا بطلب صريح (--include-paused). التجميد وحده (D211) يوقف الإنتاج، والكتابة والتحرير مستمران.
+    if (stock?.frozen?.editorialPause && !o.includePaused) continue;
     const epRoot = path.join(root, ch, "episodes");
     for (const folder of await listScriptEpisodeDirs(epRoot)) {
       const scriptPath = path.join(epRoot, folder, "script.md");
@@ -204,11 +205,11 @@ export const editorBatchMarkdown = (n: number, items: EditorQueueItem[], at: Dat
  * يكتب دفعة المحرر التالية: `دفعة-المحرر-NN.md` (للمحرر) و`دفعة-المحرر-NN.json` (البيان: القناة والحلقة وبصمة النص المرسل).
  * لا يكرر سكريبتًا أُرسل في دفعة سابقة بالنص نفسه ولم يُسجَّل مروره (إلا includeSent).
  */
-export const writeEditorBatch = async (o: { dir?: string; limit?: number; includeSent?: boolean; includeFrozen?: boolean; root?: string; now?: Date } = {}) => {
+export const writeEditorBatch = async (o: { dir?: string; limit?: number; includeSent?: boolean; includePaused?: boolean; root?: string; now?: Date } = {}) => {
   const dir = o.dir ?? defaultEditorBatchDir();
   const prior = readEditorBatches(dir);
   const sent = new Set(prior.flatMap((b) => b.items.map((x) => `${x.channel}/${x.episode}/${x.scriptSha256}`)));
-  const queue = await editorQueue(o.root, { includeFrozen: o.includeFrozen });
+  const queue = await editorQueue(o.root, { includePaused: o.includePaused });
   const fresh = queue.filter((x) => o.includeSent || !sent.has(`${x.channel}/${x.episode}/${x.scriptSha256}`));
   const items = fresh.slice(0, o.limit ?? fresh.length);
   const existing = existsSync(dir) ? readdirSync(dir).map((f) => /^دفعة-المحرر-(\d{2,})\.(md|json)$/.exec(f)?.[1]).filter(Boolean).map(Number) : [];
