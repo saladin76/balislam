@@ -25,6 +25,7 @@ import { balApi } from "../app/server/api";
 import { sceneFrames } from "../src/plan/duration";
 import { prepValidTail } from "./fixtures/prepValidScript";
 import { passEditor } from "./fixtures/editorPass";
+import { grantTestMacRenderPermit } from "./helpers/macRenderPermit";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -131,6 +132,7 @@ const planOf = () => ({
 });
 
 beforeAll(async () => {
+  await grantTestMacRenderPermit();
   for (const k of ENV_KEYS) saved[k] = process.env[k];
   await mkdir(path.join(repo, "renders"), { recursive: true });
   root = await mkdtemp(path.join(repo, "renders", "recitations-last-"));
