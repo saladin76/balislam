@@ -24,6 +24,7 @@ import { runWithChannel } from "../src/channel";
 import { requirePublishAllowed, requireScenesReadyForMaster } from "../src/studio/sceneService";
 import { PREP_VALID_TAIL } from "./fixtures/prepValidScript";
 import { passEditor } from "./fixtures/editorPass";
+import { grantTestMacRenderPermit } from "./helpers/macRenderPermit";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -132,6 +133,7 @@ const planOf = (s2text = "الشكر") => ({
 });
 
 beforeAll(async () => {
+  await grantTestMacRenderPermit();
   for (const k of ENV_KEYS) saved[k] = process.env[k];
   // Inside the Studio root (git-ignored renders/), because media routes refuse files outside it.
   await mkdir(path.join(repo, "renders"), { recursive: true });

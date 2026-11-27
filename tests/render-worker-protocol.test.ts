@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import {
   acquireLock, claimJob, completeJob, ensureQueue, failJob, LOCK_STALE_MS, pendingJobs, planSha256, queuePaths, safeRelative,
-  sha256File, validateJob, type WorkerJob,
+  sha256File, validateJob, type JobEnvelope, type WorkerJob,
 } from "../src/render/worker/protocol";
 import { runOnce, workerEnv } from "../src/render/worker/loop";
 import { contentSyncEnabled } from "../app/server/contentSync";
@@ -132,7 +132,7 @@ describe("D226 worker loop (injected git/render)", () => {
     await put(root, sampleJob({ id: "balislam-001-short-2-b", createdAt: "2026-11-26T02:00:00.000Z" }));
     const log: string[] = [];
     const deps = { repo: root, log: (l: string) => log.push(l),
-      prepareCommit: async (j: WorkerJob) => (j.id.endsWith("-a") ? "تعذّر جلب الـcommit" : null),
+      prepareCommit: async (j: JobEnvelope) => (j.id.endsWith("-a") ? "تعذّر جلب الـcommit" : null),
       renderChild: async () => ({ code: 0, log: "no output" }) };
     expect(await runOnce(root, deps)).toBe("balislam-001-short-1-a");
     expect(await runOnce(root, deps)).toBe("balislam-001-short-2-b");

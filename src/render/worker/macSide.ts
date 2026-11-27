@@ -283,7 +283,11 @@ export const collectWorkerShorts = async (ep: string, share: string, o: { replac
   const dirs = existsSync(q.done) ? (await readdir(q.done)).filter((d) => !d.startsWith(".")).sort() : [];
   for (const d of dirs) {
     let job: WorkerJob;
-    try { job = validateJob(JSON.parse(await readFile(path.join(q.done, d, "job.json"), "utf8"))); }
+    let raw: unknown;
+    try { raw = JSON.parse(await readFile(path.join(q.done, d, "job.json"), "utf8")); } catch { raw = null; }
+    // D232: مهام الإصدار 2 (المشاهد والتجميع وMaster والتجارب) لها استلامها؛ الشورتس هنا بالإصدار 1 وحده
+    if ((raw as { version?: unknown } | null)?.version !== undefined && (raw as { version?: unknown }).version !== 1) continue;
+    try { job = validateJob(raw); }
     catch (e) { if (d.startsWith(`${ctx.channel}-${ctx.episodeFolder.slice(0, 3)}-`)) refused.push({ id: d, reasons: [(e as Error).message] }); continue; }
     if (job.channel !== ctx.channel || job.episode !== ctx.episodeFolder || job.id !== d) continue;
     if (collected[job.id] && existsSync(collected[job.id]!.file)) continue;

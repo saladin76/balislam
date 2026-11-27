@@ -14,7 +14,8 @@ import { loadPlan } from "../plan/io";
 import { collectMedia } from "../plan/collect";
 import { sceneFrames } from "../plan/duration";
 import { seamAudio, seamPlan } from "../plan/seams";
-import type { PlanScene } from "../plan/types";
+import type { Plan, PlanScene } from "../plan/types";
+import type { EpisodeMedia } from "../plan/media";
 import { introFramesFor } from "../remotion/scenes/ChannelIntro";
 import { channelInfo, loadChannel } from "../channel";
 import { qualitySpec } from "../render/quality";
@@ -26,6 +27,9 @@ import { putEpisodePreview } from "../render/episodePreviews";
 import { verifyVideoEvidence } from "./videoEvidence";
 import { filterScriptArgs, localFilterScriptForm, otherForm, refusedOption } from "../render/ffmpegFilterScript";
 import { approvedSceneCutsForAssembly, currentSceneCutsForPreFinal } from "./sceneService";
+import { assertOneMachine, previewMachines } from "../render/worker/provenance";
+import { consumeMacRenderPermit } from "../render/macRenderPermit";
+import { assertEditorPassed } from "./scriptPipelineStore";
 
 const exec = promisify(execFile);
 const safeId = (value: string) => /^[a-z0-9][a-z0-9-]{0,70}$/.test(value);
@@ -112,20 +116,25 @@ export const runJoinPass = async (script: string, graph: string[], inputs: strin
   catch (error) { if (!refusedOption(error)) throw error; await run(otherForm(form)); }
 };
 
-export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: string, script: string) => {
+/**
+ * D232: the Windows worker joins the cuts it rendered with the plan, media snapshot and narration gains the Mac computed
+ * (it has no voice folder): `given` replaces the three reads below; the join itself is the same code.
+ */
+export type JoinInputs = { plan: Plan; media: EpisodeMedia; loudness: { target: number | null; gain: Record<string, number> } };
+export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: string, script: string, given?: JoinInputs) => {
   const evidence = await Promise.all(cuts.map(item => verifyVideoEvidence(item.file)));
   const base = evidence[0]!;
   if (evidence.some(item => item.width !== base.width ||
       item.height !== base.height || item.audioTracks !== base.audioTracks))
     throw Error("All AV scene cuts must use matching video dimensions and audio track structure.");
-  const plan = await loadPlan(episode);
+  const plan = given?.plan ?? await loadPlan(episode);
   if (!plan) throw Error("Prepare and save a storyboard plan first.");
   const fps = config.video.fps;
   const byId = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s]));
   const scenes = cuts.map((c) => byId.get(c.sceneId));
   if (scenes.some((s) => !s)) throw Error("A scene cut is not in the current plan.");
   const list = scenes as PlanScene[];
-  const media = await collectMedia(episode, plan);
+  const media = given?.media ?? await collectMedia(episode, plan);
   const intro = introFramesFor(channelInfo(loadChannel()), plan) / fps;
   const real = await Promise.all(cuts.map((c) => probeSeconds(c.file)));
   // A cut whose length is not the plan's (a frame and a half of slack) is never joined: its seams stay as they are.
@@ -138,7 +147,7 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
     ...(seams[i - 1]?.overlapFrames ? { fadeInSec: a.fadeInSec } : {}),
     ...(seams[i]?.overlapFrames ? { fadeOutStart: a.fadeOutStart, fadeOutSec: a.fadeOutSec } : {}),
   }));
-  const loud = await narrationLoudness(await resolveScriptPath(episode), plan, media);
+  const loud = given?.loudness ?? await narrationLoudness(await resolveScriptPath(episode), plan, media);
   const starts: number[] = [0];
   for (let i = 0; i + 1 < cuts.length; i++) starts.push(starts[i]! + real[i]! - seams[i]!.overlapFrames / fps);
   const total = starts[cuts.length - 1]! + real[cuts.length - 1]!;
@@ -242,6 +251,11 @@ export const assemblePreFinalPreview = async (
     throw Error("No safe scene cuts are ready for the pre-final preview.");
   const scriptPath = await resolveScriptPath(episode);
   const previews = path.join(path.dirname(scriptPath), "previews");
+  // D233: every cut of the episode from one machine (the Windows and Mac Chrome draw Arabic text a few pixels apart)
+  assertOneMachine(await previewMachines(previews, cuts), "نسخة قبل النهائية");
+  // D234: لا وصل لسكريبت فيه جملة لم تمر بالمحرر؛ وD232: الماك لا يصل إلا بإذن المالك لهذه المرة
+  await assertEditorPassed(scriptPath);
+  await consumeMacRenderPermit("نسخة قبل النهائية (وصل المشاهد)", { episode: path.basename(path.dirname(scriptPath)) });
   const id = randomUUID();
   const manifest = path.join(previews, `.scene-prefinal-${id}.filter`);
   const tempVideo = path.join(previews, `.scene-prefinal-${id}.mp4`);
@@ -276,6 +290,10 @@ export const assembleApprovedSceneAv = async (
 
   const scriptPath = await resolveScriptPath(episode);
   const previews = path.join(path.dirname(scriptPath), "previews");
+  // D233: every cut of the episode from one machine
+  assertOneMachine(await previewMachines(previews, cuts), "تجميع");
+  await assertEditorPassed(scriptPath);
+  await consumeMacRenderPermit("تجميع المشاهد", { episode: path.basename(path.dirname(scriptPath)) });
   const id = randomUUID();
   const manifest = path.join(previews, `.scene-assembly-${id}.filter`);
   const tempVideo = path.join(previews, `.scene-assembly-${id}.mp4`);

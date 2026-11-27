@@ -83,6 +83,38 @@ npx bal -c balislam worker-collect 001 --share /Volumes/bal-share
 - **الاستلام لا يستورد إلا ما طابق:** بصمة الفيديو، وh264 بـ2160×3840 وصوت AAC، والمدة ±0.1 ث من المتوقَّع، والمهمة كما أرسلها هذا الماك (الـcommit والخطة والوسائط والمقطع والعنوان) والحلقة لم تتغير بعدها، وبيانات وصفية بلا أثر لأدوات الإنتاج؛ ثم ينظّف البيانات الوصفية على الماك (`cleanMetadata`) ويقيس الحركة (≥ 80%، والسكون المقصود مستثنى). بعدها يكتب `<id>-short-<n>.mp4` وترجمته في `out/package/`، ويحدّث `motion-report.md`، ويسجّل في `worker-collected.json`. كل رفض برسالة عربية، والمرفوض لا يدخل الحزمة. لا يُكتب فوق شورت آخر بالاسم نفسه إلا بـ`--replace` (ينقل القديم إلى `superseded/`).
 - بعد الاستلام: يشاهد المالك كل شورت كاملًا قبل النشر اليدوي، كأي شورت من الماك.
 
+## D232: كل الرندر على الويندوز (سارٍ، اعتمده المالك ٢٧ نوفمبر؛ المرحلة ١)
+
+- **مهمة الإصدار 2** (`version: 2`) لكل الأنواع: `scene` و`assembly` و`prefinal` و`master` و`short` و`trial` (`thumbnail` محجوز). فيها: `kind`، و`purpose` (`studio` أو `trial`)، و`render` (الاتجاه، الجودة، النطاق `all`/`chapter`/`sceneIds`، قطعة مراجعة أم لا، وضع التوقيت، علامات المسودة، و`review1080` لـ4K، و`concurrency` للتجارب وحدها) أو `join` (قطع المشاهد: `sceneId` ومعرّف مهمتها في `done/` وبصمتها اختياريًا)، و`expected` (الأبعاد من الجودة والاتجاه، والمدة)، والخطة ببصمتها، ولقطة الوسائط، وربح العلوّ. الإصدار 1 (الشورت) يبقى كما هو.
+- **العامل القديم لا يأخذ مهام الإصدار 2:** حلقته تفحص المهمة كاملة بكودها قبل checkout فتتجاوزها (تبقى في `jobs/`). الحلقة الجديدة تقرأ الغلاف وحده ثم تفحص كاملًا في العملية الفرعية بكود commit المهمة، فلا تحتاج إعادة تشغيل لنوع جديد بعد ذلك. **مرة واحدة** لتشغيل الحلقة الجديدة (في «Command Prompt» على ويندوز):
+
+```bat
+schtasks /End /TN "bal-render-worker"
+cd /d C:\bal-render
+git fetch --depth=50 origin feat/d232-windows-render-all
+git checkout --detach FETCH_HEAD
+schtasks /Run /TN "bal-render-worker"
+```
+
+  (بعد دمج D232 في `main`: `git fetch --depth=50 origin main` و`git checkout --detach FETCH_HEAD` بدل الفرع.) القفل `package-lock.json` لم يتغير، فلا `npm ci`.
+- **النبض والتقدم:** `render-queue/worker.heartbeat.json` كل ٢٠ ثانية (`idle` أو `busy` بالمهمة والـcommit)، و`running/<id>.progress.json` (النسبة والمرحلة، يُحدَّث كل ٣–١٠ ثوانٍ). على الماك: `npx bal worker-status --share /Volumes/bal-share`.
+- **النتيجة** تزيد `timings` (البدء، انتهاء تجميع Remotion، انتهاء الرندر، الانتهاء، والمراحل) و`machine` (المعالجات والذاكرة) و`memory.minFreeMB`، و`review` لنسخة 1080p بجوار ملف 4K.
+- **التجربة** (لا تدخل الحزمة ولا السجل):
+
+```bash
+npx bal -c dafatir-alzaman worker-trial 001 --share /Volumes/bal-share --tag dafatir-001 --out <مجلد على الماك>
+npx bal worker-trial-collect --share /Volumes/bal-share --out <المجلد نفسه>
+```
+
+- **شرط المحرر (D234):** لا تُرسل مهمة (مشهد أو وصل أو Master أو تجربة) لسكريبت لم يمرّ بمحرر المحتوى، والعامل يفحص سجل المحرر ثانية بـcommit المهمة قبل الرندر أو الوصل.
+- **الماك احتياطي للطوارئ وحدها، وبإذن المالك كل مرة:** بلا إذن يرفض الماك كل رندر فيديو برسالة «D232: الماك لا يرندر…». بعد أن يأذن المالك بنفسه لهذه المرة:
+
+```bash
+npx bal mac-render-permit --owner-words "<نص إذن المالك>"   # مرة واحدة خلال ٦٠ دقيقة؛ --uses N و--minutes M و--episode NNN
+npx bal mac-render-permit --status
+npx bal mac-render-permit --revoke
+```
+
 ## مخاطر معروفة
 
 - **متصفح الرندر:** Remotion ينزّل Chrome Headless Shell عند أول رندر على ويندوز (يحتاج إنترنت مرة واحدة). عند تعذّره: `REMOTION_BROWSER_EXECUTABLE` بمسار Chrome موجود في بيئة المهمة.
