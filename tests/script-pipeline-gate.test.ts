@@ -110,7 +110,7 @@ describe("D234: الاستثناءات الصريحة (آلية بلا استث�
     expect(stock.frozen).toBeTruthy();
     expect(stock.frozen.voiceOnly ?? []).toEqual([]);
     expect(stock.frozen.editorialPause).toBe(true); // D235: إعادة الهيكلة توقف التحرير أيضًا، فلا تُرسل للمحرر
-    // «زبدة الكتب» مجمّدة إنتاجًا وحده (D211): الكتابة والتحرير مستمران، فتبقى في دفعات المحرر (D236)
+    // «زبدة الكتب» مجمّدة إنتاجًا وحده (D211): الكتابة والتحرير مستمران، فتبقى في دفعات المحرر (D234)
     expect(JSON.parse(read("channels/zubdat-alkutub/stock.json")).frozen?.editorialPause).toBeFalsy();
   });
 });
