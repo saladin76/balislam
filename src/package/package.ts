@@ -82,6 +82,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
     if (!shorts.length || shortPick.issues.length) throw new Error(shortPick.issues.join(" ") || "لا مقاطع شورتس في الخطة.");
+    // D241: كل شورت فكرة كاملة وحده (خطاف، وفكرة تامة، وختام واضح، ولا إشارة إلى خارجه) قبل أي رندر
+    (await import("./shortIdeaPlan")).assertShortsIdea(plan, shorts);
   }
 
   log("تجهيز الوسائط…");

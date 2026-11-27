@@ -79,4 +79,13 @@ export type Plan = {
   chapters: PlanChapter[];
 };
 
-export type PlanShort = { from: string; to: string; title?: string };
+/** جزء من شورت مجمَّع (D241): من مشهد إلى مشهد بترتيب الحلقة */
+export type PlanShortPart = { from: string; to: string };
+/**
+ * شورت: من مشهد إلى مشهد (الصيغة القديمة)، أو أجزاء مرتبة من مشاهد غير متتالية من الحلقة نفسها (D241: `segments`؛
+ * و`from`/`to` حينها أول الجزء الأول وآخر الجزء الأخير، للقراءة القديمة). لا جملة جديدة ولا صوت جديد: يوصل
+ * القاطع مشاهد الأجزاء بتسجيلاتها كما هي.
+ * `hook: "line"`: أول جملة خطاف وليست سؤالًا (علّمها المحرر أو المالك). `closingQuestion: "comment"`: آخر جملة سؤال
+ * للتعليقات مقصود. src/package/shortIdea.ts
+ */
+export type PlanShort = { from: string; to: string; title?: string; segments?: PlanShortPart[]; hook?: "line"; closingQuestion?: "comment" };
