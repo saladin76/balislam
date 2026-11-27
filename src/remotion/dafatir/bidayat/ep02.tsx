@@ -334,11 +334,11 @@ const DuskPlain = reverent((q) => {
   const ghost = S === 0 ? bounce(t, k.at("الكلام"), k.at("الكلام") + 1.8) : 0;
   const wind = S === 0 ? k.on(0, "النفس", 0.8) : 1;
   const short = S === 1 ? bounce(t, k.at("تهون"), k.at("تهون") + 1.2) : 0;
-  const steps = ["خطوة", "بعد", "خطوة#2", "حتى", "استجاب", "لها"].map((w) => (S === 1 ? k.on(1, w, 0.3) : 0));
+  // قرار المالك (٢٧ نوفمبر): حُذفت «خطوة بعد خطوة» من الجملة، فحُذفت شَرطات الحبر التي رُسمت عليها (لا عنصر بلا كلمته)
   const set = S === 1 ? prog(t, k.at("استجاب", 1.4) - 0.05, k.at("استجاب", 1.4) + 1.4) : 0;
   const cam = k.cam(NEUTRAL, [
     [0, "النفس", { cx: 700, cy: 600, s: 1.15 }, 1.2],
-    [1, "خطوة", { cx: 1100, cy: 640, s: 1.1 }, 1.6],
+    [1, "الجريمة", { cx: 1100, cy: 640, s: 1.1 }, 1.6],
     [1, "استجاب", { cx: 1500, cy: 560, s: 1.2 }, 1.2],
   ]);
   const shadowL = 220 * (1 - 0.6 * short);
@@ -351,9 +351,6 @@ const DuskPlain = reverent((q) => {
       <Grass x={360} y={640} q={1} t={t} wind={wind} seed={4} />
       <Grass x={1120} y={700} q={1} t={t} wind={wind} seed={6} n={7} />
       <Grass x={1650} y={660} q={1} t={t} wind={wind} seed={9} n={6} />
-      {steps.map((s, i) => (
-        <path key={i} d={`M${1560 - i * 150} 720 h-60`} stroke={C.ink} strokeWidth={6} strokeLinecap="round" opacity={s} />
-      ))}
     </g>
   );
   return <Leaf q={q} id="b2d" cam={cam} L={both} R={<g>{both}<Txt x={1620} y={230} size={40} q={ghost} color={C.inkSoft} font="amiri">التقوى</Txt></g>} />;
