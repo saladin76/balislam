@@ -949,6 +949,34 @@ program
   });
 
 program
+  .command("cleanup")
+  .description("D240: التنظيف بعد النشر — يعرض ما يُحذف وما يبقى (الافتراضي بلا حذف)؛ الحذف بـ --delete بعد الشروط الثلاثة وحدها")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--share <path>", "المجلد المشترك على الماك (F:\\bal-share على ويندوز)", "/Volumes/bal-share")
+  .option("--dry-run", "عرض فقط (الافتراضي)")
+  .option("--delete", "احذف فعلًا (بعد نجاح الشروط الثلاثة كلها، وإلا لا يُحذف شيء)")
+  .action(async (episode: string, opts: { share: string; dryRun?: boolean; delete?: boolean }) => {
+    const m = await import("../render/postPublishCleanup");
+    const share = path.resolve(opts.share);
+    const plan = await m.planCleanup(await m.macCleanupContext(episode, share), await m.macCleanupDeps(episode));
+    if (!opts.delete || opts.dryRun) {
+      console.log(m.formatPlan(plan));
+      if (!plan.ok) process.exitCode = 1;
+      return;
+    }
+    if (!plan.ok) {
+      console.error(m.formatPlan(plan));
+      console.error("توقف التنظيف: لم يُحذف شيء.");
+      process.exitCode = 1;
+      return;
+    }
+    const r = await m.executeCleanup(plan);
+    const { queueWindowsCleanup } = await import("../render/worker/cleanupQueue");
+    const queued = await queueWindowsCleanup(share, plan).then(() => true, () => false);
+    console.log(m.summaryLine(plan, r.freed, queued, r.skipped.length));
+  });
+
+program
   .command("worker")
   .description("D226: عامل الرندر على الجهاز الثاني: يرندر شورتس المجلد المشترك واحدًا بعد واحد (لا دفع ولا اعتماد)")
   .requiredOption("--share <path>", "المجلد المشترك على هذا الجهاز، مثل D:\\bal-share أو \\\\Salah\\bal-share")
