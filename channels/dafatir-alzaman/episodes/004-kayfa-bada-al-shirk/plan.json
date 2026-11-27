@@ -12,7 +12,7 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-27T19:59:18.629Z",
+  "updatedAt": "2026-11-27T21:17:58.619Z",
   "intro": false,
   "chapters": [
     {
@@ -551,7 +551,7 @@
         {
           "id": "c2-s33",
           "template": "horizon-shot",
-          "narration": "وفي تتمة الحديث يُسأل نوح عليه السلام عمّن يشهد له، فيذكر محمدًا صلى الله عليه وسلم وأمته، فتشهد هذه الأمة أن نوحًا قد بلّغ.",
+          "narration": "وهكذا تشهد أمةُ محمدٍ صلى الله عليه وسلم أن نوحًا عليه السلام قد بلّغ.",
           "line": 167,
           "props": {
             "shot": "bd05-witness"
@@ -562,7 +562,7 @@
           "id": "c2-s34",
           "template": "horizon-shot",
           "narration": "فماذا نتعلم من قصة لم تنته بعد؟",
-          "line": 171,
+          "line": 172,
           "props": {
             "shot": "bd05-drop-stone"
           },
@@ -572,7 +572,7 @@
           "id": "c2-s35",
           "template": "horizon-shot",
           "narration": "أن الداعي مسؤول عن البلاغ، لا عن النتيجة.",
-          "line": 173,
+          "line": 174,
           "props": {
             "shot": "lib-compare",
             "aLabel": "البلاغ",
@@ -588,7 +588,7 @@
           "id": "c2-s36",
           "template": "horizon-shot",
           "narration": "وأن الصبر في القرآن ليس أيامًا ولا شهورًا، بل قد يكون عمرًا كاملًا.",
-          "line": 175,
+          "line": 176,
           "props": {
             "shot": "bd05-drop-stone"
           },
@@ -598,7 +598,7 @@
           "id": "c2-s37",
           "template": "horizon-shot",
           "narration": "لكن الصبر لم يكن بلا نهاية.",
-          "line": 177,
+          "line": 178,
           "props": {
             "shot": "bd05-drop-stone"
           },
@@ -608,7 +608,7 @@
           "id": "c2-s38",
           "template": "horizon-shot",
           "narration": "وفي الحلقة القادمة يأمر الله نوحًا عليه السلام بصنع السفينة. فكيف استقبل قومه هذا المشهد؟",
-          "line": 179,
+          "line": 180,
           "props": {
             "shot": "bd05-plank-teaser"
           },
@@ -618,7 +618,7 @@
           "id": "c2-s39",
           "template": "horizon-shot",
           "narration": "وأنت، على أي أمر صبرت أطول مما توقعت؟ اكتب لنا في التعليقات.",
-          "line": 181,
+          "line": 182,
           "props": {
             "shot": "bd05-thread-knot"
           },
