@@ -20,6 +20,7 @@ import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { acquireLock, claimJob, failJob, isProgressName, pendingJobs, queuePaths, tail, workerName, writeHeartbeat, type JobEnvelope } from "./protocol";
 import { git, runCmd } from "./git";
+import { runCleanupJobs } from "./cleanupQueue";
 import { childEnv } from "../../../scripts/git-env.mjs";
 
 export const POLL_MS = 30_000;
@@ -97,6 +98,8 @@ export const runOnce = async (share: string, deps: WorkerDeps): Promise<string |
       try { by = (JSON.parse(await readFile(path.join(running, f), "utf8")) as { claimedBy?: string }).claimedBy; } catch { by = undefined; }
       if (by === workerName()) await failJob(share, f.slice(0, -5), "انقطع العامل أثناء هذه المهمة؛ أعد إرسالها من الماك.", "");
     }
+    // D240: تنظيف ما بعد النشر في نسخة العامل المحلية (يتحقق من Master الدائم بنفسه؛ لا دفع ولا اعتماد)
+    await runCleanupJobs(share, deps.repo, deps.log);
     for (const candidate of await pendingJobs(share)) {
       const job = await claimJob(share, candidate.id, workerName());
       if (!job) continue;
