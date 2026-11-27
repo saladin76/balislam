@@ -249,6 +249,8 @@ export const completeJob = async (share: string, job: Pick<WorkerJob, "id">, mp4
   return dir;
 };
 export const doneVideoName = (job: Pick<WorkerJob, "id">) => `${job.id}.mp4`;
+/** D232 (phase 2): the joins of a join job's file (assembly/pre-final), beside it in done/<id>/ */
+export const seamsName = (job: Pick<WorkerJob, "id">) => `${job.id}.seams.json`;
 
 export const sha256File = (file: string) => new Promise<string>((resolve, reject) => {
   const h = createHash("sha256");

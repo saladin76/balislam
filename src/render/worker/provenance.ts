@@ -7,7 +7,7 @@
  * على الماك يُقرأ المصدر من previews/scene-provenance.json (يكتبه استيراد نواتج العامل؛ ما ليس فيه = «mac»).
  */
 import path from "node:path";
-import { readFile } from "node:fs/promises";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { createReadStream, existsSync } from "node:fs";
 
@@ -57,6 +57,23 @@ const sha256Of = (file: string) => new Promise<string>((resolve, reject) => {
   const h = createHash("sha256");
   createReadStream(file).on("data", (d) => h.update(d)).on("error", reject).on("end", () => resolve(h.digest("hex")));
 });
+
+/**
+ * D232 (phase 2): the import of a worker scene cut records where it was rendered, bound to the exact bytes now in
+ * previews/scene-<id>-av.mp4. A later Mac render of the scene changes the bytes, so the record no longer counts.
+ */
+export const recordPreviewProvenance = async (previewsDir: string, sceneId: string, entry: { machine: string; commit?: string; sha256: string }) => {
+  let file: ProvenanceFile = { version: 1, scenes: {} };
+  try {
+    const cur = JSON.parse(await readFile(provenanceFile(previewsDir), "utf8")) as ProvenanceFile;
+    if (cur?.version === 1 && cur.scenes && typeof cur.scenes === "object") file = cur;
+  } catch { /* first record */ }
+  file.scenes[sceneId] = { machine: entry.machine, ...(entry.commit ? { commit: entry.commit } : {}), sha256: entry.sha256 };
+  await mkdir(previewsDir, { recursive: true });
+  const tmp = `${provenanceFile(previewsDir)}.${process.pid}.${Date.now()}.tmp`;
+  await writeFile(tmp, JSON.stringify(file, null, 1) + "\n");
+  await rename(tmp, provenanceFile(previewsDir));
+};
 
 const label = (m: string) => (m === MAC_MACHINE ? "الماك" : `جهاز الرندر «${m}»`);
 

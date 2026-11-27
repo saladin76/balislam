@@ -38,9 +38,13 @@ describe("D226: the worker-only render is unreachable from normal paths", () => 
   it("renderEpisode keeps every Master gate before renderComposition", () => {
     const src = readFileSync(path.join(root, "src/render/episode.ts"), "utf8");
     const body = src.slice(src.indexOf("export const renderEpisode"), src.indexOf("export type RenderCompositionOptions"));
-    for (const gate of ["requireScenesReadyForMaster", "requireApprovedQuran", "assertRenderedRecitationsMatchApprovals", "assertMotionStartAuthorized", "assertMasterReady", "assertEpisodeOutputConfined"])
+    for (const gate of ["requireScenesReadyForMaster", "requireApprovedQuran", "assertMasterRenderGates", "assertEpisodeOutputConfined"])
       expect(body, gate).toContain(gate);
-    expect(body.indexOf("assertMasterReady(")).toBeLessThan(body.indexOf("renderComposition("));
+    expect(body.indexOf("assertMasterRenderGates(")).toBeLessThan(body.indexOf("renderComposition("));
+    // D232 phase 2: the Master gates are one function, shared by the Mac render and the Windows Master (send and import)
+    const gates = src.slice(src.indexOf("export const assertMasterRenderGates"), src.indexOf("export const renderEpisode"));
+    for (const gate of ["requireScenesReadyForMaster", "assertRenderedRecitationsMatchApprovals", "assertMotionStartAuthorized", "assertMasterReady(", "staleMotionScenes"])
+      expect(gates, gate).toContain(gate);
     // and the core has no way to skip a gate it does not have: no ledger/approval import in it
     const core = src.slice(src.indexOf("export const renderComposition"));
     expect(core.slice(0, core.indexOf("export const cleanMetadata"))).not.toMatch(/sceneService|requireScenes|allowUnreviewed/);
