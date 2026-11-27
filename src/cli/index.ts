@@ -206,6 +206,31 @@ program
   });
 
 program
+  .command("plan-from-scenes")
+  .description("دفاتر الزمن (البدايات): الخطة المصمَّمة «خط الأفق» من scenes.md والسكريبت، بالبنية نفسها لخطة 001. عرض فقط إلا بـ --write")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--write", "اكتب plan.json (نسخة احتياطية من القائمة أولًا؛ ويرفض إن بقي نص بلا مشهد أو لقطة غير معتمدة)")
+  .option("--overwrite-designed", "اكتب فوق خطة قائمة مصمَّمة (تأكيد صريح؛ تُحفظ نسخة احتياطية أولًا)")
+  .action(async (episode: string, opts: { write?: boolean; overwriteDesigned?: boolean }) => {
+    const { planFromScenesFile } = await import("../plan/fromScenesFile");
+    try {
+      const r = await planFromScenesFile(episode, { write: opts.write === true, overwriteDesigned: opts.overwriteDesigned === true });
+      const scenes = r.plan.chapters.flatMap((c) => c.scenes);
+      const count = (t: string) => scenes.filter((s) => s.template === t).length;
+      console.log(`الخطة من scenes.md: ${scenes.length} مشهدًا — horizon-shot ${count("horizon-shot")}، بطاقة آية ${count("verse-card")}، بطاقة حديث ${count("hadith-card")}.`);
+      if (r.report.wordsOnly.length) console.log(`بالكلمات وحدها (لقطة pending): ${r.report.wordsOnly.join("، ")}`);
+      if (r.report.unusedRows.length) console.log(`صفوف في scenes.md بلا نص في السكريبت (لا تدخل الخطة): ${r.report.unusedRows.join("، ")}`);
+      if (r.droppedShorts > 0) console.log(`شورتس في الخطة القديمة لم يعد لها مشهد (لم تُنقل): ${r.droppedShorts}`);
+      if (r.problems.length) { console.log(`مشكلات (${r.problems.length}):\n${r.problems.map((p) => `- ${p}`).join("\n")}`); process.exitCode = 1; }
+      if (r.written) console.log(`كُتبت: ${path.relative(projectRoot, r.file)}${r.backup ? ` (نسخة احتياطية: ${path.basename(r.backup)})` : ""}${r.seriesLinkWritten ? "، وملف انتماء السلسلة series.json" : ""}`);
+      else if (!opts.write) console.log("عرض فقط؛ للكتابة: --write");
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command("remap-scene-ids")
   .description("نقل ملفات الصوت المحلية (voice/index.json وvoice/sentences.json) إلى معرّفات المشاهد الجديدة بعد جعل الخطة قسمًا واحدًا (D87). تجربة افتراضيًا")
   .argument("<episode>", "رقم الحلقة")
@@ -1202,6 +1227,18 @@ program
     const md = W.weeklyMarkdown(week, (await F.gatherWeek()).map(W.reviewChannel));
     await F.saveWeekly(week, md);
     console.log(md);
+  });
+
+program
+  .command("shorts-check")
+  .description("D241: الشورت فكرة كاملة وحده — لكل شورت «يمر» أو «مرفوض» بسببه (الخطة، أو حزمة المسودة ومقترحات المحرر). يقرأ ولا يكتب")
+  .argument("[episode]", "رقم الحلقة (الافتراضي كل حلقات القناة)")
+  .option("--json", "إخراج JSON")
+  .action(async (episode: string | undefined, opts: { json?: boolean }) => {
+    const { checkChannelShorts, formatShortRows, isRefused } = await import("../package/shortsCheck");
+    const rows = await checkChannelShorts(episode);
+    console.log(opts.json ? JSON.stringify(rows, null, 2) : formatShortRows(rows));
+    process.exitCode = rows.some(isRefused) ? 1 : 0;
   });
 
 program

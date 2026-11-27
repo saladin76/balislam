@@ -17,6 +17,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { browserPlanRevision } from "../../src/plan/revision";
 import { findTraces } from "../../src/package/traces";
+import { checkPlanShort } from "../../src/package/shortIdeaPlan";
 import { CASES, selectedChannels, type ChannelCase } from "./channels";
 import { ffmpeg, fixturesDir, generateVoiceConfirmed, probe, sha256File, startStudio, tree, waitFor, type Studio, passEditor } from "./harness";
 
@@ -147,13 +148,28 @@ for (const channel of selectedChannels()) {
       // has no counted second and fails rule two (motion ≥ 80% per short) — the per-short rule stays; such a
       // passage is simply not chosen here.
       const still = new Set([c.verse?.sceneId, ...(channel === "zubdat-alkutub" ? ["c1-s1"] : [])].filter(Boolean));
-      const ranges: [number, number][] = [];
-      for (const w of [0, 1, 2, 3, 4]) for (let a = 0; a + w < spoken.length; a++) {
-        if (spoken.slice(a, a + w + 1).every((id) => still.has(id))) continue;
-        if (ranges.length < COUNT) ranges.push([a, a + w]);
+      // D241 (٢٧ نوفمبر): كل شورت فكرة كاملة وحده — يبدأ بخطاف معلَّم وجمل كاملة، بلا إشارة إلى خارجه. تُختار المقاطع
+      // من مشاهد الحلقة نفسها (أجزاء غير متتالية مسموحة) بالفحص النقي نفسه الذي تمر به البوابة، أصغرها أولًا.
+      const pick: string[][][] = [];
+      // أجزاء الشورت: كل مشاهد متتالية في الحلقة جزء واحد
+      const partsOf = (c: number[]) => c.reduce<number[][]>((acc, v) => { const last = acc.at(-1); if (last && last.at(-1)! + 1 === v) last.push(v); else acc.push([v]); return acc; }, []).map((r) => r.map((i) => spoken[i]!));
+      const idx = spoken.map((_, i) => i);
+      const combos = (k: number, from = 0): number[][] => (k === 0 ? [[]] : idx.slice(from).flatMap((i) => combos(k - 1, i + 1).map((r) => [i, ...r])));
+      // المقاطع المتصلة أولًا (كما كانت قبل D241، وكلها تعبر قاعدة الحركة ٨٠٪)، ثم الأجزاء غير المتصلة إن لم تكفِ.
+      const runs = [0, 1, 2, 3, 4].flatMap((w) => idx.filter((a) => a + w < spoken.length).map((a) => idx.slice(a, a + w + 1)));
+      const candidates = [...runs, ...[2, 3, 4, 5].flatMap((k) => combos(k)).filter((c) => c.some((v, j) => j > 0 && v !== c[j - 1]! + 1))];
+      for (const c of candidates) {
+        if (pick.length >= COUNT) break;
+        const ids = c.map((i) => spoken[i]!);
+        if (ids.every((id) => still.has(id))) continue;
+        const parts = partsOf(c);
+        if (checkPlanShort(plan, { sceneIds: ids, parts, hook: "line" }).ok) pick.push(parts);
       }
-      expect(ranges).toHaveLength(COUNT);
-      const shorts = ranges.map(([a, b], k) => ({ from: spoken[a]!, to: spoken[b]!, title: `الشورت ${k + 1}: من المشهد ${a + 1} إلى ${b + 1}` }));
+      expect(pick, "enough whole-idea shorts in the fixture (D241)").toHaveLength(COUNT);
+      const shorts = pick.map((parts, k) => ({
+        from: parts[0]![0]!, to: parts.at(-1)!.at(-1)!, ...(parts.length > 1 ? { segments: parts.map((r) => ({ from: r[0]!, to: r.at(-1)! })) } : {}),
+        hook: "line" as const, hookKind: "striking" as const, title: `الشورت ${k + 1}: ${parts.flat().length} من المشاهد`,
+      }));
       const saved = await st.call("PUT", `episodes/${EP}/shorts`, { shorts });
       ok(`save ${COUNT} shorts`, saved);
       expect(saved.body.saved, "all of them, in order").toEqual(shorts);
@@ -213,9 +229,9 @@ for (const channel of selectedChannels()) {
         const v = probe(path.join(pkgDir, `${EP}-short-${n}.mp4`)).streams.find((x) => x.codec_type === "video")!;
         expect(v.height! > v.width!, `short ${n}: 9:16 (${v.width}×${v.height})`).toBe(true);
       }
-      // Every short is a passage of the approved Master: the first is one scene, the last spans four or five.
+      // Every short is a passage of the approved Master: the first is one scene, the last spans more (D241: chosen segments).
       const dur = (n: number) => Number(probe(path.join(pkgDir, `${EP}-short-${n}.mp4`)).format.duration);
-      expect(dur(COUNT), "the last (four or five scenes) is longer than the first (one scene)").toBeGreaterThan(dur(1));
+      expect(dur(COUNT), "the last (more scenes) is longer than the first (one scene)").toBeGreaterThan(dur(1));
       expect(dur(COUNT), "…and shorter than the Master").toBeLessThan(Number(probe(masterFile).format.duration));
       const motion = await readFile(path.join(pkgDir, "motion-report.md"), "utf8");
       expect(motion, "every short measured").toContain(`الشورت ${COUNT}:`);

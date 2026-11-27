@@ -271,6 +271,9 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   const editorScript = scriptPathFromRenderMedia(media.base);
   if (!editorScript) throw new Error("وسائط الرندر لا تسمّي حلقتها؛ لا يُعرف سكريبتها لفحص المحرر (D234).");
   await assertEditorPassed(editorScript);
+  // D241: كل رندر عمودي لمقطع أو قسم شورت؛ لا يُرندر شورت ليس فكرة كاملة وحده (على الماك وعلى العامل)
+  if (o.orientation === "portrait" && (o.segment || o.chapter !== undefined))
+    (await import("../package/shortIdeaPlan")).assertShortRenderIdea(plan, o.segment ? { sceneIds: o.segment.sceneIds } : { chapter: o.chapter });
   // D232: الماك لا يرندر إلا بإذن المالك الصريح لهذه المرة (العامل على ويندوز لا يحتاجه)
   await consumeMacRenderPermit(`رندر ${o.quality}${o.scenePreview ? " (قطعة مشهد)" : ""}`, { episode: path.basename(path.dirname(editorScript)) });
   log(0, "تجميع المشروع…");

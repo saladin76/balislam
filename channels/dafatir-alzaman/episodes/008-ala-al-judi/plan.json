@@ -1,0 +1,704 @@
+{
+  "version": 1,
+  "episode": "008",
+  "title": "نوح عليه السلام بعد الطوفان: الجودي والذرية",
+  "domain": "islamic",
+  "themeId": "warm",
+  "channel": "dafatir-alzaman",
+  "lang": "ar",
+  "overlays": {
+    "captions": true,
+    "motif": true,
+    "watermark": true,
+    "chapterLabel": false
+  },
+  "updatedAt": "2026-11-27T20:00:12.830Z",
+  "intro": false,
+  "chapters": [
+    {
+      "number": 1,
+      "title": "",
+      "scenes": [
+        {
+          "id": "c1-s1",
+          "template": "horizon-shot",
+          "narration": "بعد أن هدأ الماء، أين وقفت السفينة؟ سؤال سأله الناس قرونًا، وكتبوا فيه كثيرًا.",
+          "line": 36,
+          "props": {
+            "shot": "bd08-peak"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s2",
+          "template": "horizon-shot",
+          "narration": "في الحلقة الماضية رأينا الطوفان، ورأينا آخر مشهد فيه: الماء ينحسر، والسفينة تقف على جبل يذكره القرآن باسمه: الجودي.",
+          "line": 40,
+          "props": {
+            "shot": "bd08-thread-water"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s3",
+          "template": "horizon-shot",
+          "narration": "واليوم نعقد على خيط الزمن عقدة من حجر: مكان الاستقرار، وأول خطوة بعد الماء. ونبدأ كعادتنا بما ثبت.",
+          "line": 42,
+          "props": {
+            "shot": "bd08-stone-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s4",
+          "template": "horizon-shot",
+          "narration": "فلما انحسر الماء، استقرّت سفينة نوح عليه السلام على الجودي، كما أخبرنا القرآن. ثبت في القرآن اسم واحد: الجودي.",
+          "line": 46,
+          "props": {
+            "shot": "bd08-thread-water"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s4a",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة هود:",
+          "line": 50,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "هود · ٤٤",
+            "tagWord": "هود"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s4b",
+          "template": "verse-card",
+          "narration": "",
+          "line": 52,
+          "props": {
+            "text": "",
+            "reference": "هود · ٤٤",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "11:44"
+        },
+        {
+          "id": "c1-s5",
+          "template": "horizon-shot",
+          "narration": "لم يذكر القرآن في أي بلد هو، ولا ارتفاعه، ولا أين يقع من الأرض.",
+          "line": 54,
+          "props": {
+            "shot": "bd08-blank-fields"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s6",
+          "template": "horizon-shot",
+          "narration": "فعلى الاسم نضع ختم: ثابت.",
+          "line": 56,
+          "props": {
+            "shot": "bd08-seal-mount"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s9",
+          "template": "horizon-shot",
+          "narration": "وفي المقابل، ستقرأ في كتب كثيرة أن السفينة استقرت على جبال أرارات. وهذا الاسم لم يأت في القرآن، بل جاء في كتب أهل الكتاب. فنضع عليه ختم: رواية.",
+          "line": 58,
+          "props": {
+            "shot": "bd08-folded-leaf"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s10",
+          "template": "horizon-shot",
+          "narration": "وأما ما يُقال اليوم عن بقايا خشب وُجدت في هذا الجبل أو ذاك، فلم يثبت منه شيء بدليل نعتمد عليه. وختمه: لا نعلم.",
+          "line": 64,
+          "props": {
+            "shot": "bd08-wood-shard"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s14",
+          "template": "horizon-shot",
+          "narration": "أختام مختلفة على جبل واحد. وهذا هو الصدق مع ما نعرفه.",
+          "line": 68,
+          "props": {
+            "shot": "bd08-seal-mount"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s15",
+          "template": "horizon-shot",
+          "narration": "سمّى القرآن الجودي، ولا نعلم من الآية موضعه على خريطة اليوم. ومن عبرة القصة أن السفينة استقرّت حين قضى الله الأمر.",
+          "line": 70,
+          "props": {
+            "shot": "bd08-crosshair"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s16",
+          "template": "horizon-shot",
+          "narration": "وانحسر الماء بأمر الله، ونجّى الله نوحًا عليه السلام ومن كان معه في السفينة.",
+          "line": 72,
+          "props": {
+            "shot": "bd08-water-halt"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s17",
+          "template": "horizon-shot",
+          "narration": "ومن ينشغل بالبحث عن خشبة في جبل، قد يفوته المعنى الذي حُكيت القصة من أجله.",
+          "line": 74,
+          "props": {
+            "shot": "bd08-lens-miss"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s18",
+          "template": "horizon-shot",
+          "narration": "وماذا حدث بعد أن استقرّت السفينة؟",
+          "line": 76,
+          "props": {
+            "shot": "bd08-turn-after"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s19",
+          "template": "horizon-shot",
+          "narration": "جاء الأمر بالنزول. كما جاء في سورة هود:",
+          "line": 78,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "هود · ٤٨",
+            "tagWord": "هود"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s20",
+          "template": "verse-card",
+          "narration": "",
+          "line": 80,
+          "props": {
+            "text": "",
+            "reference": "هود · ٤٨",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "11:48"
+        },
+        {
+          "id": "c1-s21",
+          "template": "horizon-shot",
+          "narration": "نقف عند كلمتين في هذه الآية: السلام، والبركات.",
+          "line": 82,
+          "props": {
+            "shot": "bd08-two-words"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s22",
+          "template": "horizon-shot",
+          "narration": "وأُمر نوح عليه السلام أن ينزل من السفينة، ومعه سلامٌ من الله، وبركاتٌ تشمله وتشمل أممًا ممن كانوا معه في السفينة. وأخبرت الآية كذلك عن أمم أخرى، يمتّعها الله ثم ينالها منه عذاب أليم.",
+          "line": 84,
+          "props": {
+            "shot": "bd08-blessing-reach"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s23",
+          "template": "horizon-shot",
+          "narration": "وفي سياق قصة السفينة، علّم الله نوحًا عليه السلام، إذا استوى على الفلك، أن يحمده على النجاة، وأن يسأله إنزالًا مباركًا:",
+          "line": 86,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "المؤمنون · ٢٨–٢٩"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s24",
+          "template": "verse-card",
+          "narration": "",
+          "line": 88,
+          "props": {
+            "text": "",
+            "reference": "المؤمنون · ٢٨–٢٩",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "23:28-29"
+        },
+        {
+          "id": "c1-s25",
+          "template": "horizon-shot",
+          "narration": "دعاء بأن يكون المنزل مباركًا.",
+          "line": 90,
+          "props": {
+            "shot": "bd08-blessed-abode"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s26",
+          "template": "horizon-shot",
+          "narration": "وهنا درس لا يحتاج إلى خريطة. ومن أدب المؤمن حين ينجو أن يحمد الله على النجاة، ويسأله البركة فيما يأتي.",
+          "line": 92,
+          "props": {
+            "shot": "bd08-ledger"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s27",
+          "template": "horizon-shot",
+          "narration": "ثم بدأت الحياة من جديد. أرض مبتلّة، وماء ينحسر، وقلّة قليلة تنزل لتبدأ.",
+          "line": 96,
+          "props": {
+            "shot": "bd08-first-morning"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s29",
+          "template": "horizon-shot",
+          "narration": "فكيف نلخّص ما نعرفه؟ عقدة من حجر، عليها ختم «ثابت» لاسم الجودي، وختم «رواية» لأرارات، وختم «لا نعلم» لموقعه على خرائط اليوم ولما يُقال عن البقايا.",
+          "line": 100,
+          "props": {
+            "shot": "bd08-knot-seals"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s30",
+          "template": "horizon-shot",
+          "narration": "وبجوارها كلمتان من الآية: سلام، وبركات.",
+          "line": 104,
+          "props": {
+            "shot": "bd08-closing-morning"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s28",
+          "template": "horizon-shot",
+          "narration": "بعد خبر استقرار السفينة والنزول منها، ننتقل إلى ما ذكره القرآن عن ذرية نوح عليه السلام.",
+          "line": 106,
+          "props": {
+            "shot": "bd08-handoff"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s1",
+          "template": "horizon-shot",
+          "narration": "طريق واحد على الأرض. ثم يتفرع إلى طريقين، ثم إلى طرق كثيرة، كل واحد يمضي إلى جهة.",
+          "line": 119,
+          "props": {
+            "shot": "bd09-road"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s3",
+          "template": "horizon-shot",
+          "narration": "وفي سورة الصافات يأتي خبر نجاة نوح عليه السلام وأهله، وبقاء ذريته.",
+          "line": 125,
+          "props": {
+            "shot": "bd09-knots"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s6",
+          "template": "verse-card",
+          "narration": "",
+          "line": 127,
+          "props": {
+            "text": "",
+            "reference": "الصافات · ٧٦–٧٧",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "37:76-77"
+        },
+        {
+          "id": "c2-s7",
+          "template": "horizon-shot",
+          "narration": "هذا ثابت بنص القرآن: أنقذ الله نوحًا عليه السلام وأهله من ذلك البلاء العظيم، وأخبر في سورة الصافات ببقاء ذريته.",
+          "line": 129,
+          "props": {
+            "shot": "bd09-after-water"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s8",
+          "template": "horizon-shot",
+          "narration": "وبقي له بعد ذلك ذكرٌ حسن، وسلامٌ من الله عليه، يذكره من جاء بعده.",
+          "line": 131,
+          "props": {
+            "shot": "lib-term",
+            "term": "ذكرٌ حسن",
+            "termWord": "ذكر"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s9",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة الصافات:",
+          "line": 133,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "الصافات · ٧٩",
+            "tagWord": "الصافات"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s10",
+          "template": "verse-card",
+          "narration": "",
+          "line": 135,
+          "props": {
+            "text": "",
+            "reference": "الصافات · ٧٩",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "37:79"
+        },
+        {
+          "id": "c2-s11",
+          "template": "horizon-shot",
+          "narration": "وبقيت الصفة التي وصفه الله بها: عبدٌ كثير الشكر لربه.",
+          "line": 137,
+          "props": {
+            "shot": "lib-term",
+            "term": "عبدٌ شكور",
+            "termWord": "الشكر"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s12",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة الإسراء:",
+          "line": 139,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "الإسراء · ٣",
+            "tagWord": "الإسراء"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s13",
+          "template": "verse-card",
+          "narration": "",
+          "line": 141,
+          "props": {
+            "text": "",
+            "reference": "الإسراء · ٣",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "17:3"
+        },
+        {
+          "id": "c2-s14",
+          "template": "horizon-shot",
+          "narration": "دعا قومه زمنًا طويلًا، ولم يتبعه منهم إلا عدد يسير. وأبقى الله ذكر نوح عليه السلام، ووصفه في كتابه بأنه عبدٌ شكور.",
+          "line": 143,
+          "props": {
+            "shot": "lib-term",
+            "term": "عبدٌ شكور",
+            "termWord": "عبدٌ",
+            "note": "عدد يسير",
+            "noteWord": "يسير"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s15",
+          "template": "horizon-shot",
+          "narration": "فالذي يبقى من الإنسان ليس عدد من تبعه، بل صدقه مع ربه وشكره له.",
+          "line": 145,
+          "props": {
+            "shot": "lib-term",
+            "term": "صدقه وشكره",
+            "termWord": "صدقه",
+            "sub": "ليس عدد من تبعه",
+            "subWord": "عدد"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s17",
+          "template": "horizon-shot",
+          "narration": "وهنا يقف «دفتر الزمن» عند حدّه. فالطرق التي سلكها الناس بعد ذلك، والسنوات بينها، لا نعلمها.",
+          "line": 147,
+          "props": {
+            "shot": "bd09-ledger"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s18",
+          "template": "horizon-shot",
+          "narration": "وهنا نرجع إلى أصل الناس.",
+          "line": 149,
+          "props": {
+            "shot": "lib-term",
+            "term": "أصل الناس",
+            "termWord": "أصل"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s19",
+          "template": "horizon-shot",
+          "narration": "قال النبي صلى الله عليه وسلم:",
+          "line": 151,
+          "props": {
+            "shot": "bd09-hadith-lead"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s20",
+          "template": "hadith-card",
+          "narration": "",
+          "line": 153,
+          "props": {
+            "text": "أَنْتُمْ بَنُو آدَمَ، وَآدَمُ مِنْ تُرَابٍ",
+            "narrator": "أبو هريرة",
+            "reference": "سنن أبي داود ٥١١٦",
+            "grade": "حسن"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s21",
+          "template": "horizon-shot",
+          "narration": "فالأمم كلها، مهما تباعدت ألسنتها وألوانها، تعود إلى أب واحد.",
+          "line": 155,
+          "props": {
+            "shot": "bd09-road"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s22",
+          "template": "horizon-shot",
+          "narration": "وجعل الله هذا الاختلاف بابًا للتعارف، لا للتفاخر.",
+          "line": 157,
+          "props": {
+            "shot": "bd09-gate-word"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s23",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة الحجرات:",
+          "line": 159,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "الحجرات · ١٣",
+            "tagWord": "الحجرات"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s24",
+          "template": "verse-card",
+          "narration": "",
+          "line": 161,
+          "props": {
+            "text": "",
+            "reference": "الحجرات · ١٣",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "49:13"
+        },
+        {
+          "id": "c2-s24a",
+          "template": "horizon-shot",
+          "narration": "يخبرنا القرآن ببقاء ذرية نوح عليه السلام. ويذكر أن الله جعل الناس شعوبًا وقبائل ليتعارفوا. وأما طرق انتشارهم وتفاصيل أنساب الشعوب، فلا نعلم نصًّا صحيحًا يعيّنها.",
+          "line": 163,
+          "props": {
+            "shot": "lib-compare",
+            "aLabel": "يخبرنا القرآن",
+            "aText": "ببقاء ذرية نوح عليه السلام",
+            "aWord": "ببقاء",
+            "title": "شعوبًا وقبائل",
+            "titleWord": "شعوبًا",
+            "bLabel": "لا نعلم",
+            "bText": "طرق انتشارهم وتفاصيل أنساب الشعوب",
+            "bWord": "طرق"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s25",
+          "template": "horizon-shot",
+          "narration": "والتعارف في الآية له معنى عميق في قصة هذه السلسلة.",
+          "line": 165,
+          "props": {
+            "shot": "bd09-under-thread"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s26",
+          "template": "horizon-shot",
+          "narration": "فالأمم التي تفرقت في الأرض، اختلفت ألسنتها، وألوانها، وطرق عيشها.",
+          "line": 167,
+          "props": {
+            "shot": "bd09-ways"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s27",
+          "template": "horizon-shot",
+          "narration": "ثم صار كل قوم يحفظون قصة بدايتهم، ويزيدون فيها وينقصون. ولهذا كثرت روايات الأنساب، واختلطت فيها الحقيقة بالرغبة في الفخر.",
+          "line": 169,
+          "props": {
+            "shot": "bd09-retold"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s28",
+          "template": "horizon-shot",
+          "narration": "ودفترنا لا يبحث عن فخر قوم على قوم، بل عن الخيط الذي يجمعهم.",
+          "line": 173,
+          "props": {
+            "shot": "bd09-gather"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s29",
+          "template": "horizon-shot",
+          "narration": "بدأنا بخلق آدم عليه السلام، ورأينا أول قتلٍ ظلمًا، والأجيال الأولى، وكيف بدأ الشرك.",
+          "line": 175,
+          "props": {
+            "shot": "bd09-series"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s31",
+          "template": "horizon-shot",
+          "narration": "ثم دعوة نوح عليه السلام، والسفينة، والطوفان، والجودي.",
+          "line": 177,
+          "props": {
+            "shot": "bd09-series"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s32",
+          "template": "horizon-shot",
+          "narration": "وفي كل حلقة، فرّقنا بين ما ثبت، وما هو رواية، وما هو تقدير، وما لا نعلمه.",
+          "line": 179,
+          "props": {
+            "shot": "bd09-seals"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s33",
+          "template": "horizon-shot",
+          "narration": "ومن هنا ننتقل إلى سؤالٍ آخر: ماذا تخبرنا آثار القرى والمدن عن بدايات العمران؟",
+          "line": 181,
+          "props": {
+            "shot": "bd09-fork"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s34",
+          "template": "horizon-shot",
+          "narration": "وهذه هي السلسلة القادمة: «الحضارات». حيث لا نسأل فقط: ماذا حدث؟ بل نسأل أيضًا: ماذا كان يحدث في العالم في الوقت نفسه؟",
+          "line": 183,
+          "props": {
+            "shot": "bd09-atlas"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s35",
+          "template": "horizon-shot",
+          "narration": "ثم أخبرنا في التعليقات: أي حلقة من «البدايات» بقيت في ذهنك أكثر، ولماذا؟",
+          "line": 187,
+          "props": {
+            "shot": "bd09-road"
+          },
+          "sfx": []
+        }
+      ]
+    }
+  ],
+  "series": {
+    "id": "bidayat",
+    "name": "البدايات",
+    "kind": "series",
+    "number": 5,
+    "identity": {
+      "channel": "dafatir-alzaman",
+      "accent": "#E07A3F",
+      "accentBase": "#E07A3F",
+      "onAccent": "#2A1E3F",
+      "paper": "#F1E4CB",
+      "ink": "#2A1E3F",
+      "card": {
+        "bg": "#2A1E3F",
+        "ink": "#F1E4CB"
+      },
+      "motif": "stars",
+      "fonts": {
+        "heading": "Amiri",
+        "body": "Tajawal",
+        "wordmark": "Amiri"
+      },
+      "title": {
+        "weight": "bold",
+        "size": "m",
+        "ornament": "rule"
+      },
+      "intro": "sting",
+      "thumbnail": {
+        "badge": "band"
+      },
+      "emblem": {
+        "base": "horizon-book",
+        "parts": [
+          "book"
+        ]
+      },
+      "clamped": []
+    },
+    "template": {},
+    "stampedAt": "2026-11-27T19:59:21.692Z"
+  }
+}

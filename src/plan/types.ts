@@ -79,4 +79,22 @@ export type Plan = {
   chapters: PlanChapter[];
 };
 
-export type PlanShort = { from: string; to: string; title?: string };
+/** جزء من شورت مجمَّع (D241): من مشهد إلى مشهد بترتيب الحلقة */
+export type PlanShortPart = { from: string; to: string };
+/**
+ * شورت: من مشهد إلى مشهد (الصيغة القديمة)، أو أجزاء مرتبة من مشاهد غير متتالية من الحلقة نفسها (D241: `segments`؛
+ * و`from`/`to` حينها أول الجزء الأول وآخر الجزء الأخير، للقراءة القديمة). لا جملة جديدة ولا صوت جديد: يوصل
+ * القاطع مشاهد الأجزاء بتسجيلاتها كما هي.
+ * `hook: "line"`: أول جملة خطاف وليست سؤالًا (علّمها المحرر أو المالك: حقيقة مدهشة أو رقم أو جملة لافتة)، و`hookKind`
+ * نوعه إن ذُكر (للتنويع بين الشورتس، لا يغيّر الحكم). `closingQuestion: "comment"`: آخر جملة سؤال للتعليقات مقصود.
+ * `state`: «منشور» (لا يُعاد قصه أبدًا) أو «ملغى» (لا يُنشر، كشورتس «دفاتر الزمن» 001 ٢ و٤ و٥ و٧ بـ D231)؛ لا يُعرض
+ * على المحرر ولا يُعدّ مرفوضًا في `bal shorts-check`. src/package/shortIdea.ts
+ */
+export type PlanShort = {
+  from: string; to: string; title?: string; segments?: PlanShortPart[];
+  hook?: "line"; hookKind?: ShortHookKind; closingQuestion?: "comment"; state?: ShortState;
+};
+/** نوع الخطاف المعلَّم (D241): حقيقة مدهشة، أو رقم، أو جملة لافتة. السؤال خطاف بنفسه بلا علامة. */
+export type ShortHookKind = "fact" | "number" | "striking";
+/** شورت لا يدخل إعادة القص: منشور، أو ملغى بقرار */
+export type ShortState = "published" | "cancelled";
