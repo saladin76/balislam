@@ -63,14 +63,19 @@ export const sliceByWords = async (o: { scriptPath: string; source: string; sour
   return { ok: true, files: out };
 };
 
-/** The owner's approved basmala recording for the episode (bytes verified), or undefined. */
+/**
+ * The basmala audio for the episode (bytes verified), or undefined: the episode's own approved recording first (it
+ * stays exactly as it is, e.g. «دفاتر الزمن» 001), else the owner's one approved clip (D239) while its sha256 matches.
+ */
 export const approvedBasmala = async (scriptPath: string): Promise<{ file: string; path: string; sha256: string } | undefined> => {
   const { verifiedOwnRecitations } = await import("../quran/manualAudio");
   const { recitationsDirFor } = await import("../quran/sync");
   const rec = (await verifiedOwnRecitations(scriptPath))[BASMALA_KEY];
   const part = rec?.parts?.[0];
-  if (!rec?.sha256 || !part) return undefined;
-  return { file: part.file, path: path.join(recitationsDirFor(scriptPath), part.file), sha256: rec.sha256 };
+  if (rec?.sha256 && part) return { file: part.file, path: path.join(recitationsDirFor(scriptPath), part.file), sha256: rec.sha256 };
+  const { installedBasmalaClip } = await import("./basmalaClip");
+  const clip = await installedBasmalaClip();
+  return clip ? { file: clip.file, path: clip.path, sha256: clip.sha256 } : undefined;
 };
 
 /**
