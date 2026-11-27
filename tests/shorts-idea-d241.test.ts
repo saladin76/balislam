@@ -173,6 +173,14 @@ describe("D241: الخطة — الصيغة القديمة باقية، والأ
     expect(checkShortsInput(plan(), [{ from: "c1-s1", to: "c1-s3", segments: [{ from: "c1-s1", to: "c1-s2" }, { from: "c1-s2", to: "c1-s3" }] }]).errors.join(" ")).toContain("يتداخل");
     expect(checkShortsInput(plan(), [{ from: "c1-s1", to: "c1-s2", hook: "yes" }]).errors.join(" ")).toContain("الخطاف");
     expect(checkShortsInput(plan(), [{ from: "c1-s1", to: "c1-s2", title: "س؟" }]).shorts).toEqual([{ from: "c1-s1", to: "c1-s2", title: "س؟" }]);
+    // جزء واحد مرسَل يبقى كما أُرسل (ما يحفظه الاستوديو هو ما اختاره المالك حرفًا)
+    expect(checkShortsInput(plan(), [{ from: "c1-s2", to: "c1-s2", segments: [{ from: "c1-s2", to: "c1-s2" }], hook: "line", hookKind: "striking" }]).shorts)
+      .toEqual([{ from: "c1-s2", to: "c1-s2", segments: [{ from: "c1-s2", to: "c1-s2" }], hook: "line", hookKind: "striking" }]);
+  });
+  it("حفظ الاختيار في plan.json يبقي الأجزاء والخطاف ونوعه وسؤال الختام والحالة (كانت تُسقط)", () => {
+    const src = readFileSync("src/plan/io.ts", "utf8");
+    const body = src.slice(src.indexOf("export const saveShortsSelection"), src.indexOf("export const saveShortsSelection") + 1800);
+    for (const k of ["segments", "hook:", "hookKind", "closingQuestion", "state"]) expect(body, k).toContain(k);
   });
 });
 

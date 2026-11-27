@@ -205,7 +205,8 @@ export const checkShortsInput = (plan: Pick<Plan, "chapters">, input: unknown, f
     else if (ranges.some((r) => r.idx.some(([p0, q0]) => idx.some(([p1, q1]) => p1 <= q0 && p0 <= q1)))) warnings.push(`${label} يتداخل مع شورت قبله (مشاهد مشتركة).`);
     ranges.push({ key, idx });
     shorts.push({ from: parts[0]!.from, to: parts.at(-1)!.to, ...(title ? { title } : {}),
-      ...(hasSegments && parts.length > 1 ? { segments: parts } : {}),
+      // الأجزاء كما أُرسلت (ولو جزءًا واحدًا): ما يحفظه الاستوديو هو ما اختاره المالك حرفًا
+      ...(hasSegments ? { segments: parts } : {}),
       ...(x.hook === "line" ? { hook: "line" as const, ...(x.hookKind ? { hookKind: x.hookKind as ShortHookKind } : {}) } : {}),
       ...(x.closingQuestion === "comment" ? { closingQuestion: "comment" as const } : {}), ...(x.state ? { state: x.state as ShortState } : {}) });
   });
