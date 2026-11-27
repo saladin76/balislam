@@ -63,7 +63,7 @@ export const workerStatus = async (share: string, now = Date.now()): Promise<Wor
 
 /* ── بناء المهام ── */
 
-type Base = { channel: string; episodeFolder: string; commit: string; purpose: "studio" | "trial"; trial?: string; createdAt: string };
+export type Base = { channel: string; episodeFolder: string; commit: string; purpose: "studio" | "trial"; trial?: string; createdAt: string };
 const baseFields = (b: Base) => ({ version: 2 as const, channel: b.channel, episode: b.episodeFolder, purpose: b.purpose, ...(b.trial ? { trial: b.trial } : {}), commit: b.commit, createdAt: b.createdAt });
 const idFor = (b: Base, kind: string, extra: string, fp: unknown) =>
   `${b.purpose === "trial" ? `trial-${b.trial}` : `${b.channel}-${b.episodeFolder.slice(0, 3)}`}-${kind}${extra ? `-${extra.toLowerCase()}` : ""}-${hash12(fp)}`;
