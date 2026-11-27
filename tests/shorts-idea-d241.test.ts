@@ -5,6 +5,7 @@ import { checkShortIdea, ideaSentencesOf, isCommentCta, outwardHits, type IdeaSe
 import { assertShortRenderIdea, assertShortsIdea, checkPlanShorts } from "../src/package/shortIdeaPlan";
 import { resolveDraftCut, scriptIdeaSentences } from "../src/package/shortIdeaDraft";
 import { checkShortsInput, segmentPlan, shortSegments } from "../src/plan/shorts";
+import { formatShortRows, isRefused, type ShortCheckRow } from "../src/package/shortsCheck";
 import { parseScript } from "../src/script/parse";
 import type { Plan } from "../src/plan/types";
 
@@ -216,5 +217,40 @@ describe("D241: البوابة في كل طريق إلى رندر شورت", () 
   });
   it("npx bal shorts-check موجود", () => {
     expect(src("src/cli/index.ts")).toContain('.command("shorts-check")');
+  });
+});
+
+describe("D241 (تعديل المالك ٢٧ نوفمبر): الخطاف لا يلزم أن يكون سؤالًا، ونوعه اختياري", () => {
+  it("حقيقة أو رقم أو جملة لافتة يعلّمها المحرر تمر؛ وبلا علامة تُرفض", () => {
+    const fact = [n("أربعون ألف سنة تفصلنا عن أقدم رسم معروف."), n("ولم يكن فيه حرف واحد.")];
+    expect(rules(checkShortIdea(fact, { parts: [[0, 1]] }))).toEqual(["hook"]);
+    expect(checkShortIdea(fact, { parts: [[0, 1]], hook: true }).ok).toBe(true);
+    expect(checkShortIdea(fact, { parts: [[0, 1]] }).issues[0]!.message).toContain("رقم");
+  });
+  it("hookKind يُحفظ مع hook: \"line\" وحده، ويرفض غيره", () => {
+    const ok = checkShortsInput(plan(), [{ from: "c1-s1", to: "c1-s2", hook: "line", hookKind: "number" }]);
+    expect(ok.errors).toEqual([]);
+    expect(ok.shorts[0]).toEqual({ from: "c1-s1", to: "c1-s2", hook: "line", hookKind: "number" });
+    expect(checkShortsInput(plan(), [{ from: "c1-s1", to: "c1-s2", hookKind: "fact" }]).errors.join(" ")).toContain("نوع الخطاف");
+    expect(checkShortsInput(plan(), [{ from: "c1-s1", to: "c1-s2", hook: "line", hookKind: "loud" }]).errors.join(" ")).toContain("نوع الخطاف");
+    expect(shortSegments({ ...plan(), shorts: [{ from: "c1-s1", to: "c1-s2", hook: "line", hookKind: "striking" }] }).segments[0]!.hookKind).toBe("striking");
+  });
+});
+
+describe("D241: المنشور والملغى خارج إعادة القص", () => {
+  it("state يُحفظ ويصل إلى الشورت، وقيمة أخرى تُرفض", () => {
+    expect(checkShortsInput(plan(), [{ from: "c1-s1", to: "c1-s2", state: "published" }]).shorts[0]).toEqual({ from: "c1-s1", to: "c1-s2", state: "published" });
+    expect(checkShortsInput(plan(), [{ from: "c1-s1", to: "c1-s2", state: "done" }]).errors.join(" ")).toContain("الحالة");
+    expect(shortSegments({ ...plan(), shorts: [{ from: "c1-s1", to: "c1-s2", state: "cancelled" }] }).segments[0]!.state).toBe("cancelled");
+  });
+  it("shorts-check: المنشور والملغى لا يُعدّان مرفوضين", () => {
+    const row = (k: number, ok: boolean, state?: ShortCheckRow["state"]): ShortCheckRow =>
+      ({ episode: "001-x", source: "plan", n: k, title: `ش${k}`, ok, result: null, ...(state ? { state } : {}) });
+    const rows = [row(1, false), row(2, false, "cancelled"), row(3, true, "published"), row(4, true)];
+    expect(rows.filter(isRefused).map((r) => r.n)).toEqual([1]);
+    const out = formatShortRows(rows);
+    expect(out).toContain("منشور — لا يُعاد قصه");
+    expect(out).toContain("ملغى — لا يُنشر");
+    expect(out).toContain("يمر 1، ومرفوض 1، ومنشور 1، وملغى 1.");
   });
 });

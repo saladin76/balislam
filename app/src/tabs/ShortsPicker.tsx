@@ -173,9 +173,10 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
   const save = async () => {
     setErr(""); setSaving(true);
     try {
-      const r = await api.saveShorts(episodeId, rows.map(({ from, to, title, segments, hook, closingQuestion }) => ({ from, to, ...(title?.trim() ? { title: title.trim() } : {}),
-        // D241: الأجزاء وعلامتا الخطاف وسؤال التعليقات تبقى كما في الخطة عند الحفظ
-        ...(segments?.length ? { segments } : {}), ...(hook ? { hook } : {}), ...(closingQuestion ? { closingQuestion } : {}) })));
+      const r = await api.saveShorts(episodeId, rows.map(({ from, to, title, segments, hook, hookKind, closingQuestion, state }) => ({ from, to, ...(title?.trim() ? { title: title.trim() } : {}),
+        // D241: الأجزاء وعلامتا الخطاف (ونوعه) وسؤال التعليقات وحالة «منشور/ملغى» تبقى كما في الخطة عند الحفظ
+        ...(segments?.length ? { segments } : {}), ...(hook ? { hook, ...(hookKind ? { hookKind } : {}) } : {}), ...(closingQuestion ? { closingQuestion } : {}),
+        ...(state ? { state } : {}) })));
       adopt(r, r.warnings ?? []);
       notifyPlanServerFields([episodeId]);
     } catch (e) {

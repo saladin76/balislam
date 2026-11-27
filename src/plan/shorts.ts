@@ -6,7 +6,7 @@
  * - غيابها في نص متصل (قسم واحد): لا شورتس حتى يختار المالك مقاطعها؛ لا تُصنع الحلقة كلها 9:16 بدلها.
  * شاشة النهاية لا تدخل أي شورت.
  */
-import type { Plan, PlanScene, PlanShort } from "./types";
+import type { Plan, PlanScene, PlanShort, ShortHookKind, ShortState } from "./types";
 
 export type ShortSegment = {
   /** ترتيب الشورت (1…) */
@@ -18,11 +18,19 @@ export type ShortSegment = {
   chapter?: number;
   /** D241: مشاهد كل جزء بالترتيب (جزء واحد للمقطع المتصل)؛ sceneIds = الأجزاء موصولة */
   parts?: string[][];
-  /** D241: أول جملة خطاف وليست سؤالًا */
+  /** D241: أول جملة خطاف وليست سؤالًا (حقيقة أو رقم أو جملة لافتة)، و`hookKind` نوعه إن ذُكر */
   hook?: "line";
+  hookKind?: ShortHookKind;
+  /** منشور أو ملغى: لا يُعاد قصه */
+  state?: ShortState;
   /** D241: آخر جملة سؤال للتعليقات مقصود */
   closingQuestion?: "comment";
 };
+
+/** أنواع الخطاف المعلَّم (D241): حقيقة مدهشة، رقم، جملة لافتة */
+export const HOOK_KINDS: readonly ShortHookKind[] = ["fact", "number", "striking"];
+export const HOOK_KIND_LABEL: Record<ShortHookKind, string> = { fact: "حقيقة مدهشة", number: "رقم", striking: "جملة لافتة" };
+export const SHORT_STATES: readonly ShortState[] = ["published", "cancelled"];
 
 /** أجزاء شورت من الخطة: `segments` إن وُجدت، وإلا الجزء الواحد من `from` إلى `to` */
 export const shortParts = (x: Pick<PlanShort, "from" | "to" | "segments">): { from: string; to: string }[] =>
@@ -52,7 +60,8 @@ export const shortSegments = (plan: Pick<Plan, "chapters" | "shorts">): ShortSel
       const sceneIds = parts.flat();
       if (new Set(sceneIds).size !== sceneIds.length) return void issues.push(`الشورت ${k + 1}: مشهد مكرر في أجزائه.`);
       segments.push({ n: segments.length + 1, title: (x.title ?? "").trim(), sceneIds, ...(x.segments?.length ? { parts } : {}),
-        ...(x.hook === "line" ? { hook: "line" as const } : {}), ...(x.closingQuestion === "comment" ? { closingQuestion: "comment" as const } : {}) });
+        ...(x.hook === "line" ? { hook: "line" as const, ...(x.hookKind ? { hookKind: x.hookKind } : {}) } : {}),
+        ...(x.closingQuestion === "comment" ? { closingQuestion: "comment" as const } : {}), ...(x.state ? { state: x.state } : {}) });
     });
     return { source: "plan", segments, issues };
   }
@@ -159,7 +168,7 @@ export const checkShortsInput = (plan: Pick<Plan, "chapters">, input: unknown, f
   const ranges: { key: string; idx: [number, number][] }[] = [];
   input.forEach((raw, k) => {
     const label = `الشورت ${k + 1}`;
-    const x = raw as { from?: unknown; to?: unknown; title?: unknown; segments?: unknown; hook?: unknown; closingQuestion?: unknown } | null;
+    const x = raw as { from?: unknown; to?: unknown; title?: unknown; segments?: unknown; hook?: unknown; hookKind?: unknown; closingQuestion?: unknown; state?: unknown } | null;
     if (!x || typeof x !== "object") return void errors.push(`${label}: اختر مشهد البداية ومشهد النهاية.`);
     // D241: أجزاء مرتبة من مشاهد غير متتالية، أو جزء واحد من from إلى to
     const hasSegments = x.segments !== undefined;
@@ -181,7 +190,10 @@ export const checkShortsInput = (plan: Pick<Plan, "chapters">, input: unknown, f
       parts.push({ from: p.from, to: p.to });
     }
     if (x.hook !== undefined && x.hook !== "line") return void errors.push(`${label}: الخطاف "line" أو لا شيء.`);
+    if (x.hookKind !== undefined && (x.hook !== "line" || !HOOK_KINDS.includes(x.hookKind as ShortHookKind)))
+      return void errors.push(`${label}: نوع الخطاف (${HOOK_KINDS.join("/")}) مع hook: "line" وحده.`);
     if (x.closingQuestion !== undefined && x.closingQuestion !== "comment") return void errors.push(`${label}: سؤال الختام "comment" أو لا شيء.`);
+    if (x.state !== undefined && !SHORT_STATES.includes(x.state as ShortState)) return void errors.push(`${label}: الحالة "published" أو "cancelled" أو لا شيء.`);
     if (x.title !== undefined && typeof x.title !== "string") return void errors.push(`${label}: العنوان نص.`);
     const title = String(x.title ?? "").replace(/\s+/g, " ").trim();
     if (/[\r\n]/.test(String(x.title ?? "").trim())) errors.push(`${label}: العنوان سطر واحد.`);
@@ -194,7 +206,8 @@ export const checkShortsInput = (plan: Pick<Plan, "chapters">, input: unknown, f
     ranges.push({ key, idx });
     shorts.push({ from: parts[0]!.from, to: parts.at(-1)!.to, ...(title ? { title } : {}),
       ...(hasSegments && parts.length > 1 ? { segments: parts } : {}),
-      ...(x.hook === "line" ? { hook: "line" as const } : {}), ...(x.closingQuestion === "comment" ? { closingQuestion: "comment" as const } : {}) });
+      ...(x.hook === "line" ? { hook: "line" as const, ...(x.hookKind ? { hookKind: x.hookKind as ShortHookKind } : {}) } : {}),
+      ...(x.closingQuestion === "comment" ? { closingQuestion: "comment" as const } : {}), ...(x.state ? { state: x.state as ShortState } : {}) });
   });
   return { shorts, errors, warnings };
 };

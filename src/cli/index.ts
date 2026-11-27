@@ -1206,10 +1206,10 @@ program
   .argument("[episode]", "رقم الحلقة (الافتراضي كل حلقات القناة)")
   .option("--json", "إخراج JSON")
   .action(async (episode: string | undefined, opts: { json?: boolean }) => {
-    const { checkChannelShorts, formatShortRows } = await import("../package/shortsCheck");
+    const { checkChannelShorts, formatShortRows, isRefused } = await import("../package/shortsCheck");
     const rows = await checkChannelShorts(episode);
     console.log(opts.json ? JSON.stringify(rows, null, 2) : formatShortRows(rows));
-    process.exitCode = rows.every((r) => r.ok) ? 0 : 1;
+    process.exitCode = rows.some(isRefused) ? 1 : 0;
   });
 
 program
