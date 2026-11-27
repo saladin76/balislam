@@ -1205,6 +1205,18 @@ program
   });
 
 program
+  .command("shorts-check")
+  .description("D241: الشورت فكرة كاملة وحده — لكل شورت «يمر» أو «مرفوض» بسببه (الخطة، أو حزمة المسودة ومقترحات المحرر). يقرأ ولا يكتب")
+  .argument("[episode]", "رقم الحلقة (الافتراضي كل حلقات القناة)")
+  .option("--json", "إخراج JSON")
+  .action(async (episode: string | undefined, opts: { json?: boolean }) => {
+    const { checkChannelShorts, formatShortRows, isRefused } = await import("../package/shortsCheck");
+    const rows = await checkChannelShorts(episode);
+    console.log(opts.json ? JSON.stringify(rows, null, 2) : formatShortRows(rows));
+    process.exitCode = rows.some(isRefused) ? 1 : 0;
+  });
+
+program
   .command("shorts-plan")
   .description("جدول الشورتس اليومي للقناة (ريلزان يوميًا): الأحدث أولًا، بلا تكرار، ومصدران مختلفان في اليوم ما أمكن، والفجوات بعددها")
   .option("--from <date>", "أول يوم (YYYY-MM-DD)؛ الافتراضي اليوم")

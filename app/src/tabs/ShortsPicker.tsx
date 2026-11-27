@@ -146,6 +146,8 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
   const patch = useCallback((key: number, p: Partial<PlanShort>) => setRows((rs) => rs.map((r) => {
     if (r.key !== key) return r;
     const next = { ...r, ...p };
+    // D241: تغيير البداية أو النهاية هنا يجعله مقطعًا متصلًا واحدًا (الأجزاء المكتوبة في الخطة لا تُرسم هنا بعد)
+    if (p.from !== undefined || p.to !== undefined) delete next.segments;
     // البداية بعد النهاية: تتبعها النهاية (لا مقطع مقلوب)
     const a = scenes.findIndex((s) => s.id === next.from);
     const b = scenes.findIndex((s) => s.id === next.to);
@@ -171,7 +173,10 @@ export const ShortsPicker: React.FC<{ episodeId: string; approved: boolean; init
   const save = async () => {
     setErr(""); setSaving(true);
     try {
-      const r = await api.saveShorts(episodeId, rows.map(({ from, to, title }) => ({ from, to, ...(title?.trim() ? { title: title.trim() } : {}) })));
+      const r = await api.saveShorts(episodeId, rows.map(({ from, to, title, segments, hook, hookKind, closingQuestion, state }) => ({ from, to, ...(title?.trim() ? { title: title.trim() } : {}),
+        // D241: الأجزاء وعلامتا الخطاف (ونوعه) وسؤال التعليقات وحالة «منشور/ملغى» تبقى كما في الخطة عند الحفظ
+        ...(segments?.length ? { segments } : {}), ...(hook ? { hook, ...(hookKind ? { hookKind } : {}) } : {}), ...(closingQuestion ? { closingQuestion } : {}),
+        ...(state ? { state } : {}) })));
       adopt(r, r.warnings ?? []);
       notifyPlanServerFields([episodeId]);
     } catch (e) {

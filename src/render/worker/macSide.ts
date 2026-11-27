@@ -60,6 +60,8 @@ export const macShortsContext = async (ep: string): Promise<MacShortsContext> =>
   if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
   const pick = shortSegments(plan);
   if (!pick.segments.length || pick.issues.length) throw new Error(pick.issues.join(" ") || "لا مقاطع شورتس في الخطة.");
+  // D241: لا يُرسل إلى الويندوز (ولا يُستلم منه) شورت ليس فكرة كاملة وحده
+  (await import("../../package/shortIdeaPlan")).assertShortsIdea(plan, pick.segments);
   const media = await prepareRenderMedia(ep, plan, { requireApprovedQuran: true });
   const narrated = plan.chapters.flatMap((c) => c.scenes).filter((s) => s.narration.trim());
   const voicedOk = narrated.filter((s) => {
