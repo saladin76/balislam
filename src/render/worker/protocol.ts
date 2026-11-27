@@ -318,7 +318,21 @@ export type RenderSpec = {
   concurrency?: number;
   /** يصنع العامل أيضًا نسخة مراجعة 1080p بجوار ملف 4K (الماك يحتفظ بها وحدها) */
   review1080?: boolean;
+  /**
+   * تجارب التسريع (D232، كل خيار وحده ليُقاس وحده؛ للتجارب وحدها، والإنتاج يتبع config.json):
+   * - x264Preset: إعداد x264 لـMaster 4K بالـcrf نفسه (الإنتاج «slow»).
+   * - bundleCache: حزمة Remotion واحدة للحلقة يعيد العامل استعمالها لكل مشاهدها (المفتاح: الـcommit ولقطة الوسائط).
+   * - chunkFrames: Master على قطع بهذا العدد من الإطارات تُحفظ على العامل، ثم وصل بلا إعادة ترميز؛ الانقطاع يستأنف.
+   */
+  x264Preset?: TrialX264Preset;
+  bundleCache?: boolean;
+  chunkFrames?: number;
 };
+export const TRIAL_X264_PRESETS = ["medium", "slow"] as const;
+export type TrialX264Preset = (typeof TRIAL_X264_PRESETS)[number];
+/** حدود قطع Master: دقيقة إلى ٣٠ دقيقة بـ30 إطارًا في الثانية */
+export const CHUNK_FRAMES_MIN = 300;
+export const CHUNK_FRAMES_MAX = 54_000;
 /** قطع المشاهد للوصل: كل قطعة ناتج مهمة مشهد في done/<job>/ ببصمتها (من result.json إن لم يحددها الماك) */
 export type JoinSpec = { cuts: { sceneId: string; job: string; sha256?: string }[] };
 
@@ -404,7 +418,7 @@ export const validateJobV2 = (raw: unknown): WorkerJobV2 => {
   if (typeof ex.durationSec !== "number" || !Number.isFinite(ex.durationSec) || ex.durationSec <= 0 || ex.durationSec > 4 * 3600) fail("المدة المتوقعة غير صالحة.");
   if (RENDER_KINDS.includes(kind)) {
     if (r.join !== undefined) fail("الوصل لأنواع الوصل وحدها.");
-    const s = exactKeys(r.render, ["orientation", "quality", "scope", "scenePreview", "timingMode", "shortTitle", "draftMarks", "concurrency", "review1080"],
+    const s = exactKeys(r.render, ["orientation", "quality", "scope", "scenePreview", "timingMode", "shortTitle", "draftMarks", "concurrency", "review1080", "x264Preset", "bundleCache", "chunkFrames"],
       ["orientation", "quality", "scope", "scenePreview", "timingMode"], "مواصفات الرندر");
     if (s.orientation !== "landscape" && s.orientation !== "portrait") fail("الاتجاه غير صالح.");
     if (s.quality !== "preview" && s.quality !== "master") fail("الجودة غير صالحة.");
@@ -423,6 +437,12 @@ export const validateJobV2 = (raw: unknown): WorkerJobV2 => {
     }
     if (s.concurrency !== undefined && (r.purpose !== "trial" || !Number.isInteger(s.concurrency) || (s.concurrency as number) < 1 || (s.concurrency as number) > 8)) fail("التبويبات للتجارب وحدها (1…8).");
     if (s.review1080 !== undefined && (typeof s.review1080 !== "boolean" || s.quality !== "master")) fail("نسخة المراجعة 1080p لملف 4K وحده.");
+    if (s.x264Preset !== undefined && (r.purpose !== "trial" || kind !== "master" || !TRIAL_X264_PRESETS.includes(s.x264Preset as TrialX264Preset)))
+      fail("إعداد x264 لـMaster التجارب وحده (medium أو slow).");
+    if (s.bundleCache !== undefined && (r.purpose !== "trial" || s.bundleCache !== true)) fail("إعادة استعمال الحزمة للتجارب وحدها.");
+    if (s.chunkFrames !== undefined && (r.purpose !== "trial" || kind !== "master" || !Number.isInteger(s.chunkFrames)
+      || (s.chunkFrames as number) < CHUNK_FRAMES_MIN || (s.chunkFrames as number) > CHUNK_FRAMES_MAX))
+      fail(`قطع Master لـMaster التجارب وحده (${CHUNK_FRAMES_MIN}…${CHUNK_FRAMES_MAX} إطارًا).`);
     if (s.scenePreview && (s.quality !== "preview" || kind === "master" || kind === "short")) fail("قطعة مراجعة المشهد بجودة المعاينة وحدها، ولا تكون Master ولا شورت.");
     if (kind === "scene" && (!s.scenePreview || s.orientation !== "landscape" || sk !== "sceneIds" || (scope as { sceneIds: string[] }).sceneIds.join() !== r.sceneId)) fail("مهمة المشهد: قطعة مراجعة أفقية لمشهدها وحده.");
     if (kind === "master" && (s.quality !== "master" || s.orientation !== "landscape" || sk !== "all" || s.scenePreview)) fail("Master: الحلقة كاملة أفقية بأعلى جودة.");

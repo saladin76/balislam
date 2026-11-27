@@ -1,6 +1,7 @@
 import path from "node:path";
 import os from "node:os";
-import { lstat, mkdtemp, readdir, rm } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { lstat, mkdir, mkdtemp, readdir, rename, rm, stat, utimes, writeFile } from "node:fs/promises";
 import type { EpisodeMedia } from "../plan/media";
 import { defaultRenderMediaRoot, verifyStagedMedia } from "../plan/renderStage";
 import { bundle } from "@remotion/bundler";
@@ -94,7 +95,8 @@ export const stageRemotionPublicDir = async (
 /** The Webpack bundle itself MUST have an owned output directory, otherwise
  * Remotion creates an implicit remotion-webpack-bundle-* in system /tmp.
  * Keep both directories until the renderer has stopped reading the bundle. */
-export const createIsolatedRenderBundle = async (media: EpisodeMedia) => {
+export const createIsolatedRenderBundle = async (media: EpisodeMedia, o: { cacheKey?: string } = {}) => {
+  if (o.cacheKey) return cachedRenderBundle(media, o.cacheKey);
   await ensureRenderBrowser();
   const sandbox = await stageRemotionPublicDir(media);
   let bundleRoot: string | null = null;
@@ -115,5 +117,57 @@ export const createIsolatedRenderBundle = async (media: EpisodeMedia) => {
   } catch (e) {
     await cleanup();
     throw e;
+  }
+};
+
+/**
+ * D232 (تجربة التسريع «حزمة واحدة للحلقة»): حزمة Remotion محفوظة على العامل يعيد استعمالها كل مشهد من الحلقة نفسها.
+ * المفتاح بصمة الـcommit ولقطة الوسائط (الكود والأصول المشتركة ثابتة في الـcommit، والوسائط ثابتة ببصمتها)، فلا تُستعمل
+ * حزمة لمحتوى آخر. تُبنى في مجلد مؤقت ثم تُنقل ذريًا، ولا تُحذف بعد الرندر؛ ويبقى أحدث BUNDLE_CACHE_KEEP منها.
+ * للتجارب وحدها (`render.bundleCache` في مهمة العامل)؛ وكل رندر آخر يبني حزمته ويحذفها كما كان.
+ */
+export const BUNDLE_CACHE_KEEP = 3;
+export const bundleCacheRoot = () => process.env.BAL_BUNDLE_CACHE_DIR || path.join(projectRoot, "renders", "bundle-cache");
+export const cachedRenderBundle = async (media: EpisodeMedia, cacheKey: string, o: { build?: typeof bundle } = {}) => {
+  if (!/^[a-f0-9]{16,64}$/.test(cacheKey)) throw new Error("مفتاح الحزمة المحفوظة غير صالح.");
+  const root = bundleCacheRoot();
+  await mkdir(root, { recursive: true });
+  await assertNoLinkedPath(root);
+  const dir = path.join(root, cacheKey);
+  const marker = `${dir}.complete`;
+  const noop = async () => {};
+  if (existsSync(marker) && existsSync(dir)) {
+    const now = new Date();
+    await utimes(marker, now, now).catch(() => undefined);
+    return { serveUrl: dir, cleanup: noop, reused: true as const };
+  }
+  if (!o.build) await ensureRenderBrowser();
+  const sandbox = await stageRemotionPublicDir(media);
+  const tmp = await mkdtemp(path.join(root, `${cacheKey}.building-`));
+  try {
+    await (o.build ?? bundle)({ entryPoint: path.join(projectRoot, "src", "remotion", "index.ts"), publicDir: sandbox.dir, outDir: tmp, enableCaching: false });
+    await rm(dir, { recursive: true, force: true });
+    await rename(tmp, dir);
+    await writeFile(marker, JSON.stringify({ at: new Date().toISOString(), base: media.mode === "static" ? media.base : null }) + "\n");
+  } catch (e) {
+    await rm(tmp, { recursive: true, force: true });
+    throw e;
+  } finally {
+    await sandbox.cleanup();
+  }
+  await pruneBundleCache(root, cacheKey);
+  return { serveUrl: dir, cleanup: noop, reused: false as const };
+};
+
+/** يبقي أحدث BUNDLE_CACHE_KEEP حزمة (بوقت آخر استعمال)، ويحذف الباقي وبقايا البناء المنقطع. */
+export const pruneBundleCache = async (root: string, keepKey: string) => {
+  const names = await readdir(root);
+  for (const n of names.filter((x) => x.includes(".building-"))) await rm(path.join(root, n), { recursive: true, force: true });
+  const done = await Promise.all(names.filter((n) => n.endsWith(".complete"))
+    .map(async (n) => ({ key: n.slice(0, -".complete".length), at: (await stat(path.join(root, n))).mtimeMs })));
+  const old = done.filter((d) => d.key !== keepKey).sort((a, b) => b.at - a.at).slice(BUNDLE_CACHE_KEEP - 1);
+  for (const d of old) {
+    await rm(path.join(root, `${d.key}.complete`), { force: true });
+    await rm(path.join(root, d.key), { recursive: true, force: true });
   }
 };
