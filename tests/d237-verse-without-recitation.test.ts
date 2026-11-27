@@ -19,6 +19,7 @@ import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { prepValidTail } from "./fixtures/prepValidScript";
 import { passEditor } from "./fixtures/editorPass";
+import { grantTestMacRenderPermit } from "./helpers/macRenderPermit";
 import { versesAreCitations } from "../src/quran/citation";
 import {
   approveSceneAv, approveScript, approveStoryboard, createSceneFirstProduction, sceneFirstProgress, submitSceneAvPreview,
@@ -111,6 +112,7 @@ const approve = async (id: string) => {
 };
 
 beforeAll(async () => {
+  await grantTestMacRenderPermit();
   for (const k of ENV_KEYS) saved[k] = process.env[k];
   await mkdir(path.join(repo, "renders"), { recursive: true });
   root = await mkdtemp(path.join(repo, "renders", "d237-"));

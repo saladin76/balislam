@@ -27,3 +27,11 @@ quietTestGit();
  * تقيس السلوك نفسه على كل جهاز، ومن يحتاج نسخة يضع مساره بنفسه (tests/basmala-approved-clip*.test.ts).
  */
 process.env.BAL_BASMALA_CLIP = "/nonexistent/bal-test/approved-basmala-v4.mp3";
+
+/**
+ * D232: إذن الرندر على الماك (src/render/macRenderPermit.ts) لا يُقرأ ولا يُستهلك من مستودع المالك في أي اختبار:
+ * ملف الإذن في مجلد مؤقت لكل عملية، فارغ (الماك يرفض) إلا إن منحه الاختبار نفسه (tests/helpers/macRenderPermit.ts).
+ */
+import os from "node:os";
+import path from "node:path";
+process.env.BAL_MAC_RENDER_PERMIT_FILE = path.join(os.tmpdir(), `bal-test-mac-permit-${process.pid}-${Math.random().toString(36).slice(2)}`, "mac-render-permit.json");

@@ -1,6 +1,7 @@
 import { planOrder, sceneNames } from "../i18n/sceneNames";
 import { assertTemplatesApproved } from "../plan/templateApproval";
 import { assertEditorPassed, scriptPathFromRenderMedia } from "../studio/scriptPipelineStore";
+import { consumeMacRenderPermit } from "./macRenderPermit";
 import type { ChannelConfig } from "../channel/types";
 import { versesAreCitations } from "../quran/citation";
 import path from "node:path";
@@ -157,6 +158,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   if (opts.quality === "master") {
     const { requireScenesReadyForMaster } = await import("../studio/sceneService");
     await requireScenesReadyForMaster(opts.episode);
+    // D233: the whole episode on one machine. Master renders here, on the Mac, so its scene cuts must be the Mac's too.
+    const { assertOneMachine, episodeSceneMachines, MAC_MACHINE } = await import("./worker/provenance");
+    const machine = assertOneMachine(await episodeSceneMachines(path.join(path.dirname(scriptPath), "previews"),
+      plan.chapters.flatMap((c) => c.scenes.map((s) => s.id))), "Master");
+    if (machine && machine !== MAC_MACHINE)
+      throw new Error(`لا Master على الماك: مشاهد الحلقة رُندرت على جهاز الرندر «${machine}» (D233: كل حلقة تُرندر كاملة على جهاز واحد). اصنع Master على الجهاز نفسه.`);
   }
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
@@ -226,6 +233,8 @@ export type RenderCompositionOptions = {
   /** Re-checked after the expensive render, before the file is published (the Master ledger gate). */
   afterRender?: () => Promise<void>;
   onProgress?: (pct: number, msg: string) => void;
+  /** D232 trials only (the worker refuses it on a studio job): browser tabs, to measure; production follows config.json. */
+  concurrency?: number;
 };
 
 /**
@@ -244,6 +253,8 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   const editorScript = scriptPathFromRenderMedia(media.base);
   if (!editorScript) throw new Error("وسائط الرندر لا تسمّي حلقتها؛ لا يُعرف سكريبتها لفحص المحرر (D234).");
   await assertEditorPassed(editorScript);
+  // D232: الماك لا يرندر إلا بإذن المالك الصريح لهذه المرة (العامل على ويندوز لا يحتاجه)
+  await consumeMacRenderPermit(`رندر ${o.quality}${o.scenePreview ? " (قطعة مشهد)" : ""}`, { episode: path.basename(path.dirname(editorScript)) });
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
   // never other channels' staged voice/recitation in the Remotion bundle.
@@ -286,7 +297,7 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
       ...(o.scenePreview ? { enforceAudioTrack: true } : {}),
       outputLocation: tempOutput,
       browserExecutable: browserExecutable(),
-      ...(q.concurrency ? { concurrency: q.concurrency } : {}),
+      ...(o.concurrency ? { concurrency: o.concurrency } : q.concurrency ? { concurrency: q.concurrency } : {}),
       ...(q.timeoutMs ? { timeoutInMilliseconds: q.timeoutMs } : {}),
       onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
     });

@@ -18,6 +18,8 @@ export type PreviewOptions = {
 /** يرندر تكوينات المعاينة (فيديو MP4 أو لقطات ثابتة). */
 export const renderPreviews = async (opts: PreviewOptions): Promise<string[]> => {
   const log = opts.onProgress ?? (() => {});
+  // D232: الماك لا يرندر إلا بإذن المالك لهذه المرة (معاينات التكوينات الثابتة خارج الإذن)
+  if (!opts.stills) await (await import("./macRenderPermit")).consumeMacRenderPermit(`معاينات التكوينات (${[opts.prefix].flat().join("، ")})`);
   const outDir = opts.outDir ?? path.join(projectRoot, "renders", "previews");
   await mkdir(outDir, { recursive: true });
   log("تجميع المشروع…");

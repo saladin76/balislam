@@ -8,18 +8,23 @@
  * لا يدفع العامل شيئًا ولا يعتمد شيئًا ولا يكتب على أي remote؛ ولا .env ولا مفتاح توقيع. الحفظ الآلي وإرسال
  * الملاحظات مطفآن صراحة (BAL_CONTENT_SYNC=off وBAL_NOTES_SYNC=off)، والنسخة على commit منفصل لا main.
  * كل ما في هذا الملف مستورد مسبقًا (لا import متأخر): الكود على القرص يتغيّر بعد checkout.
+ *
+ * D232: الحلقة تقرأ «غلاف» المهمة وحده (الإصدار والمعرّف والقناة والحلقة والنوع والـcommit) قبل checkout، والفحص
+ * الكامل في العملية الفرعية بكود commit المهمة؛ فنوع جديد لا يحتاج إعادة تشغيل العامل. وتكتب نبضها كل ٢٠ ثانية
+ * في render-queue/worker.heartbeat.json (خاملة أو مشغولة بمهمة)، والماك يعدّ النبض الأقدم من دقيقتين انقطاعًا.
  */
 import path from "node:path";
 import { existsSync } from "node:fs";
 import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
-import { acquireLock, claimJob, failJob, pendingJobs, queuePaths, tail, workerName, type WorkerJob } from "./protocol";
+import { acquireLock, claimJob, failJob, isProgressName, pendingJobs, queuePaths, tail, workerName, writeHeartbeat, type JobEnvelope } from "./protocol";
 import { git, runCmd } from "./git";
 import { runCleanupJobs } from "./cleanupQueue";
 import { childEnv } from "../../../scripts/git-env.mjs";
 
 export const POLL_MS = 30_000;
+export const HEARTBEAT_MS = 20_000;
 
 /** بيئة العامل وعملياته الفرعية: لا حفظ آلي ولا إرسال ملاحظات ولا مفاتيح خدمات. */
 export const workerEnv = (env: NodeJS.ProcessEnv = process.env): NodeJS.ProcessEnv => {
@@ -32,9 +37,11 @@ export type WorkerDeps = {
   repo: string;
   log: (line: string) => void;
   /** git fetch/checkout وnpm ci؛ يعيد رسالة خطأ أو null */
-  prepareCommit: (job: WorkerJob) => Promise<string | null>;
+  prepareCommit: (job: JobEnvelope) => Promise<string | null>;
   /** العملية الفرعية للرندر؛ يعيد رمز الخروج وآخر السجل */
-  renderChild: (share: string, job: WorkerJob) => Promise<{ code: number; log: string }>;
+  renderChild: (share: string, job: JobEnvelope) => Promise<{ code: number; log: string }>;
+  /** D232: النبض (خامل/مشغول)؛ اختياري في الاختبارات */
+  heartbeat?: (state: "idle" | "busy", job?: string) => Promise<void>;
 };
 
 const lockHash = async (repo: string) => {
@@ -44,7 +51,7 @@ const lockHash = async (repo: string) => {
 const stateFile = (repo: string) => path.join(repo, "renders", "worker-state.json");
 
 /** checkout على commit المهمة بالضبط؛ ونسخة العمل يجب أن تكون نظيفة (الملفات المتتبَّعة). */
-export const prepareCommit = async (repo: string, job: WorkerJob, log: (l: string) => void): Promise<string | null> => {
+export const prepareCommit = async (repo: string, job: Pick<JobEnvelope, "commit">, log: (l: string) => void): Promise<string | null> => {
   const dirty = await git(repo, ["status", "--porcelain", "--untracked-files=no"]);
   if (dirty.code !== 0) return `git status: ${dirty.err}`;
   if (dirty.out) return `نسخة العامل فيها تعديلات على ملفات متتبَّعة؛ لا رندر عليها:\n${dirty.out.slice(0, 500)}`;
@@ -72,7 +79,7 @@ export const prepareCommit = async (repo: string, job: WorkerJob, log: (l: strin
 };
 
 /** عملية Node جديدة بكود الـcommit الحالي: `bal -c <القناة> worker-render --share … --job …` */
-export const renderChild = async (repo: string, share: string, job: WorkerJob, log: (l: string) => void) => {
+export const renderChild = async (repo: string, share: string, job: Pick<JobEnvelope, "id" | "channel">, log: (l: string) => void) => {
   const lines: string[] = [];
   const r = await runCmd(process.execPath, [path.join(repo, "bin", "bal.mjs"), "-c", job.channel, "worker-render", "--share", share, "--job", job.id],
     { cwd: repo, env: workerEnv(), onLine: (l) => { lines.push(l); if (lines.length > 400) lines.shift(); log(l); } });
@@ -86,7 +93,7 @@ export const runOnce = async (share: string, deps: WorkerDeps): Promise<string |
   try {
     // القفل معنا: أي مهمة في running/ أخذها هذا الجهاز قبلُ انقطعت (إعادة تشغيل أو انقطاع)، فتُكتب فاشلة لا تبقى معلّقة
     const running = queuePaths(share).running;
-    for (const f of existsSync(running) ? (await readdir(running)).filter((x) => x.endsWith(".json") && !x.startsWith(".")) : []) {
+    for (const f of existsSync(running) ? (await readdir(running)).filter((x) => x.endsWith(".json") && !x.startsWith(".") && !isProgressName(x)) : []) {
       let by: string | undefined;
       try { by = (JSON.parse(await readFile(path.join(running, f), "utf8")) as { claimedBy?: string }).claimedBy; } catch { by = undefined; }
       if (by === workerName()) await failJob(share, f.slice(0, -5), "انقطع العامل أثناء هذه المهمة؛ أعد إرسالها من الماك.", "");
@@ -96,10 +103,14 @@ export const runOnce = async (share: string, deps: WorkerDeps): Promise<string |
     for (const candidate of await pendingJobs(share)) {
       const job = await claimJob(share, candidate.id, workerName());
       if (!job) continue;
-      deps.log(`المهمة ${job.id}: ${job.channel} ${job.episode} الشورت ${job.n} @ ${job.commit.slice(0, 8)}`);
+      deps.log(`المهمة ${job.id}: ${job.channel} ${job.episode} (${job.kind}) @ ${job.commit.slice(0, 8)}`);
+      await deps.heartbeat?.("busy", job.id).catch(() => undefined);
       const why = await deps.prepareCommit(job);
       if (why) { await failJob(share, job.id, why, ""); deps.log(`فشلت: ${why}`); return job.id; }
-      const r = await deps.renderChild(share, job);
+      // النبض أثناء الرندر الطويل (الحلقة الأم حية وإن انشغلت العملية الفرعية ساعات)
+      const beat = deps.heartbeat ? setInterval(() => { void deps.heartbeat!("busy", job.id).catch(() => undefined); }, HEARTBEAT_MS) : null;
+      let r: { code: number; log: string };
+      try { r = await deps.renderChild(share, job); } finally { if (beat) clearInterval(beat); }
       const done = existsSync(path.join(queuePaths(share).done, job.id));
       if (r.code !== 0 || !done) {
         const msg = r.code !== 0 ? `انتهى الرندر برمز ${r.code}` : "انتهى الرندر بلا نتيجة في done/";
@@ -121,10 +132,15 @@ export const runWorker = async (share: string, o: { once?: boolean; repo: string
     repo: o.repo, log,
     prepareCommit: (job) => prepareCommit(o.repo, job, log),
     renderChild: (s, job) => renderChild(o.repo, s, job, log),
+    heartbeat: async (state, job) => {
+      const head = await git(o.repo, ["rev-parse", "HEAD"]).catch(() => null);
+      await writeHeartbeat(share, { state, ...(job ? { job } : {}), ...(head?.code === 0 ? { commit: head.out } : {}) });
+    },
   };
   log(`عامل الرندر ${workerName()} على ${share}`);
   for (;;) {
     try {
+      await deps.heartbeat!("idle").catch(() => undefined);
       const id = await runOnce(share, deps);
       if (o.once) return id;
       if (id) continue;
@@ -132,6 +148,10 @@ export const runWorker = async (share: string, o: { once?: boolean; repo: string
       log(`خطأ: ${(e as Error).message}`);
       if (o.once) throw e;
     }
-    await delay(POLL_MS);
+    // نبض خامل كل HEARTBEAT_MS حتى الدورة التالية
+    for (let waited = 0; waited < POLL_MS; waited += HEARTBEAT_MS) {
+      await delay(Math.min(HEARTBEAT_MS, POLL_MS - waited));
+      await deps.heartbeat!("idle").catch(() => undefined);
+    }
   }
 };
