@@ -1,7 +1,8 @@
 /**
  * التنظيف بعد النشر (D240، قاعدة ثابتة، ٢٧ نوفمبر): بعد نشر الحلقة على يوتيوب تُحذف ملفات الإنتاج المؤقتة وحدها.
  *
- * يبقى: Master النهائي 4K، والشورتس النهائية (كل شورت منشور Master نفسه)، وكل ما في Git، وملفات صوت الراوي (`voice/`
+ * يبقى: Master النهائي 4K في مكانه الدائم (نسخة الماك تُحذف بعد مطابقته لبصمة الاعتماد)، والشورتس المنشورة في
+ * out/package ومكانها الدائم (كل شورت منشور Master نفسه؛ شورتس render-queue/done تجارب تُحذف)، وكل ما في Git، وملفات صوت الراوي (`voice/`
  * كلها؛ ولا يُحذف تسجيل مدفوع أبدًا)، وملفات التوقيت الصغيرة (`result.json` و`job.json` في `done/`).
  * يُحذف: مقاطع المشاهد والتجميع ونسخ المراجعة 1080p وملفات الرندر المؤقتة والكاش، والنسخ القديمة والتجارب لهذه الحلقة،
  * على الماك وعلى المجلد المشترك، وعلى ويندوز بمهمة في الطابور ينفذها العامل (`worker/cleanupQueue.ts`).
@@ -15,10 +16,11 @@
  *
  * الحذف داخل جذور معروفة للحلقة وحدها (`deletionRoots`)، ملفًا ملفًا: لا `..` ولا رابط رمزي (يُرفض ولا يُتبع)، ولا ملف
  * متتبَّع في Git، ولا `.env`، ولا السجل الموقَّع (`scene-production.v1.json`). الافتراضي عرض بلا حذف؛ الحذف بـ `--delete`.
+ * الترتيب المعتمد: النقل إلى Drive (D53) ← `place-master` ← `cleanup --delete`.
  */
 import path from "node:path";
 import { existsSync } from "node:fs";
-import { lstat, readdir, readFile, realpath, rm } from "node:fs/promises";
+import { copyFile, lstat, mkdir, readdir, readFile, realpath, rename, rm } from "node:fs/promises";
 import { isEpisodeUrl } from "../package/shortsLink";
 import { findTraces } from "../package/traces";
 import type { VideoProbe } from "./worker/probe";
@@ -30,9 +32,9 @@ const VIDEO_EXT = new Set([".mp4", ".mov", ".webm", ".mkv", ".m4v"]);
 const LEDGER_NAME = /^scene-production\.v1\.json/;
 
 export type CleanupLocation = "mac" | "share" | "windows";
-/** delete-all: كاش كامل. videos: الفيديو والملفات المؤقتة وحدها. out: مثل videos إلا Master والشورتس النهائية في out/package.
- * keep: لا حذف (شورت من العامل لم يُستلم على الماك: قد يكون النسخة الوحيدة). */
-export type RootRule = "delete-all" | "videos" | "out" | "keep";
+/** delete-all: كاش كامل. videos: الفيديو والملفات المؤقتة وحدها. out: مثل videos إلا الشورتس النهائية في out/package
+ * (نسخة Master على الماك تُحذف بعد مطابقة النسخة الدائمة لبصمة الاعتماد، الشرط ٢). */
+export type RootRule = "delete-all" | "videos" | "out";
 export type CleanupRoot = { location: CleanupLocation; dir: string; rule: RootRule; label: string };
 export type FileEntry = { location: CleanupLocation; path: string; bytes: number; what: string };
 export type Condition = { n: 1 | 2 | 3; ok: boolean; label: string; detail: string };
@@ -82,9 +84,12 @@ export const isVideoName = (name: string) => VIDEO_EXT.has(path.extname(name).to
 export const neverDelete = (name: string): string | null =>
   /^\.env(\..*)?$/i.test(name) ? ".env لا يُحذف أبدًا" : LEDGER_NAME.test(name) ? "السجل الموقَّع لا يُحذف أبدًا" : null;
 
-/** Master والشورتس النهائية في out/package (أعلى المجلد وحده) */
-const finalOutFile = (rel: string[], epNum: string) =>
-  rel.length === 2 && rel[0] === "package" && (rel[1] === `${epNum}-episode.mp4` || new RegExp(`^${epNum}-short-\\d+\\.mp4$`).test(rel[1]!));
+/** الشورتس النهائية المنشورة في out/package (أعلى المجلد وحده): كل منها Master نفسه، فيبقى */
+const finalShort = (rel: string[], epNum: string) =>
+  rel.length === 2 && rel[0] === "package" && new RegExp(`^${epNum}-short-\\d+\\.mp4$`).test(rel[1]!);
+/** نسخة Master على الماك (أو في نسخة العامل): تُحذف بعد التحقق من النسخة الدائمة وحدها */
+export const isLocalMaster = (rel: string[], epNum: string) => rel.length === 2 && rel[0] === "package" && rel[1] === `${epNum}-episode.mp4`;
+export const LOCAL_MASTER_WHAT = "نسخة Master المحلية (الدائمة في masters/ على المجلد المشترك بالبصمة نفسها)";
 
 /** الجذور الوحيدة التي يُحذف فيها لهذه الحلقة (الماك والمجلد المشترك). مجلدات done/ تُضاف بعد قراءة job.json. */
 export const deletionRoots = (ctx: CleanupContext, location: "mac" | "windows" = "mac"): CleanupRoot[] => [
@@ -159,9 +164,8 @@ export const scanRoot = async (root: CleanupRoot, epNum: string, tracked: Set<st
     if ("refused" in w) { refused.push({ path: w.refused, why: w.why }); continue; }
     const name = w.rel[w.rel.length - 1]!;
     const entry = { location: root.location, path: w.file, bytes: w.bytes };
-    if (root.rule === "out" && finalOutFile(w.rel, epNum)) { keep.push({ ...entry, what: name.includes("-short-") ? "شورت نهائي" : "Master" }); continue; }
-    if (root.rule === "keep") { if (isVideoName(name)) keep.push({ ...entry, what: root.label }); continue; }
-    const what = describe(root.rule, w.rel);
+    if (root.rule === "out" && finalShort(w.rel, epNum)) { keep.push({ ...entry, what: "شورت نهائي منشور" }); continue; }
+    const what = root.rule === "out" && isLocalMaster(w.rel, epNum) ? LOCAL_MASTER_WHAT : describe(root.rule, w.rel);
     if (!what) continue;
     const never = neverDelete(name) ?? (tracked.has(path.resolve(w.file)) ? "متتبَّع في Git" : null) ?? (protectedFiles.has(path.resolve(w.file)) ? "Master المحفوظ" : null);
     if (never) { refused.push({ path: w.file, why: never }); continue; }
@@ -175,7 +179,7 @@ const readJson = async <T>(file: string): Promise<T | null> => {
 };
 
 /** مجلدات done/ لهذه الحلقة (الشورتس والتجارب): job.json يذكر القناة ومجلد الحلقة نفسيهما. */
-export const doneRootsFor = async (share: string, channel: string, episodeFolder: string, collected: Set<string> = new Set()): Promise<CleanupRoot[]> => {
+export const doneRootsFor = async (share: string, channel: string, episodeFolder: string): Promise<CleanupRoot[]> => {
   const done = path.join(share, "render-queue", "done");
   if (!existsSync(done)) return [];
   const out: CleanupRoot[] = [];
@@ -184,8 +188,7 @@ export const doneRootsFor = async (share: string, channel: string, episodeFolder
     const job = await readJson<{ channel?: unknown; episode?: unknown; kind?: unknown; trial?: unknown }>(path.join(done, d, "job.json"));
     if (!job || job.channel !== channel || job.episode !== episodeFolder) continue;
     const kind = typeof job.kind === "string" ? job.kind : "?";
-    // شورت حقيقي من العامل لم يُستلم في حزمة الماك (worker-collected.json) قد يكون نسخته الوحيدة: يبقى
-    if (!job.trial && kind === "short" && !collected.has(d)) { out.push({ location: "share", dir: path.join(done, d), rule: "keep", label: "شورت من العامل لم يُستلم على الماك" }); continue; }
+    // قرار المالك: نواتج الطابور كلها (ومنها الشورتس) تجارب أو نسخ مؤقتة؛ المنشور يبقى في out/package وفي masters/
     out.push({ location: "share", dir: path.join(done, d), rule: "videos", label: `${job.trial ? "تجربة" : "ناتج العامل"} ${kind} (render-queue/done)` });
   }
   return out;
@@ -265,14 +268,12 @@ export const planCleanup = async (ctx: CleanupContext, deps: CleanupDeps): Promi
   }
 
   // الملفات
-  const protectedFiles = new Set<string>([path.resolve(path.join(ctx.episodeDir, "out", "package", `${epNum}-episode.mp4`))]);
+  const protectedFiles = new Set<string>();
   if (perm) protectedFiles.add(path.resolve(perm));
   const tracked = await deps.gitTracked(ctx.projectRoot, ctx.episodeDir).catch(() => null);
   const roots: CleanupRoot[] = [...deletionRoots(ctx)];
   if (ctx.share && existsSync(ctx.share)) {
-    const rec = await readJson<Record<string, { file?: string }>>(path.join(ctx.episodeDir, "out", "package", "worker-collected.json")) ?? {};
-    const collected = new Set(Object.entries(rec).filter(([, r]) => typeof r?.file === "string" && existsSync(r.file)).map(([id]) => id));
-    roots.push(...await doneRootsFor(ctx.share, ctx.channel, ctx.episodeFolder, collected));
+    roots.push(...await doneRootsFor(ctx.share, ctx.channel, ctx.episodeFolder));
     roots.push({ location: "share", dir: path.join(ctx.share, "render-queue", "media", ctx.channel, ctx.episodeFolder), rule: "delete-all", label: "كاش لقطات الوسائط (render-queue/media)" });
   }
   const del: FileEntry[] = [], keep: FileEntry[] = [], refused: { path: string; why: string }[] = [];
@@ -293,6 +294,19 @@ export const planCleanup = async (ctx: CleanupContext, deps: CleanupDeps): Promi
   return { ctx, epNum, conditions, ok: conditions.every((c) => c.ok), delete: del, keep, refused, permanentMaster: perm, approvedSha256: approved?.fileSha256 ?? null, roots };
 };
 
+/**
+ * نسخة Master المحلية لا تُحذف إلا والنسخة الدائمة قد حُسبت بصمتها في هذه الخطة وطابقت الاعتماد (الشرط ٢)، وما زالت
+ * ملفًا عاديًا بالحجم نفسه لحظة الحذف.
+ */
+const localMasterGuard = async (plan: CleanupPlan, file: string): Promise<string | null> => {
+  const c2 = plan.conditions.find((c) => c.n === 2);
+  if (!c2?.ok || !plan.approvedSha256 || !plan.permanentMaster) return "لا تُحذف نسخة Master المحلية قبل مطابقة النسخة الدائمة لبصمة الاعتماد.";
+  const perm = await lstat(plan.permanentMaster).catch(() => null);
+  if (!perm || !perm.isFile() || perm.isSymbolicLink()) return "النسخة الدائمة لم تعد ملفًا عاديًا؛ لا تُحذف نسخة الماك.";
+  if (perm.size !== (await lstat(file)).size) return "حجم النسخة الدائمة لا يساوي نسخة الماك؛ لا تُحذف.";
+  return null;
+};
+
 /** يحذف ما في الخطة وحدها، بعد إعادة فحص كل ملف (الجذر والرابط الرمزي والخروج). لا شيء إن نقص شرط. */
 export const executeCleanup = async (plan: CleanupPlan, roots: CleanupRoot[] = plan.roots): Promise<{ freed: number; deleted: string[]; skipped: { path: string; why: string }[] }> => {
   if (!plan.ok) throw new Error(`لا حذف: ${plan.conditions.filter((c) => !c.ok).map((c) => `الشرط ${c.n} (${c.label}): ${c.detail}`).join(" | ")}`);
@@ -300,7 +314,8 @@ export const executeCleanup = async (plan: CleanupPlan, roots: CleanupRoot[] = p
   const deleted: string[] = [], skipped: { path: string; why: string }[] = [];
   for (const f of plan.delete) {
     const root = roots.find((r) => { const rel = path.relative(r.dir, f.path); return rel && !rel.startsWith("..") && !path.isAbsolute(rel); });
-    const why = !root ? "ليس داخل جذر مسموح" : neverDelete(path.basename(f.path)) ?? await pathEscape(root.dir, f.path);
+    const why = !root ? "ليس داخل جذر مسموح" : neverDelete(path.basename(f.path)) ?? await pathEscape(root.dir, f.path)
+      ?? (isLocalMaster(path.relative(root.dir, f.path).split(/[\\/]/), plan.epNum) ? await localMasterGuard(plan, f.path) : null);
     if (why) { skipped.push({ path: f.path, why }); continue; }
     const st = await lstat(f.path);
     await rm(f.path, { force: false });
@@ -323,7 +338,7 @@ export const summaryLine = (plan: CleanupPlan, freed: number, windowsQueued: boo
 /* ── على الماك: السياق والاعتماديات الحقيقية ── */
 
 /** السجل الموقَّع قراءةً فقط (readLedger يتحقق من التوقيع ولا يحفظ؛ لا withState لأنه قد يكتب المصالحة). */
-const ledgerApprovedMaster = async (ep: string): Promise<ApprovedMaster | null> => {
+export const ledgerApprovedMaster = async (ep: string): Promise<ApprovedMaster | null> => {
   const { resolveScriptPath } = await import("../script/episodes");
   const { readLedger, stateFileFor } = await import("../studio/sceneLedgerStore");
   const file = stateFileFor(await resolveScriptPath(ep));
@@ -379,4 +394,57 @@ export const formatPlan = (plan: CleanupPlan): string => {
     for (const r of plan.refused.slice(0, 20)) lines.push(`  ! ${r.path}: ${r.why}`);
   }
   return lines.join("\n");
+};
+
+/* ── place-master (D240): Master المعتمد إلى مكانه الدائم ── */
+
+export type PlaceMasterDeps = { approvedMaster: () => Promise<ApprovedMaster | null>; sha256File: (file: string) => Promise<string> };
+export type PlaceMasterResult = { status: "placed" | "already"; target: string; sha256: string; bytes: number };
+
+/**
+ * ينسخ Master الحلقة المعتمد (`out/package/<NNN>-episode.mp4`) إلى `masters/<القناة>/<الحلقة>/<NNN>-episode.mp4` في
+ * المجلد المشترك. البصمة من السجل الموقَّع قراءةً فقط. يرفض بصوت عالٍ: لا سجل، أو المصدر ليس البايتات المعتمدة، أو في
+ * المكان الدائم ملف آخر (لا يكتب فوقه أبدًا)، أو النسخة بعد النسخ لا تطابق (تُحذف النسخة الناقصة ولا يبقى شيء باسم Master).
+ */
+export const placeMaster = async (ctx: CleanupContext, deps: PlaceMasterDeps): Promise<PlaceMasterResult> => {
+  if (!ctx.share || !existsSync(ctx.share)) throw new Error(`المجلد المشترك غير مركّب${ctx.share ? `: ${ctx.share}` : ""}.`);
+  const approved = await deps.approvedMaster();
+  if (!approved || !/^[a-f0-9]{64}$/.test(approved.fileSha256)) throw new Error("لا سجل اعتماد لـ Master في سجل «إنتاج المشاهد»؛ لا نسخ.");
+  const epNum = epNumOf(ctx.episodeFolder);
+  const source = path.join(ctx.episodeDir, "out", "package", `${epNum}-episode.mp4`);
+  const ss = await lstat(source).catch(() => null);
+  if (!ss || !ss.isFile() || ss.isSymbolicLink()) throw new Error(`لا Master على هذا الجهاز: ${source}`);
+  const sourceSha = await deps.sha256File(source);
+  if (sourceSha !== approved.fileSha256)
+    throw new Error(`Master على الجهاز (${sourceSha.slice(0, 12)}…) ليس البايتات المعتمدة (${approved.fileSha256.slice(0, 12)}…)؛ لا نسخ.`);
+  const target = permanentMasterPath(ctx.share, ctx.channel, ctx.episodeFolder);
+  const mastersRoot = path.join(ctx.share, MASTERS_DIR);
+  await mkdir(path.dirname(target), { recursive: true });
+  // لا رابط رمزي في الطريق إلى المكان الدائم
+  for (let d = path.dirname(target); d.length >= mastersRoot.length; d = path.dirname(d)) {
+    if ((await lstat(d)).isSymbolicLink()) throw new Error(`رابط رمزي في طريق المكان الدائم: ${d}`);
+    if (d === mastersRoot) break;
+  }
+  const existing = await lstat(target).catch(() => null);
+  if (existing) {
+    if (!existing.isFile() || existing.isSymbolicLink()) throw new Error(`في المكان الدائم شيء ليس ملفًا عاديًا: ${target}`);
+    const have = await deps.sha256File(target);
+    if (have !== approved.fileSha256) throw new Error(`في المكان الدائم Master آخر (${have.slice(0, 12)}…) لا المعتمد (${approved.fileSha256.slice(0, 12)}…)؛ لا يُكتب فوقه. راجعه بنفسك.`);
+    return { status: "already", target, sha256: have, bytes: existing.size };
+  }
+  const partial = path.join(path.dirname(target), `.${path.basename(target)}.${process.pid}.${Date.now()}.partial`);
+  try {
+    await copyFile(source, partial);
+    const copied = await deps.sha256File(partial);
+    if (copied !== approved.fileSha256)
+      throw new Error(`النسخة في المجلد المشترك بصمتها ${copied.slice(0, 12)}… لا المعتمدة ${approved.fileSha256.slice(0, 12)}…؛ حُذفت النسخة الناقصة.`);
+    if (existsSync(target)) throw new Error(`ظهر ملف في المكان الدائم أثناء النسخ: ${target}`);
+    await rename(partial, target);
+  } finally {
+    await rm(partial, { force: true });
+  }
+  // تحقق أخير من الملف في مكانه
+  const final = await deps.sha256File(target);
+  if (final !== approved.fileSha256) throw new Error(`Master في المكان الدائم بعد النقل بصمته ${final.slice(0, 12)}… لا المعتمدة.`);
+  return { status: "placed", target, sha256: final, bytes: (await lstat(target)).size };
 };

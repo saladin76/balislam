@@ -949,6 +949,18 @@ program
   });
 
 program
+  .command("place-master")
+  .description("D240: ينسخ Master المعتمد إلى مكانه الدائم masters/<القناة>/<الحلقة>/<NNN>-episode.mp4 في المجلد المشترك ويتحقق من بصمته بالسجل الموقَّع")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--share <path>", "المجلد المشترك على الماك (F:\\bal-share على ويندوز)", "/Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    const m = await import("../render/postPublishCleanup");
+    const { sha256File } = await import("../render/worker/protocol");
+    const r = await m.placeMaster(await m.macCleanupContext(episode, path.resolve(opts.share)), { approvedMaster: () => m.ledgerApprovedMaster(episode), sha256File });
+    console.log(`${r.status === "placed" ? "نُسخ" : "موجود من قبل"} Master إلى ${r.target} (sha256 ${r.sha256}، ${m.formatBytes(r.bytes)}) ويطابق الاعتماد.`);
+  });
+
+program
   .command("cleanup")
   .description("D240: التنظيف بعد النشر — يعرض ما يُحذف وما يبقى (الافتراضي بلا حذف)؛ الحذف بـ --delete بعد الشروط الثلاثة وحدها")
   .argument("<episode>", "رقم الحلقة")

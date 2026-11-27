@@ -5,7 +5,7 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { mkdir, mkdtemp, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import {
-  executeCleanup, pathEscape, permanentMasterPath, planCleanup, summaryLine, type CleanupContext, type CleanupDeps,
+  executeCleanup, pathEscape, permanentMasterPath, placeMaster, planCleanup, summaryLine, type CleanupContext, type CleanupDeps,
 } from "../src/render/postPublishCleanup";
 import { cleanupPaths, queueWindowsCleanup, runCleanupJob, runCleanupJobs, validateCleanupJob } from "../src/render/worker/cleanupQueue";
 import { sha256File } from "../src/render/worker/protocol";
@@ -85,15 +85,16 @@ describe("D240 post-publish cleanup: all three conditions pass", () => {
     const plan = await planCleanup(f.ctx, depsFor(f));
     expect(plan.conditions.map((c) => [c.n, c.ok])).toEqual([[1, true], [2, true], [3, true]]);
     const del = plan.delete.map((x) => x.path).sort();
-    expect(del).toEqual([f.sceneClip, f.assembly, f.oldShort, f.importing, f.workerOut, f.cache, f.trialMaster, f.trialReview, f.shareMedia].sort());
+    expect(del).toEqual([f.macMaster, f.sceneClip, f.assembly, f.oldShort, f.importing, f.workerOut, f.cache, f.trialMaster, f.trialReview, f.shareMedia].sort());
     const keep = plan.keep.map((x) => x.path);
-    for (const k of [f.macMaster, f.short1, f.permMaster, f.permShort, f.voice, f.paidOld]) expect(keep).toContain(k);
+    for (const k of [f.short1, f.permMaster, f.permShort, f.voice, f.paidOld]) expect(keep).toContain(k);
+    expect(keep).not.toContain(f.macMaster);
 
     const r = await executeCleanup(plan);
     expect(r.deleted.sort()).toEqual(del);
     expect(r.skipped).toEqual([]);
     for (const d of del) expect(existsSync(d)).toBe(false);
-    for (const k of [f.macMaster, f.short1, f.permMaster, f.permShort, f.voice, f.paidOld, f.previewIndex, f.trackedVideo, f.seams,
+    for (const k of [f.short1, f.permMaster, f.permShort, f.voice, f.paidOld, f.previewIndex, f.trackedVideo, f.seams,
       f.renderJson, f.trialJob, f.trialResult, f.otherJob, f.otherVideo, f.otherCache, f.cacheEnv,
       path.join(f.ep, "scene-production.v1.json"), path.join(f.ep, "status.json"), path.join(f.ep, "script.md")])
       expect(existsSync(k), k).toBe(true);
@@ -113,22 +114,95 @@ describe("D240 post-publish cleanup: all three conditions pass", () => {
   });
 });
 
-describe("D240: worker shorts in done/", () => {
-  it("keeps a worker short the Mac never collected, deletes the copy of one it did", async () => {
+describe("D240: Mac Master copy and queue shorts (owner, 27 Nov)", () => {
+  it("every short render in render-queue/done is deleted (trial or not); timing records and published shorts stay", async () => {
     const f = await fixture();
     const done = path.join(f.share, "render-queue", "done");
-    const job = (_id: string) => JSON.stringify({ channel: CH, episode: EP, kind: "short", n: 1 });
-    await put(path.join(done, "dafatir-alzaman-001-short-1-aaa", "job.json"), job("a"));
-    const uncollected = await put(path.join(done, "dafatir-alzaman-001-short-1-aaa", "dafatir-alzaman-001-short-1-aaa.mp4"), "only copy");
-    await put(path.join(done, "dafatir-alzaman-001-short-2-bbb", "job.json"), job("b"));
-    const collected = await put(path.join(done, "dafatir-alzaman-001-short-2-bbb", "dafatir-alzaman-001-short-2-bbb.mp4"), "copy");
-    await put(path.join(f.ep, "out", "package", "worker-collected.json"), JSON.stringify({ "dafatir-alzaman-001-short-2-bbb": { file: f.short1 } }));
+    const short = async (id: string) => {
+      await put(path.join(done, id, "job.json"), JSON.stringify({ channel: CH, episode: EP, kind: "short", n: 1 }));
+      await put(path.join(done, id, "result.json"), "{}");
+      return put(path.join(done, id, `${id}.mp4`), "short");
+    };
+    const a = await short("dafatir-alzaman-001-short-1-aaa");
+    const b = await short("dafatir-alzaman-001-short-2-bbb");
     const plan = await planCleanup(f.ctx, depsFor(f));
-    expect(plan.keep.map((k) => k.path)).toContain(uncollected);
-    expect(plan.delete.map((k) => k.path)).toContain(collected);
+    expect(plan.delete.map((k) => k.path)).toEqual(expect.arrayContaining([a, b]));
     await executeCleanup(plan);
-    expect(existsSync(uncollected)).toBe(true);
-    expect(existsSync(collected)).toBe(false);
+    expect(existsSync(a)).toBe(false);
+    expect(existsSync(b)).toBe(false);
+    for (const k of [path.join(done, "dafatir-alzaman-001-short-1-aaa", "result.json"), path.join(done, "dafatir-alzaman-001-short-1-aaa", "job.json"), f.short1, f.permShort])
+      expect(existsSync(k), k).toBe(true);
+  });
+
+  it("the Mac Master is deleted only after the permanent copy matched the approved hash, never when condition 2 fails", async () => {
+    const f = await fixture();
+    const plan = await planCleanup(f.ctx, depsFor(f, { approvedMaster: async () => ({ fileSha256: sha("OTHER"), publishSha256: sha("OTHER"), at: "x" }) }));
+    expect(plan.conditions.find((c) => c.n === 2)!.ok).toBe(false);
+    await expect(executeCleanup(plan)).rejects.toThrow(/لا حذف/);
+    expect(existsSync(f.macMaster)).toBe(true);
+  });
+
+  it("the Mac Master is skipped if the permanent copy changed between check and deletion", async () => {
+    const f = await fixture();
+    const plan = await planCleanup(f.ctx, depsFor(f));
+    expect(plan.delete.map((x) => x.path)).toContain(f.macMaster);
+    await writeFile(f.permMaster, "TRUNCATED");
+    const r = await executeCleanup(plan);
+    expect(existsSync(f.macMaster)).toBe(true);
+    expect(r.skipped.map((x) => x.path)).toContain(f.macMaster);
+  });
+
+  it("a forged plan cannot delete the Mac Master without a verified permanent copy", async () => {
+    const f = await fixture();
+    const plan = await planCleanup(f.ctx, depsFor(f));
+    const forged = { ...plan, conditions: plan.conditions.map((c) => ({ ...c, ok: true })), permanentMaster: null };
+    const r = await executeCleanup(forged);
+    expect(existsSync(f.macMaster)).toBe(true);
+    expect(r.skipped.map((x) => x.path)).toContain(f.macMaster);
+  });
+});
+
+describe("D240: place-master", () => {
+  const approved = async () => ({ fileSha256: sha(MASTER), publishSha256: null, at: "x" });
+  it("copies the approved Master to masters/ and verifies the copy; a second run reports it already there", async () => {
+    const f = await fixture();
+    await rm(f.permMaster);
+    const r = await placeMaster(f.ctx, { approvedMaster: approved, sha256File });
+    expect(r).toMatchObject({ status: "placed", target: f.permMaster, sha256: sha(MASTER) });
+    expect(await sha256File(f.permMaster)).toBe(sha(MASTER));
+    expect(existsSync(f.macMaster)).toBe(true);
+    expect((await placeMaster(f.ctx, { approvedMaster: approved, sha256File })).status).toBe("already");
+    expect((await readdir(path.dirname(f.permMaster))).filter((x) => x.endsWith(".partial"))).toEqual([]);
+  });
+
+  it("fails loudly and never overwrites a different file in the permanent place", async () => {
+    const f = await fixture();
+    await writeFile(f.permMaster, "SOMETHING-ELSE");
+    await expect(placeMaster(f.ctx, { approvedMaster: approved, sha256File })).rejects.toThrow(/لا يُكتب فوقه/);
+    expect(await sha256File(f.permMaster)).toBe(sha("SOMETHING-ELSE"));
+  });
+
+  it("refuses when the Mac file is not the approved bytes, or there is no approval record", async () => {
+    const f = await fixture();
+    await rm(f.permMaster);
+    await writeFile(f.macMaster, "RE-RENDERED");
+    await expect(placeMaster(f.ctx, { approvedMaster: approved, sha256File })).rejects.toThrow(/ليس البايتات المعتمدة/);
+    await expect(placeMaster(f.ctx, { approvedMaster: async () => null, sha256File })).rejects.toThrow(/لا سجل/);
+    expect(existsSync(f.permMaster)).toBe(false);
+  });
+
+  it("a copy whose hash does not match is removed and nothing is left under the Master name", async () => {
+    const f = await fixture();
+    await rm(f.permMaster);
+    const corrupt = async (file: string) => (file.endsWith(".partial") ? sha("CORRUPT") : sha256File(file));
+    await expect(placeMaster(f.ctx, { approvedMaster: approved, sha256File: corrupt })).rejects.toThrow(/لا المعتمدة/);
+    expect(existsSync(f.permMaster)).toBe(false);
+    expect(await readdir(path.dirname(f.permMaster))).toEqual(["shorts"]);
+  });
+
+  it("refuses when the share is not mounted", async () => {
+    const f = await fixture();
+    await expect(placeMaster({ ...f.ctx, share: "/nonexistent/bal-share" }, { approvedMaster: approved, sha256File })).rejects.toThrow(/غير مركّب/);
   });
 });
 
@@ -230,7 +304,9 @@ describe("D240: Windows cleanup is a queued worker job", () => {
     expect(await runCleanupJobs(f.share, f.repo, (l) => logs.push(l), { sha256File, gitTracked: depsFor(f).gitTracked })).toBe(1);
     expect(existsSync(f.sceneClip)).toBe(false);
     expect(existsSync(f.workerOut)).toBe(false);
-    for (const k of [f.macMaster, f.short1, f.voice, f.paidOld, f.trackedVideo, f.cacheEnv]) expect(existsSync(k)).toBe(true);
+    for (const k of [f.short1, f.voice, f.paidOld, f.trackedVideo, f.cacheEnv]) expect(existsSync(k)).toBe(true);
+    expect(existsSync(f.macMaster)).toBe(false);
+    expect(existsSync(f.permMaster)).toBe(true);
     expect(await readdir(cleanupPaths(f.share).done)).toEqual([`${id}.json`]);
     expect(await readdir(cleanupPaths(f.share).jobs)).toEqual([]);
   });
