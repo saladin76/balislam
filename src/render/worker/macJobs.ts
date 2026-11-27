@@ -29,7 +29,7 @@ import { assertOneMachine, episodeSceneMachines, machineOfResult, MAC_MACHINE, t
 import { assertCommitMatchesWorkingTree, publishSnapshot, DURATION_TOLERANCE_SEC } from "./macSide";
 import {
   doneVideoName, ensureQueue, heartbeatFile, HEARTBEAT_STALE_MS, isProgressName, planSha256, queuePaths, readProgress, sha256File, sizeFor,
-  validateJobV2, writeJsonAtomic, type Heartbeat, type JobProgress, type RenderSpec, type WorkerJobV2, type WorkerResult,
+  validateJobV2, writeJsonAtomic, type Heartbeat, type TrialX264Preset, type JobProgress, type RenderSpec, type WorkerJobV2, type WorkerResult,
 } from "./protocol";
 
 const fps = (config as { video: { fps: number } }).video.fps;
@@ -69,15 +69,20 @@ const idFor = (b: Base, kind: string, extra: string, fp: unknown) =>
   `${b.purpose === "trial" ? `trial-${b.trial}` : `${b.channel}-${b.episodeFolder.slice(0, 3)}`}-${kind}${extra ? `-${extra.toLowerCase()}` : ""}-${hash12(fp)}`;
 
 /** مهمة قطعة مشهد 1080p: الخطة مقصوصة على المشهد ووسائطه كما يحسبها الاستوديو (shotsRenderInputs)، بعد فحص النواقص. */
-export const buildSceneJob = async (ep: string, sceneId: string, b: Base, share: string): Promise<WorkerJobV2> => {
+export const buildSceneJob = async (ep: string, sceneId: string, b: Base, share: string, o: { sharedMedia?: EpisodeMedia } = {}): Promise<WorkerJobV2> => {
   const { shotsRenderInputs } = await import("../shotsPreview");
   // D234: لا مهمة رندر (للويندوز أو غيره) لسكريبت فيه جملة لم تمرّ بمحرر المحتوى، قبل أي حساب أو نسخ
   await assertEditorPassed(await resolveScriptPath(ep));
-  const { plan, media, pendingRecitation } = await shotsRenderInputs(ep, [sceneId], { sceneDraft: true, allowPendingRecitation: true });
+  const cut = await shotsRenderInputs(ep, [sceneId], { sceneDraft: true, allowPendingRecitation: true });
+  const { plan, pendingRecitation } = cut;
   assertTemplatesApproved(plan);
+  // تجربة «حزمة واحدة للحلقة»: لقطة وسائط الحلقة كاملة (تحوي وسائط المشهد نفسها) لكل المشاهد، فتتطابق مفاتيح الحزمة على العامل
+  if (o.sharedMedia && JSON.stringify(o.sharedMedia.voice[sceneId] ?? null) !== JSON.stringify(cut.media.voice[sceneId] ?? null))
+    throw new Error(`وسائط المشهد ${sceneId} في لقطة الحلقة ليست وسائط قطعته.`);
+  const media = o.sharedMedia ?? cut.media;
   const mediaRel = await publishSnapshot(share, media);
   const render: RenderSpec = { orientation: "landscape", quality: "preview", scope: { sceneIds: [sceneId] }, scenePreview: true, timingMode: "scene-preview",
-    ...(pendingRecitation.length ? { draftMarks: { pendingRecitation } } : {}) };
+    ...(pendingRecitation.length ? { draftMarks: { pendingRecitation } } : {}), ...(o.sharedMedia ? { bundleCache: true } : {}) };
   const sha = planSha256(plan);
   return validateJobV2({
     ...baseFields(b), id: idFor(b, "scene", sceneId, { c: b.commit, sha, base: media.base, render }), kind: "scene", sceneId, media: mediaRel, render,
@@ -128,7 +133,9 @@ export const assertCutsOneMachine = async (share: string, cuts: { sceneId: strin
 };
 
 /** Master 4K (ونسخة مراجعة 1080p بجوارها). فحوص المحتوى للنسخة النهائية قبل الإرسال (assertMasterReady). */
-export const buildMasterJob = async (ep: string, inputs: Awaited<ReturnType<typeof fullEpisodeInputs>>, b: Base, share: string, o: { concurrency?: number } = {}): Promise<WorkerJobV2> => {
+export type SpeedTrial = { concurrency?: number; x264Preset?: TrialX264Preset; chunkFrames?: number };
+export const buildMasterJob = async (ep: string, inputs: Awaited<ReturnType<typeof fullEpisodeInputs>>, b: Base, share: string, o: SpeedTrial = {}): Promise<WorkerJobV2> => {
+  if ((o.x264Preset || o.chunkFrames || o.concurrency) && b.purpose !== "trial") throw new Error("خيارات التسريع للتجارب وحدها (D232).");
   const { assertMasterReady, voiceTimingMode } = await import("../episode");
   await assertMasterReady({ scriptPath: inputs.scriptPath, plan: inputs.plan, media: inputs.media, channel: loadChannel() });
   // D233: Master للاستوديو على الويندوز من مشاهد رُندرت كلها على جهاز رندر واحد (لا خلط، ولا مشاهد الماك تحت Master الويندوز).
@@ -141,10 +148,12 @@ export const buildMasterJob = async (ep: string, inputs: Awaited<ReturnType<type
   }
   const mediaRel = await publishSnapshot(share, inputs.media);
   const render: RenderSpec = { orientation: "landscape", quality: "master", scope: { all: true }, scenePreview: false,
-    timingMode: await voiceTimingMode(inputs.scriptPath, inputs.plan, inputs.media), review1080: true, ...(o.concurrency ? { concurrency: o.concurrency } : {}) };
+    timingMode: await voiceTimingMode(inputs.scriptPath, inputs.plan, inputs.media), review1080: true, ...(o.concurrency ? { concurrency: o.concurrency } : {}),
+    ...(o.x264Preset ? { x264Preset: o.x264Preset } : {}), ...(o.chunkFrames ? { chunkFrames: o.chunkFrames } : {}) };
   const sha = planSha256(inputs.plan);
+  const extra = [o.concurrency ? `c${o.concurrency}` : "", o.x264Preset ? `p${o.x264Preset}` : "", o.chunkFrames ? `k${o.chunkFrames}` : ""].filter(Boolean).join("-");
   return validateJobV2({
-    ...baseFields(b), id: idFor(b, "master", o.concurrency ? `c${o.concurrency}` : "", { c: b.commit, sha, base: inputs.media.base, render, g: inputs.narrationGain }),
+    ...baseFields(b), id: idFor(b, "master", extra, { c: b.commit, sha, base: inputs.media.base, render, g: inputs.narrationGain }),
     kind: "master", media: mediaRel, render,
     expected: { durationSec: secondsOf(inputs.plan, inputs.media), ...sizeFor("master", "landscape") },
     inputs: { planSha256: sha, plan: inputs.plan, media: inputs.media, narrationGain: inputs.narrationGain },
@@ -199,7 +208,8 @@ export const trialRecordFile = (outDir: string) => path.join(outDir, "submitted.
  * يرسل تجربة كاملة بالترتيب (createdAt متصاعد): كل المشاهد، ثم التجميع (من قطعها في done/)، ثم Master 4K.
  * لا يقرأ السجل الموقّع ولا يكتب في out/package ولا في previews؛ سجله في outDir وحده.
  */
-export const submitTrial = async (ep: string, share: string, o: { tag: string; outDir: string; stages?: TrialStage[]; scenes?: string[]; concurrency?: number; log?: (m: string) => void }) => {
+export const submitTrial = async (ep: string, share: string, o: { tag: string; outDir: string; stages?: TrialStage[]; scenes?: string[]; concurrency?: number;
+  x264Preset?: TrialX264Preset; chunkFrames?: number; sharedBundle?: boolean; log?: (m: string) => void }) => {
   const log = o.log ?? (() => {});
   const stages = o.stages ?? ["scenes", "assembly", "master"];
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(o.tag) || o.tag.length > 40) throw new Error("وسم التجربة: حروف لاتينية صغيرة وأرقام وشرطات.");
@@ -225,9 +235,11 @@ export const submitTrial = async (ep: string, share: string, o: { tag: string; o
   };
   const ids = (o.scenes?.length ? o.scenes : plan.chapters.flatMap((c) => c.scenes.map((s) => s.id)));
   const sceneJobs: WorkerJobV2[] = [];
+  // تجربة «حزمة واحدة للحلقة»: لقطة وسائط واحدة للحلقة (كما تحسبها قطعة المشهد: المسودة بلا اشتراط تلاوة)
+  const sharedMedia = o.sharedBundle ? await prepareRenderMedia(ep, plan, { requireApprovedQuran: false }) : undefined;
   if (stages.includes("scenes") || stages.includes("assembly")) {
     for (const id of ids) {
-      const job = await buildSceneJob(ep, id, b(), share);
+      const job = await buildSceneJob(ep, id, b(), share, { sharedMedia });
       sceneJobs.push(job);
       if (stages.includes("scenes")) await add(job);
     }
@@ -235,7 +247,7 @@ export const submitTrial = async (ep: string, share: string, o: { tag: string; o
   const full = stages.includes("assembly") || stages.includes("master") ? await fullEpisodeInputs(ep, { requireApprovedQuran: stages.includes("master") }) : null;
   if (stages.includes("assembly") && full)
     await add(await buildJoinJob("assembly", full, sceneJobs.map((j) => ({ sceneId: j.sceneId!, job: j.id })), b(), share));
-  if (stages.includes("master") && full) await add(await buildMasterJob(ep, full, b(), share, { concurrency: o.concurrency }));
+  if (stages.includes("master") && full) await add(await buildMasterJob(ep, full, b(), share, { concurrency: o.concurrency, x264Preset: o.x264Preset, chunkFrames: o.chunkFrames }));
   await writeFile(trialRecordFile(o.outDir), JSON.stringify(rec, null, 1) + "\n");
   return rec;
 };

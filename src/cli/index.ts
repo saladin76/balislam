@@ -991,13 +991,17 @@ program
   .option("--stages <list>", "scenes,assembly,master (الافتراضي كلها بالترتيب)")
   .option("--scenes <ids>", "مشاهد بعينها مفصولة بفواصل (الافتراضي كل المشاهد)")
   .option("--concurrency <n>", "تبويبات المتصفح لـMaster التجربة (للقياس)")
-  .action(async (episode: string, opts: { share: string; tag: string; out: string; stages?: string; scenes?: string; concurrency?: string }) => {
+  .option("--x264-preset <p>", "تجربة تسريع: إعداد x264 لـMaster 4K بالـcrf نفسه (medium؛ الإنتاج slow)")
+  .option("--shared-bundle", "تجربة تسريع: حزمة Remotion واحدة للحلقة يعيد العامل استعمالها لكل المشاهد")
+  .option("--chunk-frames <n>", "تجربة تسريع: Master على قطع بهذا العدد من الإطارات تُستأنف بعد الانقطاع (مثل 1800 = دقيقة)")
+  .action(async (episode: string, opts: { share: string; tag: string; out: string; stages?: string; scenes?: string; concurrency?: string; x264Preset?: string; sharedBundle?: boolean; chunkFrames?: string }) => {
     const stages = opts.stages ? opts.stages.split(",").map((x) => x.trim()) : undefined;
     if (stages?.some((s) => !["scenes", "assembly", "master"].includes(s))) throw new Error("المراحل: scenes وassembly وmaster.");
     const { submitTrial } = await import("../render/worker/macJobs");
     const r = await submitTrial(episode, path.resolve(opts.share), {
       tag: opts.tag, outDir: path.resolve(opts.out), stages: stages as ("scenes" | "assembly" | "master")[] | undefined,
       scenes: opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean), concurrency: opts.concurrency ? Number(opts.concurrency) : undefined,
+      x264Preset: opts.x264Preset as "medium" | "slow" | undefined, sharedBundle: opts.sharedBundle, chunkFrames: opts.chunkFrames ? Number(opts.chunkFrames) : undefined,
       log: (m) => console.log(m),
     });
     console.log(`التجربة ${r.tag}: ${r.jobs.length} مهمة بالـcommit ${r.commit.slice(0, 8)}. للقراءة: bal worker-trial-collect --share ${opts.share} --out ${opts.out}`);
