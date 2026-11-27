@@ -4,7 +4,6 @@ import type { HzMeta } from "../horizon/meta";
 export const BD03_META: Record<string, HzMeta> = {
   "bd03-hearths": { nameAr: "البدايات ٣ · مواقد الليل", tail: 1.0, exit: "fade" },
   "bd03-hearth-house": { nameAr: "البدايات ٣ · الموقد بيت", tail: 1.0, exit: "fade" },
-  "bd03-thread-night": { nameAr: "البدايات ٣ · الخيط الأحمر على أفق الليل", tail: 1.2, exit: "fade" },
   "bd03-one-origin": { nameAr: "البدايات ٣ · أصل واحد", tail: 1.0, exit: "none" },
   "bd03-hearths-spread": { nameAr: "البدايات ٣ · المواقد تتكاثر", tail: 1.0, exit: "fade" },
   "bd03-one-umma": { nameAr: "البدايات ٣ · أمة واحدة", tail: 1.0, exit: "none" },

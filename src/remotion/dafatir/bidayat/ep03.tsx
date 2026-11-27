@@ -9,7 +9,7 @@ import { Books, Fire, GLYPHS, Qalam, Ruler } from "../lib/drawings";
 import { DateRibbon } from "../horizon/book";
 import {
   Arrow, BlankLine, C, Dot, GOLD_D, GoldSeal, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Scribble, Seal, Sheet, Stone, Tab, Thread, Txt,
-  Write, bounce, cueKit, mix, prog, reverent, rng, type BdProps, type KnotDef,
+  Write, bounce, cueKit, mix, prog, reverent, rng, type BdProps,
 } from "./kit";
 
 const HY = 600;
@@ -115,49 +115,6 @@ const HearthHouse = reverent((q) => {
     </g>
   );
   return <Leaf q={q} id="b3hh" cam={cam} L={both} R={<g>{both}<Write id="b3hh-w" x={1150} y={720} size={42} p={sons} label="أبناء آدم عليه السلام" font="tajawal" color={C.page} /></g>} />;
-});
-
-// ─── c2-s4: الخيط الأحمر على أفق الليل ───
-const ThreadNight = reverent((q) => {
-  // دفعة المحرر ١، ٢٧ نوفمبر: المشهد جملة الوصل «وعند عقدة الأجيال الأولى نقف أيضًا عند ما ثبت عن إدريس عليه السلام.» بدل «واليوم نعقد الثالثة…» (حُذفت)؛
-  // الخيط وعقدتاه ١ و٢ باسميهما على «وعند»، وحلقة الثالثة على «عقدة»، وشدّها وتوهج المواقد على «الأجيال»، والاسم على «إدريس»
-  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): الوصل «ونقف في هذه الحلقة أيضًا مع ما أخبرنا به القرآن عن إدريس عليه السلام.» (البند ٣٨٠):
-  // الخيط وعقدتاه على «ونقف»، وحلقة الثالثة على «الحلقة»، وتوهج المواقد وشدّها على «أيضا»، والاسم خارج الخيط على «إدريس»
-  const k = cueKit(q, ["ونقف"]);
-  const { t } = k;
-  const thread = k.draw(0, "ونقف", 1.4);
-  const two = k.on(0, "ونقف", 0.6);
-  const g1 = 0, l1 = two;
-  const g2 = 0, l2 = two;
-  const third = k.on(0, "الحلقة", 0.7);
-  const gens = bounce(t, k.at("أيضا"), k.end("أيضا") + 0.6);
-  // مراجعة المتخصص (الدفعة ٥): العقدة الثالثة هي «الأجيال» نفسها، واسم إدريس عليه السلام خارج الخيط بلا موضع بين آدم ونوح
-  const tie3 = k.on(0, "أيضا", 0.8);
-  const name = k.draw(0, "إدريس", 1.0);
-  const cam = k.cam({ cx: 1500, cy: 580, s: 1.3 }, [
-    [0, "الحلقة", { cx: 1100, cy: 580, s: 1.05 }, 1.2],
-    [0, "إدريس", { cx: 1300, cy: 420, s: 1.15 }, 1.0],
-  ]);
-  const knots: KnotDef[] = [
-    { x: K1, kind: "tied", q: two, glow: g1 },
-    { x: K2, kind: "tied", q: two, glow: g2 },
-    { x: K3, kind: "ring", q: third, tie: tie3, mark: 0 },
-  ];
-  const both = (
-    <g>
-      <Night />
-      {HX.map((x, i) => <Hearth key={i} x={x} q={1} t={t} dim={x < K2 && x > K3 ? -0.6 * gens : 0} s={x < K2 && x > K3 ? 1 + 0.15 * gens : 1} />)}
-      <Thread x1={1760} x2={160} y={HY} p={thread} knots={knots} sag={3} />
-    </g>
-  );
-  return (
-    <Leaf q={q} id="b3tn" cam={cam} L={both}
-      R={<g>{both}
-        <Write id="b3tn-i" x={1365} y={260} size={44} p={name} label="إدريس عليه السلام" font="tajawal" color={C.page} />
-        <Txt x={K1 - 20} y={690} size={28} q={l1} color={C.page}>خلق آدم وهبوطه</Txt>
-        <Txt x={K2 - 60} y={740} size={28} q={l2} color={C.page}>ابنا آدم</Txt>
-      </g>} />
-  );
 });
 
 // ─── c2-s7: أصل واحد ───
@@ -593,7 +550,6 @@ const Dimming = reverent((q) => {
 export const BD03_SCENES: Record<string, React.FC<BdProps>> = {
   "bd03-hearths": Hearths,
   "bd03-hearth-house": HearthHouse,
-  "bd03-thread-night": ThreadNight,
   "bd03-one-origin": OneOrigin,
   "bd03-hearths-spread": HearthsSpread,
   "bd03-one-umma": OneUmma,
