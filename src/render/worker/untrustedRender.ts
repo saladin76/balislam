@@ -12,7 +12,7 @@
  */
 import path from "node:path";
 import os from "node:os";
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { existsSync } from "node:fs";
@@ -62,6 +62,10 @@ export const installSnapshot = async (share: string, job: { media: string; input
 };
 
 export const workerOutputFor = (scriptPath: string, id: string) => path.join(path.dirname(scriptPath), "out", "worker", `${id}.mp4`);
+/** D232 (تجربة Master على قطع): مجلد القطع بجوار الناتج، يبقى بعد الانقطاع ليُستأنف منه، ويُحذف بعد النجاح */
+export const chunkDirFor = (output: string) => output.replace(/\.mp4$/i, ".chunks");
+/** D232 (تجربة الحزمة الواحدة): مفتاح الحزمة المحفوظة = الـcommit المحمَّل ولقطة الوسائط */
+export const bundleCacheKeyFor = (commit: string, media: { base: string }) => createHash("sha256").update(`${commit}\n${media.base}`).digest("hex").slice(0, 32);
 
 /** مهمة واحدة من running/: يرندرها ويكتب done/<id>/. يرمي خطأ بسببه عند أي فشل (ويكتب العامل failed/). */
 export const renderWorkerJob = async (share: string, id: string, log: (line: string) => void = () => {}) => {
@@ -202,6 +206,10 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
         ...(r.scenePreview ? { scenePreview: true } : {}),
         ...(r.draftMarks ? { draftMarks: r.draftMarks } : {}),
         ...(r.concurrency ? { concurrency: r.concurrency } : {}),
+        // تجارب التسريع (validateJobV2 يقصرها على trial): كل خيار وحده
+        ...(r.x264Preset ? { x264Preset: r.x264Preset } : {}),
+        ...(r.bundleCache ? { bundleCacheKey: bundleCacheKeyFor(head, media) } : {}),
+        ...(r.chunkFrames ? { chunks: { frames: r.chunkFrames, dir: chunkDirFor(output), key: job.id } } : {}),
         quality: r.quality, timingMode: r.timingMode, narrationGain, output,
         onProgress: (p, msg) => {
           const st = msg.startsWith("رندر") ? "رندر" : msg.replace(/…$/, "");
@@ -212,6 +220,8 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
         },
       });
       renderedAt = new Date().toISOString();
+      // القطع المحفوظة للاستئناف لا تلزم بعد نجاح الوصل
+      if (r.chunkFrames) await rm(chunkDirFor(output), { recursive: true, force: true });
       if (r.review1080) {
         progress(100, "نسخة المراجعة 1080p");
         say("نسخة المراجعة 1080p…");

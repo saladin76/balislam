@@ -246,6 +246,13 @@ export type RenderCompositionOptions = {
   onProgress?: (pct: number, msg: string) => void;
   /** D232 trials only (the worker refuses it on a studio job): browser tabs, to measure; production follows config.json. */
   concurrency?: number;
+  /** D232 speed trials only (the worker refuses them on a studio job), each measured alone; production follows config.json:
+   *  the x264 preset of a Master at the same crf, */
+  x264Preset?: "medium" | "slow";
+  /** one Remotion bundle reused by every scene of the episode (key: commit + media snapshot; src/render/bundle.ts), */
+  bundleCacheKey?: string;
+  /** and a Master rendered in resumable chunks, joined without re-encoding the picture (src/render/chunkedMaster.ts). */
+  chunks?: { frames: number; dir: string; key: string };
 };
 
 /**
@@ -269,7 +276,7 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
   // never other channels' staged voice/recitation in the Remotion bundle.
-  const bundleScope = await createIsolatedRenderBundle(media);
+  const bundleScope = await createIsolatedRenderBundle(media, o.bundleCacheKey ? { cacheKey: o.bundleCacheKey } : {});
   try {
   const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
@@ -289,29 +296,49 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   // or remove one another's partial file. Rename is only performed after success.
   const tempOutput = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
   try {
-    await renderMedia({
+    const common = {
       serveUrl,
       composition,
       inputProps,
-      codec: "h264",
+      codec: "h264" as const,
       scale: q.scale,
       crf: q.crf,
-      x264Preset: q.x264Preset,
-      audioCodec: "aac",
+      x264Preset: o.x264Preset ?? q.x264Preset,
+      audioCodec: "aac" as const,
       audioBitrate: q.audioBitrate,
       // A scene with no narration (closing card) still needs a (silent) audio track: AV review,
       // assembly and Master all require one, and concat needs the same track layout in every cut.
       enforceAudioTrack: true,
-      colorSpace: "bt709",
-      // A silent placeholder verse draft still carries an (empty) audio track, so every scene cut can be
-      // reviewed with sound and concatenated with the others.
-      ...(o.scenePreview ? { enforceAudioTrack: true } : {}),
-      outputLocation: tempOutput,
+      colorSpace: "bt709" as const,
       browserExecutable: browserExecutable(),
       ...(o.concurrency ? { concurrency: o.concurrency } : q.concurrency ? { concurrency: q.concurrency } : {}),
       ...(q.timeoutMs ? { timeoutInMilliseconds: q.timeoutMs } : {}),
-      onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
-    });
+    };
+    if (o.chunks) {
+      // D232 trial: chunks kept on the worker (resume after an interruption), then Remotion's own seamless join
+      const { renderChunked } = await import("./chunkedMaster");
+      const { combineChunks } = await import("@remotion/renderer");
+      const r = await renderChunked({
+        dir: o.chunks.dir, key: o.chunks.key, totalFrames: composition.durationInFrames, chunkFrames: o.chunks.frames, output: tempOutput, log,
+        renderChunk: async ({ range, videoOut, audioOut, onProgress }) => {
+          await renderMedia({ ...common, frameRange: range, outputLocation: videoOut, separateAudioTo: audioOut,
+            forSeamlessAacConcatenation: true, compositionStart: 0, onProgress: ({ progress }) => onProgress(progress) });
+        },
+        combine: ({ videoFiles, audioFiles, outputLocation, framesPerChunk, totalFrames }) => combineChunks({
+          outputLocation, videoFiles, audioFiles, codec: "h264", fps: composition.fps, framesPerChunk, preferLossless: false,
+          compositionDurationInFrames: totalFrames, audioCodec: "aac", audioBitrate: q.audioBitrate }),
+      });
+      log(100, `رندر: ${r.chunks} قطعة (${r.reused} محفوظة من قبل، ${r.rendered} رُندرت الآن)`);
+    } else {
+      await renderMedia({
+        ...common,
+        // A silent placeholder verse draft still carries an (empty) audio track, so every scene cut can be
+        // reviewed with sound and concatenated with the others.
+        ...(o.scenePreview ? { enforceAudioTrack: true } : {}),
+        outputLocation: tempOutput,
+        onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
+      });
+    }
     // المرحلة A (المهمة ٣): ما يُنشر (الحلقة والشورتس) بعلو −14 LUFS بقياسين وكسب خطي (src/studio/quality/normalize.ts)
     if (o.quality === "master" && !o.scenePreview) {
       const { normalizeProgramLoudness } = await import("../studio/quality/normalize");
