@@ -207,12 +207,14 @@ const StraightLine = reverent((q) => {
 
 // ─── c1-s11 / c1-s42: رأس الحديث (نص المراجعة العلمية، الدفعة ٥) ───
 const HadithLead = reverent((q) => {
-  const k = cueKit(q, ["قدسي", "هدي"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): c1-s42 صارت «وفي باب تعظيم الأنبياء علّمنا النبي ﷺ ألّا نتجاوز الحد في الثناء عليه. قال:» (البند ٣٣٤):
+  // التوقيع «تعظيم» بدل «هدي»، وعلامة التحذير على «نتجاوز» بدل «ونجتنب»
+  const k = cueKit(q, ["قدسي", "تعظيم"]);
   const { S } = k;
   const name = S === 0 ? k.draw(0, "النبي", 0.9) : k.draw(1, "النبي", 0.9);
   const tab = S === 0 ? k.on(0, "قدسي", 0.6) : k.on(1, "قال", 0.6);
-  const warn = k.draw(1, "ونجتنب", 0.8);
-  const cam = k.cam(NEUTRAL, [[0, "النبي", { cx: 1365, cy: 420, s: 1.2 }, 1.0], [1, "ونجتنب", { cx: 1300, cy: 420, s: 1.2 }, 1.0]]);
+  const warn = k.draw(1, "نتجاوز", 0.8);
+  const cam = k.cam(NEUTRAL, [[0, "النبي", { cx: 1365, cy: 420, s: 1.2 }, 1.0], [1, "نتجاوز", { cx: 1300, cy: 420, s: 1.2 }, 1.0]]);
   return (
     <Leaf q={q} id="b4hl" cam={cam}
       L={S === 0 ? <Ink d="M960 620 H160" p={1} w={6} c={C.ink} /> : null}
@@ -263,11 +265,13 @@ const Veer = reverent((q) => {
 // ─── c1-s15 / c1-s17 / c1-s18: الخانات الخمس (بعد المراجعة العلمية، الدفعة ٥ البند ١١٩: نقف عند القرآن، والأثر المختلف في إسناده لا يُروى) ───
 const SLOT_X = [1660, 1510, 1365, 1220, 1070];
 const FiveSlots = reverent((q) => {
-  const k = cueKit(q, ["يوصي", "يتواصون", "نشأت"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): c1-s15 صارت «يذكر القرآن خمسةً من معبودات قوم نوح عليه السلام، ويخبرنا أنهم تواصوا بالتمسّك بها.»،
+  // وحُذفت جملة c1-s17 المكررة (البند ٣٣٣)، فلا مرحلة ثانية في الخطة؛ والسطور الفارغة على «معبودات» بدل «أسماء»
+  const k = cueKit(q, ["معبودات", "يتواصون", "نشأت"]);
   const { t, S } = k;
   const seal = k.on(0, "القرآن");
   const boxes = S === 0 ? prog(t, k.at("خمسة") - 0.05, k.at("خمسة") + 1.2) : 1;
-  const lines = S === 0 ? k.draw(0, "أسماء", 1.0) : 1;
+  const lines = S === 0 ? k.draw(0, "معبودات", 1.0) : 1;
   const blink = S === 1 ? bounce(t, k.at("أسماء"), k.at("أسماء") + 1.0) : 0;
   const shine = S === 1 ? bounce(t, k.at("القرآن"), k.at("القرآن") + 1.0) : S === 2 ? bounce(t, k.at("القرآن"), k.at("القرآن") + 1.2) : 0;
   const label = k.on(0, "قوم");
@@ -339,7 +343,9 @@ const KnotPlaced = reverent((q) => {
 
 // ─── c1-s39..s41: ماذا بقي؟ ───
 const WhatRemains = reverent((q) => {
-  const k = cueKit(q, ["العقدة", "الانحراف", "محبة"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): c1-s41 صارت «وبقي أن الآية لا تفصّل كيف بدأت عبادة كل واحد منها.» بدل «وبقي أن محبة الصالحين حق، لكن المبالغة فيهم باب خطير.» (البند ٣٣٤):
+  // السطر ٢ «الآية لا تفصّل» على «الآية»، و«كيف بدأت؟» على «كيف»، وخط تحتها بالحبر الخافت على «واحد»؛ حُذفت علامة الصح والخط الأحمر
+  const k = cueKit(q, ["العقدة", "الانحراف", "تفصل"]);
   const { t, S } = k;
   const title = k.draw(0, "بقي", 0.9);
   const knot = k.on(0, "العقدة", 0.6);
@@ -348,12 +354,11 @@ const WhatRemains = reverent((q) => {
   const haqq = S === 1 ? bounce(t, k.at("الحق"), k.at("الحق") + 1.0) : 0;
   const wide = k.on(1, "الانحراف", 1.0);
   const circ = k.draw(1, "يصرفه", 0.8);
-  const l2 = k.draw(2, "محبة", 0.9);
-  const ok = k.draw(2, "حق", 0.6);
-  const mub = k.draw(2, "المبالغة", 0.8);
-  const red = k.draw(2, "خطير", 0.7);
+  const l2 = k.draw(2, "الآية", 0.9);
+  const mub = k.draw(2, "كيف", 0.8);
+  const red = k.draw(2, "واحد", 0.7);
   const ang = 3 + 32 * wide;
-  const cam = k.cam(NEUTRAL, [[1, "الانحراف", { cx: 1365, cy: 440, s: 1.25 }, 1.0], [2, "محبة", { cx: 1365, cy: 640, s: 1.2 }, 1.0]]);
+  const cam = k.cam(NEUTRAL, [[1, "الانحراف", { cx: 1365, cy: 440, s: 1.25 }, 1.0], [2, "الآية", { cx: 1365, cy: 640, s: 1.2 }, 1.0]]);
   return (
     <Leaf q={q} id="b4wr" cam={cam}
       R={<g>
@@ -369,10 +374,9 @@ const WhatRemains = reverent((q) => {
           </g>
         ) : null}
         <Txt x={1690} y={640} size={44} q={l2} font="amiri">٢</Txt>
-        <Write id="b4wr-2" x={1420} y={640} size={42} p={l2} label="محبة الصالحين" font="tajawal" />
-        <Ink d="M1210 620 L1226 640 L1256 604" p={ok} w={6} c={GOLD_D} />
-        <Write id="b4wr-3" x={1440} y={740} size={42} p={mub} label="المبالغة" font="tajawal" color={EMBER} />
-        <Ink d="M1530 760 H1350" p={red} w={4} c={C.ribbon} />
+        <Write id="b4wr-2" x={1420} y={640} size={42} p={l2} label="الآية لا تفصّل" font="tajawal" />
+        <Write id="b4wr-3" x={1440} y={740} size={42} p={mub} label="كيف بدأت؟" font="tajawal" color={C.inkSoft} />
+        <Ink d="M1530 760 H1350" p={red} w={4} c={C.inkSoft} />
       </g>} />
   );
 });

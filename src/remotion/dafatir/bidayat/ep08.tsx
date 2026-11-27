@@ -293,15 +293,17 @@ const WoodShard = reverent((q) => {
 
 // ─── c1-s15: علامة التحديد الضائعة ───
 const Crosshair = reverent((q) => {
-  const k = cueKit(q, ["بالضبط"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): المشهد على «سمّى القرآن الجودي، ولا نعلم من الآية موضعه على خريطة اليوم. ومن عبرة القصة أن السفينة استقرّت حين قضى الله الأمر.» (البند ٣٤٥)،
+  // وحُذف سؤال «وقد تسأل: وماذا يضرّ…؟» ومعه «؟»: علامة التصويب على «موضعه»، وتهدأ على «خريطة»، وتبهت على «اليوم»، و«العبرة» على «عبرة»
+  const k = cueKit(q, ["سمى"]);
   const { t } = k;
-  const qm = k.on(0, "تسأل");
-  const cross = k.draw(0, "بالضبط", 0.8);
-  const calm = k.on(0, "يضر#2", 0.8);
-  const fade = k.on(0, "يذكر", 1.2);
-  const ibra = k.draw(0, "العبرة", 0.9);
+  const qm = 0;
+  const cross = k.draw(0, "موضعه", 0.8);
+  const calm = k.on(0, "خريطة", 0.8);
+  const fade = k.on(0, "اليوم", 1.2);
+  const ibra = k.draw(0, "عبرة", 0.9);
   const pulse = (1 - calm) * Math.sin(t * 8) * 0.08;
-  const cam = k.cam(NEUTRAL, [[0, "بالضبط", { cx: PX, cy: 420, s: 1.3 }, 1.0], [0, "العبرة", { cx: 800, cy: 480, s: 1.05 }, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "موضعه", { cx: PX, cy: 420, s: 1.3 }, 1.0], [0, "عبرة", { cx: 800, cy: 480, s: 1.05 }, 1.2]]);
   return (
     <Leaf q={q} id="b8ch" cam={cam}
       L={<g><Q x={300} y={260} size={90} q={qm} /><Write id="b8ch-i" x={560} y={520} size={80} p={ibra} label="العبرة" /></g>}
@@ -319,21 +321,23 @@ const Crosshair = reverent((q) => {
 // ─── c1-s16: الماء يقف ───
 const HILLS = [300, 520, 760, 1100, 1350, 1600];
 const WaterHalt = reverent((q) => {
-  const k = cueKit(q, ["أغرق"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): «وانحسر الماء بأمر الله، ونجّى الله نوحًا عليه السلام ومن كان معه في السفينة.» بدل «العبرة في أن الماء الذي أغرق المكذّبين… وأن السفينة الصغيرة نجت…» (البند ٣٤٦):
+  // خط الماء على «الماء» ويقف على «بأمر» (قبل النافذة)، والقارب على «السفينة» بلا وصف الحجم، وحُذف غياب التلال والنقاط الغارقة (لا «ما حولها»)
+  const k = cueKit(q, ["وانحسر"]);
   const { t } = k;
   const line = k.draw(0, "الماء", 0.9);
-  const sink = k.on(0, "أغرق", 1.0);
+  const sink = 0;
 
-  const stopT = k.at("توقف");
+  const stopT = k.at("بأمر");
   const waveT = Math.min(t, stopT + 0.4);
   const amp = 10 * (1 - prog(t, stopT, stopT + 0.4));
-  const boat = k.on(0, "الصغيرة", 0.6);
-  const saved = bounce(t, k.at("نجت"), k.at("نجت") + 1.0);
-  const down = k.on(0, "غرق", 1.0);
+  const boat = k.on(0, "نوحا", 0.6);
+  const saved = bounce(t, k.at("السفينة"), k.at("السفينة") + 1.0);
+  const down = 0;
   // لا يمتد خط الماء إلى حافتي الدفتر (لا جزم بعموم الطوفان، الدفعة ٦ اتساقًا مع البند ١٣٨)
   const half = 0.62;
   const BX = 1300;
-  const cam = k.cam(NEUTRAL, [[0, "الصغيرة", { cx: BX, cy: 420, s: 1.3 }, 1.0], [0, "غرق", { cx: BX - 50, cy: 440, s: 1.15 }, 1.0]]);
+  const cam = k.cam(NEUTRAL, [[0, "نوحا", { cx: BX, cy: 420, s: 1.3 }, 1.0], [0, "السفينة", { cx: BX - 50, cy: 440, s: 1.15 }, 1.0]]);
   const both = (
     <g>
       <Ink d="M1760 720 H160" p={1} w={3} c={C.inkSoft} />
