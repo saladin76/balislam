@@ -44,6 +44,12 @@ export type PackageOptions = {
   stage?: "episode" | "shorts";
   /** جودة الرندر: master لما يُنشر (الافتراضي)، preview للمعاينة بلا صوت */
   quality?: Quality;
+  /**
+   * D232 (phase 2): the Master file comes from the Windows worker, already verified on the Mac (worker-import). It
+   * replaces the render alone: it places the verified bytes at the given path and returns it; every other step of this
+   * package (texts, kit and trace checks, thumbnails, motion meter, render-info, handoff set) is exactly the Mac's.
+   */
+  masterFrom?: (episodePath: string) => Promise<string>;
   onProgress?: (msg: string) => void;
 };
 
@@ -174,7 +180,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
         await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
       }
       log(`الحلقة بجودة: ${q.label}`);
-      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, outFile: episodePath, onProgress: progress("الحلقة") });
+      const episodeFile = opts.masterFrom && quality === "master" ? await opts.masterFrom(episodePath)
+        : await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, outFile: episodePath, onProgress: progress("الحلقة") });
       files.push(path.basename(episodeFile));
       motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape", await exemptForRender(plan, media)) });
       log(motionSummary(motion[0]!.report, "الحلقة"));
