@@ -493,23 +493,20 @@ const BlessedAbode = reverent((q) => {
 
 // ─── c1-s26: دفتر الخسارة يُغلق ───
 const Ledger = reverent((q) => {
+  // الدفعة ١٨ البند ٤٠٠: «ومن أدب المؤمن حين ينجو أن يحمد الله على النجاة، ويسأله البركة فيما يأتي.» بدل «أن أول ما يفعله المؤمن… ليس أن يحسب ما خسر…»:
+  // حُذف عمود الحساب وطيّه (كانا على «يحسب ما خسر» و«ليس»)، والباقي كما كان
   const k = cueKit(q, ["خريطة"]);
   const { t } = k;
   const map = k.on(0, "خريطة", 0.8);
   const step = k.on(0, "ينجو", 1.0);
-  const col = k.span(0, "يحسب", "خسر", 0.8);
-  const fold = k.on(0, "ليس", 0.9);
   const hamd = k.draw(0, "يحمد", 0.9);
   const light = k.draw(0, "البركة", 1.2);
-  const cam = k.cam(NEUTRAL, [[0, "يحسب", { cx: 560, cy: 480, s: 1.2 }, 1.0], [0, "يحمد", { cx: 1250, cy: 480, s: 1.15 }, 1.0], [0, "البركة", NEUTRAL, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "ينجو", { cx: 560, cy: 480, s: 1.2 }, 1.0], [0, "يحمد", { cx: 1250, cy: 480, s: 1.15 }, 1.0], [0, "البركة", NEUTRAL, 1.2]]);
   return (
     <Leaf q={q} id="b8lg" cam={cam}
       L={<g>
         <Water y={mix(780, 830, step)} t={t} amp={3} />
         <MiniMap x={mix(560, 300, map)} y={mix(400, 200, map)} q={map} s={0.8 - 0.3 * map} />
-        <Sheet x={560} y={520} w={300 * (1 - 0.7 * fold)} h={360} q={col > 0 ? 1 - 0.8 * fold : 0}>
-          <Scribble x={120 * (1 - 0.7 * fold)} y={-140} w={220 * (1 - 0.7 * fold)} n={8} p={col} gap={38} seed={7} c={C.inkSoft} o={0.7} />
-        </Sheet>
       </g>}
       R={<g>
         <Water y={mix(780, 830, step)} t={t} amp={3} />

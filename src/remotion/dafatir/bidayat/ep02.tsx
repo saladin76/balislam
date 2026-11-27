@@ -227,20 +227,20 @@ const GoldSealSmall: React.FC<{ x: number; y: number; q: number; label?: string 
   );
 
 // ─── c1-s17..s19: القماش في الريح، والشق الذي وقف (نص المراجعة العلمية، الدفعة ٥) ───
+// الدفعة ١٨ البند ٣٩٦: c1-s19 «وجاء جواب أخيه واضحًا: قبول القربان مرتبط بالتقوى.» بدل «فالمشكلة إذن… في قلبه هو»: الشق يتراجع على «وجاء»، والدائرة عند حجر الأخ على «أخيه»، والكاميرا إلى «التقوى» على «بالتقوى»؛ وحُذفت حلقة «قلبه» (لا تعيين لحال باطنة)
 const WindCloth = reverent((q) => {
-  const k = cueKit(q, ["فهدد", "فأجابه", "فالمشكلة"]);
+  const k = cueKit(q, ["فهدد", "فأجابه", "وجاء"]);
   const { t, S } = k;
   const wind = S === 0 ? k.on(0, "يتقبل", 0.8) : S === 1 ? 1 - k.on(1, "فأجابه", 1.0) : 0;
-  const crack = S === 2 ? 1 - prog(t, k.at("فالمشكلة", 1.2) - 0.05, k.at("فالمشكلة", 1.2) + 1.2) : k.draw(0, "بالقتل", 1.2);
+  const crack = S === 2 ? 1 - prog(t, k.at("وجاء", 1.2) - 0.05, k.at("وجاء", 1.2) + 1.2) : k.draw(0, "بالقتل", 1.2);
   const shade = 0.25 + 0.25 * k.on(1, "أخوه", 0.8);
   const taqwa = k.draw(1, "التقوى", 1.0);
   const notHere = S === 2 ? bounce(t, k.at("أخيه"), k.at("أخيه") + 1.1) : 0;
-  const heart = k.draw(2, "قلبه", 0.8);
   const cam = k.cam(NEUTRAL, [
     [0, "يتقبل", { cx: 620, cy: 650, s: 1.3 }, 1.0],
     [0, "بالقتل", { cx: 800, cy: 700, s: 1.15 }, 1.0],
     [1, "أخوه", { cx: 1320, cy: 640, s: 1.3 }, 1.0],
-    [2, "قلبه", { cx: 640, cy: 680, s: 1.35 }, 1.0],
+    [2, "بالتقوى", { cx: 1320, cy: 600, s: 1.3 }, 1.0],
   ]);
   const cr = crackPath(STONE_L + 110, 780, 960, 790, 31, 10, 12);
   const both = (
@@ -249,7 +249,6 @@ const WindCloth = reverent((q) => {
       <Offerings stones={1} cloths={1} windL={wind} t={t} shadeR={shade} />
       <Ink d={cr} p={crack} w={5} c={C.ink} />
       <Ring x={STONE_R} y={790} r={70} p={notHere} dash c={C.inkSoft} />
-      <Ring x={STONE_L + 110} y={780} r={26} p={heart} w={4} c={EMBER} />
     </g>
   );
   return <Leaf q={q} id="b2wc" cam={cam} L={both} R={<g>{both}<Write id="b2wc-t" x={STONE_R} y={560} size={54} p={taqwa} label="التقوى" /></g>} />;
