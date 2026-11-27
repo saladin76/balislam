@@ -24,7 +24,7 @@ import type { SentenceActionOptions } from "./sentenceVoice";
  */
 /** بوابات أي طلب صوت مدفوع لجملة (التوليد وإعادة نطق كلمة): الآية، التشكيل، الاعتمادات، النبرة، المفتاح، تدريب الصوت */
 export const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions, corrections: SentenceCorrection[] = s.corrections ?? [], mode: { current?: boolean } = {}) => {
-  if (s.kind === "basmala") throw new Error("البسملة يسجلها صاحب القناة بصوته ولا ينطقها الصوت المستنسخ: «ارفع التسجيل» في صفها.");
+  if (s.kind === "basmala") throw new Error("البسملة لا تُولَّد أبدًا: تُستعمل نسختها المعتمدة الثابتة (D239) أو تسجيل الحلقة المعتمد.");
   if (s.kind !== "narration") throw new Error("هذه الجملة نص قرآني؛ الصوت المستنسخ لا يتلو القرآن أبدًا. انقلها إلى مشهد آية وارفع تلاوتها.");
   const cov = coverageOf(ctx, s.id, s.text, corrections, sayOf(ctx, s));
   if (!cov.ok) {
@@ -38,6 +38,9 @@ export const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, li
     const sb = storyboardStatus(ctx.plan, await loadStoryboard(ctx.scriptPath));
     const blocked = unapprovedScenes(sb, [scene.id]);
     if (blocked.length) throw new Error(storyboardBlockMessage(blocked, sb));
+    // D234: لا صوت لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الاستثناءات الصريحة في EDITOR_GATE_EXCEPTIONS، فارغة اليوم)
+    const { assertEditorPassed } = await import("../studio/scriptPipelineStore");
+    await assertEditorPassed(ctx.scriptPath, { voiceScenes: [scene.id] });
   }
   const v = voiceOf(ctx, scene, list, s, mode);
   if (!v.tone) throw new Error("اختر نبرة لهذه الجملة، أو نبرة الحلقة (تحرير المشهد ← «نبرة الصوت في الحلقة») فتسري على كل جملة بلا نبرة خاصة.");

@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
 import { encodeWav } from "../src/remotion/dafatir/audio/compose";
+import { passEditor } from "./fixtures/editorPass";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "zubdat-alkutub";
@@ -61,6 +62,7 @@ beforeAll(async () => {
   // the owner's state: the scene recorded on its old text and adopted into sentences, then the text changed
   const old = `${T1} ${T2_OLD} ${T3}`;
   await writeFile(path.join(epDir, "script.md"), `---\ntitle: "اختبار"\nepisode: "984"\n---\n${old}\n`);
+  await passEditor(path.join(epDir, "script.md"));
   await writeFile(path.join(epDir, "tashkeel.md"), `${old}\n${T2_NEW}\n`);
   await writePlan(old);
   const ws: { word: string; start: number; end: number }[] = [];
@@ -80,6 +82,7 @@ beforeAll(async () => {
   expect(adopt.status).toBe(200);
   await writePlan(`${T1} ${T2_NEW} ${T3}`);
   await writeFile(path.join(epDir, "script.md"), `---\ntitle: "اختبار"\nepisode: "984"\n---\n${T1} ${T2_NEW} ${T3}\n`);
+  await passEditor(path.join(epDir, "script.md"));
 }, 60_000);
 afterAll(async () => {
   await new Promise<void>((resolve) => server?.close(() => resolve()));

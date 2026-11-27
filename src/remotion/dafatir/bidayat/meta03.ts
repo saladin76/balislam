@@ -1,12 +1,10 @@
-/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 003 — الأجيال الأولى» (بلا React). الخطة: channels/dafatir-alzaman/episodes/003-al-ajyal-al-ula/scenes.md */
+/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 003 — الأجيال الأولى» (بلا React). الخطة: channels/dafatir-alzaman/episodes/002-ibna-adam/scenes.md (الجزء الثاني، صفوف c2-…؛ دُمجت 003 في 002 بقرار المالك ٢٧ نوفمبر) */
 import type { HzMeta } from "../horizon/meta";
 
 export const BD03_META: Record<string, HzMeta> = {
   "bd03-hearths": { nameAr: "البدايات ٣ · مواقد الليل", tail: 1.0, exit: "fade" },
   "bd03-hearth-house": { nameAr: "البدايات ٣ · الموقد بيت", tail: 1.0, exit: "fade" },
-  "bd03-question": { nameAr: "البدايات ٣ · سؤال فوق المواقد", tail: 1.0, exit: "fade" },
   "bd03-thread-night": { nameAr: "البدايات ٣ · الخيط الأحمر على أفق الليل", tail: 1.2, exit: "fade" },
-  "bd03-same-time": { nameAr: "البدايات ٣ · في الزمن نفسه: ليل بلا أضواء", tail: 1.2, exit: "turn" },
   "bd03-one-origin": { nameAr: "البدايات ٣ · أصل واحد", tail: 1.0, exit: "none" },
   "bd03-hearths-spread": { nameAr: "البدايات ٣ · المواقد تتكاثر", tail: 1.0, exit: "fade" },
   "bd03-one-umma": { nameAr: "البدايات ٣ · أمة واحدة", tail: 1.0, exit: "none" },

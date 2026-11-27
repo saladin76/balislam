@@ -2,8 +2,7 @@
 import type { HzMeta } from "../horizon/meta";
 
 export const BD06_META: Record<string, HzMeta> = {
-  "bd06-dryland": { nameAr: "البدايات ٦ · أرض يابسة إلى الأفق (لا بحر)", tail: 1.0, exit: "fade" },
-  "bd06-plank": { nameAr: "البدايات ٦ · لوح واحد ملقًى على اليابسة", tail: 1.0, exit: "fade" },
+  "bd06-plank": { nameAr: "البدايات ٦ · لوح واحد وطريق المارّين", tail: 1.0, exit: "fade" },
   "bd06-thread-wood": { nameAr: "البدايات ٦ · الخيط على حافة ورقة البنّاء وعقدة من خشب", tail: 1.0, exit: "fade" },
   "bd06-seals-tray": { nameAr: "البدايات ٦ · الأختام الثلاثة على الهامش", tail: 1.0, exit: "fade" },
   "bd06-pile": { nameAr: "البدايات ٦ · كومة أوراق وورقة صغيرة بيقين", tail: 1.0, exit: "fade" },

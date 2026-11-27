@@ -19,6 +19,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createServer, type Plugin, type ViteDevServer } from "vite";
 import { balApi } from "../app/server/api";
+import { passEditor } from "./fixtures/editorPass";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -130,6 +131,7 @@ beforeAll(async () => {
 
   await writeFile(path.join(epDir, "script.md"),
     `---\ntitle: "تجهيز كل المشاهد"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${scenes.map((s) => s.narration).join("\n")}\n`);
+  await passEditor(path.join(epDir, "script.md"));
   await writeFile(path.join(epDir, "tashkeel.md"), "الصَّبْرُ مِفْتَاحُ الفَرَجِ. وَالشُّكْرُ يَحْفَظُ النِّعْمَةَ. وَالرِّضَا رَاحَةُ القَلْبِ.\n");
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify(planOf(), null, 2));
   // Only the first scene has its narration already; the other two need voice.
@@ -199,6 +201,7 @@ describe("«اعتمد التجهيز»: one button, both ledger records in orde
     expect(blockers.body.scriptErrors).toBeGreaterThan(0);
     expect((await approvePrep(body)).status).toBe(409);
     await writeFile(path.join(epDir, "script.md"), validScript());
+    await passEditor(path.join(epDir, "script.md"));
     s = await state();
     const ok = { ...body, scriptSha256: s.script.sha256 };
     expect((await call("GET", `episodes/${EP}/approve-preparation`)).body.scriptErrors).toBe(0);

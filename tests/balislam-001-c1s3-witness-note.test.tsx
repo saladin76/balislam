@@ -1,10 +1,9 @@
 import React from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { SHOTS } from "../src/remotion/illus/shots";
 import { FRUIT_PAN, OCCLUDER, SX, WEIGHT_PAN_BOX } from "../src/remotion/illus/shots/ep001";
 import { GROUND } from "../src/remotion/illus/world";
-import { ctxFor, framingIssues, planScenes } from "./helpers/ep001Shots";
+import { ctxFor, framingIssues, planScenes, STORY_SHOTS } from "./helpers/ep001Shots";
 
 /**
  * ملاحظة المالك nce96d54edd (١٥ نوفمبر، بالإسلام 001، c1-s3 «نظر الأول إلى الميزان، وقال: هذا ظلم»):
@@ -16,7 +15,7 @@ const scene = planScenes().find((s) => s.props.shot === "ep001-scale-witness1")!
 const inSack = (x: number, y: number) => ((x - OCCLUDER.cx) / OCCLUDER.rx) ** 2 + ((y - OCCLUDER.cy) / OCCLUDER.ry) ** 2 <= 1;
 const markup = (frame: number, portrait = false) => {
   const c = ctxFor(scene, portrait);
-  return renderToStaticMarkup(<svg>{SHOTS[scene.props.shot!]!.render({ frame, fps: 30, dur: c.dur, portrait, at: c.at }).world}</svg>);
+  return renderToStaticMarkup(<svg>{STORY_SHOTS[scene.props.shot!]!.render({ frame, fps: 30, dur: c.dur, portrait, at: c.at }).world}</svg>);
 };
 const startOf = (bare: string) => {
   const c = ctxFor(scene, false);

@@ -21,3 +21,9 @@ export const quietTestGit = (env: NodeJS.ProcessEnv = process.env) => {
   env[`GIT_CONFIG_VALUE_${n}`] = "false";
 };
 quietTestGit();
+
+/**
+ * D239: نسخة البسملة المعتمدة المثبّتة على جهاز المالك (`assets/recitations/basmala/`) لا تدخل أي اختبار: الاختبارات
+ * تقيس السلوك نفسه على كل جهاز، ومن يحتاج نسخة يضع مساره بنفسه (tests/basmala-approved-clip*.test.ts).
+ */
+process.env.BAL_BASMALA_CLIP = "/nonexistent/bal-test/approved-basmala-v4.mp3";

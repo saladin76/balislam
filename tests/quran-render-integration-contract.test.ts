@@ -20,6 +20,7 @@ const script = (text = verse, reference = "النجم 39") =>
 const sha = (b: Uint8Array | string) => createHash("sha256").update(b).digest("hex");
 const owned: string[] = [];
 afterEach(async () => {
+  delete process.env.BAL_CHANNELS_DIR;
   for (const folder of owned.splice(0)) await rm(folder, { recursive: true, force: true });
 });
 
@@ -36,6 +37,11 @@ const fixture = async () => {
   await mkdir(originals, { recursive: true });
   await mkdir(renderDir, { recursive: true });
   await writeFile(scriptPath, script());
+  // D237 أوقف التلاوة في القنوات الثلاث (`verse.recitation: "none"`)؛ هذا العقد يحرس الآلية الكامنة نفسها
+  // (تسجيل بشري مراجَع ببايتاته، بلا قارئ خارجي) لقناة تطلب التلاوة صراحةً، فتُختبر على نسخة بـ «required».
+  const real = JSON.parse(await readFile(path.join(__dirname, "..", "channels", "balislam", "channel.json"), "utf8"));
+  await writeFile(path.join(root, "balislam", "channel.json"), JSON.stringify({ ...real, verse: { ...real.verse, recitation: "required" } }));
+  process.env.BAL_CHANNELS_DIR = root;
   const mp3 = path.join(rec, "test.mp3");
   execFileSync("ffmpeg", ["-nostdin", "-loglevel", "error", "-f", "lavfi",
     "-i", "sine=frequency=411:duration=1.2", "-c:a", "libmp3lame", mp3]);

@@ -19,7 +19,8 @@ import { normalizeArabic } from "../src/script/quranMeta";
  * إلى ما بعدها بربع ثانية، كما في tests/horizon-sacred.test.tsx لـ001)، وحدث في كل جملة.
  */
 const DIR = "channels/dafatir-alzaman/episodes";
-const EPS = ["002", "003", "004", "005", "006", "007", "008", "009"];
+// دمج الحلقات أزواجًا (قرار المالك ٢٧ نوفمبر): 003 و005 و007 و009 صارت الجزء الثاني من 002 و004 و006 و008 (صفوف c2-…)
+const EPS = ["002", "004", "006", "008"];
 const dirOf = (e: string) => `${DIR}/${readdirSync(DIR).find((d) => d.startsWith(`${e}-`))!}`;
 const allRows: Record<string, BdPlanRow[]> = Object.fromEntries(EPS.map((e) => [e, parseBidayatPlan(readFileSync(`${dirOf(e)}/scenes.md`, "utf8"))]));
 // المشاهد التي لم تُبنَ لقطتها عمدًا (BD_WORDS_ONLY) تُعرض بالكلمات وحدها ولا تُختبر رسمًا

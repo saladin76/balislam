@@ -19,7 +19,7 @@ export const SentenceListRow: React.FC<SentencesPart & { s: SentenceScene; r: Se
   const anyBusy = Boolean(busy);
   const canGen = r.kind === "narration" && !noKey && r.tashkeel.ok && !anyBusy;
   const genLabel = b("gen") ? "جارٍ التوليد…" : r.audio && r.status !== "missing" ? "أعد التوليد" : "ولّد";
-  const why = r.kind === "basmala" ? "البسملة بصوتك: ارفع التسجيل تحت الفقرة؛ لا ينطقها الصوت المستنسخ."
+  const why = r.kind === "basmala" ? "البسملة بصوتك: نسختها المعتمدة أو تسجيل الحلقة (تحت الفقرة)؛ لا تُولَّد أبدًا."
     : r.kind === "verse" ? "نص قرآني: الصوت المستنسخ لا يتلوه."
     : !r.tashkeel.ok ? `التشكيل ${ar(Math.round(r.tashkeel.coverage * 100))}٪ (الحد ٩٨٪): ${r.tashkeel.missing.slice(0, 5).join("، ")}`
     : null;

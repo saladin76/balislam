@@ -1,3 +1,11 @@
+/**
+ * خارج الاستعمال (قرار المالك، ٢٧ نوفمبر): «بالإسلام» موقوفة وتُبنى من جديد (D235)، فهذه اللقطات محفوظة لا محذوفة،
+ * ولا تُسجَّل في SHOTS (index.tsx)، فلا تظهر في مكتبة الاستوديو ولا في قائمة لقطات «حكايات الحارة»،
+ * ومشهد يذكر معرّف ep001-* يُرندر بالإخراج العام. اختباراتها تستورد EP001_SHOTS من هنا مباشرة.
+ * للاستعادة (بقرار المالك وحده): أعد في index.tsx استيراد EP001_SHOTS و`Object.assign(SHOTS, EP001_SHOTS);`
+ * قبل SHOT_IDS، واحذف الاستثناء المسمّى ARCHIVED_EP001 في tests/illus-direction.test.ts. مفاتيحها في legacy من
+ * templates/approvals.json باقية كما هي.
+ */
 import React from "react";
 import { ID, darken, mix } from "../palette";
 import { Figure, LOOKS, POSES, frontHand, walkPose, type PoseName } from "../Figure";

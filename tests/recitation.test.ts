@@ -18,6 +18,9 @@ beforeAll(() => {
   // الحلقة التجريبية للاختبارات (القنوات نفسها تبدأ بلا حلقات)
   cpSync(path.join(__dirname, "fixtures", "episodes", "000-demo"), path.join(tmp, "balislam", "episodes", "000-demo"), { recursive: true });
   const ch = path.join(tmp, "balislam", "channel.json");
+  // D237 أوقف التلاوة في القنوات الثلاث؛ هذه الاختبارات تحرس الآلية الكامنة لقناة تطلبها صراحةً («required»).
+  const cfg = JSON.parse(readFileSync(ch, "utf8"));
+  writeFileSync(ch, JSON.stringify({ ...cfg, verse: { ...cfg.verse, recitation: "required" } }));
   // The test channel has no selected online reciter; only reviewed uploads may render.
   process.env.BAL_CHANNELS_DIR = tmp;
   process.env.BAL_CHANNEL = "balislam";

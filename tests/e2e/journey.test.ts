@@ -28,7 +28,7 @@ import { isOwnerContentPath } from "../../scripts/contentPaths.mjs";
 import { pushContentOnce, pendingContent } from "../../app/server/contentSync";
 import { safeFastForward, readConflicts, resolveConflict } from "../../app/server/safeUpdate";
 import { CASES, selectedChannels, type ChannelCase } from "./channels";
-import { ffmpeg, fixturesDir, generateVoiceConfirmed, git, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
+import { ffmpeg, fixturesDir, generateVoiceConfirmed, git, probe, sha256File, startStudio, tree, waitFor, type Studio, passEditor } from "./harness";
 
 const EP = "001";
 const CROSS = { origin: "https://evil.example" };
@@ -139,6 +139,7 @@ for (const channel of selectedChannels()) {
       expect((await st.call("POST", "episodes", { episode: EP, slug: "again", domain: c.domain, title: c.title })).status, "duplicate number").toBe(409);
       const script = await st.call("PUT", `episodes/${EP}/script`, { text: await fx("script.md") });
       ok("script", script);
+      await passEditor(st, EP); // D234
       expect(script.body.check.ok, `script check: ${JSON.stringify(script.body.check.issues)}`).toBe(true);
       expect(script.body.check.issues.filter((i: any) => i.level === "error")).toEqual([]);
       ok("research", await st.call("PUT", `episodes/${EP}/research`, { text: await fx("research.md") }));
@@ -314,6 +315,7 @@ for (const channel of selectedChannels()) {
       expect(scriptText).toContain(c.edit.from);
       const beforeEdit = await state("before edit");
       ok("edit script", await st.call("PUT", `episodes/${EP}/script`, { text: scriptText.replace(c.edit.from, c.edit.to) }));
+      await passEditor(st, EP); // D234: the edited sentence goes back to the editor, who passes it
       s = await state("after edit");
       for (const x of s.scenes) {
         const was = beforeEdit.scenes.find((y: any) => y.id === x.id);

@@ -241,15 +241,23 @@ export const LexiconBlock: React.FC<{ m: SentencesModel }> = ({ m }) => {
 export const BasmalaBlock: React.FC<SentencesPart & { s: SentenceScene }> = ({ m, p, s }) => {
   const { recs, load } = m;
   const { episodeId, channelId, onChanged } = p;
-  return s.rows.some((x) => x.kind === "basmala") ? (
+  if (!s.rows.some((x) => x.kind === "basmala")) return null;
+  // D239: the owner's one approved basmala clip serves every episode without its own recording; never generated.
+  if (recs?.basmalaClip?.installed) return (
     <div className="sv-basmala" role="group" aria-label="البسملة بصوتك">
-      <p className="sp-hint">البسملة تُعامَل كالآية: تسجّلها بصوتك ولا ينطقها الصوت المستنسخ. ارفع التسجيل واعتمده؛ وحتى ذلك تبقى مكانها صامتة بعلامة «التلاوة تُضاف لاحقًا»، وبقية الجمل تُولَّد كالمعتاد.</p>
+      <p className="sp-hint">البسملة: النسخة المعتمدة بصوتك (قرار ٢٧ نوفمبر)، نفسها في كل الحلقات بلا توليد جديد. لا رفع ولا اعتماد هنا، وبقية الجمل تُولَّد كالمعتاد.</p>
+    </div>
+  );
+  return (
+    <div className="sv-basmala" role="group" aria-label="البسملة بصوتك">
+      {recs?.basmalaClip?.reason ? <p className="sp-hint">{recs.basmalaClip.reason}</p> : null}
+      <p className="sp-hint">البسملة لا ينطقها الصوت المستنسخ أبدًا. حتى تُثبَّت نسختها المعتمدة أو يُعتمد تسجيل للحلقة تبقى مكانها صامتة بعلامة «التلاوة تُضاف لاحقًا»، وبقية الجمل تُولَّد كالمعتاد.</p>
       <ul className="pf-rec-list sv-verse">
         <RecitationItem compact episodeId={episodeId} channelId={channelId} ayahKey="basmala" scenes={[s.id]} recs={recs}
           onChanged={async () => { await load(); onChanged?.(); }} />
       </ul>
     </div>
-  ) : null;
+  );
 };
 
 /** صوت المشهد ملفًا واحدًا بنبرة سابقة: إشارة هادئة، لا تغيير في حالته */

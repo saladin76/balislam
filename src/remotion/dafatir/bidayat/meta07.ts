@@ -1,4 +1,4 @@
-/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 007 — الطوفان» (بلا React). الخطة: channels/dafatir-alzaman/episodes/007-al-tufan/scenes.md */
+/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 007 — الطوفان» (بلا React). الخطة: channels/dafatir-alzaman/episodes/006-al-safina/scenes.md (الجزء الثاني، صفوف c2-…؛ دُمجت 007 في 006 بقرار المالك ٢٧ نوفمبر) */
 import type { HzMeta } from "../horizon/meta";
 
 export const BD07_META: Record<string, HzMeta> = {

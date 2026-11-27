@@ -146,6 +146,8 @@ export const workerJobId = (channel: string, episodeFolder: string, n: number, f
 export const submitWorkerShorts = async (ep: string, share: string, o: { only?: number; log?: (m: string) => void } = {}) => {
   const log = o.log ?? (() => {});
   const ctx = await macShortsContext(ep);
+  // D234: لا مهمة رندر لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (والعامل يفحصها ثانية في قلب الرندر)
+  await (await import("../../studio/scriptPipelineStore")).assertEditorPassed(ctx.scriptPath);
   const commit = await assertCommitMatchesWorkingTree(projectRoot, ctx.channel, ctx.episodeFolder);
   const segments = o.only !== undefined ? ctx.segments.filter((s) => s.n === o.only) : ctx.segments;
   if (!segments.length) throw new Error(`لا شورت برقم ${o.only} (المتاح 1…${ctx.segments.length}).`);

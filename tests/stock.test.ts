@@ -4,6 +4,7 @@ import os from "node:os";
 import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync } from "node:fs";
 import { productionRefusal, stockIssues, stockViews, awaitingOwner, type Stock } from "../src/studio/stock";
 import { isOwnerContentPath } from "../scripts/contentPaths.mjs";
+import { editorState, scriptSentences } from "../src/studio/scriptPipeline";
 
 /** D213 بناء المخزون: ترتيب النشر (ترتيب لا مواعيد)، والمسودة لا تدخل الإنتاج، و«اعتمدت السكريبت» الموقّع، وقالب الحلقة. */
 const seeds = ["balislam", "dafatir-alzaman", "zubdat-alkutub"].map((c) => [c, JSON.parse(readFileSync(`channels/${c}/stock.json`, "utf8")) as Stock] as const);
@@ -38,11 +39,18 @@ describe("المسودة والتجميد يمنعان الإنتاج", () => {
     expect(productionRefusal({ status: undefined })).toBeNull();
   });
   it("المسودة خارج الترتيب تظهر ولا تختفي، والخانة بلا مجلد «مخططة»", () => {
-    const v = stockViews("balislam", { version: 1, phase: 1, slots: [{ week: 3, title: "مخططة", batch: 3, episode: "003" }] }, [
-      { number: "100", dir: "100-x", title: "مسودة", status: "مسودة", files: { script: true, research: true, scenes: false, publish: false }, approval: { approved: false } },
+    const files = { script: true, research: true, scenes: false, publish: false };
+    const text = "سؤال أول؟ جملة ثانية.";
+    const passed = editorState(text, { version: 1, channel: "balislam", episode: "000", sentences: scriptSentences(text).map((x) => x.hash), passes: [{ at: "x", by: "م", recordedBy: "ن", scriptSha256: "0".repeat(64), sentences: 2, reviewed: 2 }] });
+    const v = stockViews("balislam", { version: 1, phase: 1, slots: [{ week: 3, title: "مخططة", batch: 3, episode: "003" }, { week: 4, title: "مُراجَعة", batch: 3, episode: "101", specialist: [] }] }, [
+      { number: "100", dir: "100-x", title: "مسودة", status: "مسودة", files, approval: { approved: false }, editor: passed },
+      { number: "101", dir: "101-x", title: "مُراجَعة", status: "مسودة", files, approval: { approved: false }, editor: passed },
+      { number: "102", dir: "102-x", title: "قبل المحرر", status: "مسودة", files, approval: { approved: false }, editor: editorState(text, null) },
     ]);
-    expect(v.map((x) => [x.episode, x.exists, x.week, x.day])).toEqual([["003", false, 3, "السبت"], ["100", true, null, "السبت"]]);
-    expect(v.filter(awaitingOwner).map((x) => x.episode)).toEqual(["100"]); // owner-pin-ok: بيانات مصطنعة في الاختبار، لا محتوى المالك
+    expect(v.map((x) => [x.episode, x.exists, x.week, x.day])).toEqual([["003", false, 3, "السبت"], ["101", true, 4, "السبت"], ["100", true, null, "السبت"], ["102", true, null, "السبت"]]);
+    // D234: لا ينتظر المالك إلا ما مرّ بالمحرر والمراجعة العلمية؛ وخارج ترتيب النشر لا سجل مراجعة علمية
+    expect(v.map((x) => [x.episode, x.pipeline.status])).toEqual([["003", "بانتظار المحرر"], ["101", "بانتظار اعتمادك"], ["100", "بانتظار المراجعة العلمية"], ["102", "بانتظار المحرر"]]);
+    expect(v.filter(awaitingOwner).map((x) => x.episode)).toEqual(["101"]); // owner-pin-ok: بيانات مصطنعة في الاختبار، لا محتوى المالك
   });
 });
 
@@ -74,6 +82,14 @@ describe("«اعتمدت السكريبت» وقالب المخزون (ملفا�
   });
   it("الاعتماد موقّع ويُظهر «تغيّر بعد اعتمادك» عند تعديل السكريبت، والتوقيع المزوّر لا يُقبل", async () => {
     const st = await import("../src/studio/stockStore");
+    const script0 = path.join(root, "balislam", "episodes", "014-test-ep", "script.md");
+    // D234: قبل المحرر والمراجعة العلمية لا يُقبل الاعتماد
+    await expect(st.approveDraftScript("balislam", "014")).rejects.toThrow(/بانتظار المحرر/);
+    const { recordEditorPass } = await import("../src/studio/scriptPipelineStore");
+    await recordEditorPass(script0, { by: "محرر المحتوى", recordedBy: "اختبار" });
+    await expect(st.approveDraftScript("balislam", "014")).rejects.toThrow(/بانتظار المراجعة العلمية/);
+    writeFileSync(path.join(root, "balislam", "stock.json"), JSON.stringify({ version: 1, phase: 1, slots: [{ week: 1, title: "عنوان", batch: 1, episode: "014", specialist: [] }] }));
+    expect(await st.draftApprovalRefusal("balislam", "014")).toBeNull();
     await st.approveDraftScript("balislam", "014");
     let v = (await st.stockOverview("balislam")).views.find((x) => x.episode === "014")!;
     expect(v.approval).toMatchObject({ approved: true });
@@ -105,10 +121,10 @@ describe("D229: استثناء صوت الدقيقة الأولى من تجمي�
     expect(stockIssues({ ...base, frozen: { decision: "D211", voiceOnly: [{ episode: "1", scenes: [], decision: "" }] } })).toContain("استثناء الصوت من التجميد: الحلقة (ثلاث خانات) والمشاهد والقرار مطلوبة.");
     expect(stockIssues({ ...base, frozen })).toEqual([]);
   });
-  it("بالإسلام: التجميد باقٍ، والاستثناء لصوت جمل الدقيقة الأولى من 001 وحدها", () => {
+  it("بالإسلام: تجميد كامل (D235)، ولا استثناء صوت بعد إلغاء D229", () => {
     const s = JSON.parse(readFileSync(path.join(__dirname, "..", "channels", "balislam", "stock.json"), "utf8")) as Stock;
     expect(s.frozen?.decision).toBe("D211"); // owner-pin-ok: قرار المالك D211 نفسه
-    expect(s.frozen?.voiceOnly).toEqual([{ episode: "001", scenes: ["c1-s1", "c1-s2", "c1-s3", "c1-s4", "c1-s5", "c1-s9", "c1-s10", "c1-s12", "c1-s13", "c1-s14", "c1-s15", "c1-s17"], decision: "D229" }]); // owner-pin-ok: نص قرار المالك D229 (المشاهد بعينها)
+    expect(s.frozen?.voiceOnly).toBeUndefined(); // owner-pin-ok: قرار المالك D235 (تجميد كامل)
   });
   it("الخادم يفحص مشهد كل توليد عند الاستثناء (الجملة وتصحيح الكلمة والمشهد وترقية النبرة)", () => {
     const api = readFileSync(path.join(__dirname, "..", "app", "server", "api.ts"), "utf8");

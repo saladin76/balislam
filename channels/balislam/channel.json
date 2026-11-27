@@ -108,6 +108,9 @@
       "2": "grave"
     }
   },
+  "verse": {
+    "recitation": "none"
+  },
   "library": {
     "cast": "illus",
     "exclude": {

@@ -7,9 +7,8 @@
  */
 import React from "react";
 import { Books, Hatch, Lens, Ruler, Boat } from "../lib/drawings";
-import { DateRibbon } from "../horizon/book";
 import {
-  Arrow, BlankLine, C, DotFrame, Dot, Field, GOLD_D, Grass, Horizon, Ink, Leaf, NEUTRAL, Peak, Q, Ring, Scribble, Seal, Sheet, Sun, Tab, Thread, Txt, WATER,
+  Arrow, C, DotFrame, Dot, Field, GOLD_D, Grass, Horizon, Ink, Leaf, NEUTRAL, Peak, Q, Ring, Scribble, Seal, Sheet, Sun, Tab, Thread, Txt, WATER,
   Waterline, Write, GoldSeal, bounce, cueKit, mix, prog, reverent, rng, type BdProps,
 } from "./kit";
 
@@ -382,13 +381,13 @@ const LensMiss = reverent((q) => {
 
 // ─── c1-s18: من المكان إلى ما بعده ───
 const TurnAfter = reverent((q) => {
-  const k = cueKit(q, ["فلننتقل"]);
+  const k = cueKit(q, ["استقرت"]);
   const { t } = k;
-  const fold = k.on(0, "المكان", 1.2);
-  const clear = k.on(0, "ماذا", 0.8);
+  const fold = k.on(0, "وماذا", 1.2);
+  const clear = k.on(0, "حدث", 0.8);
   const line = k.draw(0, "حدث", 0.9);
-  const step = k.on(0, "وقفت", 1.0);
-  const cam = k.cam({ cx: 1100, cy: 520, s: 1.2 }, [[0, "فلننتقل", NEUTRAL, 1.4]]);
+  const step = k.on(0, "استقرت", 1.0);
+  const cam = k.cam({ cx: 1100, cy: 520, s: 1.2 }, [[0, "وماذا", NEUTRAL, 1.4]]);
   const s = 1 - 0.65 * fold;
   return (
     <Leaf q={q} id="b8ta" cam={cam}
@@ -547,15 +546,15 @@ const FirstMorning = reverent((q) => {
   );
 });
 
-// ─── c1-s28: العقدة التاسعة الفارغة ───
+// ─── c1-s28 (منقول إلى آخر الجزء الأول): الخطوط المتفرعة و«؟» ───
 const Handoff = reverent((q) => {
-  const k = cueKit(q, ["انتشر"]);
-  const branch = k.draw(0, "انتشر", 1.2);
-  const qm = k.on(0, "الأمم");
-  const ext = k.draw(0, "الخيط", 1.2);
-  const k9 = k.on(0, "القادمة", 0.7);
-  const rib = k.on(0, "البدايات", 0.7);
-  const cam = k.cam(NEUTRAL, [[0, "الخيط", { cx: 960, cy: 700, s: 1.15 }, 1.2], [0, "البدايات", { cx: 520, cy: 520, s: 1.15 }, 1.0]]);
+  // دفعة المحرر ١ (٢٧ نوفمبر): الجملة جملة الوصل «بعد خبر استقرار السفينة والنزول منها، ننتقل إلى ما ذكره القرآن عن ذرية نوح عليه السلام.» بدل السؤال «وماذا يخبرنا القرآن عن ذرية…؟»، بالكلمتين نفسيهما («ذرية» و«نوح»)
+  // فلا امتداد للخيط ولا عقدة تاسعة ولا شريط «البدايات» هنا (يأتي الخيط بعقده في bd09-knots)
+  const k = cueKit(q, ["ذرية"]);
+  const branch = k.draw(0, "ذرية", 1.2);
+  const qm = k.on(0, "نوح");
+  const ext = 0;
+  const cam = k.cam(NEUTRAL, [[0, "ذرية", { cx: 760, cy: 460, s: 1.15 }, 1.2]]);
   const ORIG = [1150, 560] as const;
   const paths = (
     <g>
@@ -567,7 +566,6 @@ const Handoff = reverent((q) => {
     <Thread x1={1760} x2={160} y={800} p={mix(0.45, 1, ext)} knots={[
       { x: 1650, kind: "tied", q: 1 },
       { x: 1350, kind: "stone", q: 1 },
-      { x: 600, kind: "ring", q: k9, tie: 0, mark: k9 },
     ]} />
   );
   return (
@@ -577,8 +575,6 @@ const Handoff = reverent((q) => {
         {paths}
         <Q x={600} y={290} size={90} q={qm} />
         {thread}
-        <DateRibbon x={300} y={170} s={1} o={rib} />
-        <Txt x={300} y={150} size={34} q={rib} color={C.ribbon}>البدايات</Txt>
       </g>}
       R={<g><Horizon y={560} p={1} sky="morning" texture={0.4} /><Peak x={1400} y={560} w={420} h={260} p={1} fill="#D4C4A2" /><Dot x={ORIG[0]} y={ORIG[1]} q={1} r={8} />{paths}{thread}</g>} />
   );
@@ -588,14 +584,14 @@ const Handoff = reverent((q) => {
 const KS = 1150;
 const ROW = [1560, 760, 400];
 const KnotSeals = reverent((q) => {
-  const k = cueKit(q, ["نعقد"]);
+  const k = cueKit(q, ["نلخص"]);
   const { t } = k;
   const glow = bounce(t, k.at("حجر"), k.at("حجر") + 1.2);
   const seals = [k.on(0, "ثابت", 0.5), k.on(0, "رواية", 0.5), k.on(0, "نعلم", 0.5)];
   const card = k.on(0, "الجودي", 0.6);
   const pull = k.on(0, "البقايا", 0.8);
-  const ask = k.draw(0, "نعقد", 0.9);
-  const cam = k.cam({ cx: KS, cy: 520, s: 1.5 }, [[0, "نعقد", { cx: KS, cy: 520, s: 1.75 }, 1.0], [0, "ثابت", { cx: 1300, cy: 560, s: 1.15 }, 1.0], [0, "رواية", { cx: 800, cy: 560, s: 1.1 }, 1.0], [0, "البقايا", NEUTRAL, 1.2]]);
+  const ask = k.draw(0, "نلخص", 0.9);
+  const cam = k.cam({ cx: KS, cy: 520, s: 1.5 }, [[0, "نلخص", { cx: KS, cy: 520, s: 1.75 }, 1.0], [0, "ثابت", { cx: 1300, cy: 560, s: 1.15 }, 1.0], [0, "رواية", { cx: 800, cy: 560, s: 1.1 }, 1.0], [0, "البقايا", NEUTRAL, 1.2]]);
   const both = (
     <g>
       <Thread x1={1760} x2={160} y={520} p={1} sag={8 * (1 - pull)} knots={[{ x: KS, kind: "stone", q: 1, glow }]} />
@@ -612,25 +608,15 @@ const KnotSeals = reverent((q) => {
   return <Leaf q={q} id="b8ks" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s30: الختام في ضوء الصباح ───
+// ─── c1-s30: سلام وبركات بجوار العقدة ───
 const ClosingMorning = reverent((q) => {
+  // دمج الحلقتين (٢٧ نوفمبر): بقيت «وبجوارها كلمتان من الآية: سلام، وبركات.» وحدها، وحُذف سؤال التعليقات
+  // («وأنت» و«أزمة» و«اكتبه»: انسحاب الكاميرا والقمة والماء والسطر الفارغ)
   const k = cueKit(q, ["وبجوارها"]);
-  const { t } = k;
   const w1 = k.on(0, "سلام"), w2 = k.on(0, "وبركات");
-  const back = k.on(0, "وأنت", 1.4);
-  const recede = k.draw(0, "أزمة", 1.4);
-  const line = k.draw(0, "اكتبه", 0.9);
-  const cam = k.cam({ cx: 1400, cy: 480, s: 1.6 }, [[0, "وأنت", NEUTRAL, 1.6]]);
+  const cam = k.cam({ cx: 1400, cy: 480, s: 1.6 }, []);
   return (
     <Leaf q={q} id="b8cm" cam={cam}
-      L={<g>
-        <g opacity={back}>
-          <Horizon y={420} p={1} sky="morning" texture={0.2} />
-          <Peak x={560} y={420} w={220} h={130} p={1} fill="#D4C4A2" />
-        </g>
-        <Waterline x1={420} x2={170} y={mix(700, 780, recede)} p={1 - prog(recede, 0.7, 1)} t={t} amp={3} rows={2} fill={0.15} />
-        <BlankLine x={560} y={640} w={440} p={line} pen={line} touch={prog(line, 0.8, 1)} />
-      </g>}
       R={<g>
         <Thread x1={1760} x2={960} y={480} p={1} knots={[{ x: 1400, kind: "stone", q: 1 }]} />
         <Txt x={1560} y={400} size={50} q={w1} font="amiri">سلام</Txt>

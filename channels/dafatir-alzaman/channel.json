@@ -475,7 +475,8 @@
   },
   "verse": {
     "style": "page",
-    "reveal": "lines"
+    "reveal": "lines",
+    "recitation": "none"
   },
   "pacing": {
     "speechSync": true

@@ -8,7 +8,7 @@ import React from "react";
 import { Lens } from "../lib/drawings";
 import { DateRibbon } from "../horizon/book";
 import {
-  Arrow, BlankLine, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Seal, Stone, Sun, Tab, Thread, Txt, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
+  Arrow, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Seal, Stone, Sun, Tab, Thread, Txt, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
 } from "./kit";
 
 const GROUND = 640;
@@ -29,20 +29,21 @@ const Smudge: React.FC<{ x: number; y: number; q: number; s?: number }> = ({ x, 
 
 // ─── c1-s1 / c1-s52: الريشة على التراب ───
 const FeatherShot = reverent((q) => {
-  const k = cueKit(q, ["الكتابة", "الصامت"]);
+  // التحرير النهائي للمحرر (٢٧ نوفمبر): الافتتاح «في قصة ابني آدم عليه السلام، حفر طائرٌ في التراب. ماذا رأى فيه الرجل الذي قتل أخاه؟»
+  // بدل «قبل أن يعرف الإنسان الكتابة، وقبل أن يبني أول بيت، تعلّم درسًا من طائر.» (حُذف الجزم بسبق الكتابة والبيت لغياب مستنده):
+  // حُذف السطر الفارغ (كان على «الكتابة») والكوخ المنقّط (كان على «بيت»)؛ الريشة على «طائر» كما كانت، وخطوط النبش في التراب على «التراب»،
+  // والكاميرا تقترب من التراب على «رأى»
+  const k = cueKit(q, ["قصة", "الصامت"]);
   const { t, S } = k;
-  const line = S === 0 ? k.draw(0, "الكتابة") : 0;
-  const hut = S === 0 ? k.draw(0, "بيت", 1.0) : 0;
+  const dig = S === 0 ? k.draw(0, "التراب", 1.0) : 1;
   const fall = S === 0 ? prog(t, k.at("طائر", 1.6) - 0.05, k.at("طائر", 1.6) + 1.6) : 1;
-  const crow = S === 0 ? k.draw(0, "غراب", 0.8) : 0;
-  const qm = S === 0 ? k.on(0, "غراب", 0.5) * prog(t, k.at("غراب") + 0.6, k.at("غراب") + 1.0) : 0;
   const lens = S === 1 ? prog(t, k.at("وأبصر", 1.4) - 0.1, k.at("وأبصر", 1.4) + 1.4) : 0;
   const fx = 470 + Math.sin(fall * Math.PI * 2.2) * 50 * (1 - fall);
   const fy = mix(330, 712, fall);
   const close = { cx: 500, cy: 640, s: 2.3 };
   const cam =
     S === 0
-      ? k.cam(close, [[0, "فما", { cx: 520, cy: 610, s: 1.8 }, 1.4]])
+      ? k.cam(close, [[0, "طائر", { cx: 520, cy: 610, s: 1.8 }, 1.4], [0, "رأى", { cx: 490, cy: 700, s: 2.25 }, 1.3]])
       : k.cam({ cx: 480, cy: 690, s: 2.2 }, [
           [1, "أضعف", NEUTRAL, 1.4],
           [1, "تواضع", { cx: 480, cy: 700, s: 1.9 }, 1.2],
@@ -51,11 +52,9 @@ const FeatherShot = reverent((q) => {
     <g>
       <Horizon y={GROUND + 120} p={1} sky="plain" texture={0.6} />
       <Smudge x={480} y={735} q={1} />
-      <Ink d="M820 520 H560" p={line} w={3} c={C.inkSoft} />
-      <path d="M760 640 V590 L800 560 L840 590 V640 Z" fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="8 8" opacity={hut} />
+      {/* خطوط نبش قصيرة في لطخة التراب (حفر الطائر)، بلا حفرة ولا دفن مرسوم */}
+      {["M430 730 q14 -10 30 -2", "M470 742 q16 -12 34 -3", "M512 728 q12 -9 26 -1"].map((d, i) => <Ink key={i} d={d} p={prog(dig, i * 0.25, i * 0.25 + 0.5)} w={3} c={C.ink} />)}
       <Feather x={fx} y={fy} s={0.5} q={S === 0 ? k.on(0, "طائر", 0.3) : 1} rot={mix(-60, -78, fall) + Math.sin(fall * 9) * 12 * (1 - fall)} />
-      <Write id="b2f-crow" x={330} y={600} size={54} p={crow} label="غراب" />
-      <Q x={210} y={608} size={70} q={qm} />
       {lens > 0 ? (
         <g opacity={Math.min(1, lens * 4) * (1 - prog(lens, 0.85, 1))} transform={`translate(${mix(700, 300, lens)} ${700 - 20 * Math.sin(lens * Math.PI)}) scale(0.42)`}>
           <Lens />
@@ -536,11 +535,11 @@ const CrowShot = reverent((q) => {
 
 // ─── c1-s46: ثلاثة أختام في صف ───
 const ThreeSeals = reverent((q) => {
-  const k = cueKit(q, ["الدفاتر"]);
-  const head = k.draw(0, "الدفاتر", 0.9);
-  const s = [k.on(0, "ثبت", 0.5), k.on(0, "روي", 0.5), k.on(0, "يصح", 0.5)];
-  const cam = k.cam(NEUTRAL, [[0, "ثبت", { cx: 1200, cy: 520, s: 1.1 }, 1.2]]);
-  const ROW = [[1560, "ثابت", "ما ثبت"], [1200, "رواية", "ما رُوي"], [820, "لا يصح", "ما لم يصح"]] as const;
+  const k = cueKit(q, ["الفرق"]);
+  const head = k.draw(0, "الفرق", 0.9);
+  const s = [k.on(0, "يثبت", 0.5), k.on(0, "يروى", 0.5), k.on(0, "نسبته", 0.5)];
+  const cam = k.cam(NEUTRAL, [[0, "يثبت", { cx: 1200, cy: 520, s: 1.1 }, 1.2]]);
+  const ROW = [[1560, "ثابت", "خبر يثبت"], [1200, "رواية", "خبر يُروى"], [820, "لا يصح", "لا تصح نسبته"]] as const;
   const row = (
     <g>
       {ROW.map(([x, kind, lab], i) => (
@@ -551,46 +550,39 @@ const ThreeSeals = reverent((q) => {
       ))}
     </g>
   );
-  return <Leaf q={q} id="b2ts" cam={cam} L={row} R={<g>{row}<Write id="b2ts-h" x={1365} y={220} size={54} p={head} label="دفاتر الزمن" color={C.inkSoft} /></g>} />;
+  return <Leaf q={q} id="b2ts" cam={cam} L={row} R={<g>{row}<Write id="b2ts-h" x={1365} y={220} size={54} p={head} label="الفرق" color={C.inkSoft} /></g>} />;
 });
 
-// ─── c1-s47 / c1-s53..s55: العقدة الثانية تُشد، ثم الثالثة ───
+// ─── c1-s47 / c1-s53 / c1-s54 (جملة الوصل، دفعة المحرر ١، ٢٧ نوفمبر): العقدة الثانية تُشد، ثم حلقة الثالثة فارغة (يعقدها الجزء الثاني في bd03-thread-night) ───
 const ThreadKnot = reverent((q) => {
-  const k = cueKit(q, ["بقي", "ومضت", "الأجيال", "نعقده"]);
+  const k = cueKit(q, ["بقي", "ومضت", "الأجيال"]);
   const { t, S } = k;
   const tie2 = k.on(0, "بقي", 0.8);
   const name2 = k.draw(0, "بقي", 1.0);
   const ext = S === 1 ? prog(t, k.at("ومضت") - 0.05, k.end("الأيام") + 0.6) : S > 1 ? 1 : 0;
   const many = S === 1 ? prog(t, k.at("وكثر") - 0.05, k.end("وأحفاده") + 0.3) : S > 1 ? 1 : 0;
+  // دفعة المحرر ١، ٢٧ نوفمبر: صارت المرحلة الثالثة جملة الوصل «ومن قصة الأخوين ننتقل إلى خبر الأجيال الأولى…» بدل «فكيف عاشت تلك الأجيال الأولى؟…»؛
+  // حلقة العقدة الثالثة على «الأجيال» كما كانت، وحُذفت خانتا «ثابت» و«رواية» (كانتا على «نعلمه» و«رواية» المحذوفتين)
   const ring3 = k.on(2, "الأجيال", 0.7);
-  const know = k.on(2, "نعلمه"), riw = k.on(2, "رواية");
-  const tie3 = k.on(3, "نعقده", 0.8);
-  const name3 = S === 3 ? k.draw(3, "الأجيال", 0.9) : 0;
   const r = rng(52);
   // النقاط بعيدة عن الخيط وعن أسماء العقد تحته
   const dots = Array.from({ length: 26 }, () => [mix(1100, 220, r()), 560 + (r() > 0.35 ? -1 : 1) * (110 + r() * 150)] as const).map(([x, y]) => [x, y > 560 ? y + 60 : y] as const);
   const cam = k.cam({ cx: 1300, cy: 560, s: 1.35 }, [
     [1, "ومضت", { cx: 860, cy: 560, s: 1.05 }, 1.4],
     [2, "الأجيال", { cx: 560, cy: 520, s: 1.3 }, 1.0],
-    [2, "نعلمه", { cx: 1300, cy: 640, s: 1.15 }, 1.0],
-    [3, "نعقده", { cx: 560, cy: 560, s: 1.35 }, 1.0],
   ]);
   const both = (
     <g>
       <Thread x1={1760} x2={160} y={560} p={mix(0.42, 1, ext)} knots={[
         { x: 1620, kind: "tied", q: 1, label: "خلق آدم", lq: 1 },
         { x: 1240, kind: "ring", q: 1, tie: tie2, label: "ابنا آدم", lq: name2 },
-        { x: 520, kind: "ring", q: ring3, tie: tie3, mark: ring3 * (1 - tie3), label: S === 3 ? "الأجيال الأولى" : undefined, lq: name3 },
+        { x: 520, kind: "ring", q: ring3, tie: 0, mark: ring3 },
       ]} />
       {dots.map(([x, y], i) => <Dot key={i} x={x} y={y} r={6} q={prog(many, i / dots.length, i / dots.length + 0.15)} />)}
     </g>
   );
   return (
-    <Leaf q={q} id="b2k" cam={cam} L={both}
-      R={<g>{both}
-        <g opacity={know}><rect x={1400} y={700} width={240} height={120} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} /><Seal x={1520} y={760} q={know} kind="ثابت" s={0.5} dim={0.45} /></g>
-        <g opacity={riw}><rect x={1110} y={700} width={240} height={120} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} /><Seal x={1230} y={760} q={riw} kind="رواية" s={0.5} dim={0.45} /></g>
-      </g>} />
+    <Leaf q={q} id="b2k" cam={cam} L={both} R={both} />
   );
 });
 
@@ -662,30 +654,6 @@ const OneAndAll = reverent((q) => {
   );
 });
 
-// ─── c1-s56: السطر الفارغ ───
-const BlankLineShot = reverent((q) => {
-  const k = cueKit(q, ["الصالح"]);
-  const stone = k.on(0, "الصالح");
-  const line = k.draw(0, "الكلمة", 0.9);
-  const pen = k.on(0, "الكلمة", 0.7);
-  const halt = k.draw(0, "يمد", 0.9);
-  const touch = k.on(0, "اكتبها", 0.4);
-  const cam = k.cam(NEUTRAL, [[0, "الكلمة", { cx: 1365, cy: 520, s: 1.2 }, 1.0], [0, "اكتبها", { cx: 1330, cy: 540, s: 1.35 }, 0.9]]);
-  return (
-    <Leaf q={q} id="b2bl" cam={cam}
-      L={<g>
-        <Dot x={720} y={760} q={halt} r={9} />
-        <Ink d="M700 760 H600" p={halt} w={4} />
-        <path d="M594 738 V782" stroke={C.ink} strokeWidth={5} strokeLinecap="round" opacity={prog(halt, 0.8, 1)} />
-        <Dot x={420} y={760} q={halt} r={9} />
-      </g>}
-      R={<g>
-        <g transform="translate(1640 800) scale(0.5)"><Stone x={0} y={0} w={230} h={64} q={stone} /></g>
-        <BlankLine x={1340} y={560} w={560} p={line} pen={pen} touch={touch} />
-      </g>} />
-  );
-});
-
 export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-feather": FeatherShot,
   "bd02-thread-ground": ThreadGround,
@@ -705,7 +673,6 @@ export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-thread-knot": ThreadKnot,
   "bd02-crack-grows": CrackGrows,
   "bd02-one-and-all": OneAndAll,
-  "bd02-blank-line": BlankLineShot,
 };
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */

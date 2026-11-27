@@ -14,7 +14,7 @@ import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { browserPlanRevision } from "../../src/plan/revision";
 import { CASES, selectedChannels, type ChannelCase } from "./channels";
-import { ffmpeg, fixturesDir, generateVoiceConfirmed, probe, startStudio, waitFor, type Studio } from "./harness";
+import { ffmpeg, fixturesDir, generateVoiceConfirmed, probe, startStudio, waitFor, type Studio, passEditor } from "./harness";
 
 const EP = "001";
 const fakeCalls: { kind: string; text: string; body?: any }[] = [];
@@ -78,6 +78,7 @@ for (const channel of selectedChannels()) {
     it("the assembled episode and the Master speak as one narration", async () => {
       ok("create", await st.call("POST", "episodes", { episode: EP, slug: c.slug, domain: c.domain, title: c.title }));
       ok("script", await st.call("PUT", `episodes/${EP}/script`, { text: await fx("script.md") }));
+      await passEditor(st, EP); // D234
       ok("research", await st.call("PUT", `episodes/${EP}/research`, { text: await fx("research.md") }));
       await writeFile(path.join(epDir, "tashkeel.md"), await fx("tashkeel.md"));
       const plan = (await st.call("GET", `episodes/${EP}`)).body.plan;

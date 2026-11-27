@@ -64,7 +64,7 @@ const Arc: React.FC<{ p: number; gap?: number; c?: string }> = ({ p, gap = 0, c 
 /** عقد الخيط في هذه الحلقة: ١ آدم، ٢ ابناه، ٣ الأجيال الأولى (فارغة حتى تُشد)، ونوح رمادية */
 const K1 = 1700, K2 = 1540, K3 = 760, KN = 300;
 
-// ─── c1-s1: مواقد الليل ───
+// ─── c2-s1: مواقد الليل ───
 const ORDER = [0, 4, 7, 1, 2, 3, 5, 6, 8, 9];
 const Hearths = reverent((q) => {
   const k = cueKit(q, ["واسعة"]);
@@ -98,7 +98,7 @@ const Dwelling: React.FC<{ x: number; p: number; s?: number; o?: number }> = ({ 
     </g>
   );
 
-// ─── c1-s2: الموقد بيت ───
+// ─── c2-s2: الموقد بيت ───
 const HearthHouse = reverent((q) => {
   const k = cueKit(q, ["موقد"]);
   const { t } = k;
@@ -117,39 +117,23 @@ const HearthHouse = reverent((q) => {
   return <Leaf q={q} id="b3hh" cam={cam} L={both} R={<g>{both}<Write id="b3hh-w" x={1150} y={720} size={42} p={sons} label="أبناء آدم عليه السلام" font="tajawal" color={C.page} /></g>} />;
 });
 
-// ─── c1-s3: سؤال فوق المواقد ───
-const Question = reverent((q) => {
-  const k = cueKit(q, ["نعرف"]);
-  const { t } = k;
-  const ask = k.draw(0, "نعرف", 1.0);
-  const under = k.draw(0, "الأجيال", 1.4);
-  const cam = k.cam({ cx: 1300, cy: 560, s: 1.3 }, [[0, "فماذا", NEUTRAL, 1.2]]);
-  const both = (
-    <g>
-      <Night />
-      {HX.map((x, i) => <Hearth key={i} x={x} q={1} t={t} />)}
-      <Ink d="M1700 650 C1300 660 700 640 200 652" p={under} w={2.5} c={C.page} />
-    </g>
-  );
-  return <Leaf q={q} id="b3q" cam={cam} L={both} R={<g>{both}<Write id="b3q-w" x={1365} y={300} size={66} p={ask} label="ماذا نعرف؟" color={C.page} /></g>} />;
-});
-
-// ─── c1-s4: الخيط الأحمر على أفق الليل ───
+// ─── c2-s4: الخيط الأحمر على أفق الليل ───
 const ThreadNight = reverent((q) => {
-  const k = cueKit(q, ["عقدتين"]);
+  // دفعة المحرر ١، ٢٧ نوفمبر: المشهد جملة الوصل «وعند عقدة الأجيال الأولى نقف أيضًا عند ما ثبت عن إدريس عليه السلام.» بدل «واليوم نعقد الثالثة…» (حُذفت)؛
+  // الخيط وعقدتاه ١ و٢ باسميهما على «وعند»، وحلقة الثالثة على «عقدة»، وشدّها وتوهج المواقد على «الأجيال»، والاسم على «إدريس»
+  const k = cueKit(q, ["عقدة"]);
   const { t } = k;
-  const thread = k.draw(0, "خيط", 1.4);
-  const two = k.on(0, "عقدتين", 0.6);
-  const g1 = bounce(t, k.at("خلق"), k.at("خلق") + 1.4), l1 = k.on(0, "خلق");
-  const g2 = bounce(t, k.at("ابنيه"), k.at("ابنيه") + 1.4), l2 = k.on(0, "ابنيه");
-  const third = k.on(0, "الثالثة", 0.7);
-  const gens = bounce(t, k.at("الأجيال"), k.end("بعدهما") + 0.6);
+  const thread = k.draw(0, "وعند", 1.4);
+  const two = k.on(0, "وعند", 0.6);
+  const g1 = 0, l1 = two;
+  const g2 = 0, l2 = two;
+  const third = k.on(0, "عقدة", 0.7);
+  const gens = bounce(t, k.at("الأجيال"), k.end("الأولى") + 0.6);
   // مراجعة المتخصص (الدفعة ٥): العقدة الثالثة هي «الأجيال» نفسها، واسم إدريس عليه السلام خارج الخيط بلا موضع بين آدم ونوح
   const tie3 = k.on(0, "الأجيال", 0.8);
   const name = k.draw(0, "إدريس", 1.0);
   const cam = k.cam({ cx: 1500, cy: 580, s: 1.3 }, [
-    [0, "ابنيه", { cx: 1560, cy: 600, s: 1.4 }, 1.0],
-    [0, "الثالثة", { cx: 1100, cy: 580, s: 1.05 }, 1.2],
+    [0, "عقدة", { cx: 1100, cy: 580, s: 1.05 }, 1.2],
     [0, "إدريس", { cx: 1300, cy: 420, s: 1.15 }, 1.0],
   ]);
   const knots: KnotDef[] = [
@@ -174,50 +158,7 @@ const ThreadNight = reverent((q) => {
   );
 });
 
-// ─── c1-s5: في الزمن نفسه، ليل بلا أضواء ───
-const SameTime = reverent((q) => {
-  const k = cueKit(q, ["العالم"]);
-  const { t } = k;
-  const wide = k.open(0, 1.2);
-  const counter = k.draw(0, "العالم", 0.9);
-  const seal = k.on(0, "نعلم");
-  const year = k.on(0, "سنة");
-  const city = bounce(t, k.at("مدينة"), k.at("مدينة") + 1.6);
-  const map = k.draw(0, "الخريطة", 0.9);
-  const cam = k.cam({ cx: 960, cy: 540, s: 1.08 }, [
-    [0, "العالم", { cx: 1450, cy: 360, s: 1.25 }, 1.1],
-    [0, "سنة", { cx: 1250, cy: 420, s: 1.15 }, 1.0],
-    [0, "مدينة", { cx: 520, cy: 500, s: 1.15 }, 1.0],
-  ]);
-  const both = (
-    <g>
-      <Night dark={wide} />
-      {HX.map((x, i) => <Hearth key={i} x={x} q={1} t={t} s={0.8} />)}
-    </g>
-  );
-  return (
-    <Leaf q={q} id="b3st" cam={cam}
-      L={<g>{both}
-        <g opacity={city} transform={`translate(560 ${HY})`}>
-          {GLYPHS.slice(0, 4).map((d, i) => <path key={i} d={d} transform={`translate(${(i - 1.5) * 70} 0)`} fill="none" stroke={C.page} strokeWidth={3} strokeDasharray="6 6" />)}
-        </g>
-        <g opacity={map}>
-          <rect x={250} y={170} width={300} height={190} rx={6} fill="none" stroke={C.page} strokeWidth={3} />
-          <rect x={262} y={182} width={276} height={166} rx={4} fill="none" stroke={C.page} strokeWidth={1.5} opacity={0.6} />
-        </g>
-      </g>}
-      R={<g>{both}
-        <g opacity={prog(counter, 0, 0.3)}>
-          <rect x={1420} y={180} width={300} height={130} rx={10} fill={C.page} stroke={C.ink} strokeWidth={4} />
-        </g>
-        <Write id="b3st-c" x={1570} y={235} size={34} p={counter} label="في الزمن نفسه" font="tajawal" />
-        <Seal x={1570} y={282} q={seal} kind="لا نعلم" s={0.42} />
-        <DateRibbon x={1250} y={250} s={1.05} o={year} />
-      </g>} />
-  );
-});
-
-// ─── c1-s7: أصل واحد ───
+// ─── c2-s7: أصل واحد ───
 const OneOrigin = reverent((q) => {
   const k = cueKit(q, ["أصل"]);
   const { t } = k;
@@ -245,7 +186,7 @@ const OneOrigin = reverent((q) => {
   return <Leaf q={q} id="b3oo" cam={cam} L={both} R={<g>{both}<Ring x={OX} y={OY} r={30} p={root} c={GOLD_D} fill={C.gold} fillO={0.3} /><Dot x={OX} y={OY} q={root} r={15} /></g>} />;
 });
 
-// ─── c1-s10: المواقد تتكاثر ───
+// ─── c2-s10: المواقد تتكاثر ───
 const SPREAD = [...HX, 1700, 1380, 1080, 790, 510, 220].map((x, i) => ({ x, y: i < 10 ? HY : HY + 110, s: i < 10 ? 1 : 0.75 }));
 const HearthsSpread = reverent((q) => {
   const k = cueKit(q, ["انتشر"]);
@@ -277,7 +218,7 @@ const HearthsSpread = reverent((q) => {
   );
 });
 
-// ─── c1-s11: أمة واحدة ───
+// ─── c2-s11: أمة واحدة ───
 const OneUmma = reverent((q) => {
   const k = cueKit(q, ["أمرهم"]);
   const { t } = k;
@@ -304,7 +245,7 @@ const NightArc: React.FC<{ t: number; arc?: number; gap?: number; mixed?: number
   </g>
 );
 
-// ─── c1-s14 / c1-s15: ورقة الحاشية (أثر ابن عباس بنص المراجعة العلمية، الدفعة ٥ البند ١١٢: بلا «ثم اختلفوا» في القول) ───
+// ─── c2-s14 / c2-s15: ورقة الحاشية (أثر ابن عباس بنص المراجعة العلمية، الدفعة ٥ البند ١١٢: بلا «ثم اختلفوا» في القول) ───
 const MarginNote = reverent((q) => {
   const k = cueKit(q, ["شيء", "وجاء"]);
   const { t } = k;
@@ -333,7 +274,7 @@ const MarginNote = reverent((q) => {
   );
 });
 
-// ─── c1-s16: من واحد إلى اختلاف (أثر صحيح عن ابن عباس، صححه الحاكم والألباني: لا ختم «رواية» ولا لسان «للمتخصص»، الدفعة ٥) ───
+// ─── c2-s16: من واحد إلى اختلاف (أثر صحيح عن ابن عباس، صححه الحاكم والألباني: لا ختم «رواية» ولا لسان «للمتخصص»، الدفعة ٥) ───
 const OneThenMany = reverent((q) => {
   const k = cueKit(q, ["أثر"]);
   const { t } = k;
@@ -361,13 +302,13 @@ const OneThenMany = reverent((q) => {
   );
 });
 
-// ─── c1-s17 / c1-s18: العقد العشر ───
+// ─── c2-s17 / c2-s18: العقد العشر ───
 const TEN = Array.from({ length: 10 }, (_, i) => 1540 - i * 112);
 const TenKnots = reverent((q) => {
-  const k = cueKit(q, ["كم", "رقما"]);
+  const k = cueKit(q, ["تعني", "رقما"]);
   const { t, S } = k;
-  const tie = S === 0 ? prog(t, k.at("وعشرة") - 0.05, k.at("وعشرة") + 1.6, (x) => x) : 1;
-  const qm = k.on(0, "كم", 0.6);
+  const tie = S === 0 ? prog(t, k.at("عشرة") - 0.05, k.at("عشرة") + 1.6, (x) => x) : 1;
+  const qm = k.on(0, "تعني", 0.6);
   const hundred = k.on(0, "مئة"), gen = k.on(0, "جيلا");
   const seal = k.on(0, "نعرف");
   const box = k.draw(1, "رقما", 0.8);
@@ -441,7 +382,7 @@ const Scroll: React.FC<{ open: number; c1: number; c2: number; long: number; fol
   );
 };
 
-// ─── c1-s19..s21: القائمة الطويلة ───
+// ─── c2-s19..s21: القائمة الطويلة ───
 const LongScroll = reverent((q) => {
   const k = cueKit(q, ["قوائم", "وقاعدتنا", "الأعمار"]);
   const { S } = k;
@@ -490,7 +431,7 @@ const BaseThread: React.FC<{ tie3?: number; glow3?: number; noah?: boolean; p?: 
   </g>
 );
 
-// ─── c1-s24: العقدة الثالثة ───
+// ─── c2-s24: العقدة الثالثة ───
 const ThirdKnot = reverent((q) => {
   // مراجعة المتخصص (الدفعة ٥): اسم إدريس عليه السلام يقف خارج الخيط، بلا عقدة ولا نقطة ولا موضع بين آدم ونوح
   const k = cueKit(q, ["ونقف"]);
@@ -516,7 +457,7 @@ const ThirdKnot = reverent((q) => {
   );
 });
 
-// ─── c1-s27 / c1-s28: ما نعرفه يقينًا ───
+// ─── c2-s27 / c2-s28: ما نعرفه يقينًا ───
 const ThreeWords = reverent((q) => {
   // نص المراجعة العلمية (الدفعة ٥): «فوصفه بالصدق العظيم والنبوة، وأخبر برفعه مكانًا عليًّا»
   const k = cueKit(q, ["وأثنى", "الصابرين"]);
@@ -540,7 +481,7 @@ const ThreeWords = reverent((q) => {
   );
 });
 
-// ─── c1-s31: شاهد من الحديث ───
+// ─── c2-s31: شاهد من الحديث ───
 const HadithNote = reverent((q) => {
   const k = cueKit(q, ["المعراج"]);
   const title = k.draw(0, "حديث", 1.0);
@@ -558,7 +499,7 @@ const HadithNote = reverent((q) => {
   );
 });
 
-// ─── c1-s36: ما بقي في اليد ───
+// ─── c2-s36: ما بقي في اليد ───
 const WhatRemains = reverent((q) => {
   const k = cueKit(q, ["أيدينا"]);
   const { t } = k;
@@ -589,7 +530,7 @@ const WhatRemains = reverent((q) => {
   );
 });
 
-// ─── c1-s37: المسافة الفارغة ───
+// ─── c2-s37: المسافة الفارغة ───
 const Gap = reverent((q) => {
   const k = cueKit(q, ["مسافة"]);
   const { t } = k;
@@ -615,7 +556,7 @@ const Gap = reverent((q) => {
   );
 });
 
-// ─── c1-s38: الأمة لم تبق واحدة ───
+// ─── c2-s38: الأمة لم تبق واحدة ───
 const Dimming = reverent((q) => {
   const k = cueKit(q, ["تبق"]);
   const { t } = k;
@@ -623,8 +564,6 @@ const Dimming = reverent((q) => {
   const split = k.on(0, "تبق", 1.2);
   const k4 = k.on(0, "القادمة", 0.7);
   const ask = k.draw(0, "الشرك", 1.0);
-  const sal = k.on(0, "الصالحون");
-  const stone = k.on(0, "أصنام", 0.7);
   const K4 = 440;
   const cam = k.cam(NEUTRAL, [[0, "القادمة", { cx: 520, cy: 520, s: 1.3 }, 1.0]]);
   const both = (
@@ -641,18 +580,15 @@ const Dimming = reverent((q) => {
     <Leaf q={q} id="b3dm" cam={cam}
       L={<g>{both}
         <Write id="b3dm-q" x={K4} y={470} size={44} p={ask} label="كيف بدأ الشرك؟" color={C.page} />
-        <Stone x={300} y={HY + 6} w={70} h={80} q={stone} fill="#9A9184" shade={0.3} />
       </g>}
-      R={<g>{both}<Txt x={1365} y={300} size={50} q={sal} color={C.page} font="amiri">الصالحون</Txt></g>} />
+      R={both} />
   );
 });
 
 export const BD03_SCENES: Record<string, React.FC<BdProps>> = {
   "bd03-hearths": Hearths,
   "bd03-hearth-house": HearthHouse,
-  "bd03-question": Question,
   "bd03-thread-night": ThreadNight,
-  "bd03-same-time": SameTime,
   "bd03-one-origin": OneOrigin,
   "bd03-hearths-spread": HearthsSpread,
   "bd03-one-umma": OneUmma,
@@ -670,8 +606,8 @@ export const BD03_SCENES: Record<string, React.FC<BdProps>> = {
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */
 export const BD03_STILLS: Record<string, string> = {
-  "bd03-ten-knots": "c1-s17",
-  "bd03-margin-note": "c1-s15",
-  "bd03-long-scroll": "c1-s19",
+  "bd03-ten-knots": "c2-s17",
+  "bd03-margin-note": "c2-s15",
+  "bd03-long-scroll": "c2-s19",
 };
 
