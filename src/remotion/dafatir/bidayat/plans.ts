@@ -30,7 +30,7 @@ export const parseBidayatPlan = (md: string): BdPlanRow[] => {
  * 009: الأسماء، والجهات، والإسناد، و«الباقون»، و«بيت واحد»؛ وبعد إعادة بنائه حول «ماذا بقي من نوح؟» (قرار المالك ٢٥ نوفمبر):
  * الخانات الثلاث، والأفق الجديد، والهامش و«ثلاثة فروع».
  * دمج الحلقات أزواجًا (قرار المالك ٢٧ نوفمبر: 002+003 و004+005 و006+007 و008+009): سطر سؤال التعليقات في آخر 002 وورقة سؤال 004،
- * لأن سؤال التعليقات في آخر الجزء الأول حُذف عند الوصل.
+ * لأن سؤال التعليقات في آخر الجزء الأول حُذف عند الوصل. ودفعة المحرر ١، ٢٧ نوفمبر: سؤال المواقد و«في الزمن نفسه» (003) والمزولة (004)، لأن جملها حُذفت.
  */
 export const BD_REMOVED: string[] = [
   "bd02-side-note", "bd02-names-wash", "bd02-place-slip", "bd02-forged-verse", "bd02-mound",
@@ -39,7 +39,7 @@ export const BD_REMOVED: string[] = [
   "bd04-stele-erode", "bd04-unknown-form", "bd04-knowledge-guard", "bd04-far-arrow",
   "bd04-noon-stone", "bd04-counter",
   "bd08-tafsir-sketch", "bd08-pale-margin", "bd08-symbol-copies", "bd08-no-foundation", "bd08-before-house",
-  "bd02-blank-line", "bd04-closing-slip",
+  "bd02-blank-line", "bd04-closing-slip", "bd03-question", "bd03-same-time", "bd04-shadow-dial",
   "bd09-names", "bd09-compass", "bd09-isnad", "bd09-baqiya", "bd09-one-house", "bd09-blanks", "bd09-new-start", "bd09-margin",
 ];
 

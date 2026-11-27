@@ -550,7 +550,7 @@ const ThreeSeals = reverent((q) => {
   return <Leaf q={q} id="b2ts" cam={cam} L={row} R={<g>{row}<Write id="b2ts-h" x={1365} y={220} size={54} p={head} label="الفرق" color={C.inkSoft} /></g>} />;
 });
 
-// ─── c1-s47 / c1-s53..s54: العقدة الثانية تُشد، ثم حلقة الثالثة فارغة (يعقدها الجزء الثاني في bd03-thread-night، دمج الحلقتين ٢٧ نوفمبر) ───
+// ─── c1-s47 / c1-s53 / c1-s54 (جملة الوصل، دفعة المحرر ١، ٢٧ نوفمبر): العقدة الثانية تُشد، ثم حلقة الثالثة فارغة (يعقدها الجزء الثاني في bd03-thread-night) ───
 const ThreadKnot = reverent((q) => {
   const k = cueKit(q, ["بقي", "ومضت", "الأجيال"]);
   const { t, S } = k;
@@ -558,15 +558,15 @@ const ThreadKnot = reverent((q) => {
   const name2 = k.draw(0, "بقي", 1.0);
   const ext = S === 1 ? prog(t, k.at("ومضت") - 0.05, k.end("الأيام") + 0.6) : S > 1 ? 1 : 0;
   const many = S === 1 ? prog(t, k.at("وكثر") - 0.05, k.end("وأحفاده") + 0.3) : S > 1 ? 1 : 0;
+  // دفعة المحرر ١، ٢٧ نوفمبر: صارت المرحلة الثالثة جملة الوصل «ومن قصة الأخوين ننتقل إلى خبر الأجيال الأولى…» بدل «فكيف عاشت تلك الأجيال الأولى؟…»؛
+  // حلقة العقدة الثالثة على «الأجيال» كما كانت، وحُذفت خانتا «ثابت» و«رواية» (كانتا على «نعلمه» و«رواية» المحذوفتين)
   const ring3 = k.on(2, "الأجيال", 0.7);
-  const know = k.on(2, "نعلمه"), riw = k.on(2, "رواية");
   const r = rng(52);
   // النقاط بعيدة عن الخيط وعن أسماء العقد تحته
   const dots = Array.from({ length: 26 }, () => [mix(1100, 220, r()), 560 + (r() > 0.35 ? -1 : 1) * (110 + r() * 150)] as const).map(([x, y]) => [x, y > 560 ? y + 60 : y] as const);
   const cam = k.cam({ cx: 1300, cy: 560, s: 1.35 }, [
     [1, "ومضت", { cx: 860, cy: 560, s: 1.05 }, 1.4],
     [2, "الأجيال", { cx: 560, cy: 520, s: 1.3 }, 1.0],
-    [2, "نعلمه", { cx: 1300, cy: 640, s: 1.15 }, 1.0],
   ]);
   const both = (
     <g>
@@ -579,11 +579,7 @@ const ThreadKnot = reverent((q) => {
     </g>
   );
   return (
-    <Leaf q={q} id="b2k" cam={cam} L={both}
-      R={<g>{both}
-        <g opacity={know}><rect x={1400} y={700} width={240} height={120} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} /><Seal x={1520} y={760} q={know} kind="ثابت" s={0.5} dim={0.45} /></g>
-        <g opacity={riw}><rect x={1110} y={700} width={240} height={120} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} /><Seal x={1230} y={760} q={riw} kind="رواية" s={0.5} dim={0.45} /></g>
-      </g>} />
+    <Leaf q={q} id="b2k" cam={cam} L={both} R={both} />
   );
 });
 

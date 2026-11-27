@@ -2,7 +2,6 @@
 import type { HzMeta } from "../horizon/meta";
 
 export const BD04_META: Record<string, HzMeta> = {
-  "bd04-shadow-dial": { nameAr: "البدايات ٤ · المزولة: ظل الحجر يدور", tail: 1.0, exit: "fade" },
   "bd04-thread-noon": { nameAr: "البدايات ٤ · الخيط الأحمر تحت أفق الظهيرة", tail: 1.0, exit: "none" },
   "bd04-dark-knot": { nameAr: "البدايات ٤ · العقدة الداكنة (عقدة انحراف)", tail: 1.2, exit: "none" },
   "bd04-between": { nameAr: "البدايات ٤ · بين عقدتين: آدم ونوح عليهما السلام", tail: 1.0, exit: "none" },
@@ -15,5 +14,5 @@ export const BD04_META: Record<string, HzMeta> = {
   "bd04-knot-placed": { nameAr: "البدايات ٤ · موضع العقدة على الخيط", tail: 1.0, exit: "fade" },
   "bd04-what-remains": { nameAr: "البدايات ٤ · ماذا بقي؟", tail: 1.0, exit: "fade" },
   "bd04-thread-forward": { nameAr: "البدايات ٤ · الخيط يستقيم نحو أول رسول", tail: 1.0, exit: "fade" },
-  "bd04-next-knot": { nameAr: "البدايات ٤ · خانة المدة عند نقطة الضوء", tail: 1.2, exit: "fade" },
+  "bd04-next-knot": { nameAr: "البدايات ٤ · خطوط الدعوة من نقطة الضوء", tail: 1.2, exit: "fade" },
 };

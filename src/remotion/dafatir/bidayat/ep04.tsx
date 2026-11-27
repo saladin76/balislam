@@ -72,47 +72,20 @@ const Card: React.FC<{ id: string; x: number; y: number; q: number; memo: number
     </g>
   );
 
-// ─── c1-s2: المزولة ───
-const ShadowDial = reverent((q) => {
-  const k = cueKit(q, ["يحدث"]);
-  const { t } = k;
-  const arc = k.draw(0, "يوم", 1.0);
-  const sunMove = prog(t, k.at("يوم") - 0.05, k.end("واحد") + 0.8);
-  const turn = prog(t, k.at("واحد") - 0.05, k.at("واحد") + 1.4);
-  const fade = k.on(0, "يبدأ", 0.8);
-  const frame = k.on(0, "بحجر", 0.6);
-  const ang = mix(80, 10, turn);
-  const len = mix(40, 300, turn);
-  const sx = mix(560, 220, sunMove), sy = 260 - 90 * Math.sin(Math.PI * mix(0.5, 0.95, sunMove));
-  const cam = k.cam(NEUTRAL, [[0, "واحد", { cx: 640, cy: 560, s: 1.25 }, 1.2]]);
-  const both = <Horizon y={HZ_Y} p={1} sky="noon" texture={0.5} />;
-  return (
-    <Leaf q={q} id="b4sd" cam={cam} R={both}
-      L={<g>{both}
-        <path d="M800 300 Q500 80 200 300" fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="8 10" opacity={arc} />
-        <Sun x={sx} y={sy} r={30} q={1} c={C.sand} />
-        <g opacity={1 - fade}>
-          <path d={`M600 ${HZ_Y + 20} L${600 + len * Math.cos((ang * Math.PI) / 180)} ${HZ_Y + 20 + 0.25 * len * Math.sin((ang * Math.PI) / 180)}`} stroke="#2B1E14" strokeWidth={14} strokeLinecap="round" opacity={0.3} />
-          <Stele x={600} y={HZ_Y + 20} q={1} h={120} w={90} len={0} />
-        </g>
-        <Stele x={600} y={HZ_Y + 20} q={fade} h={120} w={90} dotted />
-        <DotFrame x={600} y={HZ_Y - 40} w={170} h={180} q={frame} c={C.ink} />
-      </g>} />
-  );
-});
-
 // ─── c1-s3: الخيط تحت الأفق ───
 const ThreadNoon = reverent((q) => {
-  const k = cueKit(q, ["الماضية"]);
+  // دفعة المحرر ١، ٢٧ نوفمبر: الجملة «تحدثنا في الحلقة السابقة عن الأجيال الأولى من أبناء آدم عليه السلام.» بدل «في الحلقة الماضية، «الأجيال الأولى»، رأينا…»؛
+  // النقاط على «أبناء» بدل «يكثرون»، ولا انتشار (كان على «وينتشرون» المحذوفة)
+  const k = cueKit(q, ["السابقة"]);
   const { t } = k;
   const thread = prog(t, 0.05, k.at("الحلقة") + 0.6);
   const k12 = k.on(0, "الحلقة", 0.6);
   const k3 = k.on(0, "الأجيال", 0.6);
-  const many = k.on(0, "يكثرون", 0.8);
-  const spread = k.on(0, "وينتشرون", 1.2);
+  const many = k.on(0, "أبناء", 0.8);
+  const spread = 0;
   const r = rng(43);
   const dots = Array.from({ length: 18 }, () => r() - 0.5);
-  const cam = k.cam(NEUTRAL, [[0, "الأجيال", { cx: 1250, cy: 720, s: 1.3 }, 1.1], [0, "وينتشرون", NEUTRAL, 1.4]]);
+  const cam = k.cam(NEUTRAL, [[0, "الأجيال", { cx: 1250, cy: 720, s: 1.3 }, 1.1], [0, "أبناء", NEUTRAL, 1.4]]);
   const both = (
     <g>
       <Horizon y={HZ_Y} p={1} sky="noon" texture={0.5} />
@@ -427,11 +400,13 @@ const ThreadForward = reverent((q) => {
   return <Leaf q={q} id="b4tf" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s47: خانة المدة عند نقطة الضوء (دمج الحلقتين ٢٧ نوفمبر: حُذف c1-s48 «هذا ما نعقده…» بعقدته الخامسة وشريط عنوانه؛ يعقدها الجزء الثاني في bd05-thread-knot) ───
+// ─── c1-s47 (جملة الوصل، دفعة المحرر ١، ٢٧ نوفمبر): خطوط الدعوة من نقطة الضوء، و«؟» ───
 const NextKnot = reverent((q) => {
-  const k = cueKit(q, ["لبث"]);
-  const box = k.draw(0, "لبث", 0.8);
-  const calls = k.draw(0, "يدعوهم", 1.0);
+  // «ولنتابع الآن كيف دعا نوح عليه السلام قومه، وكيف ردّوا عليه.» بدل «فكم لبث نوح عليه السلام يدعوهم؟ وكيف ردّوا عليه؟» (حُذفت):
+  // خطوط الدعوة على «دعا» بدل «يدعوهم»، و«؟» على «ردوا» كما كان، وحُذفت خانة المدة (كانت على «لبث» المحذوفة)
+  const k = cueKit(q, ["دعا"]);
+  const box = 0;
+  const calls = k.draw(0, "دعا", 1.0);
   const qm = k.on(0, "ردوا");
   const cam = k.cam({ cx: 520, cy: 640, s: 1.3 }, []);
   const both = (
@@ -456,7 +431,6 @@ const NextKnot = reverent((q) => {
 void Field; void Sheet; void Scribble; void Qalam;
 
 export const BD04_SCENES: Record<string, React.FC<BdProps>> = {
-  "bd04-shadow-dial": ShadowDial,
   "bd04-thread-noon": ThreadNoon,
   "bd04-dark-knot": DarkKnot,
   "bd04-between": Between,
