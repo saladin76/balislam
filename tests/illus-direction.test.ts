@@ -55,7 +55,11 @@ describe("اللقطات المصمَّمة", () => {
     // 8 لقطات من المكتبة تطابق جمل السكريبت المعتمد (١١ نوفمبر)؛ لقطات قصته الجديدة (الميزان، الدفتر والقطة، الظرف، المقهى، الكرسي)
     // تُصمَّم بعد اعتماد الستوري بورد وتُضاف إلى المكتبة، فيرتفع هذا الحد معها
     expect(used.length).toBeGreaterThanOrEqual(8);
-    for (const id of used) {
+    // الاستثناء الوحيد المسمّى: لقطات قصة 001 (ep001-*) محفوظة خارج المكتبة بقرار المالك (٢٧ نوفمبر، D235)،
+    // فلا يُشترط وجودها في SHOTS، ويرندر مشهدها بالإخراج العام؛ فحوصها في ep001-storyboard-032 من ep001.tsx مباشرة
+    const ARCHIVED_EP001 = (id: string) => id.startsWith("ep001-");
+    for (const id of used.filter(ARCHIVED_EP001)) expect(SHOTS[id], id).toBeUndefined();
+    for (const id of used.filter((x) => !ARCHIVED_EP001(x))) {
       const d = SHOTS[id];
       expect(d, id).toBeDefined();
       const shot = d!.render({ frame: 40, fps: 30, dur: 200, portrait: false, at: (_w, f) => Math.round(f * 200) });
