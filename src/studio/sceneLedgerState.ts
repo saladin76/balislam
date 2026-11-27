@@ -27,8 +27,14 @@ import { sourceNow } from "./sceneInputs";
  *   the publish permission, because the cut and its seams no longer match.
  * A later scene that stays approved after a newly inserted queued one keeps its approval; the new scene is
  * produced and approved like any other, in any order (D145), and assembly stays blocked until every scene is approved. A different channel/episode still starts over.
+ *
+ * D237 (27 Nov 2026, cancels the D35 recitation gate): an approval recorded «مشروط بالتلاوة» on a scene whose current inputs
+ * no longer wait for a recitation (`recitationPending` false — every verse card now, since verses are written) becomes the
+ * scene's ordinary approval: the owner already watched and approved its picture and sound, and the only condition is gone.
+ * Its inputs did not change, so nothing is re-opened. A basmala still waiting for the owner's recording keeps its condition.
  */
-export const reconcileSceneLedger = (stored: SceneFirstProduction, current: SceneFirstProduction): SceneFirstProduction => {
+export const reconcileSceneLedger = (stored: SceneFirstProduction, current: SceneFirstProduction,
+  recitationPending?: Record<string, boolean>): SceneFirstProduction => {
   if (stored.channel !== current.channel || stored.episode !== current.episode)
     return current; // a ledger of another episode is never migrated
   const byId = new Map(stored.scenes.map(scene => [scene.id, scene]));
@@ -46,6 +52,12 @@ export const reconcileSceneLedger = (stored: SceneFirstProduction, current: Scen
   for (const s of current.scenes)
     if (state.scenes.find(x => x.id === s.id)?.sourceSha256 !== s.sourceSha256)
       state = reviseSceneInput(state, s.id, s.sourceSha256);
+  if (recitationPending && state.scenes.some(s => s.approval?.recitationPending && !recitationPending[s.id]))
+    state = { ...state, scenes: state.scenes.map(s => {
+      if (!s.approval?.recitationPending || recitationPending[s.id]) return s;
+      const { recitationPending: _lifted, ...approval } = s.approval;
+      return { ...s, approval };
+    }) };
   return state;
 };
 /**
@@ -162,7 +174,7 @@ export const carryForwardAfterPreparation = async (episode: string, file: string
     cur = await sourceNow(episode);
     if (cur.scriptPath !== current.scriptPath) throw Error("Episode changed while locking.");
   }
-  let state = reconcileSceneLedger(p, cur.initial);
+  let state = reconcileSceneLedger(p, cur.initial, cur.recitationPending);
   const script = approvedNow(state.script) ? undefined : { from: lastApprovedSha(doc, "script"), to: state.script.sha256 };
   const storyboard = approvedNow(state.storyboard) ? undefined : { from: lastApprovedSha(doc, "storyboard"), to: state.storyboard.sha256 };
   if (script) state = approveScript({ ...state, script: { sha256: state.script.sha256 } }, "system", at, state.script.sha256);
@@ -203,7 +215,7 @@ export const withState = async <T>(episode: string,
     if (current.scriptPath !== initialPath) throw Error("Episode changed while locking.");
     let doc = await readLedger(file, current);
     const before = doc.state;
-    const reconciled = reconcileSceneLedger(doc.state, current.initial);
+    const reconciled = reconcileSceneLedger(doc.state, current.initial, current.recitationPending);
     if (JSON.stringify(doc.state) !== JSON.stringify(reconciled)) {
       doc = applyReconciled(doc, reconciled);
       await saveLedger(file, doc);
