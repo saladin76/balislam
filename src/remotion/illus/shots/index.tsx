@@ -8,7 +8,7 @@ import { HomeRoom, Cafe, CafeTable, Chair, Workshop, TintedLattice, NightWindow 
 import { Courtyard, Rooftops, RoofWall } from "./outdoor";
 import { Birds, K, Rolling, Turn, Walker, prog, pz, turnSx, type CamKey, type ShotCtx } from "./kit";
 import { BuzzArcs, PhonePOV } from "./phone";
-import { EP001_SHOTS, type ShotSpan } from "./ep001";
+import type { ShotSpan } from "./ep001";
 
 /**
  * اللقطات المصمَّمة: كل لقطة تحكي جملتها بمكانها وشخوصها وكاميرتها، وأحداثها تقع لحظة نطق كلماتها.
@@ -626,8 +626,8 @@ export const SHOTS: Record<string, ShotDef> = {
   },
 };
 
-// لقطات قصة الحلقة 001 المعتمدة تصميمًا (القرار 031، الأمر 032)
-Object.assign(SHOTS, EP001_SHOTS);
+// لقطات قصة الحلقة 001 (القرار 031، الأمر 032) خارج الاستعمال بقرار المالك (٢٧ نوفمبر، D235): ملفها باقٍ في ep001.tsx
+// ولا تُسجَّل هنا، فلا تعرضها المكتبة ولا قائمة لقطات «حكايات الحارة»، ويعود المشهد الذي يذكرها إلى الإخراج العام.
 
 export const SHOT_IDS = Object.keys(SHOTS);
 

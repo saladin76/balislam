@@ -3,10 +3,17 @@
  * (camera keys and declared spans) at every 3rd frame with the silent timing estimate, in both orientations.
  */
 import fs from "node:fs";
-import { SHOTS } from "../../src/remotion/illus/shots";
+import { SHOTS, type ShotDef } from "../../src/remotion/illus/shots";
+import { EP001_SHOTS } from "../../src/remotion/illus/shots/ep001";
 import { camAt, makeAt } from "../../src/remotion/illus/shots/kit";
 import { estimateTimings } from "../../src/remotion/scenes/timing";
 import { sceneFrames } from "../../src/plan/duration";
+
+/**
+ * لقطات 001 خارج SHOTS منذ ٢٧ نوفمبر (D235، قرار المالك: محفوظة لا مستعملة)، فتستوردها فحوصها من ep001.tsx مباشرة
+ * وتضمها إلى لقطات المكتبة العامة كما كانت مسجَّلة وقت كتابة هذه الفحوص.
+ */
+export const STORY_SHOTS: Record<string, ShotDef> = { ...SHOTS, ...EP001_SHOTS };
 
 export type PlanScene = { id: string; template: string; narration: string; props: Record<string, string> };
 // The 163-scene design (command 032) these checks were written for; the live plan is the ~5-minute episode since
@@ -24,7 +31,7 @@ export const ctxFor = (s: PlanScene, portrait: boolean) => {
 
 /** فحص الإطار: الكاميرا داخل المكان، والمطلوب كامل، والاختياري كامل أو غائب (العابر مستثنى وهو يمشي) */
 export const framingIssues = (s: PlanScene, portrait: boolean, step = 3, margin = 20): string[] => {
-  const def = SHOTS[s.props.shot!]!;
+  const def = STORY_SHOTS[s.props.shot!]!;
   const c0 = ctxFor(s, portrait);
   const out: string[] = [];
   for (let frame = 0; frame < c0.dur; frame += step) {
