@@ -1,4 +1,4 @@
-/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 009 — ذرية نوح» (بلا React). الخطة: channels/dafatir-alzaman/episodes/009-dhurriyyat-nuh/scenes.md */
+/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 009 — ذرية نوح» (بلا React). الخطة: channels/dafatir-alzaman/episodes/008-ala-al-judi/scenes.md (الجزء الثاني، صفوف c2-…؛ دُمجت 009 في 008 بقرار المالك ٢٧ نوفمبر) */
 import type { HzMeta } from "../horizon/meta";
 
 export const BD09_META: Record<string, HzMeta> = {

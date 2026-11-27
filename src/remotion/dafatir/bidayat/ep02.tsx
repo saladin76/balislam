@@ -8,7 +8,7 @@ import React from "react";
 import { Lens } from "../lib/drawings";
 import { DateRibbon } from "../horizon/book";
 import {
-  Arrow, BlankLine, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Seal, Stone, Sun, Tab, Thread, Txt, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
+  Arrow, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Seal, Stone, Sun, Tab, Thread, Txt, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
 } from "./kit";
 
 const GROUND = 640;
@@ -550,9 +550,9 @@ const ThreeSeals = reverent((q) => {
   return <Leaf q={q} id="b2ts" cam={cam} L={row} R={<g>{row}<Write id="b2ts-h" x={1365} y={220} size={54} p={head} label="الفرق" color={C.inkSoft} /></g>} />;
 });
 
-// ─── c1-s47 / c1-s53..s55: العقدة الثانية تُشد، ثم الثالثة ───
+// ─── c1-s47 / c1-s53..s54: العقدة الثانية تُشد، ثم حلقة الثالثة فارغة (يعقدها الجزء الثاني في bd03-thread-night، دمج الحلقتين ٢٧ نوفمبر) ───
 const ThreadKnot = reverent((q) => {
-  const k = cueKit(q, ["بقي", "ومضت", "الأجيال", "نعقده"]);
+  const k = cueKit(q, ["بقي", "ومضت", "الأجيال"]);
   const { t, S } = k;
   const tie2 = k.on(0, "بقي", 0.8);
   const name2 = k.draw(0, "بقي", 1.0);
@@ -560,8 +560,6 @@ const ThreadKnot = reverent((q) => {
   const many = S === 1 ? prog(t, k.at("وكثر") - 0.05, k.end("وأحفاده") + 0.3) : S > 1 ? 1 : 0;
   const ring3 = k.on(2, "الأجيال", 0.7);
   const know = k.on(2, "نعلمه"), riw = k.on(2, "رواية");
-  const tie3 = k.on(3, "نعقده", 0.8);
-  const name3 = S === 3 ? k.draw(3, "الأجيال", 0.9) : 0;
   const r = rng(52);
   // النقاط بعيدة عن الخيط وعن أسماء العقد تحته
   const dots = Array.from({ length: 26 }, () => [mix(1100, 220, r()), 560 + (r() > 0.35 ? -1 : 1) * (110 + r() * 150)] as const).map(([x, y]) => [x, y > 560 ? y + 60 : y] as const);
@@ -569,14 +567,13 @@ const ThreadKnot = reverent((q) => {
     [1, "ومضت", { cx: 860, cy: 560, s: 1.05 }, 1.4],
     [2, "الأجيال", { cx: 560, cy: 520, s: 1.3 }, 1.0],
     [2, "نعلمه", { cx: 1300, cy: 640, s: 1.15 }, 1.0],
-    [3, "نعقده", { cx: 560, cy: 560, s: 1.35 }, 1.0],
   ]);
   const both = (
     <g>
       <Thread x1={1760} x2={160} y={560} p={mix(0.42, 1, ext)} knots={[
         { x: 1620, kind: "tied", q: 1, label: "خلق آدم", lq: 1 },
         { x: 1240, kind: "ring", q: 1, tie: tie2, label: "ابنا آدم", lq: name2 },
-        { x: 520, kind: "ring", q: ring3, tie: tie3, mark: ring3 * (1 - tie3), label: S === 3 ? "الأجيال الأولى" : undefined, lq: name3 },
+        { x: 520, kind: "ring", q: ring3, tie: 0, mark: ring3 },
       ]} />
       {dots.map(([x, y], i) => <Dot key={i} x={x} y={y} r={6} q={prog(many, i / dots.length, i / dots.length + 0.15)} />)}
     </g>
@@ -658,23 +655,6 @@ const OneAndAll = reverent((q) => {
   );
 });
 
-// ─── c1-s56: السطر الفارغ ───
-const BlankLineShot = reverent((q) => {
-  const k = cueKit(q, ["التفصيل"]);
-  const seals = k.on(0, "التفصيل");
-  const line = k.draw(0, "رواية", 0.9);
-  const pen = k.on(0, "رواية", 0.7);
-  const touch = k.on(0, "اكتب", 0.4);
-  const cam = k.cam(NEUTRAL, [[0, "رواية", { cx: 1365, cy: 520, s: 1.2 }, 1.0], [0, "اكتب", { cx: 1330, cy: 540, s: 1.35 }, 0.9]]);
-  return (
-    <Leaf q={q} id="b2bl" cam={cam}
-      R={<g>
-        {([[1700, "ثابت"], [1590, "رواية"], [1480, "لا يصح"]] as const).map(([x, kind], i) => <Seal key={i} x={x} y={820} q={prog(seals, i * 0.25, i * 0.25 + 0.5)} kind={kind} s={0.32} />)}
-        <BlankLine x={1340} y={560} w={560} p={line} pen={pen} touch={touch} />
-      </g>} />
-  );
-});
-
 export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-feather": FeatherShot,
   "bd02-thread-ground": ThreadGround,
@@ -694,7 +674,6 @@ export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-thread-knot": ThreadKnot,
   "bd02-crack-grows": CrackGrows,
   "bd02-one-and-all": OneAndAll,
-  "bd02-blank-line": BlankLineShot,
 };
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */
