@@ -7,7 +7,7 @@
 import React from "react";
 import { Books, Hourglass } from "../lib/drawings";
 import {
-  BlankLine, C, Dot, DotFrame, Field, GOLD_D, GoldSeal, Horizon, Ink, Leaf, NEUTRAL, Peak, Plank, Q, Ring, Scribble, Seal, Sheet, Tab, Thread, Txt, WATER, Write,
+  C, Dot, DotFrame, Field, GOLD_D, GoldSeal, Horizon, Ink, Leaf, NEUTRAL, Peak, Plank, Q, Ring, Scribble, Seal, Sheet, Tab, Thread, Txt, WATER, Write,
   bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps, type KnotDef,
 } from "./kit";
 
@@ -626,20 +626,17 @@ const Cloud = reverent((q) => {
   );
 });
 
-// ─── c1-s43 / c1-s44: الخيط إلى عقدة ٧ فارغة، والسؤال ───
+// ─── c1-s43: الخيط إلى عقدة ٧ فارغة ───
 const NextKnot = reverent((q) => {
-  const k = cueKit(q, ["الماء", "بنيته"]);
-  const { t, S } = k;
-  const water = S === 0 ? prog(t, k.at("الماء") - 0.05, k.at("الماء") + 1.0) : 1;
-  const ext = k.on(0, "نعقده", 1.2);
-  const lab = k.draw(0, "الطوفان", 0.8);
-  const box = k.on(1, "بنيته", 0.7);
-  const qm = S === 1 ? k.on(1, "غريبا", 0.5) * (1 - k.on(1, "معناه", 0.6)) : 0;
-  const dot = k.on(1, "معناه", 0.6);
-  const line = k.draw(1, "التعليقات", 0.9);
+  // دمج الحلقتين (٢٧ نوفمبر): بقيت «فماذا حدث حين جاء الماء؟» وحدها؛ الخيط يمتد إلى العقدة ٧ الفارغة على «حدث»
+  // بلا اسم (اسمها «الطوفان» يُكتب في bd07-thread عند نطقه)، وحُذفت مرحلة سؤال التعليقات
+  const k = cueKit(q, ["الماء"]);
+  const { t } = k;
+  const water = prog(t, k.at("الماء") - 0.05, k.at("الماء") + 1.0);
+  const ext = k.on(0, "حدث", 1.2);
+  const lab = 0;
   const cam = k.cam(NEUTRAL, [
-    [0, "نعقده", { cx: 860, cy: 720, s: 1.3 }, 1.2],
-    [1, "بنيته", { cx: 560, cy: 520, s: 1.2 }, 1.0],
+    [0, "حدث", { cx: 860, cy: 720, s: 1.3 }, 1.2],
   ]);
   const both = (
     <g>
@@ -650,12 +647,7 @@ const NextKnot = reverent((q) => {
   );
   return (
     <Leaf q={q} id="b6nk" cam={cam}
-      L={<g>{both}
-        <rect x={460} y={400} width={200} height={34} rx={4} fill="none" stroke={C.ink} strokeWidth={4} opacity={box} />
-        <Q x={560} y={360} size={80} q={qm} />
-        <Dot x={560} y={340} q={dot} r={10} />
-        <BlankLine x={560} y={530} w={380} p={line} pen={line} touch={0} />
-      </g>}
+      L={both}
       R={both} />
   );
 });

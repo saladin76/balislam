@@ -144,7 +144,7 @@ const RING = Array.from({ length: 11 }, (_, i) => {
   return [PLAZA[0] + Math.cos(a) * 300, PLAZA[1] - Math.sin(a) * 110] as const;
 });
 
-// ─── c1-s1..s3، c1-s34، c1-s36، c1-s37: الحجر والقطرة ───
+// ─── c2-s1..s3، c2-s34، c2-s36، c2-s37: الحجر والقطرة ───
 const DropStone = reverent((q) => {
   const k = cueKit(q, ["تسقط", "يتغير", "لبث", "نتعلم", "أياما", "نهاية"]);
   const { t, S, dur } = { ...k, dur: q.dur };
@@ -203,44 +203,38 @@ const DropStone = reverent((q) => {
   return <Leaf q={q} id="b5d" cam={cam} R={R} />;
 });
 
-// ─── c1-s4 / c1-s5 / c1-s39: الخيط العمودي والعقدة الخامسة ───
+// ─── c2-s5 / c2-s39: الخيط العمودي والعقدة الخامسة ───
 const TX = 1660;
 const ThreadKnot = reverent((q) => {
-  const k = cueKit(q, ["خيط", "نعقد", "صبرت"]);
+  // دمج الحلقتين (٢٧ نوفمبر): حُذفت جملة «على خيط الزمن، رأينا في الحلقة الماضية…» ومرحلتها (رسم الخيط والعقد ١–٤
+  // و«التوحيد ← الشرك»)، فالخيط وعقده الأربع حاضرة من أول المشهد تكملةً لخيط آخر الجزء الأول
+  const k = cueKit(q, ["نعقد", "صبرت"]);
   const { t, S } = k;
-  const thread = S === 0 ? k.draw(0, "خيط", 1.2) : 1;
-  const old = (i: number) => (S === 0 ? prog(t, k.at("الماضية") + i * 0.3 - 0.05, k.at("الماضية") + i * 0.3 + 0.35, easeOut) : 1);
-  const tawhid = S === 0 ? k.draw(0, "التوحيد", 0.8) : 0;
-  const line = S === 0 ? k.draw(0, "تعظيم", 1.2) : 0;
-  const shirk = S === 0 ? k.draw(0, "الشرك", 0.8) : 0;
-  const tie5 = k.on(1, "نعقد", 0.8);
-  const light = k.on(1, "أول", 0.7);
-  const ground = k.draw(1, "أهل", 0.8);
-  const drop = S === 2 ? prog(t, k.at("صبرت") - 0.6, k.at("صبرت") + 0.6) : 0;
-  const ext = k.draw(2, "أطول", 1.0);
-  const blank = k.draw(2, "التعليقات", 0.9);
+  const thread = 1;
+  const old = (_i: number) => 1;
+  const tie5 = k.on(0, "نعقد", 0.8);
+  const light = k.on(0, "أول", 0.7);
+  const ground = k.draw(0, "أهل", 0.8);
+  const drop = S === 1 ? prog(t, k.at("صبرت") - 0.6, k.at("صبرت") + 0.6) : 0;
+  const ext = k.draw(1, "أطول", 1.0);
+  const blank = k.draw(1, "التعليقات", 0.9);
   const cam = k.cam({ cx: 1420, cy: 500, s: 1.25 }, [
-    [0, "الماضية", { cx: 1560, cy: 320, s: 1.5 }, 1.2],
-    [0, "تعظيم", { cx: 1420, cy: 420, s: 1.3 }, 1.2],
-    [1, "نعقد", { cx: 1560, cy: 560, s: 1.45 }, 1.0],
-    [2, "أطول", { cx: 1480, cy: 660, s: 1.3 }, 1.0],
+    [0, "نعقد", { cx: 1560, cy: 560, s: 1.45 }, 1.0],
+    [1, "أطول", { cx: 1480, cy: 660, s: 1.3 }, 1.0],
   ]);
   const R = (
     <g>
-      <g opacity={S >= 1 ? 1 : 0}><TopStone x={1450} y={660} s={0.3} /></g>
-      {S === 2 ? <Drips t={t} n0={0} hits={[]} /> : null}
+      <g><TopStone x={1450} y={660} s={0.3} /></g>
+      {S === 1 ? <Drips t={t} n0={0} hits={[]} /> : null}
       {drop > 0 ? (drop < 0.5 ? <Drop x={1450} y={mix(560, 660, (drop * 2) ** 2)} s={0.6} /> : <ellipse cx={1450} cy={660} rx={6 + 26 * prog(drop, 0.5, 1)} ry={4 + 18 * prog(drop, 0.5, 1)} fill="none" stroke="#4A4450" strokeWidth={2.5} />) : null}
-      <VThread x={TX} y1={110} y2={S === 2 ? mix(600, 760, ext) : 600} p={thread} knots={[
+      <VThread x={TX} y1={110} y2={S === 1 ? mix(600, 760, ext) : 600} p={thread} knots={[
         { y: 170, kind: "tied", q: old(0) },
         { y: 240, kind: "tied", q: old(1) },
         { y: 310, kind: "tied", q: old(2) },
         { y: 380, kind: "dark", q: old(3) },
-        { y: 540, kind: "ring", q: tie5 > 0 || S > 1 ? 1 : 0, tie: tie5, glow: S === 1 ? bounce(t, k.at("نعقد"), k.at("نعقد") + 1.2) : 0 },
-        ...(S === 2 ? [{ y: 760, kind: "ring" as const, q: ext, tie: 0, mark: ext }] : []),
+        { y: 540, kind: "ring", q: tie5 > 0 || S > 0 ? 1 : 0, tie: tie5, glow: S === 0 ? bounce(t, k.at("نعقد"), k.at("نعقد") + 1.2) : 0 },
+        ...(S === 1 ? [{ y: 760, kind: "ring" as const, q: ext, tie: 0, mark: ext }] : []),
       ]} />
-      <Write id="b5t-t" x={1530} y={392} size={36} p={tawhid} label="التوحيد" font="tajawal" />
-      <Ink d={`M${TX - 20} 396 C1520 430 1400 450 1300 470`} p={line} w={2.5} c={C.inkSoft} />
-      <Write id="b5t-s" x={1220} y={482} size={40} p={shirk} label="الشرك" font="tajawal" color="#3A1E14" />
       <LightPoint x={TX - 70} y={540} q={light} />
       <Txt x={1500} y={552} size={34} q={light} anchor="end" color={C.ink}>أول رسول</Txt>
       <Ink d={`M${TX + 60} 600 H${TX - 120}`} p={ground} w={4} />
@@ -250,7 +244,7 @@ const ThreadKnot = reverent((q) => {
   return <Leaf q={q} id="b5t" cam={cam} R={R} />;
 });
 
-// ─── c1-s6: لا سنة ولا مكان ───
+// ─── c2-s6: لا سنة ولا مكان ───
 const BlankRibbon = reverent((q) => {
   const k = cueKit(q, ["ومتى"]);
   const { t } = k;
@@ -290,7 +284,7 @@ const BlankRibbon = reverent((q) => {
   return <Leaf q={q} id="b5r" cam={cam} L={L} R={R} />;
 });
 
-// ─── c1-s8 / c1-s30: تمهيد الحديث ───
+// ─── c2-s8 / c2-s30: تمهيد الحديث ───
 const HadithLead = reverent((q) => {
   const k = cueKit(q, ["قال"]);
   const long = k.has("الشفاعة");
@@ -312,7 +306,7 @@ const HadithLead = reverent((q) => {
   );
 });
 
-// ─── c1-s10: أول رسول إلى أهل الأرض (نص المراجعة العلمية، الدفعة ٥ البند ١٢٥: بلا «أجيال من التوحيد ثم الاختلاف») ───
+// ─── c2-s10: أول رسول إلى أهل الأرض (نص المراجعة العلمية، الدفعة ٥ البند ١٢٥: بلا «أجيال من التوحيد ثم الاختلاف») ───
 const LX = 1120;
 const LY = 560;
 const FOLK = [520, 420, 320, 220];
@@ -348,7 +342,7 @@ const FirstMessenger = reverent((q) => {
   );
 });
 
-// ─── c1-s11 / c1-s14: الخانة الوحيدة المؤكدة ───
+// ─── c2-s11 / c2-s14: الخانة الوحيدة المؤكدة ───
 const BOX = { x: 1365, y: 540, w: 600, h: 170 };
 const boxPath = `M${BOX.x + BOX.w / 2} ${BOX.y - BOX.h / 2} H${BOX.x - BOX.w / 2} V${BOX.y + BOX.h / 2} H${BOX.x + BOX.w / 2} Z`;
 const OneNumber = reverent((q) => {
@@ -383,7 +377,7 @@ const OneNumber = reverent((q) => {
   );
 });
 
-// ─── c1-s15: أجيال تسمع الدعوة نفسها ───
+// ─── c2-s15: أجيال تسمع الدعوة نفسها ───
 const GX = 1365;
 const Generations = reverent((q) => {
   const k = cueKit(q, ["تخيل"]);
@@ -419,7 +413,7 @@ const Generations = reverent((q) => {
   );
 });
 
-// ─── c1-s16: دعوته بلسانه (لا رسم بجوار ذكر الله) ───
+// ─── c2-s16: دعوته بلسانه (لا رسم بجوار ذكر الله) ───
 const Complaint = reverent((q) => {
   const k = cueKit(q, ["دعوته"]);
   const title = k.draw(0, "دعوته", 0.8);
@@ -453,7 +447,7 @@ const Village5: React.FC<{ row: number; ring: number; lit?: (i: number) => numbe
   </g>
 );
 
-// ─── c1-s19: ليلًا ونهارًا، علنًا وسرًّا (الدفعة ٦ البند ١٢٧: لا «باب بعد باب») ───
+// ─── c2-s19: ليلًا ونهارًا، علنًا وسرًّا (الدفعة ٦ البند ١٢٧: لا «باب بعد باب») ───
 const DayNight = reverent((q) => {
   const k = cueKit(q, ["واصل"]);
   const { t } = k;
@@ -483,7 +477,7 @@ const DayNight = reverent((q) => {
   return <Leaf q={q} id="b5dn" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s20: أبواب تُغلق ───
+// ─── c2-s20: أبواب تُغلق ───
 const ClosedDoors = reverent((q) => {
   const k = cueKit(q, ["سمعوه"]);
   const { t } = k;
@@ -519,7 +513,7 @@ const ClosedDoors = reverent((q) => {
   return <Leaf q={q} id="b5cd" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s21: لا شيء يخسرونه ───
+// ─── c2-s21: لا شيء يخسرونه ───
 const NothingLost = reverent((q) => {
   const k = cueKit(q, ["يخسرونه"]);
   const line = k.draw(0, "يدعوهم", 1.0);
@@ -550,7 +544,7 @@ const Bush: React.FC<{ x: number; y: number; q: number; s?: number }> = ({ x, y,
     </g>
   );
 
-// ─── c1-s24: وعد الاستغفار ───
+// ─── c2-s24: وعد الاستغفار ───
 const Promise5 = reverent((q) => {
   // الدفعة ٦ البند ١٢٨: «الأموال» و«البنين» بالكلمة وحدها (لا قمح ولا عملات ولا أشخاص)
   const k = cueKit(q, ["استغفار"]);
@@ -592,7 +586,7 @@ const Promise5 = reverent((q) => {
   );
 });
 
-// ─── c1-s25..s28: الورقة الجانبية — أعمار الروايات ───
+// ─── c2-s25..s28: الورقة الجانبية — أعمار الروايات ───
 const SH = { x: 560, y: 520, w: 620, h: 560 };
 const ROWS = [
   { w: "بعث", label: "حين بُعث" },
@@ -661,7 +655,7 @@ const SideSheet = reverent((q) => {
   return <Leaf q={q} id="b5ss" cam={cam} L={L} />;
 });
 
-// ─── c1-s32 / c1-s33: البلاغ والإنكار والشهادة ───
+// ─── c2-s32 / c2-s33: البلاغ والإنكار والشهادة ───
 const Witness = reverent((q) => {
   // الدفعة ٦ البند ١٣٠: شريط مصدر «البخاري ٣٣٣٩»، ولا ختم ذهبي للقرآن (حُذف «بما أخبرها القرآن»)
   const k = cueKit(q, ["البلاغ", "صحيح"]);
@@ -703,7 +697,7 @@ const Witness = reverent((q) => {
   );
 });
 
-// ─── c1-s38: لوح في أرض لا ماء فيها ───
+// ─── c2-s38: لوح في أرض لا ماء فيها ───
 const PlankTeaser = reverent((q) => {
   const k = cueKit(q, ["يؤمر"]);
   const thread = k.draw(0, "يؤمر", 1.0);
@@ -759,7 +753,7 @@ export const BD05_SCENES: Record<string, React.FC<BdProps>> = {
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */
 export const BD05_STILLS: Record<string, string> = {
   // الغلاف المرشح: الحجر وفي وسطه الحفرة
-  "bd05-drop-stone": "c1-s36",
-  "bd05-thread-knot": "c1-s5",
-  "bd05-side-sheet": "c1-s27",
+  "bd05-drop-stone": "c2-s36",
+  "bd05-thread-knot": "c2-s5",
+  "bd05-side-sheet": "c2-s27",
 };

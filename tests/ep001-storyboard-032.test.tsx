@@ -2,11 +2,10 @@ import React from "react";
 import fs from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
-import { SHOTS } from "../src/remotion/illus/shots";
-import { EP001_SCENE_SHOTS, OCCLUDER, SCALE_TILT, WEIGHT_PAN_BOX } from "../src/remotion/illus/shots/ep001";
+import { EP001_SCENE_SHOTS, EP001_SHOTS, OCCLUDER, SCALE_TILT, WEIGHT_PAN_BOX } from "../src/remotion/illus/shots/ep001";
 import { CHAIR_SHORT, PHONE_IMAGE, StoryNotebook, StoryPhone, TEAR, TornLeaf, chairFeet, phoneCrop } from "../src/remotion/illus/storyProps";
 import { isSacredSentence } from "../src/plan/sceneCues";
-import { ctxFor, framingIssues, planScenes, shotScenes, type PlanScene } from "./helpers/ep001Shots";
+import { ctxFor, framingIssues, planScenes, shotScenes, type PlanScene, STORY_SHOTS } from "./helpers/ep001Shots";
 
 /**
  * الأمر 032: تنفيذ تصورات الحلقة 001 المعتمدة تصميمًا (القرار 031). المعايير من حزمة التسليم
@@ -21,7 +20,7 @@ const range = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i)
 const markup = (s: PlanScene, frame: number, portrait = false) => {
   const c = ctxFor(s, portrait);
   const f = Math.max(0, Math.min(c.dur - 1, frame));
-  return renderToStaticMarkup(<svg>{SHOTS[s.props.shot!]!.render({ frame: f, fps: 30, dur: c.dur, portrait, at: c.at }).world}</svg>);
+  return renderToStaticMarkup(<svg>{STORY_SHOTS[s.props.shot!]!.render({ frame: f, fps: 30, dur: c.dur, portrait, at: c.at }).world}</svg>);
 };
 const frames = (s: PlanScene, step = 6) => {
   const { dur } = ctxFor(s, false);
@@ -85,7 +84,7 @@ describe("المرحلة الثانية: العناصر المعتمدة", () =>
   it("كل لقطة مستعملة في الخطة موجودة، وخريطة المشاهد هي ما في الخطة", () => {
     for (const [id, shot] of Object.entries(EP001_SCENE_SHOTS)) {
       expect(scene(id).props.shot, id).toBe(shot);
-      expect(SHOTS[shot], shot).toBeDefined();
+      expect(EP001_SHOTS[shot], shot).toBeDefined();
     }
     expect(shotScenes().map((s) => s.id).sort()).toEqual(Object.keys(EP001_SCENE_SHOTS).sort());
   });
@@ -214,14 +213,14 @@ describe("المرحلة الثانية: العناصر المعتمدة", () =>
 });
 
 describe("المرحلة الثالثة: اللقطات الممتدة", () => {
-  const seqOf = (s: PlanScene) => SHOTS[s.props.shot!]!.seq;
-  const story = planScenes().filter((s) => s.props.shot && SHOTS[s.props.shot]?.seq);
+  const seqOf = (s: PlanScene) => STORY_SHOTS[s.props.shot!]!.seq;
+  const story = planScenes().filter((s) => s.props.shot && STORY_SHOTS[s.props.shot]?.seq);
   it("المشاهد المتتالية في لقطة ممتدة: مكان واحد فتُقطع بلا إظلام، والمعرّفات والنصوص كما هي", () => {
     const all = planScenes();
     for (let i = 0; i + 1 < all.length; i++) {
       const a = all[i]!, b = all[i + 1]!;
-      if (!a.props.shot || !b.props.shot || !SHOTS[a.props.shot]?.seq || seqOf(a) !== seqOf(b)) continue;
-      expect(SHOTS[a.props.shot]!.place, `${a.id}→${b.id}`).toBe(SHOTS[b.props.shot]!.place);
+      if (!a.props.shot || !b.props.shot || !STORY_SHOTS[a.props.shot]?.seq || seqOf(a) !== seqOf(b)) continue;
+      expect(STORY_SHOTS[a.props.shot]!.place, `${a.id}→${b.id}`).toBe(STORY_SHOTS[b.props.shot]!.place);
     }
     expect(story.length).toBe(Object.keys(EP001_SCENE_SHOTS).length);
   });
@@ -241,7 +240,7 @@ describe("المرحلة الثالثة: اللقطات الممتدة", () => {
     };
     for (let i = 0; i + 1 < all.length; i++) {
       const a = all[i]!, b = all[i + 1]!;
-      if (!a.props.shot || !b.props.shot || !SHOTS[a.props.shot]?.seq || seqOf(a) !== seqOf(b)) continue;
+      if (!a.props.shot || !b.props.shot || !STORY_SHOTS[a.props.shot]?.seq || seqOf(a) !== seqOf(b)) continue;
       const end = state(markup(a, 10_000));
       const start = state(markup(b, 0));
       const skip = allowed[`${a.id}→${b.id}`] ?? [];
@@ -260,7 +259,7 @@ describe("المرحلة الرابعة: التكوين بالاتجاهين", (
   it("الميزان في العمودي: لقطتا الشاهدين بالتتابع، لا لقطة الاثنين", () => {
     const s = scene("c1-s5");
     const c = ctxFor(s, true);
-    const shot = SHOTS[s.props.shot!]!.render({ frame: c.dur - 1, fps: 30, dur: c.dur, portrait: true, at: c.at });
+    const shot = STORY_SHOTS[s.props.shot!]!.render({ frame: c.dur - 1, fps: 30, dur: c.dur, portrait: true, at: c.at });
     const html = renderToStaticMarkup(<svg>{shot.world}</svg>);
     expect(count(html, ">ظلم<") + count(html, ">عدل<")).toBeGreaterThan(0);
   });
