@@ -95,9 +95,11 @@ describe("بوابات النسخة النهائية", () => {
     await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).resolves.toBe(true);
   });
 
-  it("تلاوة مفقودة تمنع", async () => {
+  it("D237: آية بلا تلاوة لا تمنع النسخة النهائية (أُلغيت بوابة التلاوة D35)، والآلية الكامنة تمنعها لقناة تطلبها", async () => {
     const s = await fresh();
-    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: { ...s.media, recitations: {} } as never, channel })).rejects.toThrow(/تلاوة/);
+    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: { ...s.media, recitations: {} } as never, channel })).resolves.toBe(true);
+    const requiring = { ...channel, verse: { ...channel.verse, recitation: "required" as const } };
+    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: { ...s.media, recitations: {} } as never, channel: requiring })).rejects.toThrow(/تلاوة/);
   });
 
   it("صوت لا يطابق نصه يمنع", async () => {
