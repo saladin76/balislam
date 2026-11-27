@@ -1216,6 +1216,43 @@ channelCmd
     console.log("الخطوات التالية: عدّل المجالات في channel.json، والألوان من تبويب الهوية في الاستوديو، ثم: bal --channel " + id + " new 001 …");
   });
 
+// D239: نسخة البسملة المعتمدة الواحدة (صوت المالك المستنسخ، بصمتها مثبّتة في src/voice/basmala.ts). لا توليد هنا أبدًا.
+const basmalaCmd = program.command("basmala").description("نسخة البسملة المعتمدة (D239): تثبيت بعد فحص البصمة، وحالتها، وتركيب مشاهدها");
+basmalaCmd
+  .command("install")
+  .description("ينسخ ملف البسملة المعتمد إلى assets/recitations/basmala/ (خارج Git) بعد مطابقة بصمته؛ ويرفض أي ملف آخر")
+  .argument("<file>", "ملف البسملة المعتمد")
+  .action(async (file: string) => {
+    const { installBasmalaClip } = await import("../voice/basmalaClip");
+    const r = await installBasmalaClip(path.resolve(file));
+    console.log(`ثُبّتت نسخة البسملة المعتمدة: ${path.relative(projectRoot, r.path)} (البصمة ${r.sha256}).`);
+    console.log("لتركيبها في مشاهد البسملة المنتظرة: npx bal --channel <القناة> basmala apply");
+  });
+basmalaCmd
+  .command("status")
+  .description("هل نسخة البسملة المعتمدة مثبّتة وبصمتها مطابقة؟")
+  .action(async () => {
+    const { basmalaClipStatus } = await import("../voice/basmalaClip");
+    const s = await basmalaClipStatus();
+    console.log(s.installed ? `مثبّتة ومطابقة: ${path.relative(projectRoot, s.path)}` : s.reason);
+    if (!s.installed) process.exitCode = 1;
+  });
+basmalaCmd
+  .command("apply")
+  .description("يركّب مشاهد البسملة بالنسخة المعتمدة (مجانًا، بلا طلب صوت)؛ الحلقة التي لها تسجيلها المعتمد لا تُمس")
+  .argument("[episode]", "رقم الحلقة (بلا رقم: كل حلقات القناة)")
+  .action(async (episode?: string) => {
+    const { applyBasmalaClip } = await import("../voice/basmalaClip");
+    const { listScriptEpisodeDirs } = await import("../script/episodes");
+    const { channelPaths } = await import("../channel");
+    const list = episode ? [episode] : (await listScriptEpisodeDirs(channelPaths().episodes)).map((d) => d.slice(0, 3));
+    const said = { "own-recording": "لها تسجيلها المعتمد؛ لم تُمس", "no-basmala": "لا بسملة فيها", "up-to-date": "مركّبة بالنسخة المعتمدة من قبل" } as const;
+    for (const ep of list) {
+      const r = await applyBasmalaClip(ep);
+      console.log(r.status === "recomposed" ? `${ep}: رُكّبت البسملة في ${r.scenes.join("، ") || "—"}؛ تعود هذه المشاهد وحدها للمراجعة.` : `${ep}: ${said[r.status]}.`);
+    }
+  });
+
 const decisionCmd = program.command("decision").description("سجلات القرارات (ترقيم D عام لكل القنوات)");
 decisionCmd
   .command("new")

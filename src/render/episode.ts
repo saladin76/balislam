@@ -90,9 +90,9 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
     return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
   }).map((s) => s.id);
   if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${sceneNames(planOrder(plan), missing, 10)}`);
-  // The basmala is the owner's own recording (owner decision 10 Nov): never a Master with its placeholder.
+  // The basmala is the owner's approved audio (10 Nov; D239: the episode's recording or the one approved clip): never a Master with its placeholder.
   const basmalaPending = required.filter((s) => media.voice[s.id]?.basmala?.pending).map((s) => s.id);
-  if (basmalaPending.length) throw new Error(`لا يمكن رندر نسخة نهائية والبسملة بلا تسجيلك المعتمد في: ${sceneNames(planOrder(plan), basmalaPending, 10)}. ارفع تسجيل البسملة واعتمده (الخطوة ٣ ← التلاوات).`);
+  if (basmalaPending.length) throw new Error(`لا يمكن رندر نسخة نهائية والبسملة بلا تسجيلك المعتمد في: ${sceneNames(planOrder(plan), basmalaPending, 10)}. ثبّت نسخة البسملة المعتمدة (npx bal basmala install <الملف> ثم npx bal basmala apply) أو ارفع تسجيل الحلقة واعتمده.`);
   // القناة التي اختارت قارئًا: لا آية في النسخة النهائية بلا تلاوتها (مرخّصة أو من القارئ المختار)
   // D68: a channel whose verses are written citations has no recitation to wait for (the card is silent text).
   const cited = versesAreCitations(o.channel);

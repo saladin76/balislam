@@ -14,7 +14,7 @@
  * and a context made only of Quran becomes undefined, so a verse is not even sent as context.
  */
 
-import { hasBasmala, withoutBasmala } from "./basmala";
+import { APPROVED_BASMALA_CLIP, hasBasmala, isApprovedBasmalaSha256, withoutBasmala } from "./basmala";
 
 export type TtsScene = { id?: string; template?: string; ayahKey?: string };
 
@@ -79,11 +79,22 @@ export const assertNoQuranForTts = (text: unknown, scene?: TtsScene | null, o: O
   const t = typeof text === "string" ? text : String(text ?? "");
   if (BRACKETS.test(t) || MARKER.test(t))
     throw new QuranTtsError(`نص فيه آية (﴿ ﴾ أو [آية]) لا يُرسل إلى الصوت المستنسخ${where}؛ ضع الآية في مشهد آية مستقل.`);
-  // The basmala is treated like a verse (owner decision, 10 Nov): the owner records it himself.
+  // The basmala is treated like a verse (owner decision, 10 Nov) and is never generated: D239 allows only its one
+  // approved fixed clip (assertApprovedBasmalaAudio below), never a new TTS request.
   if (hasBasmala(t))
-    throw new QuranTtsError(`البسملة لا تُرسل إلى الصوت المستنسخ${where}؛ يسجلها صاحب القناة بصوته: «ارفع التسجيل» في صفها من «الجمل».`);
+    throw new QuranTtsError(`البسملة لا تُرسل إلى الصوت المستنسخ${where}؛ لا تُولَّد أبدًا: تُستعمل نسختها المعتمدة الثابتة (D239) أو تسجيل الحلقة المعتمد.`);
   if (containsVerse(t, o.verses ?? []))
     throw new QuranTtsError(`النص يحوي آية من آيات الحلقة${where}، والصوت المستنسخ لا يتلو القرآن؛ ضعها في مشهد آية مستقل.`);
+};
+
+/**
+ * D239 — the single exception, for the basmala alone: audio of the basmala may come from the cloned voice only as the
+ * owner's one approved clip, recognised by its pinned sha256 (`APPROVED_BASMALA_CLIP` in basmala.ts). Any other bytes
+ * are refused. This is not a TTS path: nothing is generated, and verses have no exception at all.
+ */
+export const assertApprovedBasmalaAudio = (sha256: unknown, source = "البسملة"): void => {
+  if (!isApprovedBasmalaSha256(sha256))
+    throw new QuranTtsError(`${source}: بصمة الملف لا تطابق نسخة البسملة المعتمدة (${APPROVED_BASMALA_CLIP.decision})؛ لا يُستعمل غيرها ولا يُولَّد بديل.`);
 };
 
 /** True when the text may be sent (no throw). */

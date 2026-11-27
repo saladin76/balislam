@@ -24,7 +24,7 @@ import type { SentenceActionOptions } from "./sentenceVoice";
  */
 /** بوابات أي طلب صوت مدفوع لجملة (التوليد وإعادة نطق كلمة): الآية، التشكيل، الاعتمادات، النبرة، المفتاح، تدريب الصوت */
 export const voiceGates = async (ctx: Ctx, episode: string, scene: PlanScene, list: Sentence[], s: Sentence, opts: SentenceActionOptions, corrections: SentenceCorrection[] = s.corrections ?? [], mode: { current?: boolean } = {}) => {
-  if (s.kind === "basmala") throw new Error("البسملة يسجلها صاحب القناة بصوته ولا ينطقها الصوت المستنسخ: «ارفع التسجيل» في صفها.");
+  if (s.kind === "basmala") throw new Error("البسملة لا تُولَّد أبدًا: تُستعمل نسختها المعتمدة الثابتة (D239) أو تسجيل الحلقة المعتمد.");
   if (s.kind !== "narration") throw new Error("هذه الجملة نص قرآني؛ الصوت المستنسخ لا يتلو القرآن أبدًا. انقلها إلى مشهد آية وارفع تلاوتها.");
   const cov = coverageOf(ctx, s.id, s.text, corrections, sayOf(ctx, s));
   if (!cov.ok) {

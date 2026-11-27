@@ -7,6 +7,10 @@
  * stay blocked; attaching the owner's recording yields a processed copy at the narration's loudness with the
  * original untouched and selectable; approving it re-opens only that verse scene; after its quick re-approval
  * with the recitation, the assembly opens. Stubs: the heavy Remotion render behind shotsPreview only.
+ *
+ * D237 (27 Nov 2026): the owner cancelled the recitation gate — every channel is now `verse.recitation: "none"` and a
+ * verse scene is approved like any other (tests/d237-verse-without-recitation.test.ts). This file keeps guarding the
+ * DORMANT machinery for a channel that would opt back into `"required"`: its copied channel.json says so explicitly.
  */
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
@@ -135,6 +139,10 @@ beforeAll(async () => {
   await mkdir(epDir, { recursive: true });
   for (const f of ["channel.json", "identity.json", "identity.default.json", "pronunciation.json"])
     await copyFile(path.join(repo, "channels", CH, f), path.join(chDir, f));
+  { // D237: the real channels carry «none»; this dormant-machinery test opts back into «required».
+    const cfg = JSON.parse(await readFile(path.join(chDir, "channel.json"), "utf8"));
+    await writeFile(path.join(chDir, "channel.json"), JSON.stringify({ ...cfg, verse: { ...cfg.verse, recitation: "required" } }, null, 2));
+  }
   process.env.BAL_CHANNELS_DIR = root;
   process.env.BAL_ENV_FILE = path.join(root, ".env");
   process.env.BAL_CHANNEL = CH;
@@ -175,7 +183,7 @@ afterAll(async () => {
     await rmdir(dir).catch(() => undefined);
 });
 
-describe("recitations come last: pre-final without recitation, final gates unchanged", () => {
+describe("dormant D35 machinery (a channel opting into `recitation: \"required\"`; none does since D237)", () => {
   it("drafts, previews and conditionally approves a verse scene; the owner's polished recording re-opens only it", async () => {
     let s = await state();
     expect((await decide({ action: "approve-script", reviewed: true, expectedSha256: s.script.sha256 })).status).toBe(200);
