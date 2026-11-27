@@ -9,7 +9,7 @@ import { GLYPHS, Hatch } from "../lib/drawings";
 import { DateRibbon, Pin } from "../horizon/book";
 import {
   BlankLine, C, DotFrame, EMBER, GOLD_D, GREEN, GoldSeal, Horizon, Ink, Knot, Leaf, NEUTRAL, Q, Seal, Sheet, Tab, Txt, WATER, Write,
-  bounce, crackPath, cueKit, easeOut, mix, prog, reverent, rng, Plank, Rain, type BdProps, type KnotKind,
+  bounce, cueKit, easeOut, mix, prog, reverent, rng, Plank, Rain, type BdProps, type KnotKind,
 } from "./kit";
 
 // ───────────────────────── أدوات الحلقة ─────────────────────────
@@ -699,26 +699,26 @@ const Witness = reverent((q) => {
   );
 });
 
-// ─── c2-s38: لوح في أرض لا ماء فيها ───
+// ─── c2-s38: تمهيد الحلقة القادمة: المسطرة واللوح وكلمة «السفينة» ───
 const PlankTeaser = reverent((q) => {
-  const k = cueKit(q, ["يؤمر"]);
-  const thread = k.draw(0, "يؤمر", 1.0);
-  const ruler = k.draw(0, "يصنع", 1.0);
+  // التحرير النهائي للمحرر (٢٧ نوفمبر): «وفي الحلقة القادمة نرى كيف ردّ نوح عليه السلام على قومه حين سخروا منه وهو يبني السفينة.»
+  // بدل «ففي الحلقة القادمة، يؤمر نوح عليه السلام أن يصنع شيئًا لم يره قومه من قبل، في مكان لا ماء فيه: السفينة.» (أُزيل تحديد مكان البناء
+  // ووصفه بغير ماء): الخيط على «القادمة» بدل «يؤمر»، والمسطرة على «يبني» بدل «يصنع»، والبيوت على «قومه» كما كانت، والكلمة واللوح على
+  // «السفينة» كما كانا؛ وحُذفت الشقوق اليابسة (كانت على «ماء»)
+  const k = cueKit(q, ["سخروا"]);
+  const thread = k.draw(0, "القادمة", 1.0);
+  const ruler = k.draw(0, "يبني", 1.0);
   const houses = k.on(0, "قومه", 0.8);
-  const cracks = k.draw(0, "ماء", 1.0);
   const word = k.draw(0, "السفينة", 0.9);
   const plank = k.on(0, "السفينة", 1.0);
   const cam = k.cam(NEUTRAL, [
-    [0, "يصنع", { cx: 1300, cy: 700, s: 1.2 }, 1.0],
     [0, "قومه", { cx: 600, cy: 560, s: 1.15 }, 1.0],
+    [0, "يبني", { cx: 1300, cy: 700, s: 1.2 }, 1.0],
     [0, "السفينة", { cx: 1200, cy: 620, s: 1.15 }, 1.0],
   ]);
   const both = (
     <g>
       <Horizon y={560} p={1} sky="noon" ground="#D8BE8E" />
-      {[[1600, 640, 1480, 760, 1], [1050, 700, 880, 820, 2], [620, 660, 420, 800, 3], [300, 620, 200, 700, 4]].map(([x1, y1, x2, y2, s], i) => (
-        <Ink key={i} d={crackPath(x1!, y1!, x2!, y2!, 70 + s!, 8, 10)} p={prog(cracks, i * 0.15, 0.6 + i * 0.13)} w={3} c="#5A4030" />
-      ))}
       {[0, 1, 2, 3].map((i) => <House key={i} x={480 + i * 70} y={560} g={i} s={0.55} q={houses * 0.7} />)}
     </g>
   );

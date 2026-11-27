@@ -113,36 +113,24 @@ const SeriesThread: React.FC<{ p: number; k5?: number; glow5?: number; x5?: numb
   return <Thread x1={1760} x2={160} y={TY} p={p} knots={knots} labelDy={52} labelSize={28} />;
 };
 
-// ─── c1-s1: أرض يابسة إلى الأفق، لا بحر ───
-const Dryland = reverent((q) => {
-  const k = cueKit(q, ["سفينة"]);
-  const { t } = k;
-  const line = k.open(0, 1.6);
-  const cr = k.draw(0, "أرض", 1.4);
-  const sea = prog(t, k.at("بحر") - 0.05, k.at("بحر") + 0.8) ;
-  const seaO = 1 - prog(t, k.at("بحر") + 0.9, k.at("بحر") + 1.6);
-  const word = k.draw(0, "سفينة", 0.8);
-  const cam = k.cam({ cx: 960, cy: 600, s: 1.15 }, [[0, "أرض", NEUTRAL, 1.4]]);
-  const both = (
-    <g>
-      <Dry p={line} cr={cr} grid={0} />
-      {sea > 0 && seaO > 0 ? <path d={`M1700 ${DRY - 4} H${1700 - 900 * sea}`} stroke={WATER} strokeWidth={4} strokeDasharray="10 12" opacity={seaO} /> : null}
-    </g>
-  );
-  return <Leaf q={q} id="b6dl" cam={cam} L={both} R={<g>{both}<Write id="b6dl-s" x={1365} y={DRY - 80} size={44} p={word} label="سفينة" font="tajawal" color={C.inkSoft} /></g>} />;
-});
-
-// ─── c1-s2: لوح واحد ملقًى ───
+// ─── c1-s1: لوح واحد على الأرض، وطريق المارّين ───
 const PlankShot = reverent((q) => {
-  const k = cueKit(q, ["يبنيها"]);
-  const plank = k.on(0, "يبنيها", 0.7);
-  const word = k.draw(0, "يكذب", 0.8);
-  const cam = k.cam(NEUTRAL, [[0, "يبنيها", { cx: 620, cy: 640, s: 1.3 }, 1.2]]);
+  // التحرير النهائي للمحرر (٢٧ نوفمبر): الافتتاح «كان قوم نوح عليه السلام يمرّون به وهو يبني السفينة فيسخرون منه. ماذا قال لهم، وماذا نعرف
+  // عن السفينة التي كان يبنيها؟» بدل «كيف تبني سفينة في أرض لا بحر فيها؟» و«ولماذا يبنيها رجل يعرف قومه أنه لا يكذب؟» (حُذفتا):
+  // حُذفت لقطة الأرض اليابسة وخط البحر الذي لا يكتمل (bd06-dryland في BD_REMOVED: الجزم بطبيعة أرض البناء بانتظار التحقق) وكتابة «لا يكذب»؛
+  // الأرض بلا شقوق ولا شبكة. «يمرون» ← طريق منقّط بلا أشخاص، «يبني» ← اللوح كما كان، «نعرف» ← «؟» بالحبر، «السفينة» ← الكلمة تحت اللوح
+  const k = cueKit(q, ["يمرون"]);
+  const road = k.draw(0, "يمرون", 1.2);
+  const plank = k.on(0, "يبني", 0.7);
+  const ask = k.on(0, "نعرف", 0.6);
+  const word = k.draw(0, "السفينة#2", 0.8);
+  const cam = k.cam(NEUTRAL, [[0, "يبني", { cx: 620, cy: 640, s: 1.3 }, 1.2], [0, "نعرف", { cx: 640, cy: 700, s: 1.2 }, 1.1]]);
   return (
-    <Leaf q={q} id="b6p" cam={cam} R={<Dry />}
-      L={<g><Dry />
+    <Leaf q={q} id="b6p" cam={cam} R={<g><Dry cr={0} grid={0} /><Road y={DRY + 150} q={road} /></g>}
+      L={<g><Dry cr={0} grid={0} /><Road y={DRY + 150} q={road} />
         <Plank x={580} y={710} w={420} h={40} q={plank} rot={-4} />
-        <Write id="b6p-w" x={580} y={810} size={48} p={word} label="لا يكذب" />
+        <Write id="b6p-w" x={580} y={810} size={48} p={word} label="السفينة" />
+        <Write id="b6p-q" x={860} y={640} size={64} p={ask} label="؟" />
       </g>} />
   );
 });
@@ -653,7 +641,6 @@ const NextKnot = reverent((q) => {
 });
 
 export const BD06_SCENES: Record<string, React.FC<BdProps>> = {
-  "bd06-dryland": Dryland,
   "bd06-plank": PlankShot,
   "bd06-thread-wood": ThreadWood,
   "bd06-seals-tray": SealsTray,

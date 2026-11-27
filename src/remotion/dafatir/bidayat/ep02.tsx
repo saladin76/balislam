@@ -29,10 +29,13 @@ const Smudge: React.FC<{ x: number; y: number; q: number; s?: number }> = ({ x, 
 
 // ─── c1-s1 / c1-s52: الريشة على التراب ───
 const FeatherShot = reverent((q) => {
-  const k = cueKit(q, ["الكتابة", "الصامت"]);
+  // التحرير النهائي للمحرر (٢٧ نوفمبر): الافتتاح «في قصة ابني آدم عليه السلام، حفر طائرٌ في التراب. ماذا رأى فيه الرجل الذي قتل أخاه؟»
+  // بدل «قبل أن يعرف الإنسان الكتابة، وقبل أن يبني أول بيت، تعلّم درسًا من طائر.» (حُذف الجزم بسبق الكتابة والبيت لغياب مستنده):
+  // حُذف السطر الفارغ (كان على «الكتابة») والكوخ المنقّط (كان على «بيت»)؛ الريشة على «طائر» كما كانت، وخطوط النبش في التراب على «التراب»،
+  // والكاميرا تقترب من التراب على «رأى»
+  const k = cueKit(q, ["قصة", "الصامت"]);
   const { t, S } = k;
-  const line = S === 0 ? k.draw(0, "الكتابة") : 0;
-  const hut = S === 0 ? k.draw(0, "بيت", 1.0) : 0;
+  const dig = S === 0 ? k.draw(0, "التراب", 1.0) : 1;
   const fall = S === 0 ? prog(t, k.at("طائر", 1.6) - 0.05, k.at("طائر", 1.6) + 1.6) : 1;
   const lens = S === 1 ? prog(t, k.at("وأبصر", 1.4) - 0.1, k.at("وأبصر", 1.4) + 1.4) : 0;
   const fx = 470 + Math.sin(fall * Math.PI * 2.2) * 50 * (1 - fall);
@@ -40,7 +43,7 @@ const FeatherShot = reverent((q) => {
   const close = { cx: 500, cy: 640, s: 2.3 };
   const cam =
     S === 0
-      ? k.cam(close, [[0, "طائر", { cx: 520, cy: 610, s: 1.8 }, 1.4]])
+      ? k.cam(close, [[0, "طائر", { cx: 520, cy: 610, s: 1.8 }, 1.4], [0, "رأى", { cx: 490, cy: 700, s: 2.25 }, 1.3]])
       : k.cam({ cx: 480, cy: 690, s: 2.2 }, [
           [1, "أضعف", NEUTRAL, 1.4],
           [1, "تواضع", { cx: 480, cy: 700, s: 1.9 }, 1.2],
@@ -49,8 +52,8 @@ const FeatherShot = reverent((q) => {
     <g>
       <Horizon y={GROUND + 120} p={1} sky="plain" texture={0.6} />
       <Smudge x={480} y={735} q={1} />
-      <Ink d="M820 520 H560" p={line} w={3} c={C.inkSoft} />
-      <path d="M760 640 V590 L800 560 L840 590 V640 Z" fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="8 8" opacity={hut} />
+      {/* خطوط نبش قصيرة في لطخة التراب (حفر الطائر)، بلا حفرة ولا دفن مرسوم */}
+      {["M430 730 q14 -10 30 -2", "M470 742 q16 -12 34 -3", "M512 728 q12 -9 26 -1"].map((d, i) => <Ink key={i} d={d} p={prog(dig, i * 0.25, i * 0.25 + 0.5)} w={3} c={C.ink} />)}
       <Feather x={fx} y={fy} s={0.5} q={S === 0 ? k.on(0, "طائر", 0.3) : 1} rot={mix(-60, -78, fall) + Math.sin(fall * 9) * 12 * (1 - fall)} />
       {lens > 0 ? (
         <g opacity={Math.min(1, lens * 4) * (1 - prog(lens, 0.85, 1))} transform={`translate(${mix(700, 300, lens)} ${700 - 20 * Math.sin(lens * Math.PI)}) scale(0.42)`}>
