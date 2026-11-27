@@ -348,32 +348,28 @@ const FirstMessenger = reverent((q) => {
   );
 });
 
-// ─── c2-s11 / c2-s14: الخانة الوحيدة المؤكدة ───
+// ─── c2-s14: الخانة الوحيدة المؤكدة ───
+// دفعة المحرر ٣ (رد المحرر ٢٧ نوفمبر، البند ٦): «وكم بقي فيهم؟ هنا يأتي الرقم الوحيد…» (c2-s11) استُبدلت مع تمهيد الآية بـ«وتبيّن سورة العنكبوت مدة لبثه في قومه:»
+// (`verse-intro` ساكن)، فاللقطة كلها على c2-s14: الإطار على «تسعمئة»؛ وحُذف سطر «الرقم الوحيد» ولمعة «يقينًا» (كلمتاهما لم تعودا منطوقتين)
 const BOX = { x: 1365, y: 540, w: 600, h: 170 };
 const boxPath = `M${BOX.x + BOX.w / 2} ${BOX.y - BOX.h / 2} H${BOX.x - BOX.w / 2} V${BOX.y + BOX.h / 2} H${BOX.x + BOX.w / 2} Z`;
 const OneNumber = reverent((q) => {
-  const k = cueKit(q, ["وكم", "تسعمئة"]);
-  const { t, S } = k;
-  const frame = S === 0 ? k.span(0, "وكم", "يقينا", 1.2) : 1;
-  const label = k.draw(0, "الرقم", 0.9);
-  const glow = S === 0 ? bounce(t, k.at("يقينا"), k.at("يقينا") + 1.0) : 0;
+  const k = cueKit(q, ["تسعمئة"]);
+  const frame = k.draw(0, "تسعمئة", 1.0);
   // المراجعة العلمية (الدفعة ٦ البند ١٢٦): «مدة لبثه في قومه» لا «عمره»، ولا ختم «تقدير»
-  const num = k.draw(1, "تسعمئة", 1.3);
-  const lab = k.draw(1, "المدة", 1.0);
-  const seal = k.on(1, "القرآن", 0.6);
-  const before = k.draw(1, "الطوفان", 1.0);
+  const num = k.draw(0, "تسعمئة", 1.3);
+  const lab = k.draw(0, "المدة", 1.0);
+  const seal = k.on(0, "القرآن", 0.6);
+  const before = k.draw(0, "الطوفان", 1.0);
   const cam = k.cam({ cx: 1365, cy: 520, s: 1.2 }, [
-    [0, "يقينا", { cx: 1365, cy: 520, s: 1.35 }, 1.0],
-    [1, "المدة", { cx: 1365, cy: 600, s: 1.25 }, 1.0],
-    [1, "الطوفان", { cx: 1365, cy: 640, s: 1.1 }, 1.0],
+    [0, "المدة", { cx: 1365, cy: 600, s: 1.25 }, 1.0],
+    [0, "الطوفان", { cx: 1365, cy: 640, s: 1.1 }, 1.0],
   ]);
   return (
     <Leaf q={q} id="b5n" cam={cam}
       R={<g>
-        {glow > 0 ? <rect x={BOX.x - BOX.w / 2 - 16} y={BOX.y - BOX.h / 2 - 16} width={BOX.w + 32} height={BOX.h + 32} rx={14} fill={C.gold} opacity={0.3 * glow} /> : null}
         <Ink d={boxPath} p={frame} w={7} c={C.gold} />
         <Ink d={boxPath} p={frame} w={2} c={GOLD_D} />
-        <Write id="b5n-l" x={1365} y={400} size={40} p={label} label="الرقم الوحيد" font="tajawal" color={C.inkSoft} />
         <Write id="b5n-n" x={1365} y={558} size={50} p={num} label="تسعمئة وخمسون سنة" />
         <Write id="b5n-m" x={1365} y={690} size={40} p={lab} label="مدة لبثه في قومه" font="tajawal" color={C.ink} />
         <GoldSeal x={1590} y={790} q={seal} label="العنكبوت ١٤" />

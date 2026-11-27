@@ -236,54 +236,48 @@ const PileShot = reverent((q) => {
   );
 });
 
-/** خانة مرقّمة بالحروف على هامش الصفحة اليسرى: mark يعلّمها بنقطة حمراء */
-const Mark: React.FC<{ y: number; q: number; label: string; mark: number; children?: React.ReactNode }> = ({ y, q, label, mark, children }) =>
+/** خانة على هامش الصفحة اليسرى (بلا ترقيم: دفعة المحرر ٣ حذفت «الأول:» و«والثالث:») */
+const Mark: React.FC<{ y: number; q: number; children?: React.ReactNode }> = ({ y, q, children }) =>
   q <= 0 ? null : (
     <g opacity={Math.min(1, q * 1.4)}>
       <rect x={250} y={y - 70} width={620} height={140} rx={10} fill="rgba(251,244,230,0.5)" stroke={C.ink} strokeWidth={3} />
-      <Txt x={850} y={y - 22} size={34} q={1} anchor="start" color={C.ink}>{label}</Txt>
-      <Ring x={720} y={y - 34} r={14} p={mark} c={C.ribbon} w={4} fill={C.ribbon} fillO={0.9} />
       {children}
     </g>
   );
 
-// ─── c1-s10..s13: ثلاث علامات على الهامش ───
+// ─── c1-s11 / c1-s13: خانتان على الهامش ───
+// دفعة المحرر ٣ (رد المحرر ٢٧ نوفمبر، البند ٣): حُذف التمهيد «نقف عند ثلاثة أشياء في هذه الآيات.» (c1-s10) والبند الثاني «والثاني: أن قومه…» (c1-s12)،
+// وحُذف الترقيم «الأول:» و«والثالث:». فصارت اللقطة خانتين بلا ترقيم: ختم «هود ٣٧–٣٩» والخانة الأولى على «أمر» في c1-s11 (بعد نافذة «الله»)، والخانة الثانية
+// على «الردّ» في c1-s13؛ وحُذفت الخانة الوسطى والطريق واللوح الثاني و«يسخرون» (الملأ وسخريتهم في c1-s14، `bd06-planks-rise`).
 const ThreeMarks = reverent((q) => {
-  const k = cueKit(q, ["نقف", "الأول", "والثاني", "والثالث"]);
+  const k = cueKit(q, ["أمر", "الرد"]);
   const { t, S } = k;
-  const boxes = k.on(0, "ثلاثة", 0.8);
-  const ref = k.on(0, "الآيات");
-  const m1 = k.on(1, "الأول"), m2 = k.on(2, "والثاني"), m3 = k.on(3, "والثالث");
+  const box1 = k.on(0, "أمر", 0.8);
+  const ref = k.on(0, "أمر", 0.6);
+  const box2 = k.on(1, "الرد", 0.8);
   // الدفعة ٦ البند ١٣٤: «أمر… فصنعها بوحيٍ من ربّه، وفي حفظه وعنايته» كلماتٍ بلا رمز
-  const p1 = k.on(1, "يصنع", 0.7);
-  const amr = k.draw(1, "أمر", 0.7), wahy = k.draw(1, "بوحي", 0.7), inaya = k.draw(1, "حفظه", 0.9);
-  const road = k.draw(2, "يمرون", 1.2);
-  const p2 = k.on(2, "يبني", 0.7);
-  const mock = k.on(2, "فيسخرون", 0.7);
-  const anger = S === 3 ? bounce(t, k.at("غضبا"), k.at("غضبا") + 1.6) * 0.6 : 0;
-  const yaqin = k.draw(3, "يقينا", 0.8);
-  const dawn = k.draw(3, "العاقبة", 1.4);
+  const p1 = k.on(0, "يصنع", 0.7);
+  const amr = k.draw(0, "أمر", 0.7), wahy = k.draw(0, "بوحي", 0.7), inaya = k.draw(0, "حفظه", 0.9);
+  const anger = S === 1 ? bounce(t, k.at("غضبا"), k.at("غضبا") + 1.6) * 0.6 : 0;
+  const yaqin = k.draw(1, "يقينا", 0.8);
+  const dawn = k.draw(1, "العاقبة", 1.4);
   const cam = k.cam(NEUTRAL, [
-    [0, "ثلاثة", { cx: 600, cy: 500, s: 1.2 }, 1.0],
-    [1, "يصنع", { cx: 1300, cy: 640, s: 1.2 }, 1.0],
-    [1, "بوحي", { cx: 600, cy: 360, s: 1.35 }, 1.0],
-    [2, "يمرون", { cx: 1300, cy: 700, s: 1.15 }, 1.2],
-    [3, "غضبا", { cx: 600, cy: 700, s: 1.3 }, 1.0],
-    [3, "العاقبة", NEUTRAL, 1.2],
+    [0, "أمر", { cx: 600, cy: 420, s: 1.2 }, 1.0],
+    [0, "يصنع", { cx: 1300, cy: 640, s: 1.2 }, 1.0],
+    [0, "بوحي", { cx: 600, cy: 360, s: 1.35 }, 1.0],
+    [1, "غضبا", { cx: 600, cy: 700, s: 1.3 }, 1.0],
+    [1, "العاقبة", NEUTRAL, 1.2],
   ]);
   const L = (
     <g>
       <Grid />
       <GoldSeal x={560} y={170} q={ref} label="هود ٣٧–٣٩" s={0.85} />
-      <Mark y={340} q={boxes} label="أولًا" mark={m1}>
+      <Mark y={340} q={box1}>
         <Write id="b6tm-a" x={620} y={362} size={40} p={amr} label="أمر" font="tajawal" />
         <Write id="b6tm-w" x={450} y={362} size={40} p={wahy} label="بوحي" font="tajawal" />
         <Write id="b6tm-i" x={530} y={402} size={30} p={inaya} label="حفظه وعنايته" font="tajawal" color={C.inkSoft} />
       </Mark>
-      <Mark y={520} q={boxes} label="ثانيًا" mark={m2}>
-        <Txt x={480} y={560} size={36} q={mock} color={C.inkSoft} weight={500}>يسخرون</Txt>
-      </Mark>
-      <Mark y={700} q={boxes} label="ثالثًا" mark={m3}>
+      <Mark y={700} q={box2}>
         <Txt x={600} y={740} size={38} q={anger} color={C.inkSoft} weight={500}>غضبًا</Txt>
         <Write id="b6tm-y" x={420} y={742} size={42} p={yaqin} label="يقينًا" />
       </Mark>
@@ -293,10 +287,7 @@ const ThreeMarks = reverent((q) => {
   const R = (
     <g>
       <Dry />
-      <Road y={790} q={road} x2={980} />
       <Plank x={1330} y={720} w={420} h={36} q={p1} rot={-2} />
-      <Plank x={1350} y={686} w={380} h={34} q={p2} rot={1.5} />
-      <Txt x={1200} y={850} size={34} q={mock * 0.6} color={C.inkSoft} weight={500}>يسخرون</Txt>
       <Ink d={`M960 ${DRY} H1770`} p={prog(dawn, 0.4, 1)} w={6} c={C.ink} />
     </g>
   );
