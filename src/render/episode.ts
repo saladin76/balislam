@@ -140,6 +140,42 @@ export const assertRenderChannelOwnership = (scriptPath: string, activeChannelId
     throw new Error("مسار السكريبت لا يخص القناة النشطة.");
 };
 
+/**
+ * The Master gates of every Master path (D232 phase 2: the Mac render and the Windows Master, before it is sent and again
+ * before its file is imported): the approved assembly (requireScenesReadyForMaster), the exact reviewed recitations in the
+ * media snapshot, the motion start authorization, assertMasterReady and a current storyboard motion check.
+ */
+export const assertMasterRenderGates = async (o: { episode: string; plan: Plan; media: EpisodeMedia; chapter?: number; allowUnreviewed?: boolean }) => {
+  const { requireScenesReadyForMaster } = await import("../studio/sceneService");
+  await requireScenesReadyForMaster(o.episode);
+  const scriptPath = await resolveScriptPath(o.episode);
+  const { plan, media } = o;
+  // Every direct Master path (Studio queue, CLI, package/shorts, the Windows worker) must enforce
+  // distinct explicit script, visual and complete-audio human signoffs BEFORE
+  // assembling the expensive animated Master. Preview remains estimated.
+  // The stage snapshot must carry the exact human-reviewed Quran MP3 bytes.
+  // Reject fake/old/cloud recordings and any untrusted caller-supplied media.
+  const { assertRenderedRecitationsMatchApprovals } = await import("../quran/renderContract");
+  await assertRenderedRecitationsMatchApprovals(
+    scriptPath, undefined, media, defaultRenderMediaRoot(),
+  );
+  const { assertMotionStartAuthorized } = await import("../voice/motionGate");
+  await assertMotionStartAuthorized(o.episode, scriptPath, plan, media.voice);
+  const sbRecord = await loadStoryboard(scriptPath);
+  await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: o.chapter, allowUnreviewed: o.allowUnreviewed });
+  const { loadStoryboardMotion } = await import("./storyboardMotion");
+  const { currentMotionFingerprint } = await import("./motionFingerprint");
+  const measured = await loadStoryboardMotion(o.episode);
+  if (measured) {
+    const { staleMotionScenes, auditNeedsJustification } = await import("./motionValidity");
+    const currentHash = await currentMotionFingerprint(o.episode, plan, measured.orientation);
+    if (staleMotionScenes(plan, measured, currentHash).length)
+      throw new Error("نتيجة فحص الحركة والمنطق قديمة أو ناقصة المشاهد؛ أعد الفحص قبل الرندر النهائي.");
+    if (auditNeedsJustification(measured, sbRecord.audit))
+      throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
+  }
+};
+
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
   if (opts.scenePreview && opts.quality === "master")
     throw Error("A scene review preview cannot be used as a Master approval.");
@@ -172,33 +208,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   }));
   assertRenderMediaOwnership(scriptPath, media);
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
-  if (opts.quality === "master") {
-    const scriptPath = await resolveScriptPath(opts.episode);
-    // Every direct Master path (Studio queue, CLI, package/shorts) must enforce
-    // distinct explicit script, visual and complete-audio human signoffs BEFORE
-    // assembling the expensive animated Master. Preview remains estimated.
-    // The stage snapshot must carry the exact human-reviewed Quran MP3 bytes.
-    // Reject fake/old/cloud recordings and any untrusted caller-supplied media.
-    const { assertRenderedRecitationsMatchApprovals } = await import("../quran/renderContract");
-    await assertRenderedRecitationsMatchApprovals(
-      scriptPath, undefined, media, defaultRenderMediaRoot(),
-    );
-    const { assertMotionStartAuthorized } = await import("../voice/motionGate");
-    await assertMotionStartAuthorized(opts.episode, scriptPath, plan, media.voice);
-    const sbRecord = await loadStoryboard(scriptPath);
-    await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
-    const { loadStoryboardMotion } = await import("./storyboardMotion");
-    const { currentMotionFingerprint } = await import("./motionFingerprint");
-    const measured = await loadStoryboardMotion(opts.episode);
-    if (measured) {
-      const { staleMotionScenes, auditNeedsJustification } = await import("./motionValidity");
-      const currentHash = await currentMotionFingerprint(opts.episode, plan, measured.orientation);
-      if (staleMotionScenes(plan, measured, currentHash).length)
-        throw new Error("نتيجة فحص الحركة والمنطق قديمة أو ناقصة المشاهد؛ أعد الفحص قبل الرندر النهائي.");
-      if (auditNeedsJustification(measured, sbRecord.audit))
-        throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
-    }
-  }
+  if (opts.quality === "master")
+    await assertMasterRenderGates({ episode: opts.episode, plan, media, chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
   const timingMode = opts.scenePreview ? "scene-preview" as const
     : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
   // One narration bed (owner, 16 Nov): every narrated scene at the episode's own median loudness, in the Master exactly as

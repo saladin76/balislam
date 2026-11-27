@@ -129,109 +129,26 @@ const HatchBox: React.FC<{ x: number; y: number; w?: number; h?: number; q: numb
     </g>
   );
 
-// ─── c2-s1: الأرض المتشققة من أعلى، وخيط ماء رفيع ───
-const CracksShot = reverent((q) => {
-  const k = cueKit(q, ["جافة"]);
-  const { t } = k;
-  const dust = k.on(0, "جافة", 0.6);
-  const crack = k.draw(0, "متشققة", 1.6);
-  const widen = k.on(0, "العطش", 0.9);
-  const glint = bounce(t, k.at("يخرج"), k.at("يخرج") + 0.9);
-  const thread = k.draw(0, "خيط", 1.0);
-  const flow = k.draw(0, "الماء", 1.2);
-  const cam = k.cam({ cx: 960, cy: 500, s: 1.02 }, [
-    [0, "جافة", { cx: 960, cy: 510, s: 1.1 }, 1.6],
-    [0, "يخرج", { cx: 1180, cy: 640, s: 1.4 }, 1.4],
-  ]);
-  const r = rng(7);
-  const specks = Array.from({ length: 18 }, () => [180 + r() * 1560, 140 + r() * 720, r()] as const);
-  const both = (
-    <g>
-      <Clay />
-      {specks.map(([x, y, v], i) => <circle key={i} cx={x + 30 * dust * v} cy={y - 40 * dust * v} r={3} fill="#8A5A3C" opacity={0.6 * dust * (1 - 0.6 * dust)} />)}
-      <Cracks p={crack} w={4 + 2.5 * widen} />
-      <circle cx={1260} cy={520} r={14 + 20 * glint} fill="#FFF6E0" opacity={0.85 * glint} />
-      <WaterIn i={FIRST} p={thread * 0.45 + flow * 0.55} w={4 + 2 * flow} />
-    </g>
-  );
-  return <Leaf q={q} id="b7c" cam={cam} L={both} R={both} />;
-});
-
-// ─── c2-s2: الماء من الشقوق كلها، ثم خط الماء أسفل الصفحتين ───
-const Seep = reverent((q) => {
-  const k = cueKit(q, ["آخر"]);
-  const { t } = k;
-  const second = k.draw(0, "شق", 1.0);
-  const all = k.draw(0, "كل", 1.4);
-  const line = k.draw(0, "مكان", 1.2);
-  const cam = k.cam({ cx: 1180, cy: 640, s: 1.4 }, [
-    [0, "شق", { cx: 700, cy: 600, s: 1.3 }, 1.0],
-    [0, "كل", NEUTRAL, 1.6],
-  ]);
-  const both = (
-    <g>
-      <Clay o={1 - 0.4 * line} />
-      <Cracks p={1} w={6} o={1 - 0.35 * line} />
-      <WaterIn i={FIRST} p={1} w={6} />
-      <WaterIn i={SECOND} p={second} w={5} />
-      {CRACKS.map((_, i) => (i === FIRST || i === SECOND ? null : <WaterIn key={i} i={i} p={prog(all, (i % 5) * 0.1, (i % 5) * 0.1 + 0.6)} w={4} />))}
-      <Waterline y={850} p={line} t={t} rows={1} fill={0.3} />
-    </g>
-  );
-  return <Leaf q={q} id="b7s" cam={cam} L={both} R={both} />;
-});
-
-// ─── c2-s4: الخيط الأحمر طافيًا على خط الماء، والعقدة ٧ ───
-const KX = [1680, 1540, 1400, 1260, 1110, 800, 560];
-const ThreadShot = reverent((q) => {
-  // دمج الحلقتين (٢٧ نوفمبر): حُذفت جملة «على خيط الزمن، رأينا في الحلقتين الماضيتين…» ومرحلتها (رسم الخيط والعقد ١–٦
-  // ولمعان «دعوة نوح» و«السفينة»)، فالعقد ١–٦ بأسمائها حاضرة من أول «واليوم يصل خيطنا إلى الطوفان.» تكملةً للجزء الأول
-  // دفعة المحرر ١، ٢٧ نوفمبر: الجملة «بعد عقدة السفينة، نصل على خيط الزمن إلى عقدة الطوفان.» بدل «واليوم يصل خيطنا إلى الطوفان.» (حُذفت):
-  // امتداد الخيط وحلقة العقدة ٧ على «نصل» بدل «واليوم»، وشدّها على «الطوفان» بدل «يصل»
-  const k = cueKit(q, ["نصل"]);
-  const { t } = k;
-  const ext = k.draw(0, "نصل", 0.9);
-  const tie7 = k.on(0, "الطوفان", 0.8);
-  const ring7 = k.on(0, "نصل", 0.6);
-  const name7 = k.draw(0, "الطوفان", 0.9);
-  const rise = k.on(0, "الطوفان", 1.0);
-  const years = 1;
-  const dry = 1;
-  const wy = 760 - 30 * rise;
-  const knots: KnotDef[] = [
-    ...[0, 1, 2, 3].map((i) => ({ x: KX[i]!, kind: "tied" as const, q: 1, label: "١٢٣٤"[i], lq: 1 })),
-    { x: KX[4]!, kind: "tied", q: 1, glow: 0, label: "دعوة نوح عليه السلام", lq: 1 },
-    { x: KX[5]!, kind: "tied", q: 1, glow: 0, label: "السفينة", lq: 1 },
-    { x: KX[6]!, kind: "ring", q: ring7, tie: tie7, label: "الطوفان", lq: name7 },
-  ];
-  const reach = mix(0.62, 0.8, ext);
-  const cam = k.cam(NEUTRAL, [
-    [0, "نصل", { cx: 620, cy: 680, s: 1.35 }, 1.0],
-  ]);
-  const both = (
-    <g>
-      <Waterline y={wy + 8} p={1} t={t} rows={2} fill={0.25} />
-      <Thread x1={1760} x2={200} y={wy} p={reach} knots={knots} labelSize={26} labelDy={58} />
-      <path d={`M880 ${wy + 110} H720`} stroke="#8A5A3C" strokeWidth={5} strokeDasharray="12 10" opacity={dry} />
-      <Txt x={KX[4]!} y={wy + 100} size={26} q={years} color={C.inkSoft}>تسعمئة وخمسين سنة</Txt>
-    </g>
-  );
-  return <Leaf q={q} id="b7t" cam={cam} L={both} R={both} />;
-});
+// المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر، البنود ٣٤٢ و٣٨٤ و٣٨٥ و٣٩٢): حُذفت لقطات الأرض المتشققة من طول العطش (bd07-cracks) والماء من
+// الشقوق (bd07-seep) لأن جملها حُذفت (لا مستند لجفاف سابق)، ولقطة الخيط والعقدة ٧ (bd07-thread) لأن جملة الوصل «بعد عقدة السفينة…» حُذفت؛
+// والثلاث في BD_REMOVED. ومطلع الجزء «ثم جاء الماء. نزل من السماء، وتفجّرت من الأرض عيون.» على لقطة الماءين (bd07-two-waters، مرحلتها الأولى).
 
 // ─── c2-s5: ماء السماء وماء الأرض ───
 const TwoWaters = reverent((q) => {
-  const k = cueKit(q, ["أين"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): مرحلة أولى لمطلع الجزء «ثم جاء الماء. نزل من السماء، وتفجّرت من الأرض عيون.» (البند ٣٩٢)،
+  // والثانية «ومن أين جاء ماء الطوفان؟ يخبرنا القرآن أنه جاء من السماء والأرض.» (البند ٣٨٥، بلا «معًا»: الخطان إلى الكعب بعد «والأرض»)
+  // الدفعة ١٨ البند ٤١٣: مرحلة واحدة «نزل الماء من السماء، وتفجّرت من الأرض عيون، كما جاء في سورة القمر.» (حُذفت المرحلة الثانية «ومن أين جاء ماء الطوفان؟…»
+  // وتمهيد «كما جاء في سورة القمر:» صفّا c2-s5 وc2-s6): حُذفت علامة «؟»، وختم المصحف على «القمر» بدل «القرآن»
+  const k = cueKit(q, ["نزل"]);
   const { t } = k;
-  const qm = k.on(0, "أين");
-  const seal = k.on(0, "القرآن");
+  const seal = k.on(0, "القمر");
   const rain = k.on(0, "السماء", 0.8);
-  const springs = [0, 1, 2].map((i) => prog(t, k.at("والأرض") + i * 0.2, k.at("والأرض") + i * 0.2 + 0.5));
-  const toward = k.draw(0, "معا", 0.9);
+  const springs = [0, 1, 2].map((i) => prog(t, k.at("الأرض") + i * 0.2, k.at("الأرض") + i * 0.2 + 0.5));
+  const toward = k.draw(0, "عيون", 0.9);
   const cam = k.cam(NEUTRAL, [
     [0, "السماء", { cx: 1360, cy: 460, s: 1.15 }, 1.0],
-    [0, "والأرض", { cx: 560, cy: 640, s: 1.15 }, 1.0],
-    [0, "معا", NEUTRAL, 1.0],
+    [0, "الأرض", { cx: 560, cy: 640, s: 1.15 }, 1.0],
+    [0, "عيون", NEUTRAL, 1.0],
   ]);
   const both = <Waterline y={820} p={1} t={t} rows={1} fill={0.2} />;
   return (
@@ -239,7 +156,6 @@ const TwoWaters = reverent((q) => {
       L={<g>{both}
         {[300, 520, 740].map((x, i) => <Spring key={i} x={x} y={800} q={springs[i]!} t={t} />)}
         <Ink d="M760 760 C820 720 880 700 950 690" p={toward} w={4} c={WATER} />
-        <Q x={930} y={340} size={80} q={qm} />
       </g>}
       R={<g>{both}
         <QuranSeal x={1365} y={180} o={seal} s={0.8} />
@@ -251,17 +167,19 @@ const TwoWaters = reverent((q) => {
 
 // ─── c2-s8: التقاء الماءين على ما قدّره الله (نص قرار المالك ٢٥ نوفمبر) ───
 const Meet = reverent((q) => {
-  const k = cueKit(q, ["يتدفق"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): «نزل الماء من السماء وتفجّرت من الأرض عيون، فاجتمع الماء على ما قدّره الله.» (البند ٣٤٣):
+  // المطر على «نزل»، والعيون على «وتفجرت»، والالتقاء على «فاجتمع»
+  const k = cueKit(q, ["فاجتمع"]);
   const { t } = k;
-  const rain = 0.4 + 0.6 * k.on(0, "يتدفق", 0.8);
-  const springs = [0, 1, 2].map((i) => prog(t, k.at("وينابيع") + i * 0.2, k.at("وينابيع") + i * 0.2 + 0.5));
-  const meet = k.draw(0, "فيلتقي", 1.2);
+  // الدفعة ١٨ البند ٤١٣: الجملة بعد البطاقة «فاجتمع الماء على ما قدّره الله.» وحدها: المطر والعيون حاضرة من c2-s1، والالتقاء على «فاجتمع»
+  const rain = 1;
+  const springs = [1, 1, 1];
+  const meet = k.draw(0, "فاجتمع", 1.2);
   const set = k.on(0, "قدره", 1.0);
   const seal = k.on(0, "قدره", 0.6);
   const wy = 760 - 40 * set;
   const cam = k.cam(NEUTRAL, [
-    [0, "وينابيع", { cx: 560, cy: 640, s: 1.15 }, 1.0],
-    [0, "فيلتقي", { cx: 960, cy: 680, s: 1.3 }, 1.0],
+    [0, "فاجتمع", { cx: 960, cy: 680, s: 1.3 }, 1.0],
     [0, "قدره", NEUTRAL, 1.0],
   ]);
   const both = (
@@ -287,7 +205,9 @@ const Meet = reverent((q) => {
 // ─── c2-s9 / c2-s12: سجل «من يركب» ───
 const LINES = [420, 530, 640];
 const Manifest = reverent((q) => {
-  const k = cueKit(q, ["يركب", "زوجين"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): c2-s12 صارت «وحين فار التنور، أمر الله نوحًا عليه السلام أن يحمل الأزواج التي أمره بها… وكانوا قليلًا.» (البند ٣٤٣):
+  // «فوران التنور» على «فار»، والعلامتان على «الأزواج»، و«قليل» على «قليلا»، وحُذف خيط القرون (حُذفت «بعد تلك القرون كلها»)
+  const k = cueKit(q, ["يركب", "الأزواج"]);
   const { t, S } = k;
   const lower = k.on(0, "وقبل", 1.0);
   const head = k.draw(0, "الأمر", 0.8);
@@ -295,21 +215,21 @@ const Manifest = reverent((q) => {
   const lines = k.draw(0, "يركب", 1.4);
   const ship = k.on(0, "السفينة");
   // الدفعة ٦ البند ١٣٩: «فوران التنور» كلمةً بالحبر وحدها، بلا تنور ولا فقاعات
-  const tannur = k.draw(1, "بفوران", 1.0);
-  const pair = k.on(1, "زوجين", 0.6);
+  const tannur = k.draw(1, "فار", 1.0);
+  const pair = k.on(1, "الأزواج", 0.6);
   const ahl = k.draw(1, "وأهله", 0.7);
   const dash = k.draw(1, "إلا", 0.6);
   const amana = k.draw(1, "ومن", 0.8);
-  const few = k.on(1, "وقليل");
-  const ages = S === 1 ? prog(t, k.at("القرون") - 0.05, k.at("القرون") + 1.2) : 0;
+  const few = k.on(1, "قليلا");
+  const ages = 0;
   const wy = S === 0 ? mix(760, 860, lower) : 860;
   const cam = k.cam(NEUTRAL, [
     [0, "يركب", { cx: 1365, cy: 470, s: 1.2 }, 1.0],
     [0, "السفينة", NEUTRAL, 1.0],
-    [1, "بفوران", { cx: 1365, cy: 640, s: 1.2 }, 1.0],
-    [1, "زوجين", { cx: 1400, cy: 470, s: 1.3 }, 1.0],
+    [1, "فار", { cx: 1365, cy: 640, s: 1.2 }, 1.0],
+    [1, "الأزواج", { cx: 1400, cy: 470, s: 1.3 }, 1.0],
     [1, "ومن", { cx: 1380, cy: 600, s: 1.25 }, 1.0],
-    [1, "القرون", NEUTRAL, 1.0],
+    [1, "قليلا", NEUTRAL, 1.0],
   ]);
   const both = <Waterline y={wy} p={1} t={t} rows={1} fill={0.2} />;
   return (
@@ -426,12 +346,13 @@ const NotWood = reverent((q) => {
 // ─── c2-s19: الأمواج كالجبال، والسفينة نقطة (الغلاف) ───
 const CRESTS = [1650, 1480, 1300, 1120, 820, 640, 460, 290];
 const Waves = reverent((q) => {
-  const k = cueKit(q, ["وارتفع"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): «وجرت السفينة في موج يشبه الجبال.» (البند ٣٤٣): الماء يعلو على «وجرت»، والقمم على «موج» و«الجبال»
+  const k = cueKit(q, ["وجرت"]);
   const { t } = k;
-  const rise = k.draw(0, "وارتفع", 1.4);
-  const a1 = k.at("الأمواج"), a2 = k.at("كالجبال");
+  const rise = k.draw(0, "وجرت", 1.4);
+  const a1 = k.at("موج"), a2 = k.at("الجبال");
   const wy = mix(760, 300, rise);
-  const cam = k.cam({ cx: 960, cy: 560, s: 1.05 }, [[0, "وارتفع", { cx: 960, cy: 500, s: 0.96 }, 1.6]]);
+  const cam = k.cam({ cx: 960, cy: 560, s: 1.05 }, [[0, "وجرت", { cx: 960, cy: 500, s: 0.96 }, 1.6]]);
   const both = (
     <g>
       <Waterline y={wy} p={1} t={t} rows={3} fill={0.3} amp={10} />
@@ -447,13 +368,16 @@ const Waves = reverent((q) => {
 // ─── c2-s23 / c2-s24: السفينة في اليمنى، والجبل في اليسرى، وخط النداء ───
 const Far = reverent((q) => {
   // الدفعة ٦: «فأجابه نوح عليه السلام بأن النجاة في ذلك اليوم لمن رحمه الله»
+  // الدفعة ١٨ البند ٤١٤: حُذف «ولما جرت السفينة،» من أول c2-s23، والكلمات المرسومة كلها باقية
   const k = cueKit(q, ["نادى", "فأجابه"]);
   const { t, S } = k;
-  const call = S === 0 ? prog(t, k.at("نادى") - 0.05, k.end("بعيدا") + 0.3) * 0.6 + 0.4 * k.on(0, "يدعوه", 0.8) : 1;
-  const wob = S === 0 ? k.on(0, "يدعوه") : 0;
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): c2-s23 صارت «ولما جرت السفينة، نادى نوحٌ عليه السلام ابنه أن يركب معهم. وظنّ الابن أن جبلًا يحميه من الماء.» (البند ٣٤٤):
+  // خط النداء من «نادى» إلى «ابنه» ويتموج على «يركب»، و«يحميه؟» على «يحميه»، والجبل يعلو قليلًا على «الماء»
+  const call = S === 0 ? prog(t, k.at("نادى") - 0.05, k.end("ابنه") + 0.3) * 0.6 + 0.4 * k.on(0, "يركب", 0.8) : 1;
+  const wob = S === 0 ? k.on(0, "يركب") : 0;
   const mount = k.draw(0, "جبلا", 1.0);
-  const lift = k.on(0, "عاليا", 0.8);
-  const save = k.draw(0, "ينجيه", 0.8);
+  const lift = k.on(0, "الماء", 0.8);
+  const save = k.draw(0, "يحميه", 0.8);
   const climb = S === 1 ? prog(t, k.at("النجاة") - 0.05, k.end("اليوم") + 0.2) : 0;
   const mercy = k.draw(1, "رحمه", 0.9);
   const wy = 660 - 160 * climb;
@@ -476,7 +400,7 @@ const Far = reverent((q) => {
   );
   return (
     <Leaf q={q} id="b7f" cam={cam}
-      L={<g>{both}<Txt x={580} y={250 - 40 * lift} size={40} q={save}>ينجيه؟</Txt></g>}
+      L={<g>{both}<Txt x={580} y={250 - 40 * lift} size={40} q={save}>يحميه؟</Txt></g>}
       R={<g>{both}<ShipDot x={sx} y={sy} q={1} /><Write id="b7f-r" x={1450} y={sy - 110} size={44} p={mercy} label="النجاة لمن رحمه الله" /></g>} />
   );
 });
@@ -649,21 +573,23 @@ const AhlKitab = reverent((q) => {
 
 // ─── c2-s37 / c2-s40: الماء يعود إلى الأرض، والسفينة تستقر ───
 const Calm = reverent((q) => {
-  const k = cueKit(q, ["جاء", "ابتلعت"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): c2-s40 صارت «ثم انحسر الماء، وانتهى الطوفان، واستقرت السفينة على الجودي.» (البند ٣٤٣):
+  // الماء يهبط من «انحسر» إلى «الماء»، والسماء تصفو على «وانتهى»، والسطر على «الطوفان»، والسفينة تستقر على «واستقرت» (بلا كتابة الاسم: الجودي في 008)
+  const k = cueKit(q, ["جاء", "انحسر"]);
   const { t, S } = k;
   const rain = S === 0 ? 1 - 0.6 * k.on(0, "الأمر", 0.8) - 0.4 * k.on(0, "والسماء", 0.8) : 0;
   const springs = S === 0 ? 1 - 0.8 * k.on(0, "للأرض", 0.9) : 0;
-  const drop = S === 1 ? prog(t, k.at("ابتلعت") - 0.05, k.end("ماءها") + 1.0) : 0;
-  const clear = k.on(1, "وكفت", 1.0);
-  const line = k.draw(1, "وقضي", 0.8);
-  const settle = k.on(1, "واستوت", 0.9);
+  const drop = S === 1 ? prog(t, k.at("انحسر") - 0.05, k.end("الماء") + 1.0) : 0;
+  const clear = k.on(1, "وانتهى", 1.0);
+  const line = k.draw(1, "الطوفان", 0.8);
+  const settle = k.on(1, "واستقرت", 0.9);
   const wy = mix(380, 800, drop);
   const peakTop = 640;
   const shipY = settle > 0 ? mix(wy - 4, peakTop - 118, settle) : wy - 4;
   const shipX = mix(1300, 1225, settle);
   const cam = k.cam(NEUTRAL, [
-    [1, "ابتلعت", { cx: 960, cy: 600, s: 1.05 }, 1.4],
-    [1, "واستوت", { cx: 1260, cy: 560, s: 1.3 }, 1.0],
+    [1, "انحسر", { cx: 960, cy: 600, s: 1.05 }, 1.4],
+    [1, "واستقرت", { cx: 1260, cy: 560, s: 1.3 }, 1.0],
   ]);
   const both = (
     <g>
@@ -686,8 +612,9 @@ const Calm = reverent((q) => {
 
 // ─── c2-s41: العقدة الثامنة فارغة ───
 const NextKnot = reverent((q) => {
-  const k = cueKit(q, ["استوت"]);
-  const back = k.draw(0, "وأين", 1.4);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): «وماذا بعد النزول؟ تلك عقدتنا في الحلقة القادمة.» (حُذف «وأين استوت؟» لأن الجملة قبلها تسمّي الجودي، البند ٣٤٣)
+  const k = cueKit(q, ["النزول"]);
+  const back = k.draw(0, "وماذا", 1.4);
   const step = k.draw(0, "النزول", 0.9);
   const ring = k.on(0, "عقدتنا", 0.7);
   const reach = 0.55 * back + 0.2 * step;
@@ -767,9 +694,6 @@ const Question = reverent((q) => {
 });
 
 export const BD07_SCENES: Record<string, React.FC<BdProps>> = {
-  "bd07-cracks": CracksShot,
-  "bd07-seep": Seep,
-  "bd07-thread": ThreadShot,
   "bd07-two-waters": TwoWaters,
   "bd07-meet": Meet,
   "bd07-manifest": Manifest,
@@ -791,7 +715,6 @@ export const BD07_SCENES: Record<string, React.FC<BdProps>> = {
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */
 export const BD07_STILLS: Record<string, string> = {
-  "bd07-thread": "c2-s4",
   "bd07-manifest": "c2-s12",
   "bd07-far": "c2-s24",
   "bd07-edge": "c2-s34",

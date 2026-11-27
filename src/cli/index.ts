@@ -948,6 +948,61 @@ program
     if (r.refused.length) process.exitCode = 1;
   });
 
+// D232 (المرحلة ٢): رندر الاستوديو على الويندوز ثم استيراده بعد التحقق إلى السجل نفسه (src/render/worker/studioJobs.ts)
+program
+  .command("worker-submit-scenes")
+  .description("D232: إرسال قطع المشاهد إلى جهاز الرندر (كل المفتوحة بلا مسودة جاهزة، أو مشاهد بعينها) بعد بوابات المحرر والسجل؛ لا صوت يُولَّد")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .option("--scenes <ids>", "مشاهد بعينها مفصولة بفواصل («أنتج هذا المشهد» لكل منها)")
+  .action(async (episode: string, opts: { share: string; scenes?: string }) => {
+    await assertProducible(episode);
+    const { submitStudioScenes } = await import("../render/worker/studioJobs");
+    const r = await submitStudioScenes(episode, path.resolve(opts.share), { scenes: opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean), log: (m) => console.log(m) });
+    console.log(`أُرسل ${r.sent.length} مشهدًا (والموجود من قبل ${r.existing.length}) بالـcommit ${r.commit.slice(0, 8)}. التقدم: bal worker-status --share ${opts.share}؛ وبعد انتهائها: bal worker-import ${episode} --share ${opts.share}`);
+  });
+
+for (const [name, kind, what] of [["worker-submit-prefinal", "prefinal", "نسخة قبل النهائية (كل القطع الحالية)"], ["worker-submit-assembly", "assembly", "التجميع (بعد اعتماد كل المشاهد)"]] as const) {
+  program
+    .command(name)
+    .description(`D232: إرسال ${what} إلى جهاز الرندر من قطعه المستوردة نفسها (D233: كلها من جهاز الرندر)`)
+    .argument("<episode>", "رقم الحلقة")
+    .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+    .action(async (episode: string, opts: { share: string }) => {
+      await assertProducible(episode);
+      const { submitStudioJoin } = await import("../render/worker/studioJobs");
+      const r = await submitStudioJoin(kind, episode, path.resolve(opts.share), { log: (m) => console.log(m) });
+      console.log(`${r.fresh ? "أُرسلت" : "موجودة من قبل"} ${r.id}. بعد انتهائها: bal worker-import ${episode} --share ${opts.share}`);
+    });
+}
+
+program
+  .command("worker-submit-master")
+  .description("D232: إرسال Master 4K إلى جهاز الرندر بعد اعتماد التجميع وكل بوابات النسخة النهائية (لا صوت يُولَّد؛ الناقص يرفض)")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    await assertProducible(episode);
+    const { submitStudioMaster } = await import("../render/worker/studioJobs");
+    const r = await submitStudioMaster(episode, path.resolve(opts.share), { log: (m) => console.log(m) });
+    console.log(`${r.fresh ? "أُرسل" : "موجود من قبل"} ${r.id}. بعد انتهائه: bal worker-import ${episode} --share ${opts.share}`);
+  });
+
+program
+  .command("worker-import")
+  .description("D232: استيراد نواتج الاستوديو من جهاز الرندر بعد التحقق (المهمة كما أُرسلت، البصمة، الصيغة، الأبعاد، المدة، الأثر، والحلقة لم تتغير) إلى السجل نفسه؛ المشهد يصل مسودة للمراجعة لا اعتمادًا")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    const { importStudioJobs } = await import("../render/worker/studioJobs");
+    const r = await importStudioJobs(episode, path.resolve(opts.share), { log: (m) => console.log(m) });
+    const label = { imported: "مستورد", refused: "مرفوض", queued: "في الطابور", running: "يُرندر", failed: "فشل", missing: "غير موجود في المجلد المشترك", superseded: "حلّت محله مهمة أحدث" } as const;
+    for (const x of r.rows.filter((x) => x.status !== "superseded"))
+      console.log(`- ${x.sceneId ? `المشهد ${x.sceneId}` : x.kind}: ${label[x.status]}${x.progress ? ` ${x.progress}` : ""}${x.motion !== undefined ? ` (الحركة ${x.motion}%)` : ""}${x.reasons?.length ? `\n    - ${x.reasons.join("\n    - ")}` : ""}`);
+    console.log(`استُورد الآن ${r.imported.length}، ورُفض أو فشل ${r.refused.length}. المستورد ينتظر مراجعة المالك واعتماده في الاستوديو؛ المرفوض لا يُستورد أبدًا.`);
+    if (r.refused.length) process.exitCode = 1;
+  });
+
 // D232: الماك لا يرندر إلا للطوارئ وبإذن المالك الصريح في كل مرة (src/render/macRenderPermit.ts)
 program
   .command("mac-render-permit")
@@ -1016,6 +1071,46 @@ program
   .action(async (opts: { share: string; out: string; copy?: boolean }) => {
     const { collectTrial } = await import("../render/worker/macJobs");
     await collectTrial(path.resolve(opts.share), path.resolve(opts.out), { copy: opts.copy, log: (m) => console.log(m) });
+  });
+
+program
+  .command("place-master")
+  .description("D240: ينسخ Master المعتمد إلى مكانه الدائم masters/<القناة>/<الحلقة>/<NNN>-episode.mp4 في المجلد المشترك ويتحقق من بصمته بالسجل الموقَّع")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--share <path>", "المجلد المشترك على الماك (F:\\bal-share على ويندوز)", "/Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    const m = await import("../render/postPublishCleanup");
+    const { sha256File } = await import("../render/worker/protocol");
+    const r = await m.placeMaster(await m.macCleanupContext(episode, path.resolve(opts.share)), { approvedMaster: () => m.ledgerApprovedMaster(episode), sha256File });
+    console.log(`${r.status === "placed" ? "نُسخ" : "موجود من قبل"} Master إلى ${r.target} (sha256 ${r.sha256}، ${m.formatBytes(r.bytes)}) ويطابق الاعتماد.`);
+  });
+
+program
+  .command("cleanup")
+  .description("D240: التنظيف بعد النشر — يعرض ما يُحذف وما يبقى (الافتراضي بلا حذف)؛ الحذف بـ --delete بعد الشروط الثلاثة وحدها")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--share <path>", "المجلد المشترك على الماك (F:\\bal-share على ويندوز)", "/Volumes/bal-share")
+  .option("--dry-run", "عرض فقط (الافتراضي)")
+  .option("--delete", "احذف فعلًا (بعد نجاح الشروط الثلاثة كلها، وإلا لا يُحذف شيء)")
+  .action(async (episode: string, opts: { share: string; dryRun?: boolean; delete?: boolean }) => {
+    const m = await import("../render/postPublishCleanup");
+    const share = path.resolve(opts.share);
+    const plan = await m.planCleanup(await m.macCleanupContext(episode, share), await m.macCleanupDeps(episode));
+    if (!opts.delete || opts.dryRun) {
+      console.log(m.formatPlan(plan));
+      if (!plan.ok) process.exitCode = 1;
+      return;
+    }
+    if (!plan.ok) {
+      console.error(m.formatPlan(plan));
+      console.error("توقف التنظيف: لم يُحذف شيء.");
+      process.exitCode = 1;
+      return;
+    }
+    const r = await m.executeCleanup(plan);
+    const { queueWindowsCleanup } = await import("../render/worker/cleanupQueue");
+    const queued = await queueWindowsCleanup(share, plan).then(() => true, () => false);
+    console.log(m.summaryLine(plan, r.freed, queued, r.skipped.length));
   });
 
 program

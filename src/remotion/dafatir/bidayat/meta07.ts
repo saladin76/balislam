@@ -2,9 +2,6 @@
 import type { HzMeta } from "../horizon/meta";
 
 export const BD07_META: Record<string, HzMeta> = {
-  "bd07-cracks": { nameAr: "البدايات ٧ · الأرض المتشققة من أعلى وخيط الماء", tail: 0.9, exit: "none" },
-  "bd07-seep": { nameAr: "البدايات ٧ · الماء من الشقوق كلها", tail: 1.0, exit: "fade" },
-  "bd07-thread": { nameAr: "البدايات ٧ · الخيط الأحمر طافيًا على خط الماء، والعقدة ٧", tail: 1.2, exit: "turn" },
   "bd07-two-waters": { nameAr: "البدايات ٧ · ماء السماء وماء الأرض", tail: 1.0, exit: "fade" },
   "bd07-meet": { nameAr: "البدايات ٧ · التقاء الماءين على أمر قد قُدّر", tail: 1.0, exit: "fade" },
   "bd07-manifest": { nameAr: "البدايات ٧ · سجل «من يركب» (زوجان بعلامتين مجردتين)", tail: 1.0, exit: "fade" },

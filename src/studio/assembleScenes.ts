@@ -222,7 +222,9 @@ export const joinSceneCuts = async (episode: string, cuts: Cut[], tempVideo: str
     loudness: { target: loud.target, gain: loud.gain }, program };
 };
 
-const writeSeamsRecord = async (scriptPath: string, published: string, joined: Awaited<ReturnType<typeof joinSceneCuts>>, slot = "episode",
+/** What a join returns for its seams record (the Windows worker sends it beside its file: `<job>.seams.json`). */
+export type JoinedRecord = Pick<Awaited<ReturnType<typeof joinSceneCuts>>, "fps" | "sceneSeconds" | "seams" | "loudness">;
+const writeSeamsRecord = async (scriptPath: string, published: string, joined: JoinedRecord, slot = "episode",
   extra: Pick<SeamsRecord, "sceneSha256" | "fileSha256"> = {}) => {
   const st = await stat(published);
   const rec: SeamsRecord = { version: 1, size: st.size, mtimeMs: st.mtimeMs, ...joined, ...extra };
@@ -230,6 +232,37 @@ const writeSeamsRecord = async (scriptPath: string, published: string, joined: A
   const tmp = `${file}.${randomUUID()}.tmp`;
   await writeFile(tmp, JSON.stringify(rec, null, 1) + "\n", { mode: 0o600 });
   await rename(tmp, file);
+};
+
+/**
+ * Publishes a joined file into its preview slot exactly as the studio does (D232 phase 2: the Mac join and the Windows join
+ * imported after verification share this step): the assembly into previews/episode.mp4 (the file the owner records and
+ * approves), the pre-final into its own slot with the exact cut bytes it holds (D199); then its seams record. `joined` may be
+ * null for a worker join that sent no seams (the file is then published without timings).
+ */
+export const publishJoined = async (kind: "assembly" | "prefinal", episode: string, scriptPath: string, tempVideo: string,
+  joined: JoinedRecord | null, cuts: { sceneId: string; sha256: string; recitationPending?: boolean }[],
+  meta: { note?: string } = {}) => {
+  if (kind === "assembly") {
+    const saved = await putEpisodePreview(episode, "episode", tempVideo, {
+      title: "الحلقة المجمّعة — مراجعة صوت وصورة",
+      note: meta.note ?? "تجميع المشاهد المعتمدة للمشاهدة الكاملة بسرعة 1×، والسرد متصل عند الوصلات؛ ليست Master معتمدة للنشر.",
+    });
+    if (joined) await writeSeamsRecord(scriptPath, saved.file, joined);
+    return { ...saved, recitationPending: [] as string[] };
+  }
+  const pending = cuts.filter(c => c.recitationPending).map(c => c.sceneId);
+  const saved = await putEpisodePreview(episode, PRE_FINAL_SLOT, tempVideo, {
+    // D68: a written-citation channel has no recitations to wait for, so the title does not mention them.
+    title: scriptVersesAreCitations(scriptPath) ? "نسخة قبل النهائية (للمشاهدة فقط)" : "نسخة قبل النهائية — بلا تلاوات (للمشاهدة فقط)",
+    note: meta.note ?? `كل المشاهد الحالية بالترتيب، معتمدة أو مسودات${pending.length ? `؛ ${pending.length} آية صامتة «التلاوة تُضاف لاحقًا»` : ""}. ليست اعتمادًا ولا تجميعًا ولا Master.`,
+  });
+  // D199: which cut of each scene is inside this file, and the file's fingerprint (the watch record is keyed by it)
+  const { createHash } = await import("node:crypto");
+  const fileSha256 = createHash("sha256").update(await readFile(saved.file)).digest("hex");
+  if (joined) await writeSeamsRecord(scriptPath, saved.file, joined, PRE_FINAL_SLOT,
+    { sceneSha256: Object.fromEntries(cuts.map((c) => [c.sceneId, c.sha256])), fileSha256 }).catch(() => undefined);
+  return { ...saved, recitationPending: pending };
 };
 
 /** The pre-final preview's own slot: never "episode" (the assembly the owner approves) and never a Master. */
@@ -264,18 +297,8 @@ export const assemblePreFinalPreview = async (
     const after = await currentSceneCutsForPreFinal(episode);
     if (after.length !== cuts.length || after.some((item, i) => item.sceneId !== cuts[i]!.sceneId || item.sha256 !== cuts[i]!.sha256))
       throw Error("A scene changed while the pre-final preview was assembling; try again.");
-    const pending = cuts.filter(c => c.recitationPending).map(c => c.sceneId);
-    const saved = await putEpisodePreview(episode, PRE_FINAL_SLOT, tempVideo, {
-      // D68: a written-citation channel has no recitations to wait for, so the title does not mention them.
-      title: scriptVersesAreCitations(scriptPath) ? "نسخة قبل النهائية (للمشاهدة فقط)" : "نسخة قبل النهائية — بلا تلاوات (للمشاهدة فقط)",
-      note: `كل المشاهد الحالية بالترتيب، معتمدة أو مسودات${pending.length ? `؛ ${pending.length} آية صامتة «التلاوة تُضاف لاحقًا»` : ""}. ليست اعتمادًا ولا تجميعًا ولا Master.`,
-    });
-    // D199: which cut of each scene is inside this file, and the file's fingerprint (the watch record is keyed by it)
-    const { createHash } = await import("node:crypto");
-    const fileSha256 = createHash("sha256").update(await readFile(saved.file)).digest("hex");
-    await writeSeamsRecord(scriptPath, saved.file, joined, PRE_FINAL_SLOT,
-      { sceneSha256: Object.fromEntries(cuts.map((c) => [c.sceneId, c.sha256])), fileSha256 }).catch(() => undefined);
-    return { file: saved.file, version: saved.version, scenes: cuts.length, recitationPending: pending };
+    const saved = await publishJoined("prefinal", episode, scriptPath, tempVideo, joined, cuts);
+    return { file: saved.file, version: saved.version, scenes: cuts.length, recitationPending: saved.recitationPending };
   } finally {
     await Promise.allSettled([rm(manifest, { force: true }), rm(tempVideo, { force: true })]);
   }
@@ -309,11 +332,7 @@ export const assembleApprovedSceneAv = async (
           item.sha256 !== cuts[i]!.sha256))
       throw Error("One or more approved AV scenes changed while the episode was assembling.");
 
-    const saved = await putEpisodePreview(episode, "episode", tempVideo, {
-      title: "الحلقة المجمّعة — مراجعة صوت وصورة",
-      note: "تجميع المشاهد المعتمدة للمشاهدة الكاملة بسرعة 1×، والسرد متصل عند الوصلات؛ ليست Master معتمدة للنشر.",
-    });
-    await writeSeamsRecord(scriptPath, saved.file, joined);
+    const saved = await publishJoined("assembly", episode, scriptPath, tempVideo, joined, cuts);
     return { file: saved.file, version: saved.version, scenes: cuts.length };
   } finally {
     await Promise.allSettled([

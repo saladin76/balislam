@@ -117,6 +117,31 @@ npx bal mac-render-permit --status
 npx bal mac-render-permit --revoke
 ```
 
+## D232 المرحلة ٢: حلقة الاستوديو كاملة على الويندوز (بالسطر)
+
+من نسخة الاستوديو على الماك، بعد «اعتمد التجهيز» والصوت (بضغطة المالك وحده) والمحرر (D234):
+
+```bash
+S=/Volumes/bal-share
+npx bal -c dafatir-alzaman worker-status --share $S
+npx bal -c dafatir-alzaman worker-submit-scenes 002 --share $S          # أو --scenes c1-s2,c1-s3
+npx bal -c dafatir-alzaman worker-import 002 --share $S                 # يكرَّر حتى تُستورد كل القطع؛ يطبع التقدم
+#   ← المالك يشاهد كل مشهد في «٢ المشاهد» ويعتمده (أو يطلب تعديلًا ثم يُعاد بـ --scenes)
+npx bal -c dafatir-alzaman worker-submit-prefinal 002 --share $S        # اختياري: نسخة قبل النهائية
+npx bal -c dafatir-alzaman worker-submit-assembly 002 --share $S
+npx bal -c dafatir-alzaman worker-import 002 --share $S
+#   ← الاستيراد يسجّل الملف للمراجعة (كخطوة «اجمع الحلقة»)، والمالك يشاهده ويضغط «اعتمد التجميع»
+npx bal -c dafatir-alzaman worker-submit-master 002 --share $S
+npx bal -c dafatir-alzaman worker-import 002 --share $S                 # الحزمة كاملة في out/package
+#   ← المالك يشاهد Master ويعتمده، ثم الشورتس:
+npx bal -c dafatir-alzaman worker-submit 002 --shorts --share $S
+npx bal -c dafatir-alzaman worker-collect 002 --share $S
+```
+
+- **ما يُستورد:** ما أرسله هذا الماك وحده (`out/worker-studio/` في مجلد الحلقة، محلي)، بعد `verifyV2Output` وأن الحلقة لم تتغير بعد الإرسال. المشهد يصل **مسودة جاهزة للمراجعة**، لا اعتمادًا؛ والمنفّذ يفحص لقطاته قبل عرضه (القاعدة السادسة). والمرفوض لا يُستورد أبدًا، ويُعاد بالإرسال من جديد.
+- **D233:** التجميع وMaster يُرفضان إن كانت قطعة مشهد من الماك؛ أعد رندرها على الويندوز بـ`--scenes`.
+- **العامل** يحتاج commit فيه المرحلة ٢ ليرسل سجل الوصلات (`<id>.seams.json`)؛ وبدونه يُنشر التجميع بلا أوقات وصلاته (تنبيه عند الاستيراد).
+
 ## مخاطر معروفة
 
 - **متصفح الرندر:** Remotion ينزّل Chrome Headless Shell عند أول رندر على ويندوز (يحتاج إنترنت مرة واحدة). عند تعذّره: `REMOTION_BROWSER_EXECUTABLE` بمسار Chrome موجود في بيئة المهمة.

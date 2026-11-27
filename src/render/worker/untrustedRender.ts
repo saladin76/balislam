@@ -16,14 +16,14 @@ import { createHash, randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rename, rm, stat } from "node:fs/promises";
+import { mkdir, readdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
 import { resolveScriptPath } from "../../script/episodes";
 import { defaultRenderMediaRoot, verifyStagedMedia } from "../../plan/renderStage";
 import { copyUnlinkedFile, ensureUnlinkedDirectory, assertEpisodeOutputConfined } from "../fsIsolation";
 import { assertRenderChannelOwnership, assertRenderMediaOwnership, cleanMetadata, renderComposition, voiceTimingMode } from "../episode";
 import { currentChannelId, loadChannel } from "../../channel";
 import {
-  completeJob, doneVideoName, inShare, isV2, queuePaths, runningJob, safeRelative, sha256File, tail, validateJobV2, workerName, writeProgress,
+  completeJob, doneVideoName, inShare, isV2, queuePaths, runningJob, safeRelative, seamsName, sha256File, tail, validateJobV2, workerName, writeProgress,
   type JoinSpec, type WorkerJob, type WorkerJobV2, type WorkerResult, type WorkerTimings,
 } from "./protocol";
 import { headCommit } from "./git";
@@ -246,11 +246,18 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
       const script = path.join(path.dirname(output), `.${job.id}.filter`);
       await rm(script, { force: true });
       await rm(`${script}.d`, { recursive: true, force: true });
+      let joined: Awaited<ReturnType<typeof joinSceneCuts>>;
       try {
-        await joinSceneCuts(job.episode.slice(0, 3), cuts, output, script, { plan, media, loudness: { target: null, gain: narrationGain } });
+        joined = await joinSceneCuts(job.episode.slice(0, 3), cuts, output, script, { plan, media, loudness: { target: null, gain: narrationGain } });
       } finally {
         await rm(script, { force: true });
       }
+      // D232 (phase 2): the joins of this file (seams and scene times) beside it, so the Mac's import writes the same
+      // seams record the studio writes for its own join (chapters, seam times, the pre-final watch). Data, never trusted.
+      const seamsFile = path.join(path.dirname(output), `${job.id}.seams.json`);
+      await writeFile(seamsFile, JSON.stringify({ fps: joined.fps, sceneSeconds: joined.sceneSeconds, seams: joined.seams, loudness: joined.loudness }) + "\n");
+      cleanup.push(seamsFile);
+      extra.push({ name: seamsName(job), file: seamsFile });
       await cleanMetadata(output, meta);
       file = output;
       renderedAt = new Date().toISOString();
