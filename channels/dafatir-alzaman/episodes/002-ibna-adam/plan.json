@@ -12,7 +12,7 @@
     "watermark": true,
     "chapterLabel": false
   },
-  "updatedAt": "2026-11-27T19:58:49.926Z",
+  "updatedAt": "2026-11-27T23:01:49.416Z",
   "intro": false,
   "chapters": [
     {
@@ -360,7 +360,9 @@
           "props": {
             "shot": "bd02-bare-earth"
           },
-          "sfx": []
+          "sfx": [],
+          "tone": "calm",
+          "edited": true
         },
         {
           "id": "c1-s37",
@@ -370,7 +372,9 @@
           "props": {
             "shot": "bd02-crow"
           },
-          "sfx": []
+          "sfx": [],
+          "tone": "calm",
+          "edited": true
         },
         {
           "id": "c1-s38",
@@ -380,7 +384,9 @@
           "props": {
             "shot": "bd02-crow"
           },
-          "sfx": []
+          "sfx": [],
+          "tone": "calm",
+          "edited": true
         },
         {
           "id": "c1-s39",
@@ -403,7 +409,9 @@
           "props": {
             "shot": "bd02-crow"
           },
-          "sfx": []
+          "sfx": [],
+          "tone": "calm",
+          "edited": true
         },
         {
           "id": "c1-s44",
@@ -899,5 +907,6 @@
     },
     "template": {},
     "stampedAt": "2026-11-27T19:58:49.926Z"
-  }
+  },
+  "tone": "warm"
 }
