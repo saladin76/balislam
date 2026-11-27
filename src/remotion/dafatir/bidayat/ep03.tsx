@@ -117,40 +117,23 @@ const HearthHouse = reverent((q) => {
   return <Leaf q={q} id="b3hh" cam={cam} L={both} R={<g>{both}<Write id="b3hh-w" x={1150} y={720} size={42} p={sons} label="أبناء آدم عليه السلام" font="tajawal" color={C.page} /></g>} />;
 });
 
-// ─── c2-s3: سؤال فوق المواقد ───
-const Question = reverent((q) => {
-  const k = cueKit(q, ["نعرف"]);
-  const { t } = k;
-  const ask = k.draw(0, "نعرف", 1.0);
-  const under = k.draw(0, "الأجيال", 1.4);
-  const cam = k.cam({ cx: 1300, cy: 560, s: 1.3 }, [[0, "فماذا", NEUTRAL, 1.2]]);
-  const both = (
-    <g>
-      <Night />
-      {HX.map((x, i) => <Hearth key={i} x={x} q={1} t={t} />)}
-      <Ink d="M1700 650 C1300 660 700 640 200 652" p={under} w={2.5} c={C.page} />
-    </g>
-  );
-  return <Leaf q={q} id="b3q" cam={cam} L={both} R={<g>{both}<Write id="b3q-w" x={1365} y={300} size={66} p={ask} label="ماذا نعرف؟" color={C.page} /></g>} />;
-});
-
 // ─── c2-s4: الخيط الأحمر على أفق الليل ───
 const ThreadNight = reverent((q) => {
-  // دمج الحلقتين (٢٧ نوفمبر): حُذفت جملة «على خيط الزمن عقدنا عقدتين…» فصار المشهد «واليوم نعقد الثالثة…» وحدها؛
-  // الخيط وعقدتاه ١ و٢ باسميهما يُرسمون على «نعقد» تكملةً لخيط آخر الجزء الأول، بلا لمعان على كلمتين حُذفتا
-  const k = cueKit(q, ["الثالثة"]);
+  // دفعة المحرر ١، ٢٧ نوفمبر: المشهد جملة الوصل «وعند عقدة الأجيال الأولى نقف أيضًا عند ما ثبت عن إدريس عليه السلام.» بدل «واليوم نعقد الثالثة…» (حُذفت)؛
+  // الخيط وعقدتاه ١ و٢ باسميهما على «وعند»، وحلقة الثالثة على «عقدة»، وشدّها وتوهج المواقد على «الأجيال»، والاسم على «إدريس»
+  const k = cueKit(q, ["عقدة"]);
   const { t } = k;
-  const thread = k.draw(0, "نعقد", 1.4);
-  const two = k.on(0, "نعقد", 0.6);
+  const thread = k.draw(0, "وعند", 1.4);
+  const two = k.on(0, "وعند", 0.6);
   const g1 = 0, l1 = two;
   const g2 = 0, l2 = two;
-  const third = k.on(0, "الثالثة", 0.7);
-  const gens = bounce(t, k.at("الأجيال"), k.end("بعدهما") + 0.6);
+  const third = k.on(0, "عقدة", 0.7);
+  const gens = bounce(t, k.at("الأجيال"), k.end("الأولى") + 0.6);
   // مراجعة المتخصص (الدفعة ٥): العقدة الثالثة هي «الأجيال» نفسها، واسم إدريس عليه السلام خارج الخيط بلا موضع بين آدم ونوح
   const tie3 = k.on(0, "الأجيال", 0.8);
   const name = k.draw(0, "إدريس", 1.0);
   const cam = k.cam({ cx: 1500, cy: 580, s: 1.3 }, [
-    [0, "الثالثة", { cx: 1100, cy: 580, s: 1.05 }, 1.2],
+    [0, "عقدة", { cx: 1100, cy: 580, s: 1.05 }, 1.2],
     [0, "إدريس", { cx: 1300, cy: 420, s: 1.15 }, 1.0],
   ]);
   const knots: KnotDef[] = [
@@ -171,49 +154,6 @@ const ThreadNight = reverent((q) => {
         <Write id="b3tn-i" x={1365} y={260} size={44} p={name} label="إدريس عليه السلام" font="tajawal" color={C.page} />
         <Txt x={K1 - 20} y={690} size={28} q={l1} color={C.page}>خلق آدم وهبوطه</Txt>
         <Txt x={K2 - 60} y={740} size={28} q={l2} color={C.page}>ابنا آدم</Txt>
-      </g>} />
-  );
-});
-
-// ─── c2-s5: في الزمن نفسه، ليل بلا أضواء ───
-const SameTime = reverent((q) => {
-  const k = cueKit(q, ["العالم"]);
-  const { t } = k;
-  const wide = k.open(0, 1.2);
-  const counter = k.draw(0, "العالم", 0.9);
-  const seal = k.on(0, "نعلم");
-  const year = k.on(0, "سنة");
-  const city = bounce(t, k.at("مدينة"), k.at("مدينة") + 1.6);
-  const map = k.draw(0, "الخريطة", 0.9);
-  const cam = k.cam({ cx: 960, cy: 540, s: 1.08 }, [
-    [0, "العالم", { cx: 1450, cy: 360, s: 1.25 }, 1.1],
-    [0, "سنة", { cx: 1250, cy: 420, s: 1.15 }, 1.0],
-    [0, "مدينة", { cx: 520, cy: 500, s: 1.15 }, 1.0],
-  ]);
-  const both = (
-    <g>
-      <Night dark={wide} />
-      {HX.map((x, i) => <Hearth key={i} x={x} q={1} t={t} s={0.8} />)}
-    </g>
-  );
-  return (
-    <Leaf q={q} id="b3st" cam={cam}
-      L={<g>{both}
-        <g opacity={city} transform={`translate(560 ${HY})`}>
-          {GLYPHS.slice(0, 4).map((d, i) => <path key={i} d={d} transform={`translate(${(i - 1.5) * 70} 0)`} fill="none" stroke={C.page} strokeWidth={3} strokeDasharray="6 6" />)}
-        </g>
-        <g opacity={map}>
-          <rect x={250} y={170} width={300} height={190} rx={6} fill="none" stroke={C.page} strokeWidth={3} />
-          <rect x={262} y={182} width={276} height={166} rx={4} fill="none" stroke={C.page} strokeWidth={1.5} opacity={0.6} />
-        </g>
-      </g>}
-      R={<g>{both}
-        <g opacity={prog(counter, 0, 0.3)}>
-          <rect x={1420} y={180} width={300} height={130} rx={10} fill={C.page} stroke={C.ink} strokeWidth={4} />
-        </g>
-        <Write id="b3st-c" x={1570} y={235} size={34} p={counter} label="في الزمن نفسه" font="tajawal" />
-        <Seal x={1570} y={282} q={seal} kind="لا نعلم" s={0.42} />
-        <DateRibbon x={1250} y={250} s={1.05} o={year} />
       </g>} />
   );
 });
@@ -648,9 +588,7 @@ const Dimming = reverent((q) => {
 export const BD03_SCENES: Record<string, React.FC<BdProps>> = {
   "bd03-hearths": Hearths,
   "bd03-hearth-house": HearthHouse,
-  "bd03-question": Question,
   "bd03-thread-night": ThreadNight,
-  "bd03-same-time": SameTime,
   "bd03-one-origin": OneOrigin,
   "bd03-hearths-spread": HearthsSpread,
   "bd03-one-umma": OneUmma,
