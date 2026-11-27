@@ -676,7 +676,13 @@ export const balApi = (): Plugin => ({
                 reciter: r.reciter, approvedAt: r.approvedAt, file: r.parts?.[0]?.file, duration: r.parts?.[0]?.duration,
                 variant: r.candidate?.variant ?? null, variants: r.candidate?.variants ?? null, polish: r.candidate?.polish ?? null,
               }]));
-              return send(res, 200, { verses, pending: status.pending, approved });
+              // D239: without the episode's own approved recording, the owner's one approved clip (hash-verified) serves.
+              let basmalaClip: { installed: boolean; reason?: string } | undefined;
+              if (bScenes.length && !approved.basmala) {
+                const st = await (await load("/src/voice/basmalaClip.ts")).basmalaClipStatus();
+                basmalaClip = st.installed ? { installed: true } : { installed: false, reason: st.reason };
+              }
+              return send(res, 200, { verses, pending: status.pending, approved, ...(basmalaClip ? { basmalaClip } : {}) });
             }
             if (req.method !== "POST") return send(res, 405, { error: "Method not allowed" });
             const body = await readBody(req, MAX_BODY_BYTES);

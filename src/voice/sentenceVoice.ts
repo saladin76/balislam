@@ -268,7 +268,7 @@ export const sentenceAction = async (episode: string, cmd: SentenceCommand, opts
       case "say": {
         // D131 «النطق»: the owner's pronunciation of the whole sentence (owner content, D101). Nothing is generated.
         const s = one();
-        if (s.kind === "basmala") throw new Error("البسملة يسجلها صاحب القناة بصوته؛ لا نطق لها يُرسل إلى الصوت المستنسخ.");
+        if (s.kind === "basmala") throw new Error("البسملة لا تُولَّد أبدًا (نسختها المعتمدة D239 أو تسجيل الحلقة)؛ لا نطق لها يُرسل إلى الصوت المستنسخ.");
         if (s.kind !== "narration") throw new Error("نص قرآني: لا يُرسل إلى الصوت المستنسخ أبدًا، فلا نطق له يُعدَّل.");
         const auto = autoSendOf(ctx, s).text;
         const p = cmd.pronunciation === null ? null : normText(String(cmd.pronunciation));
