@@ -499,6 +499,20 @@ that scene through the existing ledger. `regeneratePlan` throws `DesignedPlanErr
 `confirmEpisode` equal to the episode number), and then copies `plan.backup-<timestamp>.json` (gitignored) before writing.
 `bal make` uses a designed plan as it is. No approval is created or weakened.
 
+**«دفاتر الزمن» البدايات: الخطة المصمَّمة من `scenes.md` (٢٧ نوفمبر).** `npx bal -c dafatir-alzaman plan-from-scenes <ep> [--write] [--overwrite-designed]`
+(`src/plan/fromScenes.ts` + `fromScenesFile.ts`) builds 002–008's `plan.json` deterministically from `script.md` and the
+«خطة المشاهد بشكل…» table of `scenes.md`, in 001's structure: every narrated scene `horizon-shot` with `props.shot` (a built
+`bdNN-…` shot, or a library scene `lib-*`/`verse-tag` with the fields its row writes as «`field` «value»»), verse and hadith
+cards as the generator makes them from the script (verse text never stored in the plan), one chapter, `intro: false`, no
+generic end-screen, the series stamp from the episode's `series.json` (written from the script's `series`/`series_number` when
+missing). Narration is the script's text verbatim; a script paragraph goes to the first row that contains it (a paragraph the
+table splits over consecutive rows goes sentence by sentence). Nothing is written unless `--write`, and then only when no
+script text lacks a scene, no scene says text not in the script (the «اعتمد التجهيز» comparison), and every shot is approved
+(D228); an existing plan is backed up first, and a designed one is replaced only with `--overwrite-designed`. Old shorts whose
+scenes still exist are kept. `tests/plan-from-scenes.test.ts` checks that the tracked plans are exactly what the command builds.
+**HTML comments in `script.md` are production notes:** `parseScript` blanks them (line numbers kept), so they never become
+narration scenes, voice text, or «unplaced» script lines (the script editor already read them that way).
+
 **Prepared drafts (D31, D40; D151).** Preparing the FREE drafts starts on its own right after «اعتمد التجهيز» (`renderOnly`: no voice client, nothing paid; the response also carries `prepare.voicePlan`, and `GET scene-prepare` returns `voicePlan` = what «ولّد الصوت الآن» would pay for) (`POST
 /api/episodes/<ep>/approve-preparation` starts the same queue once `requireSceneProductionReady` passes; the response
 carries `prepare.job`). It approves and submits nothing. **Only the approval itself starts it (D128, KI-058):** a
