@@ -15,6 +15,5 @@ export const BD04_META: Record<string, HzMeta> = {
   "bd04-knot-placed": { nameAr: "البدايات ٤ · موضع العقدة على الخيط", tail: 1.0, exit: "fade" },
   "bd04-what-remains": { nameAr: "البدايات ٤ · ماذا بقي؟", tail: 1.0, exit: "fade" },
   "bd04-thread-forward": { nameAr: "البدايات ٤ · الخيط يستقيم نحو أول رسول", tail: 1.0, exit: "fade" },
-  "bd04-next-knot": { nameAr: "البدايات ٤ · العقدة الخامسة نصف معقودة", tail: 1.2, exit: "fade" },
-  "bd04-closing-slip": { nameAr: "البدايات ٤ · ورقة السؤال", tail: 1.2, exit: "turn" },
+  "bd04-next-knot": { nameAr: "البدايات ٤ · خانة المدة عند نقطة الضوء", tail: 1.2, exit: "fade" },
 };

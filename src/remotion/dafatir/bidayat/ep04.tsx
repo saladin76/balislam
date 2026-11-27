@@ -8,8 +8,8 @@ import React from "react";
 import { FindAt, GLYPHS, Hatch, Qalam } from "../lib/drawings";
 import { DateRibbon, Pin } from "../horizon/book";
 import {
-  Arrow, BlankLine, C, DotFrame, Dot, EMBER, Field, GOLD_D, Globe, GoldSeal, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Scribble, Seal,
-  Sheet, Slip, Sun, Tab, Thread, Txt, Write, bounce, cueKit, mix, prog, reverent, rng, type BdProps, type KnotDef,
+  Arrow, C, DotFrame, Dot, EMBER, Field, GOLD_D, Globe, GoldSeal, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Scribble, Seal,
+  Sheet, Sun, Tab, Thread, Txt, Write, bounce, cueKit, mix, prog, reverent, rng, type BdProps, type KnotDef,
 } from "./kit";
 
 // ─── عناصر الحلقة المشتركة ───
@@ -427,23 +427,17 @@ const ThreadForward = reverent((q) => {
   return <Leaf q={q} id="b4tf" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s47 / c1-s48: العقدة الخامسة ───
+// ─── c1-s47: خانة المدة عند نقطة الضوء (دمج الحلقتين ٢٧ نوفمبر: حُذف c1-s48 «هذا ما نعقده…» بعقدته الخامسة وشريط عنوانه؛ يعقدها الجزء الثاني في bd05-thread-knot) ───
 const NextKnot = reverent((q) => {
-  const k = cueKit(q, ["لبث", "نعقده"]);
-  const { S } = k;
+  const k = cueKit(q, ["لبث"]);
   const box = k.draw(0, "لبث", 0.8);
   const calls = k.draw(0, "يدعوهم", 1.0);
   const qm = k.on(0, "ردوا");
-  const ring = k.on(1, "نعقده", 0.8);
-  const ribbon = k.on(1, "القادمة", 0.7);
-  const t1 = k.on(1, "نوح", 0.6);
-  const t2 = k.on(1, "ألف", 0.6);
-  const cam = k.cam({ cx: 520, cy: 640, s: 1.3 }, [[1, "نعقده", { cx: 480, cy: 620, s: 1.25 }, 1.0]]);
-  void S;
+  const cam = k.cam({ cx: 520, cy: 640, s: 1.3 }, []);
   const both = (
     <g>
       <Horizon y={HZ_Y} p={1} sky="noon" texture={0.3} />
-      <Line04 k4={1} veer={1} straight={1} light={1} lightLabel={1} ring5={ring} tie5={0.5 * ring} />
+      <Line04 k4={1} veer={1} straight={1} light={1} lightLabel={1} />
     </g>
   );
   return (
@@ -455,28 +449,6 @@ const NextKnot = reverent((q) => {
           <path key={i} d={`M${NOAH} ${TY - 20} L${NOAH + Math.sin((a * Math.PI) / 180) * 220} ${HZ_Y + 10}`} stroke={C.gold} strokeWidth={3} strokeDasharray="6 8" opacity={prog(calls, i / 4, i / 4 + 0.4)} />
         ))}
         <Q x={NOAH} y={TY - 190} size={70} q={qm} />
-        <DateRibbon x={620} y={180} s={0.9} o={ribbon} />
-        <Txt x={620} y={450} size={30} q={t1} color={C.ink}>نوح عليه السلام:</Txt>
-        <Txt x={620} y={500} size={30} q={t2} color={C.ink}>ألف سنة إلا خمسين عامًا</Txt>
-      </g>} />
-  );
-});
-
-// ─── c1-s49: ورقة السؤال ───
-const ClosingSlip = reverent((q) => {
-  const k = cueKit(q, ["المحبة"]);
-  const slip = k.on(0, "المحبة", 0.7);
-  const over = k.draw(0, "والمبالغة", 1.0);
-  const pen = k.on(0, "اكتب", 0.6);
-  const line = k.draw(0, "اكتب", 1.0);
-  const cam = k.cam(NEUTRAL, [[0, "المحبة", { cx: 560, cy: 520, s: 1.2 }, 1.0]]);
-  return (
-    <Leaf q={q} id="b4cs" cam={cam}
-      L={<g>
-        <Slip x={480} y={500} w={420} h={260} q={slip} rot={-2} dx={0}>
-          <BlankLine x={0} y={30} w={320} p={line} pen={pen} touch={pen > 0.9 ? 1 : 0} />
-        </Slip>
-        <Ink d="M330 430 H730" p={over} w={4} c={C.ribbon} />
       </g>} />
   );
 });
@@ -498,7 +470,6 @@ export const BD04_SCENES: Record<string, React.FC<BdProps>> = {
   "bd04-what-remains": WhatRemains,
   "bd04-thread-forward": ThreadForward,
   "bd04-next-knot": NextKnot,
-  "bd04-closing-slip": ClosingSlip,
 };
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */

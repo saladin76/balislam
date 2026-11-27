@@ -126,7 +126,7 @@ const Sym: React.FC<{ k: number; q: number }> = ({ k, q }) => {
   return <g opacity={q} transform={`scale(${0.7 + 0.3 * q})`}>{body}</g>;
 };
 
-// ─── c1-s1 / c1-s21 / c1-s35: الطريق المتفرّع ───
+// ─── c2-s1 / c2-s21 / c2-s35: الطريق المتفرّع ───
 const RoadShot = reverent((q) => {
   const k = cueKit(q, ["طريق", "تباعدت", "التعليقات"]);
   const { t, S } = k;
@@ -195,20 +195,22 @@ const RoadShot = reverent((q) => {
   );
 });
 
-// ─── c1-s2 / c1-s3: الخيط بعقده الثماني، والعقدة التاسعة الفارغة ───
+// ─── c2-s3: الخيط بعقده الثماني، والعقدة التاسعة الفارغة ───
 const KnotsShot = reverent((q) => {
-  const k = cueKit(q, ["الماضية", "واليوم"]);
-  const { t, S } = k;
-  const glow = S === 0 ? k.on(0, "الماضية", 0.8) : 1;
-  const settle = k.draw(0, "استقرت", 1.2);
-  const down = k.draw(0, "ونزل", 1.2);
-  const ground = k.draw(0, "الأرض", 1.0);
-  const nine = k.on(1, "واليوم", 0.7);
-  const seal = k.draw(1, "تختم", 1.0);
+  // دمج الحلقتين (٢٧ نوفمبر): حُذفت «في الحلقة الماضية، استقرت السفينة…» ومرحلتها، فالقارب على القمة والنقاط على الأرض
+  // وخطها حاضرة من أول «واليوم نسأل السؤال الذي تُختم به هذه السلسلة…»
+  const k = cueKit(q, ["واليوم"]);
+  const { t } = k;
+  const glow = 1;
+  const settle = 1;
+  const down = 1;
+  const ground = 1;
+  const nine = k.on(0, "واليوم", 0.7);
+  const seal = k.draw(0, "تختم", 1.0);
   // قرار المالك ٢٥ نوفمبر: السؤال «ماذا بقي من نوح عليه السلام بعد الطوفان؟» — عقدة نوح تلمع، بلا انتشار
   const scatter = 0;
-  const noah = S === 1 ? bounce(t, k.at("نوح"), k.at("نوح") + 1.4) : 0;
-  const qm = k.on(1, "بعد", 0.5);
+  const noah = bounce(t, k.at("نوح"), k.at("نوح") + 1.4);
+  const qm = k.on(0, "بعد", 0.5);
   const knots: KnotDef[] = KX.map((x, i) => (i < 8
     ? { x, kind: "tied", q: 1, label: KNAMES[i], lq: 0.75, glow: i === 7 ? glow * (0.6 + 0.4 * Math.sin(t * 3) ** 2) : i === 4 ? noah : 0 }
     : { x, kind: "ring", q: nine, tie: 0, mark: qm }));
@@ -222,11 +224,9 @@ const KnotsShot = reverent((q) => {
     return [mix(mix(sx, gx, down), fx, scatter), mix(mix(sy, gy, down), fy, scatter)] as const;
   });
   const cam = k.cam({ cx: 1500, cy: 720, s: 1.3 }, [
-    [0, "الماضية", { cx: 760, cy: 640, s: 1.3 }, 1.6],
-    [0, "الأرض", { cx: 620, cy: 640, s: 1.15 }, 1.0],
-    [1, "واليوم", { cx: 520, cy: 700, s: 1.35 }, 1.0],
-    [1, "تختم", { cx: 960, cy: 600, s: 1.05 }, 1.0],
-    [1, "بعد", { cx: 480, cy: 700, s: 1.3 }, 0.9],
+    [0, "واليوم", { cx: 520, cy: 700, s: 1.35 }, 1.0],
+    [0, "تختم", { cx: 960, cy: 600, s: 1.05 }, 1.0],
+    [0, "بعد", { cx: 480, cy: 700, s: 1.3 }, 0.9],
   ]);
   const both = (
     <g>
@@ -242,7 +242,7 @@ const KnotsShot = reverent((q) => {
   return <Leaf q={q} id="b9k" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s7: عودة الأفق مع انحسار الماء (الدفعة ٦ البندان ١٤٨ و١٤٩: الصافات ٧٦–٧٧، ونقاط قليلة بلا فروع ولا أسماء ولا توزيع) ───
+// ─── c2-s7: عودة الأفق مع انحسار الماء (الدفعة ٦ البندان ١٤٨ و١٤٩: الصافات ٧٦–٧٧، ونقاط قليلة بلا فروع ولا أسماء ولا توزيع) ───
 const AfterWater = reverent((q) => {
   const k = cueKit(q, ["ثابت"]);
   const { t } = k;
@@ -280,7 +280,7 @@ const AfterWater = reverent((q) => {
   );
 });
 
-// ─── c1-s17: حدّ الدفتر وسجل بسطرين وختمه (الدفعة ٦ البند ١٥٠؛ نص قرار المالك ٢٥ نوفمبر) ───
+// ─── c2-s17: حدّ الدفتر وسجل بسطرين وختمه (الدفعة ٦ البند ١٥٠؛ نص قرار المالك ٢٥ نوفمبر) ───
 const ROWS = [380, 560];
 const Ledger = reverent((q) => {
   const k = cueKit(q, ["فالطرق"]);
@@ -307,7 +307,7 @@ const Ledger = reverent((q) => {
   );
 });
 
-// ─── c1-s19: رقعة الحديث تنبسط ───
+// ─── c2-s19: رقعة الحديث تنبسط ───
 const HadithLead = reverent((q) => {
   const k = cueKit(q, ["قال"]);
   const sheet = k.on(0, "قال", 0.6);
@@ -328,9 +328,9 @@ const HadithLead = reverent((q) => {
   );
 });
 
-// ─── c1-s21 أعيد في RoadShot ───
+// ─── c2-s21 أعيد في RoadShot ───
 
-// ─── c1-s22: باب «التعارف» ───
+// ─── c2-s22: باب «التعارف» ───
 const GateWord = reverent((q) => {
   const k = cueKit(q, ["الاختلاف"]);
   const near = k.draw(0, "الاختلاف", 1.0);
@@ -356,7 +356,7 @@ const GateWord = reverent((q) => {
   );
 });
 
-// ─── c1-s25: الخيط تحت الطرق ───
+// ─── c2-s25: الخيط تحت الطرق ───
 const UNDER = "M1740 640 C1560 620 1400 580 1250 560 C1080 540 980 520 900 520 C760 520 640 560 520 560 C400 560 300 500 180 480";
 const UnderThread = reverent((q) => {
   const k = cueKit(q, ["والتعارف"]);
@@ -376,7 +376,7 @@ const UnderThread = reverent((q) => {
   return <Leaf q={q} id="b9u" cam={cam} L={both} R={<g>{both}<Write id="b9u-w" x={1600} y={420} size={48} p={word} label="التعارف" /></g>} />;
 });
 
-// ─── c1-s26: طرق العيش عند أطراف الطرق ───
+// ─── c2-s26: طرق العيش عند أطراف الطرق ───
 const Ways = reverent((q) => {
   const k = cueKit(q, ["تفرقت"]);
   const { t } = k;
@@ -404,7 +404,7 @@ const Ways = reverent((q) => {
   );
 });
 
-// ─── c1-s27: رقاع القصص عند الأطراف ───
+// ─── c2-s27: رقاع القصص عند الأطراف ───
 const SLIPS: Pt[] = [[1640, 250], [1200, 230], [560, 240], [300, 560]];
 const Retold = reverent((q) => {
   const k = cueKit(q, ["يحفظون"]);
@@ -445,7 +445,7 @@ const Retold = reverent((q) => {
   );
 });
 
-// ─── c1-s28: الخيط يجمع الأطراف، والعقدة التاسعة ───
+// ─── c2-s28: الخيط يجمع الأطراف، والعقدة التاسعة ───
 const GATHER = "M1745 115 C1600 200 1400 90 1250 105 C1000 130 760 60 520 130 C380 170 170 300 175 470 C180 600 380 720 470 860 C520 780 560 740 620 720";
 const Gather = reverent((q) => {
   const k = cueKit(q, ["ودفترنا"]);
@@ -473,7 +473,7 @@ const Gather = reverent((q) => {
   return <Leaf q={q} id="b9ga" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s29..s31: عقد البدايات التسع برموز حلقاتها ───
+// ─── c2-s29..s31: عقد البدايات التسع برموز حلقاتها ───
 const SYM_W: [number, string][] = [[1, "بخلق"], [1, "أول"], [1, "والأجيال"], [1, "الشرك"], [2, "دعوة"], [2, "والسفينة"], [2, "والطوفان"], [2, "والجودي"]];
 const Series = reverent((q) => {
   const k = cueKit(q, ["تختم", "بدأنا", "دعوة"]);
@@ -491,7 +491,7 @@ const Series = reverent((q) => {
   return <Leaf q={q} id="b9s" cam={cam} L={both} R={<g>{both}{head > 0 ? <ChapterHead label="البدايات" o={head} /> : null}</g>} />;
 });
 
-// ─── c1-s32: الأختام الأربعة تحت الخيط ───
+// ─── c2-s32: الأختام الأربعة تحت الخيط ───
 const Seals = reverent((q) => {
   const k = cueKit(q, ["فرقنا"]);
   const s = [k.on(0, "ثبت", 0.5), k.on(0, "رواية", 0.5), k.on(0, "تقدير", 0.5), k.on(0, "نعلمه", 0.5)];
@@ -512,7 +512,7 @@ const Seals = reverent((q) => {
   return <Leaf q={q} id="b9se" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s33: الخيط يتفرع (الغلاف المرشح) ───
+// ─── c2-s33: الخيط يتفرع (الغلاف المرشح) ───
 const FKX = [1700, 1625, 1550, 1475, 1400, 1325, 1250, 1175, 1100];
 const FORKS = [
   "M1060 560 C900 520 820 360 700 270",
@@ -557,7 +557,7 @@ const Fork = reverent((q) => {
   return <Leaf q={q} id="b9f" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s34: الدفتر يتسع إلى أطلس ───
+// ─── c2-s34: الدفتر يتسع إلى أطلس ───
 const TICKS = [1700, 1500, 1300, 1100, 820, 620, 420, 220];
 const Atlas = reverent((q) => {
   const k = cueKit(q, ["القادمة"]);
@@ -619,6 +619,6 @@ export const BD09_SCENES: Record<string, React.FC<BdProps>> = {
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */
 export const BD09_STILLS: Record<string, string> = {
-  "bd09-road": "c1-s1",
-  "bd09-knots": "c1-s3",
+  "bd09-road": "c2-s1",
+  "bd09-knots": "c2-s3",
 };

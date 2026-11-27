@@ -18,7 +18,7 @@ export const BD08_META: Record<string, HzMeta> = {
   "bd08-blessed-abode": { nameAr: "البدايات ٨ · المنزل المبارك (لقطة عامة للسفينة)", tail: 1.0, exit: "fade" },
   "bd08-ledger": { nameAr: "البدايات ٨ · دفتر الخسارة يُغلق", tail: 1.0, exit: "fade" },
   "bd08-first-morning": { nameAr: "البدايات ٨ · أول صباح", tail: 1.0, exit: "fade" },
-  "bd08-handoff": { nameAr: "البدايات ٨ · العقدة التاسعة الفارغة", tail: 1.0, exit: "fade" },
+  "bd08-handoff": { nameAr: "البدايات ٨ · الخطوط المتفرعة و«؟»: ذرية نوح عليه السلام", tail: 1.0, exit: "fade" },
   "bd08-knot-seals": { nameAr: "البدايات ٨ · العقدة الحجرية والأختام الثلاثة", tail: 1.0, exit: "fade" },
-  "bd08-closing-morning": { nameAr: "البدايات ٨ · الختام في ضوء الصباح", tail: 1.2, exit: "fade" },
+  "bd08-closing-morning": { nameAr: "البدايات ٨ · سلام وبركات بجوار العقدة", tail: 1.2, exit: "fade" },
 };

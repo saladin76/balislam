@@ -1,4 +1,4 @@
-/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 003 — الأجيال الأولى» (بلا React). الخطة: channels/dafatir-alzaman/episodes/003-al-ajyal-al-ula/scenes.md */
+/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 003 — الأجيال الأولى» (بلا React). الخطة: channels/dafatir-alzaman/episodes/002-ibna-adam/scenes.md (الجزء الثاني، صفوف c2-…؛ دُمجت 003 في 002 بقرار المالك ٢٧ نوفمبر) */
 import type { HzMeta } from "../horizon/meta";
 
 export const BD03_META: Record<string, HzMeta> = {

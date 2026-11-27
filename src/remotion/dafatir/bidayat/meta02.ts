@@ -20,5 +20,4 @@ export const BD02_META: Record<string, HzMeta> = {
   "bd02-thread-knot": { nameAr: "البدايات ٢ · العقدة الثانية تُشد ثم الثالثة", tail: 1.2, exit: "fade" },
   "bd02-crack-grows": { nameAr: "البدايات ٢ · الشق الذي يكبر والطريق المفتوح", tail: 1.0, exit: "fade" },
   "bd02-one-and-all": { nameAr: "البدايات ٢ · نفس واحدة والبشر كلهم", tail: 1.2, exit: "fade" },
-  "bd02-blank-line": { nameAr: "البدايات ٢ · السطر الفارغ (سؤال الختام)", tail: 1.2, exit: "none" },
 };

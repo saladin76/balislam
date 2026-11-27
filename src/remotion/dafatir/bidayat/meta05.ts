@@ -1,4 +1,4 @@
-/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 005 — دعوة نوح عليه السلام» (بلا React). الخطة: channels/dafatir-alzaman/episodes/005-nuh-dawah/scenes.md */
+/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 005 — دعوة نوح عليه السلام» (بلا React). الخطة: channels/dafatir-alzaman/episodes/004-kayfa-bada-al-shirk/scenes.md (الجزء الثاني، صفوف c2-…؛ دُمجت 005 في 004 بقرار المالك ٢٧ نوفمبر) */
 import type { HzMeta } from "../horizon/meta";
 
 export const BD05_META: Record<string, HzMeta> = {
