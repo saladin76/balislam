@@ -28,6 +28,8 @@ import { verifyVideoEvidence } from "./videoEvidence";
 import { filterScriptArgs, localFilterScriptForm, otherForm, refusedOption } from "../render/ffmpegFilterScript";
 import { approvedSceneCutsForAssembly, currentSceneCutsForPreFinal } from "./sceneService";
 import { assertOneMachine, previewMachines } from "../render/worker/provenance";
+import { consumeMacRenderPermit } from "../render/macRenderPermit";
+import { assertEditorPassed } from "./scriptPipelineStore";
 
 const exec = promisify(execFile);
 const safeId = (value: string) => /^[a-z0-9][a-z0-9-]{0,70}$/.test(value);
@@ -251,6 +253,9 @@ export const assemblePreFinalPreview = async (
   const previews = path.join(path.dirname(scriptPath), "previews");
   // D233: every cut of the episode from one machine (the Windows and Mac Chrome draw Arabic text a few pixels apart)
   assertOneMachine(await previewMachines(previews, cuts), "نسخة قبل النهائية");
+  // D234: لا وصل لسكريبت فيه جملة لم تمر بالمحرر؛ وD232: الماك لا يصل إلا بإذن المالك لهذه المرة
+  await assertEditorPassed(scriptPath);
+  await consumeMacRenderPermit("نسخة قبل النهائية (وصل المشاهد)", { episode: path.basename(path.dirname(scriptPath)) });
   const id = randomUUID();
   const manifest = path.join(previews, `.scene-prefinal-${id}.filter`);
   const tempVideo = path.join(previews, `.scene-prefinal-${id}.mp4`);
@@ -287,6 +292,8 @@ export const assembleApprovedSceneAv = async (
   const previews = path.join(path.dirname(scriptPath), "previews");
   // D233: every cut of the episode from one machine
   assertOneMachine(await previewMachines(previews, cuts), "تجميع");
+  await assertEditorPassed(scriptPath);
+  await consumeMacRenderPermit("تجميع المشاهد", { episode: path.basename(path.dirname(scriptPath)) });
   const id = randomUUID();
   const manifest = path.join(previews, `.scene-assembly-${id}.filter`);
   const tempVideo = path.join(previews, `.scene-assembly-${id}.mp4`);

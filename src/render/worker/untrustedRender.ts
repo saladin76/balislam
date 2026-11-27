@@ -27,6 +27,7 @@ import {
   type JoinSpec, type WorkerJob, type WorkerJobV2, type WorkerResult, type WorkerTimings,
 } from "./protocol";
 import { headCommit } from "./git";
+import { assertEditorPassed } from "../../studio/scriptPipelineStore";
 import { assertOneMachine, machineOfResult } from "./provenance";
 import { probeVideo } from "./probe";
 import { projectRoot } from "../../config/paths";
@@ -173,6 +174,8 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
     const scriptPath = await resolveScriptPath(job.episode.slice(0, 3));
     if (path.basename(path.dirname(scriptPath)) !== job.episode) throw new Error(`مجلد الحلقة في هذا الـcommit ليس ${job.episode}.`);
     assertRenderChannelOwnership(scriptPath, job.channel);
+    // D234 على العامل أيضًا، بسجل المحرر في commit المهمة: يشمل الوصل (لا يمر بـrenderComposition)
+    await assertEditorPassed(scriptPath);
     const { plan, media, narrationGain } = job.inputs;
     assertRenderMediaOwnership(scriptPath, media);
     progress(0, "تجهيز لقطة الوسائط");

@@ -1,6 +1,7 @@
 import { planOrder, sceneNames } from "../i18n/sceneNames";
 import { assertTemplatesApproved } from "../plan/templateApproval";
 import { assertEditorPassed, scriptPathFromRenderMedia } from "../studio/scriptPipelineStore";
+import { consumeMacRenderPermit } from "./macRenderPermit";
 import type { ChannelConfig } from "../channel/types";
 import { versesAreCitations } from "../quran/citation";
 import path from "node:path";
@@ -252,6 +253,8 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   const editorScript = scriptPathFromRenderMedia(media.base);
   if (!editorScript) throw new Error("وسائط الرندر لا تسمّي حلقتها؛ لا يُعرف سكريبتها لفحص المحرر (D234).");
   await assertEditorPassed(editorScript);
+  // D232: الماك لا يرندر إلا بإذن المالك الصريح لهذه المرة (العامل على ويندوز لا يحتاجه)
+  await consumeMacRenderPermit(`رندر ${o.quality}${o.scenePreview ? " (قطعة مشهد)" : ""}`, { episode: path.basename(path.dirname(editorScript)) });
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
   // never other channels' staged voice/recitation in the Remotion bundle.

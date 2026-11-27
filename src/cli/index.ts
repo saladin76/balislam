@@ -948,6 +948,25 @@ program
     if (r.refused.length) process.exitCode = 1;
   });
 
+// D232: الماك لا يرندر إلا للطوارئ وبإذن المالك الصريح في كل مرة (src/render/macRenderPermit.ts)
+program
+  .command("mac-render-permit")
+  .description("D232: إذن المالك لرندر على الماك هذه المرة وحدها (طوارئ)؛ يُكتب بعد أن يأذن المالك بنفسه، ويُستهلك مع كل رندر")
+  .option("--owner-words <text>", "نص إذن المالك كما قاله")
+  .option("--uses <n>", "عدد مرات الرندر المأذونة (الافتراضي ١)", "1")
+  .option("--minutes <n>", "صلاحية الإذن بالدقائق (الافتراضي ٦٠)", "60")
+  .option("--episode <ep>", "حلقة بعينها (الافتراضي أي حلقة)")
+  .option("--status", "اعرض الإذن الحالي فقط")
+  .option("--revoke", "ألغِ الإذن الحالي")
+  .action(async (opts: { ownerWords?: string; uses: string; minutes: string; episode?: string; status?: boolean; revoke?: boolean }) => {
+    const m = await import("../render/macRenderPermit");
+    if (opts.revoke) { console.log((await m.revokeMacRenderPermit()) ? "أُلغي الإذن." : "لا إذن قائم."); return; }
+    if (opts.status) { const p = await m.readMacRenderPermit(); console.log(p ? `إذن قائم: ${p.uses} مرة حتى ${p.expiresAt}${p.episode ? ` للحلقة ${p.episode}` : ""} — «${p.ownerWords}»` : "لا إذن: الماك لا يرندر."); return; }
+    if (!opts.ownerWords) throw new Error("--owner-words مطلوب: نص إذن المالك لهذه المرة.");
+    const p = await m.grantMacRenderPermit({ ownerWords: opts.ownerWords, uses: Number(opts.uses), minutes: Number(opts.minutes), episode: opts.episode });
+    console.log(`إذن رندر على الماك: ${p.uses} مرة حتى ${p.expiresAt}${p.episode ? ` للحلقة ${p.episode}` : ""}.`);
+  });
+
 // D232: كل الرندر على الويندوز. حالة الجهاز، والتجربة الكاملة (المشاهد ← التجميع ← 4K) التي لا تدخل الحزمة ولا السجل.
 program
   .command("worker-status")

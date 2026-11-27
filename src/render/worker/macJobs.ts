@@ -17,6 +17,7 @@ import { loadPlan } from "../../plan/io";
 import { prepareRenderMedia } from "../../plan/collect";
 import { cutPlans } from "../../plan/sceneCut";
 import { assertTemplatesApproved } from "../../plan/templateApproval";
+import { assertEditorPassed } from "../../studio/scriptPipelineStore";
 import type { Plan } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
 import { channelInfo, loadChannel } from "../../channel";
@@ -70,6 +71,8 @@ const idFor = (b: Base, kind: string, extra: string, fp: unknown) =>
 /** مهمة قطعة مشهد 1080p: الخطة مقصوصة على المشهد ووسائطه كما يحسبها الاستوديو (shotsRenderInputs)، بعد فحص النواقص. */
 export const buildSceneJob = async (ep: string, sceneId: string, b: Base, share: string): Promise<WorkerJobV2> => {
   const { shotsRenderInputs } = await import("../shotsPreview");
+  // D234: لا مهمة رندر (للويندوز أو غيره) لسكريبت فيه جملة لم تمرّ بمحرر المحتوى، قبل أي حساب أو نسخ
+  await assertEditorPassed(await resolveScriptPath(ep));
   const { plan, media, pendingRecitation } = await shotsRenderInputs(ep, [sceneId], { sceneDraft: true, allowPendingRecitation: true });
   assertTemplatesApproved(plan);
   const mediaRel = await publishSnapshot(share, media);
@@ -86,6 +89,8 @@ export const buildSceneJob = async (ep: string, sceneId: string, b: Base, share:
 /** لقطة الحلقة كاملة وربح العلوّ: للوصل ولـMaster. */
 export const fullEpisodeInputs = async (ep: string, o: { requireApprovedQuran: boolean }) => {
   const scriptPath = await resolveScriptPath(ep);
+  // D234: الوصل وMaster مثل المشهد: لا مهمة لسكريبت لم يمرّ بالمحرر
+  await assertEditorPassed(scriptPath);
   const plan = await loadPlan(ep);
   if (!plan) throw new Error("لا توجد خطة للحلقة.");
   assertTemplatesApproved(plan);
@@ -199,6 +204,8 @@ export const submitTrial = async (ep: string, share: string, o: { tag: string; o
   const stages = o.stages ?? ["scenes", "assembly", "master"];
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(o.tag) || o.tag.length > 40) throw new Error("وسم التجربة: حروف لاتينية صغيرة وأرقام وشرطات.");
   const scriptPath = await resolveScriptPath(ep);
+  // D234 بلا استثناء: التجربة لا تتخطى المحرر (تتخطى متطلبات الاعتماد وحدها)، ولا تُرسل منها مهمة واحدة قبله
+  await assertEditorPassed(scriptPath);
   const channel = loadChannel().id;
   const episodeFolder = path.basename(path.dirname(scriptPath));
   const commit = await assertCommitMatchesWorkingTree(projectRoot, channel, episodeFolder);

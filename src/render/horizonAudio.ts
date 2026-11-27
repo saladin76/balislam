@@ -81,6 +81,9 @@ export const renderHorizonAudio = async (
   const slot = opts.slot ?? "six-shots-audio";
   if (!slot.endsWith("-audio")) throw new Error("خانة المعاينة الصوتية يجب أن تنتهي بـ -audio (تبقى على الجهاز ولا تُرفع، لأن فيها تلاوة).");
   const scriptPath = await resolveScriptPath(episode);
+  // D234 وD232: لا رندر لسكريبت لم يمر بالمحرر، ولا على الماك إلا بإذن المالك لهذه المرة
+  await (await import("../studio/scriptPipelineStore")).assertEditorPassed(scriptPath);
+  await (await import("./macRenderPermit")).consumeMacRenderPermit("المعاينة الصوتية للقطات الست", { episode: path.basename(path.dirname(scriptPath)) });
   const voice = opts.voiceClient === undefined ? elevenLabsFromEnv() : opts.voiceClient;
 
   log("فحص النص والمفاتيح والتشكيل…");
