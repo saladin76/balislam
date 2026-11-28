@@ -54,8 +54,8 @@ describe("D248 CharacterSpec", () => {
     expect(characterSpecIssues({ ...good, bodyEmphasis: true }, 0).join()).toMatch(/bodyEmphasis/);
   });
 
-  it("4: no acted voice or dialogue on the character", () => {
-    for (const k of ["voice", "dialogue", "line", "speech", "bubble"]) expect(characterSpecIssues({ ...good, [k]: "x" }, 0).join()).toMatch(/الراوي وحده/);
+  it("4 (amended by D250): no voice or dialogue in the character spec; character lines are [قول: …] in the script", () => {
+    for (const k of ["voice", "dialogue", "line", "speech", "bubble"]) expect(characterSpecIssues({ ...good, [k]: "x" }, 0).join()).toMatch(/\[قول: …\]/);
   });
 
   it("5: palette tokens only from the day palette", () => {
@@ -92,7 +92,7 @@ describe("D248 scene gate", () => {
   });
 
   it("4: scene voice, speech-bubble template and dialogue props are refused", () => {
-    expect(errors(plan([scene({ voice: "abc", props: { characters: chars(good) } })])).join()).toMatch(/الراوي وحده/);
+    expect(errors(plan([scene({ voice: "abc", props: { characters: chars(good) } })])).join()).toMatch(/للراوي وحده/);
     expect(errors(plan([scene({ template: "character-talk", props: { line: "مرحبا" } })])).join()).toMatch(/فقاعة الكلام/);
     expect(errors(plan([scene({ props: { characters: chars(good), bubble: "مرحبا" } })])).join()).toMatch(/فقاعة/);
   });
@@ -107,11 +107,11 @@ describe("D248 scene gate", () => {
     expect(errors(plan([scene({ template: "alley-tale", props: { lighting: "night-lamp" } })]))).toEqual([]);
   });
 
-  it("applies to «بالإسلام» only", () => {
+  it("the D248 limits apply to «بالإسلام» only («دفاتر الزمن» has its own D249 rules, «زبدة الكتب» none)", () => {
     const bad = [scene({ voice: "x", narration: "قال النبي ﷺ", props: { characters: chars({ ...good, name: "x" }) } })];
-    expect(characterPolicyIssues(plan(bad, "dafatir-alzaman"))).toEqual([]);
+    expect(characterPolicyIssues(plan(bad, "dafatir-alzaman")).some((i) => i.message.includes("D248"))).toBe(false);
     expect(characterPolicyIssues(plan(bad, "zubdat-alkutub"))).toEqual([]);
-    expect(() => assertCharacterPolicy(plan(bad, "dafatir-alzaman"))).not.toThrow();
+    expect(() => assertCharacterPolicy(plan(bad, "zubdat-alkutub"))).not.toThrow();
     expect(() => assertCharacterPolicy(plan(bad))).toThrow(/D248/);
   });
 

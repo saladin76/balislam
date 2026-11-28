@@ -16,7 +16,7 @@ const STEP_HEADINGS = new Set(packs.map((p) => lower(p.syntax.step)));
 const DIRECTIVE = /^\[\s*([^\]:]+?)\s*:\s*(.+?)\s*\]$/;
 const BRIDGE = /^bridge\s*:\s*(.*)$/i;
 
-const DIRECTIVE_KINDS: Record<string, "scene" | "ayah" | "hadith" | "sfx" | "cite"> = {
+const DIRECTIVE_KINDS: Record<string, "scene" | "ayah" | "hadith" | "sfx" | "cite" | "speech"> = {
   مشهد: "scene",
   آية: "ayah",
   اية: "ayah",
@@ -26,6 +26,8 @@ const DIRECTIVE_KINDS: Record<string, "scene" | "ayah" | "hadith" | "sfx" | "cit
   استشهاد: "cite",
   "استشهاد بصري": "cite",
   "استشهاد بصري صامت": "cite",
+  // قول شخصية بصوت من مكتبة الأصوات (D249/D250)؛ ليس سردًا ولا يقرؤه صوت الراوي
+  قول: "speech",
 };
 for (const p of packs) {
   DIRECTIVE_KINDS[lower(p.syntax.scene)] = "scene";
@@ -186,7 +188,7 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
           issues.push({
             level: "error",
             code: "directive-unknown",
-            message: `علامة غير معروفة «${line}». العلامات المسموحة: [مشهد: …]، [آية: …]، [حديث: …]، [صوت: …]، [استشهاد بصري صامت: …].`,
+            message: `علامة غير معروفة «${line}». العلامات المسموحة: [مشهد: …]، [آية: …]، [حديث: …]، [صوت: …]، [استشهاد بصري صامت: …]، [قول: …].`,
             line: lineNo,
           });
           continue;
@@ -203,6 +205,13 @@ export const parseScript = (source: string, file = "script.md"): ParsedScript =>
         } else if (kind === "cite") {
           const [ref = value, ...rest] = value.split(/\s+[—–-]\s+/);
           block = { kind, ref: ref.trim(), note: rest.join(" — ").trim() || undefined, line: lineNo };
+        } else if (kind === "speech") {
+          const [voice = "", text = "", ...opts] = value.split("|").map((s) => s.trim());
+          const opt = (k: RegExp) => opts.map((o) => o.match(k)).find(Boolean)?.[1]?.trim() || undefined;
+          block = { kind, voice, text: text.replace(/^[«"]\s*|\s*[»"]$/g, "").trim(), source: opt(/^مصدر\s*:\s*(.+)$/), name: opt(/^اسم\s*:\s*(.+)$/), line: lineNo };
+          const unknown = opts.filter((o) => !/^(مصدر|اسم)\s*:/.test(o));
+          if (!voice || !block.text || unknown.length)
+            issues.push({ level: "error", code: "speech-syntax", message: `قول الشخصية: [قول: <مفتاح الصوت> | <النص> | مصدر: … | اسم: …]؛ ${!voice ? "مفتاح الصوت ناقص" : !block.text ? "النص ناقص" : `حقل غير معروف «${unknown[0]}»`}.`, line: lineNo });
         } else if (kind === "hadith") {
           const [ref = value, text, narrator] = value.split("|").map((s) => s.trim());
           block = { kind, ref, text: text || undefined, narrator: narrator || undefined, line: lineNo };
