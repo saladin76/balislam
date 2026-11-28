@@ -6,6 +6,7 @@ import { LIB_UI } from "../remotion/dafatir/lib/meta";
 import { RAHHALA_CITIES, RAHHALA_SHOTS } from "../remotion/dafatir/world/shots";
 import { ALLEY_SHOTS } from "../remotion/balislam/world/shots";
 import { JAZARI_SHOTS } from "../remotion/zubdat/world/shots";
+import { NOTEBOOK_FIELD_LABELS, NOTEBOOK_SHOTS } from "../remotion/zubdat/notebook/shots";
 import { INK_UI } from "../remotion/zubdat/kitSlots";
 import { cueNamesAr } from "./sceneCues";
 import type { MatchMode, ShotUi } from "./sceneSlots";
@@ -505,6 +506,25 @@ export const templateDefs: TemplateDef[] = [
       { key: "tipWord", label: "كلمة ميل الذراع", type: "text", ui: "anchor", match: "prefix", slot: "ميل الذراع" },
       { key: "turnWord", label: "كلمة دوران الترسين", type: "text", ui: "anchor", match: "prefix", slot: "دوران الترسين" },
       { key: "riseWord", label: "كلمة وصول لوح الفكرة", type: "text", ui: "anchor", match: "prefix", slot: "وصول اللوح", fallbackFrom: "idea" },
+    ],
+  },
+  {
+    // «دفتر القارئ» (D227) بقاعدة D228: ست لقطات، كل لقطة نموذج اختاره المالك من ستوري بورد «زبدة-الكتب-001»
+    // (templates/approvals.json: reader-notebook/<اللقطة>). كل خانة من السكريبت تُكتب أو تُرسم لحظة نطق كلمتها.
+    id: "reader-notebook",
+    nameAr: "دفتر القارئ",
+    useAr: "زبدة الكتب: كتابة ورسم باليد على ورق الدفتر بالقلم الأزرق والأحمر وقلم التحديد؛ كل عبارة تُكتب وكل علامة (✓، دائرة، شطب، سهم، ورقة لاصقة) تُرسم لحظة نطق كلمتها",
+    summaryAr: "دفتر القارئ: يُكتب ويُرسم كل شيء باليد لحظة نطق كلمته.",
+    shots: Object.fromEntries(Object.entries(NOTEBOOK_SHOTS).map(([k, v]) => [k, { title: v.nameAr, fields: v.fields }])),
+    shotFields: [],
+    implemented: true,
+    baseSeconds: 8,
+    minSeconds: 4,
+    fields: [
+      { key: "shot", label: "اللقطة", type: "select", ui: "shot", options: Object.entries(NOTEBOOK_SHOTS).map(([value, d]) => ({ value, label: d.nameAr })) },
+      ...[...new Set(Object.values(NOTEBOOK_SHOTS).flatMap((s) => s.fields))].map((key): FieldDef => /Word$/.test(key)
+        ? { key, label: NOTEBOOK_FIELD_LABELS[key] ?? key, type: "text", ui: "anchor", match: "prefix", slot: NOTEBOOK_FIELD_LABELS[key] ?? key }
+        : { key, label: NOTEBOOK_FIELD_LABELS[key] ?? key, type: "text", ...(/Words$/.test(key) || ["items", "notes", "path", "work", "steps", "question", "book"].includes(key) ? { help: "مفصولة بـ |، وكل كلمة منطوقة في جملة المشهد («كلمة#2» للورود الثاني)" } : {}) }),
     ],
   },
   {
