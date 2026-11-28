@@ -104,6 +104,18 @@ export const runOnce = async (share: string, deps: WorkerDeps): Promise<string |
       const job = await claimJob(share, candidate.id, workerName());
       if (!job) continue;
       deps.log(`المهمة ${job.id}: ${job.channel} ${job.episode} (${job.kind}) @ ${job.commit.slice(0, 8)}`);
+      // D245: الحلقة الجارية والتناوب (وما تُخطّي من أدوار) في rotation.json؛ فشل الكتابة لا يوقف الرندر
+      await (async () => {
+        const R = await import("./rotation");
+        const q = path.dirname(queuePaths(share).jobs);
+        const before = await R.readRotation(q);
+        const after = R.noteClaim(before, job, new Date());
+        if (after !== before) {
+          await R.writeRotation(q, after);
+          const e = after.log.at(-1);
+          if (e?.skipped.length) deps.log(`D245: الدور كان على ${e.expected}، ولا حلقة جاهزة لـ ${e.skipped.join(" و")}؛ أُخذت ${job.channel} ${job.episode}.`);
+        }
+      })().catch(() => undefined);
       await deps.heartbeat?.("busy", job.id).catch(() => undefined);
       const why = await deps.prepareCommit(job);
       if (why) { await failJob(share, job.id, why, ""); deps.log(`فشلت: ${why}`); return job.id; }
