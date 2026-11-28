@@ -138,8 +138,8 @@ const Sun: React.FC<{ id: string; x0: number; y0: number; x1: number; y1: number
   const band = (x: number, w: number) => `${x},${y0} ${x + w},${y0} ${x + w - slope},${y1} ${x - slope},${y1}`;
   return (
     <g style={{ mixBlendMode: "screen" }} filter={`url(#${id}-soft)`}>
-      <polygon points={band(x0 + (x1 - x0) * 0.58, 300)} fill="rgba(255,236,196,0.30)" />
-      <polygon points={band(x0 + (x1 - x0) * 0.58 + 390, 170)} fill="rgba(255,236,196,0.24)" />
+      <polygon points={band(x0 + (x1 - x0) * 0.58, 300)} fill="rgba(255,236,196,0.42)" />
+      <polygon points={band(x0 + (x1 - x0) * 0.58 + 390, 170)} fill="rgba(255,236,196,0.34)" />
     </g>
   );
 };
@@ -255,7 +255,7 @@ const VerseCard: React.FC<{ x: number; y: number; w: number; h: number; rot: num
       <text x={w / 2} y={74} textAnchor="middle" style={{ fontFamily: CLEAN, fontWeight: 700, fontSize: 26, fill: "#4A4A4A" }}>سورة طه</text>
       <text x={w / 2} y={h / 2 + 8} textAnchor="middle" direction="rtl" style={{ fontFamily: QURAN, fontSize: 46, fill: DK.ink }}>{l1}</text>
       <text x={w / 2} y={h / 2 + 88} textAnchor="middle" direction="rtl" style={{ fontFamily: QURAN, fontSize: 46, fill: DK.ink }}>{l2}</text>
-      <text x={w / 2} y={h - 44} textAnchor="middle" style={{ fontFamily: CLEAN, fontWeight: 500, fontSize: 24, fill: "#4A4A4A" }}>{TAHA_14_REF}</text>
+      <text x={w / 2} y={h - 44} textAnchor="middle" direction="rtl" style={{ fontFamily: CLEAN, fontWeight: 500, fontSize: 24, fill: "#4A4A4A" }}>{TAHA_14_REF}</text>
     </g>
   );
 };
@@ -269,14 +269,36 @@ type Tool = "blue" | "red" | "grey" | "marker";
 const WritingHand: React.FC<{ x: number; y: number; tool: Tool; id: string; edge: number }> = ({ x, y, tool, id, edge }) => {
   const s = Math.min(1.5, Math.max(1, (edge - x) / 470));
   const barrel = tool === "red" ? DK.red : tool === "grey" ? DK.grey : tool === "marker" ? DK.ink : DK.blue;
-  const hand = "M30 -40 C60 -95 120 -120 175 -118 C230 -116 280 -112 330 -110 L520 -104 L520 34 L330 26 C280 40 230 62 180 60 C130 58 95 42 80 22 C66 2 46 -14 30 -40 Z";
-  const thumb = "M64 -72 C86 -132 140 -152 192 -142 C208 -139 208 -124 192 -119 C150 -110 116 -94 94 -60 Z";
+  // ظهر اليد من مفصل السبابة إلى الرسغ (يقطعه طرف الكادر)، والأصابع خطوط مستديرة: السبابة على القلم، والإبهام بجانبه، والوسطى منثنية تحته
+  const back = "M70 -150 C120 -176 200 -170 270 -150 C330 -134 420 -122 540 -116 L540 40 C430 44 330 48 250 52 C190 56 130 44 96 18 C70 -2 52 -40 56 -90 C58 -120 62 -140 70 -150 Z";
+  const index = "M30 -30 C52 -68 74 -108 98 -146";
+  const thumb = "M12 -62 C40 -104 92 -150 150 -160";
+  const middle = "M46 -6 C70 -2 104 4 140 6";
+  const finger = (d: string, w: number) => (
+    <g>
+      <path d={d} stroke={DK.handShade} strokeWidth={w + 5} strokeLinecap="round" fill="none" />
+      <path d={d} stroke={DK.hand} strokeWidth={w} strokeLinecap="round" fill="none" />
+    </g>
+  );
   return (
     <g transform={`translate(${x} ${y}) scale(${s})`}>
-      <g transform="translate(16 26)" opacity={0.28} filter={`url(#${id}-blur)`}>
-        <path d={hand} fill="#2A1708" />
+      <g transform="translate(18 28)" opacity={0.26} filter={`url(#${id}-blur)`}>
+        <path d={back} fill="#2A1708" />
         <g transform="rotate(-60)"><rect x={0} y={-10} width={300} height={20} rx={10} fill="#2A1708" /></g>
       </g>
+      <defs>
+        <linearGradient id={`${id}-handg`} x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stopColor={DK.hand} />
+          <stop offset="1" stopColor={DK.handShade} />
+        </linearGradient>
+        <linearGradient id={`${id}-wrist`} x1="0" y1="0" x2="1" y2="0">
+          <stop offset="0.72" stopColor="#7E6A57" stopOpacity={0} />
+          <stop offset="1" stopColor="#7E6A57" stopOpacity={0.32} />
+        </linearGradient>
+      </defs>
+      <path d={back} fill={`url(#${id}-handg)`} stroke={DK.handShade} strokeWidth={4} />
+      <path d={back} fill={`url(#${id}-wrist)`} />
+      {finger(middle, 30)}
       <g transform="rotate(-60)">
         {tool === "marker" ? (
           <g>
@@ -292,20 +314,9 @@ const WritingHand: React.FC<{ x: number; y: number; tool: Tool; id: string; edge
           </g>
         )}
       </g>
-      <defs>
-        <linearGradient id={`${id}-handg`} x1="0" y1="-1" x2="0" y2="1" gradientUnits="objectBoundingBox">
-          <stop offset="0" stopColor={DK.hand} />
-          <stop offset="1" stopColor={DK.handShade} />
-        </linearGradient>
-        <linearGradient id={`${id}-wrist`} x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0.7" stopColor={DK.handShade} stopOpacity={0} />
-          <stop offset="1" stopColor="#7E6A57" stopOpacity={0.35} />
-        </linearGradient>
-      </defs>
-      <path d={hand} fill={`url(#${id}-handg)`} />
-      <path d={hand} fill={`url(#${id}-wrist)`} />
-      <path d={thumb} fill={DK.hand} />
-      <path d="M86 20 C112 2 142 -4 172 -2 M104 42 C134 28 164 24 194 28 M72 -6 C96 -22 126 -28 156 -26" stroke={DK.handShade} strokeWidth={3} fill="none" strokeLinecap="round" opacity={0.8} />
+      {finger(index, 30)}
+      {finger(thumb, 32)}
+      <path d="M118 -150 C150 -140 176 -128 196 -110 M150 -40 C190 -50 230 -54 270 -52" stroke={DK.handShade} strokeWidth={3} fill="none" strokeLinecap="round" opacity={0.7} />
     </g>
   );
 };
@@ -316,7 +327,7 @@ type Ctx = { w: number; h: number };
 type Pen = { x: number; y: number; tool: Tool } | null;
 type SceneDef = {
   page: (c: Ctx) => React.ReactNode;
-  /** موضع رأس القلم لحظة الذروة (محلي في الدفتر)، أو null بلا يد */
+  /** موضع رأس القلم لحظة الذروة (محلي في الدفتر)، أو null بلا يد. عند الهامش الأيمن أو في سطر فارغ: لا تغطي اليد كتابة */
   pen: Pen;
   props: "calendar" | "book" | "bookBracket" | "clock" | "papers" | "verse";
   caption: string;
@@ -345,33 +356,35 @@ const SCENES: Record<number, SceneDef> = {
     pen: { x: 1074, y: 600, tool: "red" },
     props: "book",
     caption: "هل يحضر قلبنا في الصلاة كما يحضر جسدنا؟",
-    focus: { x: 900, y: 460 },
+    focus: { x: 880, y: 560 },
   },
   2: {
     page: ({ w }) => {
-      const R = w - 110;
+      const R = w - 110, L = w / 2 - 90;
       return (
         <g>
-          <Row x={R} y={170} size={50} segs={[{ t: "نقرأ…" }, { t: "والذهن في مكان آخر", c: DK.grey }]} />
-          {[{ t: "مواعيد", x: R - 120, y: 150, r: -7, c: DK.note[0] }, { t: "هموم", x: R - 330, y: 196, r: 5, c: DK.note[2] }, { t: "رسائل", x: R - 520, y: 160, r: -3, c: DK.note[1] }].map((n) => (
+          <Row x={L} y={170} size={48} segs={[{ t: "نقرأ…" }, { t: "والذهن في مكان آخر", c: DK.grey }]} />
+          {[{ t: "مواعيد", x: L - 40, y: 250, r: -7, c: DK.note[0] }, { t: "هموم", x: L - 200, y: 300, r: 5, c: DK.note[2] }, { t: "رسائل", x: L - 360, y: 240, r: -3, c: DK.note[1] }].map((n) => (
             <g key={n.t} transform={`translate(${n.x} ${n.y}) rotate(${n.r})`}>
               <rect x={-150} y={-56} width={150} height={112} rx={4} fill={n.c} stroke="#DADAD3" strokeWidth={2} />
               <text x={-14} y={10} direction="rtl" textAnchor="start" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 36, fill: DK.ink }}>{n.t}</text>
             </g>
           ))}
-          <Row x={R} y={450} size={50} segs={[{ t: "لا نبحث عن" }, { t: "صلاة جديدة", strike: true }]} />
-          <Row x={R} y={560} size={50} segs={[{ t: "بل عن" }, { t: "قلبٍ أكثر انتباهًا", hl: true }]} />
+          <Row x={R} y={300} size={50} segs={[{ t: "لا نبحث عن" }, { t: "صلاة جديدة", strike: true }]} />
+          <Row x={R} y={420} size={50} segs={[{ t: "بل عن" }, { t: "قلبٍ أكثر انتباهًا", hl: true }]} />
         </g>
       );
     },
-    pen: { x: 935, y: 566, tool: "marker" },
+    pen: { x: 1112, y: 640, tool: "marker" },
     props: "calendar",
     caption: "بل عن قلب أكثر انتباها",
-    focus: { x: 900, y: 500 },
+    focus: { x: 880, y: 420 },
   },
   3: {
     page: ({ w }) => {
       const R = w - 110;
+      const st = [{ x: w / 2 - 120, t: "التهيؤ" }, { x: w / 4, t: "الأقوال" }, { x: 110, t: "الأفعال" }];
+      const y = 360;
       return (
         <g>
           <g transform={`translate(${w / 2 + 70} 96)`}>
@@ -382,101 +395,111 @@ const SCENES: Record<number, SceneDef> = {
             <text x={w / 2 - 280} y={206} direction="rtl" textAnchor="start" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 34, fill: DK.blue }}>د. خالد أبو شادي</text>
           </g>
           <Row x={R} y={470} size={50} c={DK.red} segs={[{ t: "كيف نهيئ" }, { t: "قلوبنا؟", hl: true }]} />
-          <path d={`M${w / 2 - 120} 260 C ${w / 2 - 220} 380, ${w / 2 - 330} 420, 300 420 S 120 330 100 250`} stroke={DK.blue} strokeWidth={5} fill="none" strokeDasharray="16 14" strokeLinecap="round" />
-          {[{ x: w / 2 - 120, y: 260, t: "التهيؤ" }, { x: 300, y: 420, t: "الأقوال" }, { x: 100, y: 250, t: "الأفعال" }].map((s, i) => (
+          <path d={`M${st[0]!.x - 26} ${y} Q ${(st[0]!.x + st[1]!.x) / 2} ${y - 70} ${st[1]!.x + 26} ${y} M${st[1]!.x - 26} ${y} Q ${(st[1]!.x + st[2]!.x) / 2} ${y - 70} ${st[2]!.x + 26} ${y}`}
+            stroke={DK.blue} strokeWidth={5} fill="none" strokeDasharray="16 14" strokeLinecap="round" />
+          <path d={`M${st[2]!.x + 40} ${y - 44} l-18 14 l20 10`} stroke={DK.blue} strokeWidth={5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          {st.map((s, i) => (
             <g key={s.t}>
-              <circle cx={s.x} cy={s.y} r={20} fill={i === 0 ? DK.red : DK.paper} stroke={i === 0 ? DK.red : DK.blue} strokeWidth={5} />
-              <text x={s.x} y={s.y + 70} textAnchor="middle" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 40, fill: i === 0 ? DK.red : DK.blue }}>{s.t}</text>
+              <circle cx={s.x} cy={y} r={20} fill={i === 0 ? DK.red : DK.paper} stroke={i === 0 ? DK.red : DK.blue} strokeWidth={5} />
+              <text x={s.x} y={y + 74} textAnchor="middle" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 40, fill: i === 0 ? DK.red : DK.blue }}>{s.t}</text>
             </g>
           ))}
-          <g transform={`translate(${w / 2 - 120} 150)`}>
+          <g transform={`translate(${st[0]!.x} ${y - 112})`}>
             <path d="M0 60 C -30 20 -30 -10 0 -10 C 30 -10 30 20 0 60 Z" fill={DK.red} />
             <circle cx={0} cy={8} r={9} fill={DK.paper} />
-            <text x={-50} y={10} direction="rtl" textAnchor="start" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 34, fill: DK.red }}>نحن هنا</text>
+            <text x={-40} y={18} direction="rtl" textAnchor="start" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 34, fill: DK.red }}>نحن هنا</text>
           </g>
         </g>
       );
     },
-    pen: { x: 1000, y: 474, tool: "red" },
+    pen: { x: 1112, y: 600, tool: "red" },
     props: "book",
     caption: "سنبدأ مما يسبقهما: كيف نهيئ قلوبنا؟",
-    focus: { x: 620, y: 330 },
+    focus: { x: 880, y: 340 },
   },
   4: {
     page: ({ w }) => {
       const R = w - 110;
-      const cx = w / 4 + 10;
+      const cx = w / 4 + 10, arm = 165;
+      const frame = (y: number, c: string, label: string) => (
+        <g>
+          <rect x={w / 2 + 60} y={y} width={w / 2 - 150} height={130} rx={8} fill="none" stroke={c} strokeWidth={4} />
+          <Row x={R - 10} y={y + 46} size={34} family={CLEAN} c={c} segs={[{ t: label, weight: 700 }]} />
+          {[70, 100].map((ly, i) => <rect key={ly} x={w / 2 + 90 + i * 60} y={y + ly} width={w / 2 - 230 - i * 60} height={8} rx={4} fill={c} opacity={0.45} />)}
+        </g>
+      );
       return (
         <g>
-          <rect x={R - 16} y={120} width={30} height={30} rx={5} fill={DK.blue} />
-          <Row x={R - 34} y={146} size={38} family={CLEAN} c={DK.ink} segs={[{ t: "ما يقوله المؤلف", weight: 700 }]} />
-          <rect x={R - 16} y={184} width={30} height={30} rx={5} fill={DK.grey} />
-          <Row x={R - 34} y={210} size={38} family={CLEAN} c={DK.ink} segs={[{ t: "ما نضيفه من شرح", weight: 700 }]} />
-          <Row x={R} y={340} size={44} segs={[{ t: "الخشوع لا يغني عن صحة الصلاة" }]} />
-          <Row x={R} y={430} size={44} c={DK.grey} segs={[{ t: "ولكلٍّ موضعه" }]} />
-          <line x1={cx} x2={cx} y1={150} y2={460} stroke={DK.ink} strokeWidth={6} strokeLinecap="round" />
-          <path d={`M${cx - 70} 470 h140`} stroke={DK.ink} strokeWidth={6} strokeLinecap="round" />
-          <line x1={cx - 210} x2={cx + 210} y1={170} y2={170} stroke={DK.ink} strokeWidth={6} strokeLinecap="round" />
-          <circle cx={cx} cy={170} r={11} fill={DK.ink} />
+          <rect x={R - 16} y={110} width={30} height={30} rx={5} fill={DK.blue} />
+          <Row x={R - 34} y={136} size={36} family={CLEAN} c={DK.ink} segs={[{ t: "ما يقوله المؤلف", weight: 700 }]} />
+          <rect x={R - 16} y={168} width={30} height={30} rx={5} fill={DK.grey} />
+          <Row x={R - 34} y={194} size={36} family={CLEAN} c={DK.ink} segs={[{ t: "ما نضيفه من شرح", weight: 700 }]} />
+          {frame(250, DK.blue, "المؤلف")}
+          {frame(420, DK.grey, "شرحنا")}
+          <line x1={cx} x2={cx} y1={160} y2={440} stroke={DK.ink} strokeWidth={6} strokeLinecap="round" />
+          <path d={`M${cx - 60} 446 h120`} stroke={DK.ink} strokeWidth={6} strokeLinecap="round" />
+          <line x1={cx - arm} x2={cx + arm} y1={180} y2={180} stroke={DK.ink} strokeWidth={6} strokeLinecap="round" />
+          <circle cx={cx} cy={180} r={11} fill={DK.ink} />
           {[-1, 1].map((k) => (
             <g key={k}>
-              <path d={`M${cx + k * 210} 170 L${cx + k * 210 - 70} 300 M${cx + k * 210} 170 L${cx + k * 210 + 70} 300`} stroke={DK.ink} strokeWidth={3} />
-              <path d={`M${cx + k * 210 - 90} 300 Q${cx + k * 210} 360 ${cx + k * 210 + 90} 300 Z`} fill="none" stroke={DK.ink} strokeWidth={5} />
-              <text x={cx + k * 210} y={410} textAnchor="middle" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 40, fill: DK.blue }}>{k > 0 ? "الخشوع" : "صحة الصلاة"}</text>
+              <path d={`M${cx + k * arm} 180 L${cx + k * arm - 60} 290 M${cx + k * arm} 180 L${cx + k * arm + 60} 290`} stroke={DK.ink} strokeWidth={3} />
+              <path d={`M${cx + k * arm - 76} 290 Q${cx + k * arm} 344 ${cx + k * arm + 76} 290 Z`} fill="none" stroke={DK.ink} strokeWidth={5} />
+              <text x={cx + k * arm} y={392} textAnchor="middle" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 38, fill: DK.blue }}>{k > 0 ? "الخشوع" : "صحة الصلاة"}</text>
             </g>
           ))}
-          <Row x={w / 2 - 90} y={590} size={48} segs={[{ t: "نطلب" }, { t: "الأمرين معًا", hl: true }]} />
+          <Row x={w / 2 - 90} y={570} size={48} segs={[{ t: "نطلب" }, { t: "الأمرين معًا", hl: true }]} />
         </g>
       );
     },
-    pen: { x: 1010, y: 436, tool: "grey" },
+    pen: { x: 1112, y: 640, tool: "grey" },
     props: "bookBracket",
     caption: "فلكل موضعه، ونحن نطلب الأمرين معا",
-    focus: { x: 430, y: 380 },
+    focus: { x: 330, y: 380 },
   },
   5: {
     page: ({ w }) => {
-      const R = w - 110;
-      const tw = measure("العجلة", 72, HAND, 700);
+      const R = w - 110, L = w / 2 - 90;
+      const tw = measure("العجلة", 84, HAND, 700);
       return (
         <g>
-          <g transform={`translate(${R} 128)`}>
+          <g transform={`translate(${L} 128)`}>
             <circle cx={-6} cy={-16} r={16} fill="none" stroke={DK.blue} strokeWidth={5} />
             <path d="M-22 -16 h-44 m14 0 v14 m14 -14 v10" stroke={DK.blue} strokeWidth={5} fill="none" strokeLinecap="round" />
           </g>
-          <Row x={R - 90} y={140} size={44} segs={[{ t: "مفاتيح الصلاة" }]} />
-          <Row x={R - 40} y={290} size={72} c={DK.red} segs={[{ t: "العجلة" }]} />
-          <ellipse cx={R - 40 - tw / 2} cy={268} rx={tw / 2 + 46} ry={62} fill="none" stroke={DK.red} strokeWidth={5} transform={`rotate(-4 ${R - 40 - tw / 2} 268)`} />
-          <Row x={R} y={410} size={40} c={DK.grey} segs={[{ t: "السكينة لا تجتمع بسهولة مع الاستعجال" }]} />
-          <Row x={R} y={520} size={48} segs={[{ t: "العبادة ليست" }, { t: "مهمة نعبرها", strike: true }]} />
-          <Row x={R} y={610} size={48} segs={[{ t: "بل وقتٌ نُقبل فيه…" }]} />
+          <Row x={L - 90} y={140} size={44} segs={[{ t: "مفاتيح الصلاة" }]} />
+          <Row x={L - 60} y={340} size={84} c={DK.red} segs={[{ t: "العجلة" }]} />
+          <ellipse cx={L - 60 - tw / 2} cy={314} rx={tw / 2 + 54} ry={74} fill="none" stroke={DK.red} strokeWidth={5} transform={`rotate(-4 ${L - 60 - tw / 2} 314)`} />
+          <Row x={R} y={190} size={40} c={DK.grey} segs={[{ t: "السكينة لا تجتمع بسهولة" }]} />
+          <Row x={R} y={250} size={40} c={DK.grey} segs={[{ t: "مع الاستعجال" }]} />
+          <Row x={R} y={400} size={48} segs={[{ t: "العبادة ليست" }, { t: "مهمة نعبرها", strike: true }]} />
+          <Row x={R} y={500} size={48} segs={[{ t: "بل وقتٌ نُقبل فيه…" }]} />
         </g>
       );
     },
-    pen: { x: 1078, y: 236, tool: "red" },
+    pen: { x: 1112, y: 660, tool: "red" },
     props: "clock",
     caption: "فالعبادة ليست مهمة نعبرها على عجل",
-    focus: { x: 880, y: 420 },
+    focus: { x: 880, y: 380 },
   },
   6: {
     page: ({ w }) => {
-      const R = w - 110;
+      const R = w - 110, L = w / 2 - 90;
       return (
         <g>
-          {["تقرير", "رسائل", "اجتماع"].map((t, i) => <Row key={t} x={R} y={150 + i * 56} size={40} c={DK.grey} segs={[{ t: `• ${t}` }]} />)}
-          <path d={`M${w} 0 L${w} 300 L${w - 330} 0 Z`} fill="#F1EEE6" stroke={DK.paperEdge} strokeWidth={2} />
-          <path d={`M${w} 300 L${w - 330} 0 L${w - 300} 320 Z`} fill="#E3DED2" opacity={0.9} />
-          <Row x={R} y={400} size={56} c={DK.ink} segs={[{ t: "التهيؤ", hl: true }]} />
+          {["تقرير", "رسائل", "اجتماع"].map((t, i) => <Row key={t} x={L - 150} y={150 + i * 60} size={42} c={DK.grey} segs={[{ t: `• ${t}` }]} />)}
+          <path d="M0 0 L0 470 L520 0 Z" fill="#F1EEE6" opacity={0.82} stroke={DK.paperEdge} strokeWidth={2} />
+          <path d="M0 470 L520 0 L470 450 Z" fill="#E3DED2" opacity={0.78} stroke={DK.paperEdge} strokeWidth={2} />
+          <Row x={R} y={220} size={56} c={DK.ink} segs={[{ t: "التهيؤ", hl: true }]} />
           {["نهدّئ عجلتنا", "نتذكر لماذا نصلي", "ندخل بسكينة"].map((t, i) => (
-            <g key={t}><Box x={R + 20} y={486 + i * 70} />{i < 3 && <Tick x={R + 24} y={480 + i * 70} />}<Row x={R - 30} y={486 + i * 70} size={44} segs={[{ t }]} /></g>
+            <g key={t}><Box x={R + 20} y={330 + i * 100} /><Tick x={R + 24} y={324 + i * 100} /><Row x={R - 30} y={330 + i * 100} size={46} segs={[{ t }]} /></g>
           ))}
         </g>
       );
     },
-    pen: { x: 1112, y: 618, tool: "red" },
+    pen: { x: 1112, y: 520, tool: "red" },
     props: "papers",
     caption: "ونتذكر لماذا نصلي",
-    focus: { x: 900, y: 470 },
+    focus: { x: 880, y: 400 },
   },
   7: {
     page: () => null,
@@ -543,7 +566,8 @@ const World: React.FC<{ scene: number; v: DeskVariant; id: string; layer: "all" 
           <Notebook {...nb} id={id}>{def.page({ w: nb.w, h: nb.h })}</Notebook>
           {verse && v === "a" && <VerseCard x={nb.x + nb.w / 2 - 30} y={nb.y + 150} w={640} h={400} rot={-2.5} id={id} />}
           {verse && v === "b" && <VerseCard x={nb.x + 120} y={nb.y + 40} w={640} h={420} rot={-4} id={id} />}
-          {verse && <LyingPen x={nb.x + nb.w + 60} y={nb.y + 220} rot={112} id={id} />}
+          {/* القلم بعيد عن البطاقة (توقير): على المكتب في (أ)، وعلى طرف الصفحة البعيد في (ب) */}
+          {verse && (v === "b" ? <LyingPen x={nb.x + nb.w - 60} y={nb.y + 140} rot={112} id={id} /> : <LyingPen x={120} y={720} rot={-8} id={id} />)}
           {def.pen && <WritingHand x={nb.x + def.pen.x * (nb.w / 1180)} y={nb.y + def.pen.y * (nb.h / 720)} tool={def.pen.tool} id={id} edge={L.edge} />}
         </>
       )}
