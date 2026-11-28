@@ -51,6 +51,8 @@ describe.each(EPS)("الخطة المصمَّمة من scenes.md — %s", (ep) =
       const pr: Record<string, string> = { ...x.props };
       if (pr.carryAuto) { delete pr.carryAuto; delete pr.carryAllowed; }
       if (pr.versePartialAuto) { delete pr.versePartialAuto; delete pr.versePartial; delete pr.verseText; }
+      // بطاقة مثبّتة بقرار المالك (002 c1-s51، الدفعة ١٣ البند ٣٢١: كاملة): موضعها ونصها قرار لا يعيد الأمر حسابه
+      if (x.id === "c1-s51" && x.props.verseKey === "5:32") { for (const k of ["quotePinned", "quoteFirm", "verseFrom", "verseSide", "verseText", "versePartial", "versePartialAuto"]) delete pr[k]; }
       return { ...x, props: pr };
     }) })) });
     const strip = (p: Plan) => JSON.parse(JSON.stringify({ ...timing(p), updatedAt: "" }, (k, v) => (OWNER.has(k) ? undefined : k === "text" && typeof v === "string" ? "" : v)));

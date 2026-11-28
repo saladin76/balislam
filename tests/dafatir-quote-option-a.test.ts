@@ -141,19 +141,21 @@ describe("الجزء (D222) لما لا يتسع", () => {
     expect(autoPartial(Q32, "5:32", 1)).toBe(seg.split(" ۚ")[0] + " ۚ …");
   });
 
-  it("002 c1-s51: «المائدة ٣٢ (جزء)» يطابق Tanzil بقاعدة الجزء (D220/D222)، وبطاقته تُقرأ في الحامل بلا سكوت يُضاف", () => {
+  it("002 c1-s51: «المائدة ٣٢» كاملة بأمر المالك (حكم الدفعة ١٣ البند ٣٢١)، مثبّتة فلا يقصّها الجزء الآلي، ونصها يطابق Tanzil", () => {
     const plan = load("002");
     const s = plan.chapters[0]!.scenes.find((x) => x.id === "c1-s51")!;
-    expect(s.props).toMatchObject({ versePartial: "1", versePartialAuto: "1" });
+    expect(s.props.quotePinned).toBe("1");
+    expect(s.props.versePartial).toBeUndefined();
     expect(planVerseMismatches(plan, tanzilVerses).filter((m) => m.sceneId === "c1-s51")).toEqual([]);
   });
 
-  it("إعادة التطبيق تعيد النص الكامل من السكريبت قبل الحساب، فتصل إلى الجزء نفسه (نقطة ثابتة)", () => {
+  it("إعادة التطبيق نقطة ثابتة، والمثبّتة لا تُقص", () => {
     const plan = load("002");
     const md = readFileSync(path.join(dirOf("002"), "scenes.md"), "utf8");
     const again = inlineQuotesInPlan(plan, quranOf("002"), undefined, md);
     expect(again.plan).toEqual(plan);
-    expect(again.placements.find((p) => p.host === "c1-s51")).toMatchObject({ partial: "auto" });
+    // c1-s51 مثبّتة كاملة (لا جزء آلي عليها)
+    expect(again.placements.find((p) => p.host === "c1-s51")?.partial).toBeUndefined();
   });
 });
 
