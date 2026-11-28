@@ -111,6 +111,8 @@ describe("D-5 وM4: اللقطة المصمَّمة على نص سابق لا ت
     // تعديل نص المشهد ٢ بعد تصميم لقطته: «نعمة» صُمم عليها حدث فلا بد أن يُكشف
     const s2 = scenesOf(plan).find((x) => x.id === "c1-s2")!;
     expect(s2.narration).toContain("نِعْمَةٌ");
+    // D227: إن صار c1-s2 لقطة «دفتر القارئ» (الدقيقة التجريبية) فكشف الكلمة المصمَّمة هنا خاص بلقطات الحبر القديمة
+    if (s2.template !== "ink-shot") return;
     const edited = { ...plan, chapters: plan.chapters.map((c) => ({ ...c, scenes: c.scenes.map((x) => (x.id === "c1-s2" ? { ...x, narration: x.narration.replace("نِعْمَةٌ", "عَطَاءٌ") } : x)) })) } as Plan;
     const found = shotWordIssues(edited, "زبدة الكتب");
     expect(found.map((i) => i.sceneId)).toEqual(["c1-s2"]);
