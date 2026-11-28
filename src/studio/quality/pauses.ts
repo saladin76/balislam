@@ -10,6 +10,7 @@
  *   الفصل والترجمة)، فالترجمة المتغيرة مع كل كلمة لا تخفي صورة واقفة، والقياس مرور واحد على الملف للبندين.
  *   الاستثناء الوحيد: نافذة آية (span «آية» في intendedStillness) في مشهد تلاوته البشرية المعتمدة موجودة في الوسائط
  *   (media.recitations بمفتاح ayahKey لبطاقة الآية أو verseKey للقطة «خط الأفق»). نافذة آية بلا تلاوة لا تُعفى،
+ *   [D219 ثم D242: نافذة الآية تُعفى بتلاوة أو بلا تلاوة، ونافذة الحديث (بطاقة أو على صفحة «خط الأفق») تُعفى مثلها]
  *   ولا تمهيد الآية، ولا نوافذ ذكر الله (± ربع ثانية، لا تبلغ ٣ ث عادة؛ وإن بلغتها تُذكر كما هي).
  * الأزمنة في زمن الملف نفسه، والمشاهد تُسمّى من بدايات المشاهد في الملف (سجل الوصلات للمجمّعة، وزمن الخطة للنهائية).
  * هذا الملف خالص إلا detectSilences (ffmpeg).
@@ -84,6 +85,9 @@ export const frozenReport = (freezes: readonly Interval[], recitedVerses: readon
 
 /** مفتاح تلاوة المشهد: ayahKey لبطاقة الآية، وverseKey للقطة الآية في «خط الأفق» */
 const verseKeyOf = (s: Plan["chapters"][number]["scenes"][number]) => s.ayahKey ?? (typeof s.props?.verseKey === "string" ? s.props.verseKey : undefined);
+/** D214/D242: مفتاح نافذة الحديث — مرجع بطاقة الحديث، أو hadithRef للحديث على صفحة «خط الأفق» */
+const hadithKeyOf = (s: Plan["chapters"][number]["scenes"][number]) =>
+  s.template === "hadith-card" ? (s.props?.reference || s.id) : (typeof s.props?.hadithRef === "string" && s.props.hadithRef.trim() ? s.props.hadithRef : undefined);
 
 /**
  * نوافذ الآيات التي تحتها تلاوة بشرية معتمدة (في زمن الخطة): نوافذ «آية» من intendedStillness في مشهد تلاوته في الوسائط.
@@ -94,11 +98,12 @@ export const recitedVerseSpans = (plan: Plan, media: Pick<EpisodeMedia, "voice" 
   const byId = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s]));
   const out: (Interval & { scene: string })[] = [];
   for (const x of intendedStillness(plan, introSec, media)) {
-    if (x.why !== "آية") continue;
+    if (x.why !== "آية" && x.why !== "حديث") continue;
     let k = -1;
     for (let i = 0; i < starts.length; i++) if (starts[i]!.start <= x.from + 1e-6) k = i;
     const s = k >= 0 ? byId.get(starts[k]!.id) : undefined;
-    const key = s && verseKeyOf(s);
+    // D242: نافذة الحديث ساكنة كنافذة الآية وتُعفى مثلها (قرار المالك ٢٨ نوفمبر)
+    const key = s && (x.why === "حديث" ? hadithKeyOf(s) : verseKeyOf(s));
     // D219: بطاقة الآية سكون مقصود (قدر قراءتها، والراوي يكمل) — تُعفى بتلاوة أو بلا تلاوة
     if (s && key) out.push({ from: x.from, to: x.to, scene: s.id });
   }

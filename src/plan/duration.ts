@@ -3,7 +3,7 @@ import { templateById } from "./templates";
 import type { PlanScene } from "./types";
 import type { EpisodeMedia } from "./media";
 import { recitationSeconds } from "../quran/recitationTimeline";
-import { HZ_META, hzEstimateSeconds, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
+import { HZ_META, hasHzQuote, hzEstimateSeconds, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
 import { timelineFromWords } from "../remotion/dafatir/horizon/timeline";
 import { SILENCE_POLICY } from "../remotion/dafatir/audio/silence";
 import type { VoiceClip } from "../voice/generate";
@@ -64,7 +64,8 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
   // KI-087 (١٨ نوفمبر): مشهد «خط الأفق» فيه آية صامتة لا تقصّره المدة اليدوية عن زمن قراءة آيته ولا عن كلامه وذيله —
   // مدة ١٢٫٥ ث على مشهد آيته تُقرأ في ١٧٫٨ كانت تُخرج الآية قبل قراءتها. باقي المشاهد كما قرر KI-068: قيمة المالك تُحترم
   // ولا تقطع صوت الراوي.
-  const silentVerse = scene.template === "horizon-shot" && Boolean((scene.props as Record<string, unknown>).verseText);
+  // D242: والحديث المعروض على الصفحة كالآية
+  const silentVerse = scene.template === "horizon-shot" && (Boolean((scene.props as Record<string, unknown>).verseText) || hasHzQuote(scene.props as Record<string, unknown>));
   if (scene.durationSec && scene.durationSec > 0) {
     if (silentVerse && voiced) return Math.max(scene.durationSec, sceneSeconds({ ...scene, durationSec: undefined }, media));
     const audio = voiced ? voiced.duration + 0.2 : 0;
@@ -82,7 +83,7 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
       // أقل مدة بحسب التصميم (minEnd) مقدرة على التوقيت التقديري ثم مقيسة بنسبة طول الصوت الحقيقي
       // استشهاد بصري صامت (الأمر 032): زمن قراءة الآية يُحسب على كلمات الصوت الحقيقي نفسها التي يرسم بها HorizonShot
       // البطاقة، فلا يقصر المشهد عنه ولا يطول بتقدير؛ و0.9 ث بعده كما في التقدير (خروج البطاقة وقلب الصفحة)
-      if (props.verseText && props.verseKey && voiced.words?.length) {
+      if (hasHzQuote(props) && voiced.words?.length) {
         try {
           const vw = verseWindow(props, timelineFromWords(hzSentences(scene.narration), voiced.words.map((w) => ({ word: w.word, start: w.start, end: w.end })), 0));
           if (vw) return Math.max(MIN_SECONDS, base, vw[1] + 0.3);
@@ -118,7 +119,8 @@ export const sceneHoldFloor = (scene: PlanScene, media?: Pick<EpisodeMedia, "voi
   const voiced = clip && clip.text === scene.narration.trim() && clip.words?.length ? clip : undefined;
   if (!voiced || scene.template === "verse-card") return S;
   const end = Math.max(...voiced.words.map((w) => w.end));
-  const silentVerse = scene.template === "horizon-shot" && Boolean((scene.props as Record<string, unknown>).verseText);
+  // D242: والحديث المعروض على الصفحة كالآية
+  const silentVerse = scene.template === "horizon-shot" && (Boolean((scene.props as Record<string, unknown>).verseText) || hasHzQuote(scene.props as Record<string, unknown>));
   if (scene.durationSec && scene.durationSec > 0 && !silentVerse) return Math.min(S, Math.max(end, scene.durationSec));
   if (scene.template === "horizon-shot") {
     const shot = String(scene.props.shot ?? "");
@@ -126,7 +128,7 @@ export const sceneHoldFloor = (scene: PlanScene, media?: Pick<EpisodeMedia, "voi
     const props = scene.props as Record<string, string | undefined>;
     const tail = voiced.timing ? horizonTail(scene, voiced.timing, voiced.duration) : (m?.tail ?? config.voice.tailSeconds);
     let floor = Math.max(end, S - tail);
-    if (props.verseText && props.verseKey) {
+    if (hasHzQuote(props)) {
       try {
         const vw = verseWindow(props, timelineFromWords(hzSentences(scene.narration), voiced.words.map((w) => ({ word: w.word, start: w.start, end: w.end })), 0));
         if (vw) floor = Math.max(floor, vw[1]);

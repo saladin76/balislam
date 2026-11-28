@@ -9,13 +9,14 @@ import { sceneAdvanceFrames } from "../plan/seams";
 import { normalizeArabic } from "../script/quranMeta";
 import { estimateTimings, splitWords } from "../remotion/scenes/timing";
 import { basmalaSpans } from "../voice/basmala";
-import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
+import { HZ_LEAD, HZ_META, hasHzQuote, hzQuote, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
 import { buildTimeline, timelineFromWords } from "../remotion/dafatir/horizon/timeline";
 
 /**
  * السكون المقصود (قرار صاحب القناة، مراجعة G5 للحلقة 001 بزبدة الكتب): لا تُفرض حركة عند كلام الله
  * ولا عند ذكره. هذه المقاطع تُستثنى من نسبة الحركة الوظيفية ومن «المقاطع الساكنة»، ويُعلن زمنها في التقرير.
- * - مشهد الآية (verse-card) كله، وتمهيد الآية (ink-shot بمشهد verse-intro-*).
+ * - مشهد الآية (verse-card) كله، وبطاقة الحديث (hadith-card) كلها (D214/D242)، وتمهيد الآية (ink-shot بمشهد verse-intro-*).
+ * - نافذة الآية أو الحديث المعروض على صفحة لقطة «خط الأفق» (verseWindow، D219/D242).
  * - كل ذكر لله داخل أي مشهد: من قبل الكلمة بربع ثانية إلى بعدها بربع ثانية.
  * - تمهيد الآية في أي قالب: الجملة التي تسبق بطاقة الآية مباشرة وتنتهي بنقطتين («فقال الله تعالى:»)، كلها.
  * - الدعاء المنطوق كله (نداء لله، فهو ذكر له): العبارة المقتبسة «…» التي تبدأ بـ«اللهم» أو «ربنا» أو «رب»،
@@ -55,6 +56,8 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
       const step = adv.get(s.id) ?? d;
       const shot = String(s.props?.shot ?? "");
       if (s.template === "verse-card") spans.push({ from: t, to: t + d, why: "آية" });
+      // D214/D242 (قرار المالك ٢٨ نوفمبر): بطاقة الحديث ساكنة كبطاقة الآية، ونافذتها خارج حساب الحركة والتفاعلية
+      else if (s.template === "hadith-card") spans.push({ from: t, to: t + d, why: "حديث" });
       else if (s.template === "ink-shot" && shot.startsWith("verse-intro")) spans.push({ from: t, to: t + d, why: "تمهيد آية" });
       // D217: في «خط الأفق» لا يسكن تمهيد الآية كله (قرار المالك: السكون على كلمات الذكر وحدها)؛ يبقى المشهد الساكن للذكر كله (البسملة)
       else if (s.template === "horizon-shot" && HZ_META[shot]?.still === "dhikr") spans.push({ from: t, to: t + d, why: "ذكر الله" });
@@ -72,7 +75,7 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
         // استشهاد بصري صامت (دفاتر الزمن V9، المراجعة 031): نافذة موثقة واحدة لا غير — من نهاية آخر كلمة منطوقة
         // إلى نهاية زمن قراءة الآية المعروضة (verseWindow)، لا إلى نهاية المشهد؛ فذيل الخروج وما قبل آخر كلمة يُقاسان كالمعتاد.
         // محصورة في لقطات «خط الأفق» المسجلة (HZ_META) التي تحمل verseKey وverseText معًا؛ لا تمس قوالب القنوات الأخرى.
-        if (s.template === "horizon-shot" && HZ_META[shot] && typeof s.props?.verseText === "string" && s.props.verseText.trim() && s.props?.verseKey && words.length) {
+        if (s.template === "horizon-shot" && HZ_META[shot] && hasHzQuote(s.props) && words.length) {
           const voiced = Boolean(clip && clip.text === s.narration.trim());
           // التوقيت كما يرسمه HorizonShot: كلمات الصوت إن طابقت النص، وإلا التقدير
           let tl = buildTimeline(hzSentences(s.narration), HZ_LEAD);
@@ -88,7 +91,8 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
           if (vw) {
             const from = t + vw[0];
             const to = t + Math.min(d, vw[1]);
-            if (to - from > 0.5) spans.push({ from, to, why: "آية" });
+            // D242: نافذة الحديث المعروض كنافذة الآية (why «حديث»)
+            if (to - from > 0.5) spans.push({ from, to, why: hzQuote(s.props as Record<string, string | undefined>)?.kind === "hadith" ? "حديث" : "آية" });
           }
         }
       }
