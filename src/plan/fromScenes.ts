@@ -30,6 +30,8 @@ import { HZ_META } from "../remotion/dafatir/horizon/meta";
 import { LIB_UI } from "../remotion/dafatir/lib/meta";
 import type { ChannelConfig } from "../channel/types";
 import type { SeriesStamp } from "../channel/series";
+import type { EpisodeMedia } from "./media";
+import { computeQuoteCarries, type QuoteCarry } from "./quoteCarry";
 
 export type ScenesRow = {
   id: string;
@@ -103,6 +105,8 @@ export type FromScenesReport = {
   attached: AttachedQuote[];
   /** D242: بطاقة لم تجد لقطة متكلَّمة تحملها (تبقى، ويرفضها فحص الخطة في «دفاتر الزمن») */
   unattached: { card: string; reason: string }[];
+  /** D246: البطاقات التي استمرت إلى ما بعد مشهدها */
+  carries?: QuoteCarry[];
 };
 
 /* ── D242: الآيات والأحاديث داخل اللقطة كما في 001 ── */
@@ -125,7 +129,7 @@ export const quoteFromWord = (narration: string): string => {
  * scenes.md وتحويل خطة قائمة (`inlineQuotesInPlan`)، فلا يختلف الناتجان. لا تغيّر نص أي مشهد.
  * بطاقة الآية تحتاج نصها في props.text (من السكريبت)؛ بلا نص أو بنص مؤقت تبقى وتُذكر.
  */
-export const attachQuoteCards = (input: PlanScene[]): { scenes: PlanScene[]; attached: AttachedQuote[]; unattached: { card: string; reason: string }[] } => {
+export const attachQuoteCards = (input: PlanScene[], first: "hadith" | "verse" = "hadith"): { scenes: PlanScene[]; attached: AttachedQuote[]; unattached: { card: string; reason: string }[] } => {
   const scenes = input.map((s) => ({ ...s, props: { ...s.props } }));
   const attached: AttachedQuote[] = [], unattached: { card: string; reason: string }[] = [];
   const drop = new Set<number>();
@@ -143,7 +147,7 @@ export const attachQuoteCards = (input: PlanScene[]): { scenes: PlanScene[]; att
   // الأحاديث أولًا ثم الآيات: الحديث تمهّد له عادة لقطته المجاورة («الصحيحان»، «حديث المعراج»)، والآية تمهّد لها لقطة
   // verse-tag أو تحملها الجارة الأخرى؛ فإن تنازعت بطاقتان لقطة واحدة أخذها الحديث وذهبت الآية إلى جارتها الأخرى
   const order = scenes.map((_, i) => i).filter((i) => isQuoteCard(scenes[i]!))
-    .sort((a, b) => Number(scenes[a]!.template === "verse-card") - Number(scenes[b]!.template === "verse-card") || a - b);
+    .sort((a, b) => (first === "hadith" ? 1 : -1) * (Number(scenes[a]!.template === "verse-card") - Number(scenes[b]!.template === "verse-card")) || a - b);
   for (const i of order) {
     const card = scenes[i]!;
     const kind = card.template === "verse-card" ? "verse" as const : "hadith" as const;
@@ -188,18 +192,38 @@ export const attachQuoteCards = (input: PlanScene[]): { scenes: PlanScene[]; att
 };
 
 /**
+ * D246: الإلحاق ثم الاستمرار. يُجرَّب ترتيبان (الأحاديث أولًا ثم الآيات، والعكس) ويؤخذ ما تُقرأ فيه البطاقات كاملة؛ فإن
+ * تساويا فالأحاديث أولًا (D242). مثال 002: آية الأنبياء ٨٥ على تمهيدها القصير لا تُقرأ كاملة لأن ما بعده يحمل حديث المعراج،
+ * فتذهب الآية إلى c2-s31 والحديث إلى جارته الأخرى.
+ */
+export const attachWithCarries = (input: PlanScene[], media: Pick<EpisodeMedia, "voice" | "recitations"> | undefined, channelId?: string) => {
+  const run = (first: "hadith" | "verse") => {
+    const a = attachQuoteCards(input, first);
+    const c = computeQuoteCarries(a.scenes, media, { channelId });
+    return { ...a, scenes: c.scenes, carries: c.carries, short: c.carries.reduce((x, y) => x + y.shortfall, 0) };
+  };
+  const h = run("hadith");
+  if (h.short <= 0.05 || !h.attached.length) return h;
+  const v = run("verse");
+  return v.short < h.short - 0.05 ? v : h;
+};
+
+/**
  * D242: تحويل خطة قائمة (لا إعادة بنائها): نصوص الآيات من السكريبت (quranFromScript) في بطاقاتها ثم attachQuoteCards في كل
  * فصل. كل ما سواه كما هو حرفيًا (النبرة، edited، الشورتس، السلسلة، الحقول). يرفض إن تغيّر نص أي مشهد باقٍ، أو كان شورت
  * يشير إلى بطاقة حُذفت.
  */
-export const inlineQuotesInPlan = (plan: Plan, quran: QuranTexts): { plan: Plan; attached: AttachedQuote[]; unattached: { card: string; reason: string }[]; removed: string[] } => {
+export const inlineQuotesInPlan = (plan: Plan, quran: QuranTexts, media?: Pick<EpisodeMedia, "voice" | "recitations">): { plan: Plan; attached: AttachedQuote[]; unattached: { card: string; reason: string }[]; removed: string[]; carries: QuoteCarry[] } => {
   const attached: AttachedQuote[] = [], unattached: { card: string; reason: string }[] = [];
+  const carries: QuoteCarry[] = [];
   const chapters = plan.chapters.map((c) => {
     const filled = c.scenes.map((s) => s.template === "verse-card" && s.ayahKey && !s.props.text?.trim() && quran[s.ayahKey]
       ? { ...s, props: { ...s.props, text: quran[s.ayahKey]! } } : s);
-    const r = attachQuoteCards(filled);
+    // D246: الإلحاق ثم استمرار البطاقة إلى ما بعد مشهدها إن قصر كلامه (من توقيت الصوت الحقيقي إن وُجد)
+    const r = attachWithCarries(filled, media, plan.channel);
     attached.push(...r.attached);
     unattached.push(...r.unattached);
+    carries.push(...r.carries);
     // البطاقة التي بقيت تعود كما كانت (لا نص آية في plan.json لبطاقة، stripQuran)
     const back = new Map(c.scenes.map((s) => [s.id, s]));
     return { ...c, scenes: r.scenes.map((s) => (s.template === "verse-card" ? back.get(s.id)! : s)) };
@@ -211,7 +235,7 @@ export const inlineQuotesInPlan = (plan: Plan, quran: QuranTexts): { plan: Plan;
   for (const sh of plan.shorts ?? [])
     for (const id of [sh.from, sh.to, ...(sh.segments ?? []).flatMap((x) => [x.from, x.to])])
       if (removed.includes(id)) throw new Error(`الشورت «${sh.title ?? sh.from}» يبدأ أو ينتهي ببطاقة ستُحذف (${id})؛ عدّله أولًا.`);
-  return { plan: { ...plan, chapters }, attached, unattached, removed };
+  return { plan: { ...plan, chapters }, attached, unattached, removed, carries };
 };
 
 export type FromScenesInput = {
@@ -223,6 +247,8 @@ export type FromScenesInput = {
   shorts?: PlanShort[];
   /** ثابت للاختبار وإعادة البناء؛ الافتراضي الآن */
   now?: string;
+  /** D246: صوت الحلقة (إن وُجد) لحساب استمرار البطاقات بتوقيته الحقيقي */
+  media?: Pick<EpisodeMedia, "voice" | "recitations">;
 };
 
 /** يبني الخطة المصمَّمة ويعيدها مع تقرير ما لم يُطابَق. لا يكتب شيئًا. */
@@ -312,8 +338,10 @@ export const planFromScenes = (input: FromScenesInput): { plan: Plan; report: Fr
   for (const x of textRows) if (!used.has(x.r.id)) report.unusedRows.push(x.r.id);
 
   // D242: لا بطاقة صامتة — كل بطاقة على صفحة لقطة متكلَّمة مجاورة (بعد ربط تمهيد الآية بمرجعها أعلاه)
-  const inline = attachQuoteCards(scenes);
+  // D246: واستمرار البطاقة إلى ما بعد مشهدها إن قصر كلامه عن زمن قراءتها
+  const inline = attachWithCarries(scenes, input.media, base.channel);
   scenes.splice(0, scenes.length, ...inline.scenes);
+  report.carries = inline.carries;
   report.attached = inline.attached;
   report.unattached = inline.unattached;
 

@@ -84,10 +84,13 @@ export const frozenReport = (freezes: readonly Interval[], recitedVerses: readon
   pausesOver(subtractIntervals(freezes, recitedVerses), FREEZE_MAX_SEC, starts);
 
 /** مفتاح تلاوة المشهد: ayahKey لبطاقة الآية، وverseKey للقطة الآية في «خط الأفق» */
-const verseKeyOf = (s: Plan["chapters"][number]["scenes"][number]) => s.ayahKey ?? (typeof s.props?.verseKey === "string" ? s.props.verseKey : undefined);
+const verseKeyOf = (s: Plan["chapters"][number]["scenes"][number]) => s.ayahKey ?? (typeof s.props?.verseKey === "string" ? s.props.verseKey
+  // D246: البطاقة المستمرة من المشهد السابق
+  : s.props?.carryKind !== "hadith" && typeof s.props?.carryRef === "string" && s.props.carryRef.trim() ? s.props.carryRef : undefined);
 /** D214/D242: مفتاح نافذة الحديث — مرجع بطاقة الحديث، أو hadithRef للحديث على صفحة «خط الأفق» */
 const hadithKeyOf = (s: Plan["chapters"][number]["scenes"][number]) =>
-  s.template === "hadith-card" ? (s.props?.reference || s.id) : (typeof s.props?.hadithRef === "string" && s.props.hadithRef.trim() ? s.props.hadithRef : undefined);
+  s.template === "hadith-card" ? (s.props?.reference || s.id) : (typeof s.props?.hadithRef === "string" && s.props.hadithRef.trim() ? s.props.hadithRef
+    : s.props?.carryKind === "hadith" && typeof s.props?.carryRef === "string" && s.props.carryRef.trim() ? s.props.carryRef : undefined);
 
 /**
  * نوافذ الآيات التي تحتها تلاوة بشرية معتمدة (في زمن الخطة): نوافذ «آية» من intendedStillness في مشهد تلاوته في الوسائط.

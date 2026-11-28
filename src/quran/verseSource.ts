@@ -111,6 +111,10 @@ export const shownVerses = (plan: Pick<Plan, "chapters">): { shown: ShownVerse[]
     const vk = typeof p.verseKey === "string" ? p.verseKey.trim() : "";
     if (vt.trim() && vk) shown.push({ sceneId: s.id, key: vk, text: vt, field: "verseText", partial: p.versePartial === "1" });
     else if (vt.trim()) problems.push({ sceneId: s.id, key: "", field: "verseKey", message: "نص آية معروض (verseText) بلا مرجع (verseKey)؛ لا يُقابل بالمصدر فلا يُعرض." });
+    // D246: آية مستمرة من المشهد السابق تُقابل كذلك (النص نفسه في مشهدين)
+    const ct = typeof p.carryText === "string" ? p.carryText : "";
+    const ck = typeof p.carryRef === "string" ? p.carryRef.trim() : "";
+    if (p.carryKind !== "hadith" && ct.trim() && ck) shown.push({ sceneId: s.id, key: ck, text: ct, field: "verseText", partial: p.carryPartial === "1" });
   }
   return { shown, problems };
 };

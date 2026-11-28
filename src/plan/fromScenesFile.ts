@@ -15,6 +15,7 @@ import { backupPlanFile, planFromScriptOnly, planPathFor, readJson, writePlanFil
 import { isDesignedPlan, scriptPlanDivergence, designedScenes } from "./designed";
 import { unapprovedScenes, loadApprovals } from "./templateApproval";
 import { fromScenesProblems, inlineQuotesInPlan, planFromScenes, type AttachedQuote, type FromScenesReport } from "./fromScenes";
+import type { QuoteCarry } from "./quoteCarry";
 import { episodeSeriesOf, getSeries, EPISODE_SERIES_FILE } from "../channel/seriesStore";
 import { stampSeries, type SeriesStamp } from "../channel/series";
 import type { Plan } from "./types";
@@ -51,9 +52,13 @@ export const planFromScenesFile = async (episode: string, o: { write?: boolean; 
   const file = planPathFor(scriptPath);
   const previous = await readJson<Plan>(file);
   const series = seriesFor(dir, (parsed.frontmatter ?? {}) as Record<string, unknown>, now);
+  const { loadVoiceIndex } = await import("../voice/generate");
+  const { emptyMedia } = await import("./media");
   const { plan, report } = planFromScenes({
     parsed, scenesMd: await readFile(scenesFile, "utf8"), channel: loadChannel(),
     quran: quranFromScript(parsed).texts, series: series.stamp, now,
+    // D246: استمرار البطاقات بتوقيت الصوت الحقيقي إن وُجد
+    media: { ...emptyMedia, voice: await loadVoiceIndex(episode).catch(() => ({})) },
   });
   // شورتس الخطة القائمة تبقى إن بقيت مشاهدها
   const ids = new Set(plan.chapters.flatMap((c) => c.scenes).map((s) => s.id));
@@ -87,19 +92,24 @@ export const planFromScenesFile = async (episode: string, o: { write?: boolean; 
  * السلسلة). يتحقق قبل الكتابة: نص كل مشهد باقٍ كما كان بايتًا ببايت (فالتسجيلات تبقى صالحة بلا صوت جديد)، ولا بطاقة بقيت.
  * عرض فقط إلا بـ write (نسخة احتياطية أولًا).
  */
-export type InlineQuotesResult = { file: string; plan: Plan; attached: AttachedQuote[]; unattached: { card: string; reason: string }[]; removed: string[]; written: boolean; backup?: string };
+export type InlineQuotesResult = { file: string; plan: Plan; attached: AttachedQuote[]; unattached: { card: string; reason: string }[]; removed: string[]; carries: QuoteCarry[]; voiced: number; written: boolean; backup?: string };
 export const inlineQuotesFile = async (episode: string, o: { write?: boolean } = {}): Promise<InlineQuotesResult> => {
   const scriptPath = await resolveScriptPath(episode);
   const file = planPathFor(scriptPath);
   const raw = await readFile(file, "utf8");
   const plan = JSON.parse(raw) as Plan;
   const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
-  const r = inlineQuotesInPlan(plan, quranFromScript(parsed).texts);
+  // D246: الاستمرار بتوقيت الصوت الحقيقي إن وُجد (voice/index.json على هذا الجهاز)، وإلا التقدير
+  const { loadVoiceIndex } = await import("../voice/generate");
+  const { emptyMedia } = await import("./media");
+  const media = { ...emptyMedia, voice: await loadVoiceIndex(episode).catch(() => ({})) };
+  const r = inlineQuotesInPlan(plan, quranFromScript(parsed).texts, media);
   // نص كل مشهد باقٍ كما كان (الدالة تتحقق، وهذا تأكيد على الملف نفسه)
   const before = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s.narration]));
   for (const s of r.plan.chapters.flatMap((c) => c.scenes)) if (before.get(s.id) !== s.narration) throw new Error(`تغيّر نص ${s.id}`);
-  const result: InlineQuotesResult = { file, ...r, written: false };
-  if (!o.write || !r.attached.length) return result;
+  const result: InlineQuotesResult = { file, ...r, voiced: Object.keys(media.voice).length, written: false };
+  const changed = JSON.stringify(r.plan) !== JSON.stringify(plan);
+  if (!o.write || !changed) return result;
   if (r.unattached.length) throw new Error(`لم تُكتب الخطة: بطاقات لم تُلحق:\n${r.unattached.map((u) => `- ${u.card}: ${u.reason}`).join("\n")}`);
   result.backup = await backupPlanFile(scriptPath);
   await writePlanFile(file, r.plan);
