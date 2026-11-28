@@ -233,19 +233,22 @@ program
 
 program
   .command("inline-quotes")
-  .description("دفاتر الزمن (D242): كل بطاقة آية/حديث صامتة في plan.json تُلحق بلقطة «خط الأفق» المجاورة كما في 001 (النص على الصفحة والراوي مستمر)، بلا تغيير كلمة ولا حقل للمالك. عرض فقط إلا بـ --write")
+  .description("دفاتر الزمن (D242، D246 «أ»): كل بطاقة آية/حديث تُلحق بلقطة «خط الأفق» المجاورة كما في 001، وتنزل بعد أول فكرة مرسومة على الصفحة المقابلة، ولا تستمر إلا في الموضوع نفسه (carryAllowed)، والجزء (D222) لما لا يتسع؛ بلا تغيير كلمة ولا حقل للمالك. يُعاد تطبيقه على خطة قائمة. عرض فقط إلا بـ --write")
   .argument("<episode>", "رقم الحلقة")
   .option("--write", "اكتب plan.json (نسخة احتياطية أولًا)")
   .action(async (episode: string, opts: { write?: boolean }) => {
     const { inlineQuotesFile } = await import("../plan/fromScenesFile");
     try {
       const r = await inlineQuotesFile(episode, { write: opts.write === true });
-      if (!r.attached.length && !r.unattached.length && !r.carries.length) { console.log("لا بطاقة آية أو حديث صامتة ولا بطاقة تحتاج استمرارًا؛ لا شيء يتغير."); return; }
+      if (!r.attached.length && !r.unattached.length && !r.placements.length) { console.log("لا بطاقة آية أو حديث في الخطة؛ لا شيء يتغير."); return; }
       for (const a of r.attached) console.log(`${a.card} (${a.kind === "verse" ? "آية" : "حديث"} ${a.ref}) ← ${a.to} (${a.side === "prev" ? "السابقة" : "التالية"}، ${a.words} كلمة)`);
       for (const u of r.unattached) console.log(`لم تُلحق: ${u.card} — ${u.reason}`);
       // D246: البطاقة تبقى زمن قراءتها وتستمر إلى ما بعد مشهدها
       console.log(`توقيت الاستمرار: ${r.voiced ? `صوت حقيقي لـ${r.voiced} مشهدًا (وتقدير لغيره)` : "تقديري (لا صوت على هذا الجهاز)"}`);
-      for (const c of r.carries) console.log(`استمرار ${c.host} (${c.kind === "verse" ? "آية" : "حديث"} ${c.ref}، قراءة ${c.read} ث): في مشهدها ${c.inHost} ث${c.carried.map((x) => ` ← ${x.id} ${x.seconds} ث`).join("")}${c.shortfall ? ` — نقص ${c.shortfall} ث (${c.stop}؛ D222: جزء معلَّم بقرار المتخصص)` : ""}`);
+      // D246 «أ»: كلمة كل بطاقة (بعد أول فكرة مرسومة) وصفحتها (المقابلة للرسم) وزمنها، وقرارات الاستمرار في الموضوع نفسه
+      for (const p of r.placements) console.log(`${p.host} (${p.kind === "verse" ? "آية" : "حديث"} ${p.ref}${p.partial ? ` (جزء${p.partial === "auto" ? " آلي، يحتاج موافقة المتخصص D222" : ""})` : ""}): ${p.pinned ? "مثبَّت" : `بعد «${p.idea ?? "—"}» من «${p.from}»`}، الصفحة ${p.side === "l" ? "اليسرى" : "اليمنى"} (${p.sideWhy})، تُعرض ${p.shown} من ${p.read} ث${p.carried.map((x) => ` ← ${x.id} ${x.seconds} ث`).join("")}${p.shortfall > 0.05 ? ` — نقص ${p.shortfall} ث (${p.stop ?? ""})` : ""}`);
+      for (const d of r.decisions) console.log(`  استمرار ${d.host} ← ${d.next}: ${d.allow ? "نعم" : "لا"} (${d.why}${d.source === "owner" ? "" : "، آلي"})`);
+      if (r.changedScenes.length) console.log(`مشاهد تغيّرت حقولها (تُعاد رندرتها): ${r.changedScenes.join("، ")}`);
       console.log(`المشاهد المحذوفة: ${r.removed.join("، ") || "—"}؛ نص كل مشهد باقٍ كما كان (لا صوت جديد).`);
       if (r.written) console.log(`كُتبت: ${path.relative(projectRoot, r.file)}${r.backup ? ` (نسخة احتياطية: ${path.basename(r.backup)})` : ""}`);
       else if (!opts.write) console.log("عرض فقط؛ للكتابة: --write");

@@ -17,6 +17,7 @@ import { C, Ink, easeOut, mix, prog, rng } from "../horizon/kit";
 import { Book, ChapterHead, NEUTRAL, SText, SceneCloseContext, WriteIn, camPath, type Cam, type CamKey, type Exit } from "../horizon/book";
 import { MissingWordError, type Timeline } from "../horizon/timeline";
 import { activeTime, type Win } from "../horizon/breath";
+import { muteCues, recordCue } from "../horizon/cueTrace";
 import { SACRED_WORD, duaRanges } from "../../../render/stillnessSpans";
 import { normalizeArabic } from "../../../script/quranMeta";
 import { Stamp } from "../lib/compare";
@@ -108,7 +109,11 @@ export const cueKit = (q: BdProps, sigs: string[]) => {
     return hit;
   };
   /** بداية كلمة المرسى (آمنة من نوافذ الذكر) */
-  const at = (anchor: string, len = 0.5) => safe(need(anchor).s, len);
+  const at = (anchor: string, len = 0.5) => {
+    const hit = need(anchor);
+    recordCue(tl.words.indexOf(hit), len);
+    return safe(hit.s, len);
+  };
   const end = (anchor: string) => need(anchor).e;
   const has = (anchor: string) => Boolean(find(anchor));
   /** ظهور عنصر قُدِّم في المرحلة sc عند كلمته */
@@ -126,7 +131,7 @@ export const cueKit = (q: BdProps, sigs: string[]) => {
   /** تقدّم يصل إلى المرحلة sc ويبقى بعدها (لحالات يتغير فيها عنصر قائم) */
   const step = (sc: number, anchor: string, d = 0.6) => on(sc, anchor, d);
   /** كاميرا: مفاتيح المرحلة الحالية وحدها، كل مفتاح عند كلمته (يتأخر عن نوافذ الذكر) */
-  const cam = (start: Cam, keys: [number, string, Cam, number?][]) =>
+  const cam = (start: Cam, keys: [number, string, Cam, number?][]) => muteCues(() =>
     camPath(
       t,
       start,
@@ -137,7 +142,7 @@ export const cueKit = (q: BdProps, sigs: string[]) => {
           return { a, b: a + d, ...c };
         })
         .sort((x, y) => x.a - y.a),
-    );
+    ));
   const last = tl.words.length ? tl.words[tl.words.length - 1]!.e : 0.3;
   return { S, t, at, end, has, on, draw, span, open, step, cam, safe, last };
 };

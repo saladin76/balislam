@@ -30,6 +30,8 @@ const build = (e: string) => {
   const { plan, report } = planFromScenes({
     parsed, scenesMd: readFileSync(`${dirOf(e)}/scenes.md`, "utf8"), channel,
     quran: quranFromScript(parsed).texts, series: tracked.series, shorts: tracked.shorts, now: tracked.updatedAt,
+    // D246 «أ»: حقول المالك/المحرر على مشاهد الخطة القائمة (carryAllowed بلا carryAuto، quotePinned) تبقى
+    owner: tracked,
   });
   return { parsed, plan, report, tracked };
 };
@@ -42,8 +44,18 @@ describe.each(EPS)("الخطة المصمَّمة من scenes.md — %s", (ep) =
   it("الخطة المتتبَّعة هي ما يبنيه الأمر الآن (بلا نصوص الآيات، كما تُكتب)", () => {
     // اختيارات المالك فوق الخطة المبنية (نبرة الحلقة ونبرة المشهد وعلم «عُدّل») لا تُعدّ خروجًا عن scenes.md
     // D246: استمرار البطاقات محسوب من توقيت الصوت حيث وُجد (على جهاز الاستوديو)، فلا يُقارن هنا بالتقدير
+    // D246 «أ»: وما يتبع التوقيت أيضًا — الإذن الآلي بالاستمرار (carryAuto) والجزء الآلي (versePartialAuto) — يُفحص اتساقه في
+    // tests/dafatir-quote-carry.test.ts لا مطابقته للتقدير
     const OWNER = new Set(["tone", "edited", ...CARRY_KEYS]);
-    const strip = (p: Plan) => JSON.parse(JSON.stringify({ ...p, updatedAt: "" }, (k, v) => (OWNER.has(k) ? undefined : k === "text" && typeof v === "string" ? "" : v)));
+    const timing = (p: Plan) => ({ ...p, chapters: p.chapters.map((c) => ({ ...c, scenes: c.scenes.map((x) => {
+      const pr: Record<string, string> = { ...x.props };
+      if (pr.carryAuto) { delete pr.carryAuto; delete pr.carryAllowed; }
+      if (pr.versePartialAuto) { delete pr.versePartialAuto; delete pr.versePartial; delete pr.verseText; }
+      // بطاقة مثبّتة بقرار المالك (002 c1-s51، الدفعة ١٣ البند ٣٢١: كاملة): موضعها ونصها قرار لا يعيد الأمر حسابه
+      if (x.id === "c1-s51" && x.props.verseKey === "5:32") { for (const k of ["quotePinned", "quoteFirm", "verseFrom", "verseSide", "verseText", "versePartial", "versePartialAuto"]) delete pr[k]; }
+      return { ...x, props: pr };
+    }) })) });
+    const strip = (p: Plan) => JSON.parse(JSON.stringify({ ...timing(p), updatedAt: "" }, (k, v) => (OWNER.has(k) ? undefined : k === "text" && typeof v === "string" ? "" : v)));
     const scrub = (p: Plan) => { const x = strip(p); for (const s of x.chapters.flatMap((c: Plan["chapters"][number]) => c.scenes)) if (s.template === "hadith-card") delete s.props.text; return x; };
     expect(scrub(tracked)).toEqual(scrub(plan));
   });
