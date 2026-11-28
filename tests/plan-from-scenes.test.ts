@@ -22,6 +22,8 @@ import type { Plan } from "../src/plan/types";
  */
 const DIR = "channels/dafatir-alzaman/episodes";
 const EPS = ["002", "004", "006", "008"];
+/** لقطات بانتظار التصميم بأمر المالك (فقرتا محرر 006، الدفعة ٢١): «بالكلمات وحدها» حتى تُصمَّم؛ لا تدخل نسخة نهائية */
+const PENDING: Record<string, string[]> = { "006": ["c1-s19a", "c1-s28a"] };
 const dirOf = (e: string) => path.join(DIR, readdirSync(DIR).find((d) => d.startsWith(`${e}-`))!);
 const channel = loadChannel("dafatir-alzaman");
 const build = (e: string) => {
@@ -50,6 +52,8 @@ describe.each(EPS)("الخطة المصمَّمة من scenes.md — %s", (ep) =
     const timing = (p: Plan) => ({ ...p, chapters: p.chapters.map((c) => ({ ...c, scenes: c.scenes.map((x) => {
       const pr: Record<string, string> = { ...x.props };
       if (pr.carryAuto) { delete pr.carryAuto; delete pr.carryAllowed; }
+      // كلمة نزول البطاقة تتبع زمن اكتمال الرسم (الصوت الحقيقي على جهاز الاستوديو أو التقدير هنا)
+      delete pr.verseFrom; delete pr.hadithFrom;
       if (pr.versePartialAuto) { delete pr.versePartialAuto; delete pr.versePartial; delete pr.verseText; }
       // بطاقة مثبّتة بقرار المالك (002 c1-s51، الدفعة ١٣ البند ٣٢١: كاملة): موضعها ونصها قرار لا يعيد الأمر حسابه
       if (x.id === "c1-s51" && x.props.verseKey === "5:32") { for (const k of ["quotePinned", "quoteFirm", "verseFrom", "verseSide", "verseText", "versePartial", "versePartialAuto"]) delete pr[k]; }
@@ -74,11 +78,11 @@ describe.each(EPS)("الخطة المصمَّمة من scenes.md — %s", (ep) =
     expect(scenes.some((s) => s.template === "end-screen")).toBe(false);
     for (const s of scenes) {
       expect(["horizon-shot", "verse-card", "hadith-card"], s.id).toContain(s.template);
-      if (s.template === "horizon-shot") expect(HZ_META[s.props.shot!], `${s.id} ${s.props.shot}`).toBeTruthy();
+      if (s.template === "horizon-shot" && !(PENDING[ep] ?? []).includes(s.id)) expect(HZ_META[s.props.shot!], `${s.id} ${s.props.shot}`).toBeTruthy();
     }
     expect(new Set(scenes.map((s) => s.id)).size).toBe(scenes.length);
     expect(report.unknownShots).toEqual([]);
-    expect(report.wordsOnly).toEqual([]);
+    expect(report.wordsOnly).toEqual(PENDING[ep] ?? []);
   });
 
   it("كل لقطة معتمدة (بوابة D228)، ولا خطأ خطة مبكر", () => {

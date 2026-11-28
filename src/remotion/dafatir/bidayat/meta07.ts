@@ -10,7 +10,7 @@ export const BD07_META: Record<string, HzMeta> = {
   "bd07-not-wood": { nameAr: "البدايات ٧ · لا ثقة بخشب ولا بحبال", tail: 1.0, exit: "fade" },
   "bd07-waves": { nameAr: "البدايات ٧ · الأمواج كالجبال والسفينة نقطة", tail: 1.2, exit: "fade" },
   "bd07-far": { nameAr: "البدايات ٧ · السفينة والجبل وخط النداء", tail: 1.0, exit: "fade" },
-  "bd07-wave-between": { nameAr: "البدايات ٧ · وحال بينهما الموج", tail: 1.2, exit: "turn" },
+  "bd07-wave-between": { nameAr: "البدايات ٧ · وفصل الموج بينهما", tail: 1.2, exit: "turn" },
   "bd07-blank-name": { nameAr: "البدايات ٧ · خانة اسم فارغة (لا نسمّيه)", tail: 1.0, exit: "fade" },
   "bd07-two-ropes": { nameAr: "البدايات ٧ · رابطتان إلى السفينة", tail: 1.2, exit: "fade" },
   "bd07-edge": { nameAr: "البدايات ٧ · حدود الماء غير المعروفة", tail: 1.0, exit: "fade" },
