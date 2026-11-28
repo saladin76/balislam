@@ -43,7 +43,7 @@ export type ApprovalVia = { kind: "prefinal-watched"; prefinalSha256: string };
  * (AFTER_PREPARATION_ACTION, owner decision 11 Nov): a change after «اعتمد التجهيز» carried forward, with what changed.
  * Both are covered by the ledger's HMAC like the rest of the history.
  */
-export type AuditEvent = { seq: number; action: CommandAction | typeof AFTER_PREPARATION_ACTION; sceneId?: string;
+export type AuditEvent = { seq: number; action: CommandAction | typeof AFTER_PREPARATION_ACTION | "archive-after-publish" | "restore-from-history"; sceneId?: string;
   at: string; by: "owner" | "system"; resultSha256: string; note: string; change?: AfterPreparationChange; via?: ApprovalVia };
 export type SignedSceneLedger = {
   version: 1;
