@@ -34,7 +34,8 @@ describe("زمن القراءة: ثانيتان + كلمتان في الثاني
 });
 
 describe("computeQuoteCarries", () => {
-  const scenes = [host("a", "جملة قصيرة هنا."), shot("b", `ثم يكمل الراوي كلامه في المشهد التالي ${Array.from({ length: 30 }, (_, i) => `ب${i}`).join(" ")}.`), shot("c", "وبعدها.")];
+  // D246 «أ»: الاستمرار إلى مشهد معلَّم carryAllowed «1» وحده (الموضوع نفسه)
+  const scenes = [host("a", "جملة قصيرة هنا."), shot("b", `ثم يكمل الراوي كلامه في المشهد التالي ${Array.from({ length: 30 }, (_, i) => `ب${i}`).join(" ")}.`, { carryAllowed: "1" }), shot("c", "وبعدها.")];
   const r = computeQuoteCarries(scenes);
   const adv = sceneAdvanceFrames(r.scenes, emptyMedia, { channelId: "dafatir-alzaman" }).map((f) => f / 30);
 
@@ -73,13 +74,18 @@ describe("computeQuoteCarries", () => {
   });
 
   it("سلسلة عبر مشهدين، ولا استمرار إلى تمهيد آية أخرى أو مشهد يحمل اقتباسًا (النقص يُذكر)", () => {
-    const chain = computeQuoteCarries([host("a", "قصيرة."), shot("b", "وجيزة جدا."), shot("c", "ثم جملة أطول قليلا من سابقتها في هذا المشهد الأخير بكلمات كثيرة.")]);
+    const chain = computeQuoteCarries([host("a", "قصيرة."), shot("b", "وجيزة جدا.", { carryAllowed: "1" }), shot("c", "ثم جملة أطول قليلا من سابقتها في هذا المشهد الأخير بكلمات كثيرة.", { carryAllowed: "1" })]);
     expect(chain.scenes[1]!.props.quoteCarried).toBe("c");
     expect(chain.carries[0]!.carried.map((x) => x.id)).toEqual(["b", "c"]);
     const stop = computeQuoteCarries([host("a", "قصيرة."), shot("t", "كما جاء في سورة البقرة:", { ref: "البقرة · ١" }, "verse-tag")]);
     expect(stop.carries[0]).toMatchObject({ carried: [], stop: expect.stringMatching(/تمهيد آية/) });
     expect(stop.carries[0]!.shortfall).toBeGreaterThan(5);
     expect(stop.scenes[0]!.props.quoteCarried).toBeUndefined();
+    // D246 «أ»: بلا carryAllowed (موضوع آخر) لا استمرار، والبطاقة تبقى في ذيل حاملها
+    const topic = computeQuoteCarries([host("a", "قصيرة."), shot("b", "وجيزة جدا.")]);
+    expect(topic.carries[0]).toMatchObject({ carried: [], stop: expect.stringMatching(/موضوع آخر/) });
+    expect(topic.scenes[0]!.props).toMatchObject({ quoteHold: "1" });
+    expect(topic.scenes[1]!.props.carryText).toBeUndefined();
   });
 
   it("القراءة تتسع في ذيل الحامل قبل بداية التالي: quoteHold بلا استمرار", () => {
@@ -116,7 +122,14 @@ describe("الرسم: البطاقة المستمرة في مساحة الشاش
 describe("خطط «دفاتر الزمن» المتتبَّعة: كل بطاقة تُقرأ كاملة إلا ما سُمّي", () => {
   const DIR = "channels/dafatir-alzaman/episodes";
   // نقص لا يحله الاستمرار ولا D222 (آية واحدة حتى ٣٠ كلمة أو نطاق لا يُجزَّأ)؛ ينتظر قرار المالك
-  const KNOWN: Record<string, Record<string, number>> = { "002": { "c2-s10": 2.4 }, "004": { "c2-s19": 1 } };
+  // D246 «أ» (قرار المالك ٢٨ نوفمبر): لا استمرار إلى موضوع آخر، فيبقى نقص حيث خرج الراوي عن الآية أو الحديث (القيم بالتقدير؛
+  // بالصوت الحقيقي على جهاز الاستوديو تختلف قليلًا). 002 c2-s10 «النساء ١» قبله المالك كما هو (~١٣ ث، مثبَّت quotePinned).
+  const KNOWN: Record<string, Record<string, number>> = {
+    "002": { "c1-s23": 0.26, "c1-s38": 4.13, "c1-s51": 1.4, "c2-s10": 2.4, "c2-s27": 1.91, "c2-s36": 0.92 },
+    "004": { "c1-s42": 4.21, "c2-s19": 9.86, "c2-s24": 2.4, "c2-s33": 14.49 },
+    "006": { "c1-s11": 0.67, "c2-s18": 0.49, "c2-s40": 4.82 },
+    "008": { "c1-s5": 1.12, "c2-s11": 2.22, "c2-s21": 0.81 },
+  };
   for (const ep of ["002", "004", "006", "008"]) {
     it(ep, () => {
       const dir = path.join(DIR, readdirSync(DIR).find((d) => d.startsWith(`${ep}-`))!);
@@ -137,7 +150,10 @@ describe("خطط «دفاتر الزمن» المتتبَّعة: كل بطاقة
       });
       for (const s of ss) if (s.props.quoteCarried) expect(ss.find((x) => x.id === s.props.quoteCarried)?.props.carryText, `${ep} ${s.id}`).toBe(quoteText(s) || s.props.carryText);
       // والنقص (بالتقدير هنا) لا يكون إلا فيما سُمّي ينتظر قرار المالك
-      for (const c of r.carries.filter((x) => x.shortfall > 0)) expect(Object.keys(KNOWN[ep] ?? {}), `${ep} ${c.host}`).toContain(c.host);
+      for (const c of r.carries.filter((x) => x.shortfall > 0)) {
+        expect(Object.keys(KNOWN[ep] ?? {}), `${ep} ${c.host}`).toContain(c.host);
+        expect(c.shortfall, `${ep} ${c.host}`).toBeLessThanOrEqual(KNOWN[ep]![c.host]! + 0.05);
+      }
     });
   }
 });
