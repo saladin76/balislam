@@ -776,6 +776,109 @@
         "at": "2026-11-26T13:52:58.968Z",
         "variant": "مشهد-6-نموذج-أ"
       }
+    },
+    "reader-notebook/checklist-heart": {
+      "status": "معتمد من المالك",
+      "channel": "zubdat-alkutub",
+      "nameAr": "دفتر القارئ: الأفعال تُعلَّم والقلب ينتظر",
+      "storyboard": "storyboard:زبدة-الكتب-001/مشهد-1",
+      "variants": [
+        "مشهد-1-نموذج-أ"
+      ],
+      "approval": {
+        "by": "المالك",
+        "at": "2026-11-26T13:52:43.279Z",
+        "variant": "مشهد-1-نموذج-أ"
+      }
+    },
+    "reader-notebook/margin-thoughts": {
+      "status": "معتمد من المالك",
+      "channel": "zubdat-alkutub",
+      "nameAr": "دفتر القارئ: الأفكار تطير من الهامش",
+      "storyboard": "storyboard:زبدة-الكتب-001/مشهد-2",
+      "variants": [
+        "مشهد-2-نموذج-أ"
+      ],
+      "approval": {
+        "by": "المالك",
+        "at": "2026-11-26T13:52:46.916Z",
+        "variant": "مشهد-2-نموذج-أ"
+      }
+    },
+    "reader-notebook/shelf-book": {
+      "status": "معتمد من المالك",
+      "channel": "zubdat-alkutub",
+      "nameAr": "دفتر القارئ: الرف والكتاب المختار",
+      "storyboard": "storyboard:زبدة-الكتب-001/مشهد-3",
+      "variants": [
+        "مشهد-3-نموذج-أ"
+      ],
+      "approval": {
+        "by": "المالك",
+        "at": "2026-11-26T13:52:49.278Z",
+        "variant": "مشهد-3-نموذج-أ"
+      }
+    },
+    "reader-notebook/twin-pans": {
+      "status": "معتمد من المالك",
+      "channel": "zubdat-alkutub",
+      "nameAr": "دفتر القارئ: كفتان متوازيتان",
+      "storyboard": "storyboard:زبدة-الكتب-001/مشهد-4",
+      "variants": [
+        "مشهد-4-نموذج-ب"
+      ],
+      "approval": {
+        "by": "المالك",
+        "at": "2026-11-26T13:52:52.745Z",
+        "variant": "مشهد-4-نموذج-ب"
+      }
+    },
+    "reader-notebook/term-circle": {
+      "status": "معتمد من المالك",
+      "channel": "zubdat-alkutub",
+      "nameAr": "دفتر القارئ: المصطلح في دائرة حمراء",
+      "storyboard": "storyboard:زبدة-الكتب-001/مشهد-5",
+      "variants": [
+        "مشهد-5-نموذج-أ"
+      ],
+      "approval": {
+        "by": "المالك",
+        "at": "2026-11-26T13:52:56.142Z",
+        "variant": "مشهد-5-نموذج-أ"
+      }
+    },
+    "reader-notebook/fold-threshold": {
+      "status": "معتمد من المالك",
+      "channel": "zubdat-alkutub",
+      "nameAr": "دفتر القارئ: قائمة الشغل تنطوي",
+      "storyboard": "storyboard:زبدة-الكتب-001/مشهد-6",
+      "variants": [
+        "مشهد-6-نموذج-أ"
+      ],
+      "approval": {
+        "by": "المالك",
+        "at": "2026-11-26T13:52:58.968Z",
+        "variant": "مشهد-6-نموذج-أ"
+      }
+    },
+    "reader-notebook": {
+      "status": "معتمد من المالك",
+      "channel": "zubdat-alkutub",
+      "nameAr": "دفتر القارئ (زبدة الكتب، D227)",
+      "storyboard": "زبدة-الكتب-001",
+      "variants": [
+        "مشهد-1-نموذج-أ",
+        "مشهد-2-نموذج-أ",
+        "مشهد-3-نموذج-أ",
+        "مشهد-4-نموذج-ب",
+        "مشهد-5-نموذج-أ",
+        "مشهد-6-نموذج-أ"
+      ],
+      "approval": {
+        "by": "المالك",
+        "at": "2026-11-26T13:52:58.968Z",
+        "variant": "مشهد-1-نموذج-أ، مشهد-2-نموذج-أ، مشهد-3-نموذج-أ، مشهد-4-نموذج-ب، مشهد-5-نموذج-أ، مشهد-6-نموذج-أ"
+      }
     }
   }
 }

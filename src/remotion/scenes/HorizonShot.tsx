@@ -4,7 +4,7 @@ import { SceneShell } from "./SceneShell";
 import { C, Dusk, HadithPageCard, LiveFrameContext, PageHeadContext, SAFE_LIFT, VerseCard, VersePageContext, VerseWindowContext, prog } from "../dafatir/horizon/kit";
 import { Book, ChapterHead, NEUTRAL, SceneCloseContext, VERSE_SETTLE, parseCam } from "../dafatir/horizon/book";
 import { HZ_SCENES } from "../dafatir/horizon/episode001";
-import { HZ_LEAD, HZ_META, hzQuote, hzSentences, verseWindow } from "../dafatir/horizon/meta";
+import { HZ_LEAD, HZ_META, hzQuote, hzSentences, verseReadSeconds, verseWindow } from "../dafatir/horizon/meta";
 import { activeTime, breathAt, breathBeats, breathStill } from "../dafatir/horizon/breath";
 import { buildTimeline, timelineFromWords, type Timeline } from "../dafatir/horizon/timeline";
 import { VERSE_PLACEHOLDER } from "../../plan/quranText";
@@ -100,14 +100,18 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   // نهاية آخر كلمة منطوقة: منها يبدأ خروج المشهد (قلب الصفحة أو خفوت الحبر)
   // (المشاهد ذات الإمساك المحسوب للقراءة، minEnd، تحتفظ بخروجها المتأخر)
   // الاستشهاد البصري (آية أو حديث، D242): البطاقة على الصفحة من كلمتها، والخروج لا يبدأ قبل انتهاء زمن قراءتها
-  const vw = verseWindow(props as unknown as Record<string, string | undefined>, tl);
+  const vw = verseWindow(props as unknown as Record<string, string | undefined>, tl, dur);
   const quote = hzQuote(props as unknown as Record<string, string | undefined>);
+  const pr = props as unknown as Record<string, string | undefined>;
+  // D246: البطاقة تستمر إلى المشهد التالي (quoteCarried) أو مستمرة من السابق (carry*): تُرسم في مساحة الشاشة لا داخل كاميرا الدفتر،
+  // في المستطيل نفسه على الشاشة في المشهدين، فلا تقفز عند القطع ولا تمسها قلبة الصفحة؛ والكاميرتان مستقرتان طوال نافذتها
+  const carriedOn = Boolean(pr.quoteCarried);
+  const screenCard = Boolean(carriedOn || quote?.carried);
   const lastWord = tl.words.length ? tl.words[tl.words.length - 1]!.e : 0;
   // D198: الخطاف المسبق يقطع المشهد عند closeAt فيبدأ خروجه (قلب الصفحة) هناك، لا عند آخر كلمة في نصه
   const closeAt = Number((props as unknown as Record<string, string | undefined>).closeAt);
   const close = Number.isFinite(closeAt) && closeAt > 0 ? closeAt
-    : tl.words.length && !meta.minEnd ? Math.max(lastWord, vw ? vw[1] : 0) : undefined;
-  const pr = props as unknown as Record<string, string | undefined>;
+    : tl.words.length && !meta.minEnd ? Math.max(lastWord, vw && !carriedOn ? vw[1] : 0) : undefined;
   // D214/D217: الآية ساكنة كاملة — بطاقتها تظهر كاملة لحظة نافذتها وتختفي دفعة واحدة قبل الخروج (لا تلاشٍ ولا جزء منها)
   const verseShow = vw && t >= vw[0] - 0.05 && t < vw[1] ? 1 : 0;
   // الكاميرا الحية (breath.ts): إعادة تأطير عند كل عبارة، ورجوع إلى الإطار الأول قبل القطع، وخلفية أبطأ بعكسه، والسكون المقصود ثابت
@@ -131,6 +135,19 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   // D214: رسم المشهد نفسه (الحبر والخيط والعناصر) يسكن أيضًا في نوافذ الذكر: يأخذ «الزمن المرئي» (activeTime) بدل الزمن،
   // وتُنقل أزمنة الكلمات والخروج إليه، فيبقى كل حدث عند كلمته خارج السكون، ولا يتقدم شيء داخله، ولا قفزة بعده.
   const vis = React.useMemo(() => visualClock(tl, dur, close, breath.wins), [tl, dur, close, breath.wins]);
+  // البطاقة: الآية أو الحديث من حقول المشهد، أو المستمرة من المشهد السابق (carry*) بالمرجع والموضع نفسيهما
+  const c = quote?.carried;
+  const side = (c ? pr.carrySide : quote?.kind === "hadith" ? (pr.hadithSide ?? pr.verseSide) : pr.verseSide) === "l" ? "l" as const : "r" as const;
+  const yRaw = c ? pr.carryY : quote?.kind === "hadith" ? (pr.hadithY ?? pr.verseY) : pr.verseY;
+  const y = yRaw ? Number(yRaw) : undefined;
+  // تقدم القراءة (لصفحات البطاقة العمودية الطويلة) على عمر البطاقة كله لا على نافذة المشهد وحده (D246)
+  const readSec = quote ? verseReadSeconds(quote.text) : 1;
+  const quoteProgress = !vw ? 0 : Math.min(1, Math.max(0, c ? (readSec - Number(pr.carrySeconds || 0) + t) / readSec
+    : carriedOn ? (t - vw[0]) / readSec : (t - vw[0]) / Math.max(0.001, vw[1] - vw[0])));
+  const card = !quote ? null : quote.kind === "hadith"
+    // D242: الحديث على الصفحة كالآية، بحقوله hadith*؛ والموضع من hadithSide/hadithY (وإلا verseSide/verseY)
+    ? <HadithPageCard show={verseShow} text={quote.text} refText={String(c ? pr.carryRef : pr.hadithRef)} narrator={c ? pr.carryNarrator : pr.hadithNarrator} side={side} y={y} />
+    : <VerseCard show={verseShow} text={quote.text} refKey={String(c ? pr.carryRef : pr.verseKey)} partial={(c ? pr.carryPartial : pr.versePartial) === "1"} place="page" side={side} y={y} />;
   return (
     <SceneShell {...props} eyebrow={undefined} motif={false} watermark={false} background={C.night} durationInFrames={durationInFrames} exitFrames={0} frameless captionVariant="adaptive">
       <AbsoluteFill style={{ overflow: "hidden" }}>
@@ -138,10 +155,8 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
         <SceneCloseContext.Provider value={vis.close}>
           <VerseWindowContext.Provider value={vw ? [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)] : null}>
           {/* D243: في العمودي البطاقة في الشاشة داخل المنطقة الآمنة (PortraitQuoteCard أدناه)، لا على صفحة الدفتر التي يقع نصفها خارج الإطار */}
-          <VersePageContext.Provider value={vw && verseShow > 0 && !portrait ? (quote?.kind === "hadith"
-            // D242: الحديث على الصفحة كالآية، بحقوله hadith*؛ والموضع من hadithSide/hadithY (وإلا verseSide/verseY)
-            ? <HadithPageCard show={verseShow} text={String(pr.hadithText)} refText={String(pr.hadithRef)} narrator={pr.hadithNarrator} side={(pr.hadithSide ?? pr.verseSide) === "l" ? "l" : "r"} y={(pr.hadithY ?? pr.verseY) ? Number(pr.hadithY ?? pr.verseY) : undefined} />
-            : <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} partial={pr.versePartial === "1"} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} />) : null}>
+          {/* D246: والبطاقة المستمرة بين مشهدين في مساحة الشاشة أيضًا (أدناه) */}
+          <VersePageContext.Provider value={vw && verseShow > 0 && !screenCard && !portrait ? card : null}>
             <LiveFrameContext.Provider value={liveFrame}>
             <PageHeadContext.Provider value={pageHead}>
             <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y - lift}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
@@ -154,11 +169,14 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
             </PageHeadContext.Provider>
             </LiveFrameContext.Provider>
           </VersePageContext.Provider>
-          {portrait && vw && verseShow > 0 ? (
-            <PortraitQuoteCard progress={Math.min(1, Math.max(0, (t - vw[0]) / Math.max(0.001, vw[1] - vw[0])))}
-              quote={quote?.kind === "hadith"
-                ? { kind: "hadith", text: String(pr.hadithText), refText: String(pr.hadithRef), narrator: pr.hadithNarrator }
-                : { kind: "verse", text: String(pr.verseText), refKey: String(pr.verseKey), partial: pr.versePartial === "1" }} />
+          {/* D246: البطاقة المستمرة بين مشهدين في مساحة الشاشة (برفع الإطار الأفقي نفسه)، ساكنة كاملة */}
+          {!portrait && vw && verseShow > 0 && screenCard ? <AbsoluteFill style={{ transform: `translateY(${-lift}px)` }}>{card}</AbsoluteFill> : null}
+          {/* D243 + D246: في العمودي مستطيلها محدد بنصها ومرجعها وحدهما، فهو نفسه في الحامل والمستمر إليه؛ وتقدم الصفحات على عمر البطاقة كله */}
+          {portrait && vw && verseShow > 0 && quote ? (
+            <PortraitQuoteCard progress={quoteProgress}
+              quote={quote.kind === "hadith"
+                ? { kind: "hadith", text: quote.text, refText: String(c ? pr.carryRef : pr.hadithRef), narrator: c ? pr.carryNarrator : pr.hadithNarrator }
+                : { kind: "verse", text: quote.text, refKey: String(c ? pr.carryRef : pr.verseKey), partial: (c ? pr.carryPartial : pr.versePartial) === "1" }} />
           ) : null}
           </VerseWindowContext.Provider>
         </SceneCloseContext.Provider>

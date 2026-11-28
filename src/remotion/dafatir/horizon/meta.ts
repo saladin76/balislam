@@ -87,35 +87,62 @@ export const hzSentences = (narration: string) => (narration.match(/[^.؟!]+[.؟
  * الاستشهاد البصري (V9، قرار المالك ١١ نوفمبر): نص الآية ومرجعها يظهران على صفحة الدفتر من كلمة verseFrom والراوي مستمر.
  * ونص الحديث كذلك (قرار المالك ٢٨ نوفمبر، D242: «الآيات والأحاديث في دفاتر الزمن كما في 001»): hadithText بمرجعه hadithRef
  * من كلمة hadithFrom، بالنافذة نفسها وزمن القراءة نفسه، ولا يُرسل نصه إلى الصوت أبدًا ولا يُقابل بنص المصحف.
- * تبقى البطاقة زمن القراءة على الأقل (verseReadSeconds)؛ إن كان الكلام أقصر أمسك المشهد للقراءة.
- * يعيد [ظهور البطاقة، نهاية زمن قراءتها] أو null.
+ *
+ * D246 (قرار المالك ٢٨ نوفمبر، يحل محل سقف D219 «لا تبقى البطاقة بعد كلام مشهدها»): البطاقة تبقى زمن قراءتها كاملًا على
+ * الأقل (verseReadSeconds). فإن قصر كلام مشهدها عنه **استمرت البطاقة نفسها إلى المشهد التالي** (وما بعده إن لزم) والراوي يكمل:
+ * - المشهد الحامل يعلَّم `quoteCarried` (معرّف التالي)، ونافذته من ظهورها إلى آخر المشهد ([s، dur])؛ وإن اتسعت القراءة في
+ *   ذيله قبل بداية التالي يعلَّم `quoteHold` (نافذته [s، s + القراءة] بلا سقف آخر كلمة، ولا تمد المشهد)؛
+ * - المشهد التالي يحمل البطاقة بحقول `carry*` (`carryKind`، `carryText`، `carryRef`، `carryNarrator`، `carryPartial`،
+ *   `carrySide`، `carryY`، `carryFrom`) و`carrySeconds` (ما بقي من زمن القراءة من بدايته)، ونافذته [0، carrySeconds]
+ *   (أو المشهد كله إن عُلّم هو أيضًا `quoteCarried`)؛
+ * - لا يطول أي مشهد بسبب البطاقة (لا سكوت يُضاف): المدة كلام المشهد وذيله كما هي.
+ * يحسبها `computeQuoteCarries` (src/plan/quoteCarry.ts) من توقيت الصوت الحقيقي إن وُجد وإلا التقدير، ويقرؤها الرسم والمدة
+ * والسكون المقصود وفحص الشاشة الواقفة من الخطة نفسها فتتفق كلها.
+ * يعيد [ظهور البطاقة، نهايتها] أو null.
  */
-export type HzQuote = { kind: "verse" | "hadith"; text: string; from: string };
-/** الاقتباس المعروض في اللقطة: الآية (verseText + verseKey) أولًا، وإلا الحديث (hadithText + hadithRef)، وإلا null */
+export type HzQuote = { kind: "verse" | "hadith"; text: string; from: string; carried?: boolean };
+/** الاقتباس المعروض في اللقطة: الآية (verseText + verseKey) أولًا، ثم الحديث (hadithText + hadithRef)، ثم المستمر من مشهد سابق (carry*) */
 export const hzQuote = (props: Record<string, string | undefined>): HzQuote | null => {
   if (props.verseText?.trim() && props.verseKey?.trim()) return { kind: "verse", text: props.verseText, from: props.verseFrom ?? "" };
   if (props.hadithText?.trim() && props.hadithRef?.trim()) return { kind: "hadith", text: props.hadithText, from: props.hadithFrom ?? "" };
+  if (props.carryText?.trim() && props.carryRef?.trim()) return { kind: props.carryKind === "hadith" ? "hadith" : "verse", text: props.carryText, from: "", carried: true };
   return null;
 };
-/** في اللقطة اقتباس معروض (آية أو حديث) تُحسب نافذته */
+/** في اللقطة اقتباس معروض (آية أو حديث، أصلًا أو مستمرًا) تُحسب نافذته */
 export const hasHzQuote = (props: Record<string, unknown> | undefined): boolean => Boolean(props && hzQuote(props as Record<string, string | undefined>));
+/** نافذة البطاقة تمد المشهد للقراءة؟ لا في D246: الحامل الذي تستمر بطاقته والمشهد الذي يحمل المستمر لا يطولان أبدًا */
+export const quoteHoldsScene = (props: Record<string, unknown> | undefined): boolean =>
+  hasHzQuote(props) && !(props as Record<string, unknown>).quoteCarried && !(props as Record<string, unknown>).quoteHold && !(props as Record<string, unknown>).carryText;
 
-export const verseWindow = (props: Record<string, string | undefined>, tl: Timeline): [number, number] | null => {
-  const q = hzQuote(props);
-  if (!q) return null;
-  const w = q.from.trim();
-  const p = w.replace(/[\u064B-\u0652\u0670\u0640]/g, "");
+/** بداية البطاقة في مشهدها الحامل (D219/D242): من كلمتها، وتتقدم لتتسع داخل الكلام، ولا قبل نهاية نافذة ذكر سابقة */
+export const quoteStart = (from: string, text: string, tl: Timeline): number => {
+  const p = from.trim().replace(/[\u064B-\u0652\u0670\u0640]/g, "");
   const hit = p ? tl.words.find((x) => x.w.replace(/[\u064B-\u0652\u0670\u0640]/g, "").startsWith(p)) : tl.words[0];
   const a = hit ? hit.s : 0.4;
-  const read = verseReadSeconds(q.text);
-  // D219 (قرار المالك ٢٤ نوفمبر: «الراوي يكمل بلا سكوت، ومدة البطاقة قدر قراءتها فقط»): النافذة داخل الكلام؛ إن جاوزت آخر كلمة
-  // تتقدم بدايتها (لا قبل أول كلمة) فتنتهي معه، فلا يطول المشهد بسكوت للقراءة
-  // ولا تبدأ قبل نهاية نافذة ذكر سابقة (لا تظهر البطاقة مع لفظ الجلالة)؛ وإن قصر الكلام عن القراءة تمتد بعد آخر كلمة VERSE_AFTER_SPEECH على الأكثر (كانت ٠٫٨ ث، تصحيح D217 v17)
+  const read = verseReadSeconds(text);
   const last = tl.words.length ? tl.words[tl.words.length - 1]!.e : a + read;
   let floor = tl.words[0]?.s ?? 0.3;
   for (const w of tl.words) if (w.s < a && LIB_SACRED.test(w.w)) floor = Math.max(floor, w.e + 0.25);
-  const s = a + read <= last ? a : Math.max(floor, Math.min(a, last - read));
-  return [s, Math.min(s + read, last + VERSE_AFTER_SPEECH)];
+  return a + read <= last ? a : Math.max(floor, Math.min(a, last - read));
+};
+
+/** dur: مدة المشهد الفعلية (للحامل الذي تستمر بطاقته، وللمشهد المستمر كله)؛ بلاها نهاية الكلام */
+export const verseWindow = (props: Record<string, string | undefined>, tl: Timeline, dur?: number): [number, number] | null => {
+  const q = hzQuote(props);
+  if (!q) return null;
+  const last = tl.words.length ? tl.words[tl.words.length - 1]!.e : 0;
+  const end = dur ?? last + VERSE_AFTER_SPEECH;
+  if (q.carried) {
+    // D246: البطاقة المستمرة من المشهد السابق كاملة من أول إطار
+    if (props.quoteCarried) return [0, end];
+    const c = Number(props.carrySeconds);
+    return [0, Math.min(Number.isFinite(c) && c > 0 ? c : 0, end)];
+  }
+  const s = quoteStart(q.from, q.text, tl);
+  if (props.quoteCarried) return [s, end];
+  // D246: القراءة تتسع في ذيل المشهد نفسه قبل بداية التالي (لا سقف عند آخر كلمة، ولا تمد المشهد)
+  if (props.quoteHold) return [s, Math.min(s + verseReadSeconds(q.text), dur ?? Infinity)];
+  return [s, Math.min(s + verseReadSeconds(q.text), last + VERSE_AFTER_SPEECH)];
 };
 /** الاسم العام للنافذة نفسها (آية أو حديث) */
 export const quoteWindow = verseWindow;
@@ -130,9 +157,10 @@ export const quoteWindow = verseWindow;
 export const VERSE_AFTER_SPEECH = 0.15;
 
 /**
- * زمن قراءة نص آية معروض والراوي مستمر (المراجعة 031): ثانيتان لإيجاد البطاقة وقراءة مرجعها، ثم نصف ثانية لكل كلمة
- * (قراءة متأنية لنص مشكول، نحو 120 كلمة في الدقيقة، أبطأ من القراءة الحرة لأن المشاهد يسمع الراوي في الوقت نفسه)،
- * وخمس ثوانٍ على الأقل. البطاقة تبقى بعده حتى نهاية المشهد. علامة الوقف المنفصلة في الرسم العثماني (ۖ ۗ ۚ، D220) ليست كلمة.
+ * زمن قراءة نص آية أو حديث معروض والراوي مستمر (المراجعة 031، وD246: «كلمتان في الثانية» بقرار المالك): ثانيتان لإيجاد
+ * البطاقة وقراءة مرجعها، ثم نصف ثانية لكل كلمة (كلمتان في الثانية)، وخمس ثوانٍ على الأقل:
+ * `max(5, 2 + كلمات ÷ 2)`. علامة الوقف المنفصلة في الرسم العثماني (ۖ ۗ ۚ، D220) و«…» ليست كلمة.
+ * D246: هذا حد أدنى لبقاء البطاقة؛ إن قصر كلام مشهدها استمرت إلى ما بعده (computeQuoteCarries).
  */
 export const verseReadSeconds = (text: string) => Math.max(5, 2 + 0.5 * text.trim().split(/\s+/).filter((w) => /\p{L}/u.test(w)).length);
 
@@ -141,6 +169,7 @@ export const hzEstimateSeconds = (narration: string, shot: string, props: Record
   if (!narration.trim()) return m?.seconds ?? 3;
   const tl = buildTimeline(hzSentences(narration), HZ_LEAD);
   const base = tl.end + (m?.tail ?? 1.2);
-  const vw = verseWindow(props, tl);
+  // D246: البطاقة لا تمد المشهد إن استمرت إلى ما بعده أو كانت مستمرة إليه
+  const vw = quoteHoldsScene(props) ? verseWindow(props, tl) : null;
   return Math.round(Math.max(base, m?.minEnd?.(props, tl) ?? 0, vw ? vw[1] + 0.3 : 0) * 10) / 10;
 };

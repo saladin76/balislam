@@ -73,7 +73,7 @@ describe("دفاتر الزمن 002: الخطة المتتبَّعة بلا مش
   const quran = quranFromScript(parsed).texts;
   const HOSTS: Record<string, string> = {
     "c1-s8": "5:27", "c1-s21": "5:28", "c1-s23": "5:29", "c1-s28": "5:30", "c1-s31": "صحيح مسلم ١٦٧٧", "c1-s40": "5:31", "c1-s51": "5:32",
-    "c2-s10": "4:1", "c2-s14": "2:213", "c2-s27": "19:56-57", "c2-s29": "21:85", "c2-s31": "صحيح مسلم ١٦٢",
+    "c2-s10": "4:1", "c2-s14": "2:213", "c2-s27": "19:56-57", "c2-s31": "21:85", "c2-s36": "صحيح مسلم ١٦٢",
   };
 
   it("صفر بطاقات، والاثنتا عشرة كل واحدة على لقطة واحدة، ونص الآية من السكريبت كما يأخذه المحرك", () => {
@@ -85,10 +85,13 @@ describe("دفاتر الزمن 002: الخطة المتتبَّعة بلا مش
     expect(silentQuoteScenes(plan)).toEqual([]);
   });
 
-  it("التحويل لا يمس نص أي مشهد ولا حقول المالك، وتطبيقه ثانية لا يغيّر شيئًا", () => {
+  it("التحويل لا يمس نص أي مشهد ولا حقول المالك، وتطبيقه ثانية لا يغيّر شيئًا", async () => {
     const again = inlineQuotesInPlan(plan, quran);
     expect(again.attached).toEqual([]);
-    expect(again.plan).toEqual(plan);
+    // قيم الاستمرار (D246) قد تكون محسوبة بالصوت الحقيقي على جهاز الاستوديو، وهنا بالتقدير: تُقارن الخطة بدونها
+    const { CARRY_KEYS } = await import("../src/plan/quoteCarry");
+    const strip = (p: typeof plan) => ({ ...p, chapters: p.chapters.map((c) => ({ ...c, scenes: c.scenes.map((x) => ({ ...x, props: Object.fromEntries(Object.entries(x.props).filter(([k]) => !(CARRY_KEYS as readonly string[]).includes(k))) })) })) });
+    expect(strip(again.plan)).toEqual(strip(plan));
     expect(scenes.filter((s) => s.tone === "calm").map((s) => s.id)).toEqual(["c1-s35", "c1-s37", "c1-s38", "c1-s40"]);
   });
 

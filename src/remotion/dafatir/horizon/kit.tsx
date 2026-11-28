@@ -3,6 +3,7 @@
  * قلب الصفحة، رسم الحبر، الكاميرا، والترجمة. كل شيء بإحداثيات 1920×1080 (العالم قد يكون أكبر في بعض اللقطات).
  */
 import { quranDisplay } from "../../../quran/display";
+import { surahNameFor } from "../../../script/quranMeta";
 import React from "react";
 import { AbsoluteFill, Easing } from "remotion";
 
@@ -257,15 +258,27 @@ export const Tag: React.FC<{ text: string; corner: "tl" | "tr" | "bl" | "br" | "
   </div>
 );
 
-/** أسماء السور التي تحتاجها اللقطات (للمرجع تحت الآية) */
-const SURAH: Record<number, string> = { 2: "البقرة", 4: "النساء", 7: "الأعراف", 15: "الحجر", 18: "الكهف", 20: "طه", 38: "ص" };
 const easternDigits = (n: number | string) => String(n).replace(/\d/g, (d) => "٠١٢٣٤٥٦٧٨٩"[Number(d)]!);
-/** «2:30» ← «البقرة: ٣٠» */
-/** partial (D222): جزء من آية طويلة جدًا، فيقول المرجع «(جزء)» */
+/**
+ * «2:30» ← «البقرة: ٣٠»، و«19:56-57» ← «مريم: ٥٦–٥٧» (D246: أسماء السور المئة والأربع عشرة من surahNameFor، وكانت سبع سور 001
+ * وحدها فظهر «سورة 5: ٢٧» في 002). الفاصل «:» كما في 001 المنشورة. partial (D222): جزء من آية طويلة جدًا، فيقول المرجع «(جزء)».
+ */
 export const verseRef = (key: string, partial = false) => {
   const [s, a] = key.split(":");
-  return `${SURAH[Number(s)] ?? `سورة ${s}`}: ${easternDigits(a ?? "")}${partial ? " (جزء)" : ""}`;
+  const name = surahNameFor(Number(s), "ar") || `سورة ${s}`;
+  const ayahs = (a ?? "").split("-").map((x) => easternDigits(x.trim())).join("–");
+  return `${name}: ${ayahs}${partial ? " (جزء)" : ""}`;
 };
+
+/**
+ * D246: مستطيل بطاقة الآية/الحديث على الصفحة (بإحداثيات الدفتر): داخل الصفحة بهامش QUOTE_MARGIN من حافتيها (الكعب وطرف
+ * الصفحة)، والعرض يشمل الحشو والإطار (border-box). كان العرض ٧٨٠ بلا الحشو والإطار (٨٧٤ فعليًا) فتجاوزت بطاقة الصفحة اليمنى
+ * حافتها (١٧٧٠) في c1-s8 من 002.
+ */
+export const PAGE_X = { l: [150, 960], r: [960, 1770] } as const;
+export const QUOTE_MARGIN = 40;
+export const QUOTE_CARD_W = PAGE_X.r[1] - PAGE_X.r[0] - 2 * QUOTE_MARGIN;
+export const quoteCardLeft = (side: "l" | "r") => PAGE_X[side][0] + QUOTE_MARGIN;
 
 /**
  * بطاقة الآية: نص Quran Foundation كاملًا كما هو بالأميري داخل إطار رَقّ، والمرجع واسم القارئ تحته.
@@ -325,7 +338,7 @@ export const SafeCamera: React.FC<{ cx: number; cy: number; s: number; keep?: { 
 export const verseCardHeight = (text: string) => {
   const len = text.length;
   const font = len > 200 ? 38 : len > 120 ? 44 : 50;
-  const perLine = Math.floor((780 - 88) / (font * 0.42));
+  const perLine = Math.floor((QUOTE_CARD_W - 88 - 6) / (font * 0.42));
   return 64 + Math.ceil(len / perLine) * font * 1.9 + 46;
 };
 /** مركز البطاقة الرأسي بعد قصّه: أسفلها لا ينزل تحت CONTENT_BOTTOM ولا أعلاها فوق الصفحة */
@@ -354,8 +367,8 @@ export const HadithPageCard: React.FC<{ show: number; text: string; refText: str
     <AbsoluteFill style={{ direction: "ltr", width: W, height: H }}>
       <div
         style={{
-          position: "absolute", left: side === "r" ? 975 : 165, top: verseCardY(text, y), transform: "translateY(-50%)",
-          width: 780, padding: "36px 44px 28px", background: "#FBF4E6",
+          position: "absolute", left: quoteCardLeft(side), top: verseCardY(text, y), transform: "translateY(-50%)",
+          width: QUOTE_CARD_W, boxSizing: "border-box", padding: "36px 44px 28px", background: "#FBF4E6",
           border: `3px double rgba(74,46,31,0.65)`, outline: "1.5px solid rgba(74,46,31,0.35)", outlineOffset: -14,
           borderRadius: 10, boxShadow: "0 18px 46px rgba(13,10,20,0.35)", opacity: show, direction: "rtl", textAlign: "center",
         }}
@@ -376,9 +389,9 @@ export const VerseCard: React.FC<{ show: number; text: string; refKey: string; r
       {place === "page" ? null : <AbsoluteFill style={{ background: "rgba(13,10,20,0.28)", opacity: show }} />}
       <div
         style={{
-          ...(place === "page" ? { position: "absolute" as const, left: side === "r" ? 975 : 165, top: verseCardY(text, y), transform: "translateY(-50%)" } : { position: "relative" as const }),
+          ...(place === "page" ? { position: "absolute" as const, left: quoteCardLeft(side), top: verseCardY(text, y), transform: "translateY(-50%)", boxSizing: "border-box" as const } : { position: "relative" as const }),
           // في الإطار الرأسي لا تتجاوز البطاقة عرض الشاشة (كانت تُقص عند الحافتين)
-          width: place === "page" ? 780 : "min(1320px, calc(100% - 230px))",
+          width: place === "page" ? QUOTE_CARD_W : "min(1320px, calc(100% - 230px))",
           padding: place === "page" ? "36px 44px 28px" : "44px 64px 34px",
           background: "#FBF4E6",
           border: `3px double rgba(74,46,31,0.65)`,
