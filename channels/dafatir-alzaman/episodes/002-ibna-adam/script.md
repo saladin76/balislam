@@ -2,7 +2,7 @@
 title: "ابنا آدم والأجيال الأولى"
 domain: islamic
 episode: "002"
-status: "مسودة"
+status: "معتمد"
 series: bidayat
 series_number: 2
 alt_titles:

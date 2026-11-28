@@ -150,19 +150,25 @@ for (const channel of selectedChannels()) {
       const still = new Set([c.verse?.sceneId, ...(channel === "zubdat-alkutub" ? ["c1-s1"] : [])].filter(Boolean));
       // D241 (٢٧ نوفمبر): كل شورت فكرة كاملة وحده — يبدأ بخطاف معلَّم وجمل كاملة، بلا إشارة إلى خارجه. تُختار المقاطع
       // من مشاهد الحلقة نفسها (أجزاء غير متتالية مسموحة) بالفحص النقي نفسه الذي تمر به البوابة، أصغرها أولًا.
-      const pick: string[][] = [];
+      const pick: string[][][] = [];
+      // أجزاء الشورت: كل مشاهد متتالية في الحلقة جزء واحد
+      const partsOf = (c: number[]) => c.reduce<number[][]>((acc, v) => { const last = acc.at(-1); if (last && last.at(-1)! + 1 === v) last.push(v); else acc.push([v]); return acc; }, []).map((r) => r.map((i) => spoken[i]!));
       const idx = spoken.map((_, i) => i);
       const combos = (k: number, from = 0): number[][] => (k === 0 ? [[]] : idx.slice(from).flatMap((i) => combos(k - 1, i + 1).map((r) => [i, ...r])));
-      for (const size of [1, 2, 3, 4, 5]) for (const c of combos(size)) {
+      // المقاطع المتصلة أولًا (كما كانت قبل D241، وكلها تعبر قاعدة الحركة ٨٠٪)، ثم الأجزاء غير المتصلة إن لم تكفِ.
+      const runs = [0, 1, 2, 3, 4].flatMap((w) => idx.filter((a) => a + w < spoken.length).map((a) => idx.slice(a, a + w + 1)));
+      const candidates = [...runs, ...[2, 3, 4, 5].flatMap((k) => combos(k)).filter((c) => c.some((v, j) => j > 0 && v !== c[j - 1]! + 1))];
+      for (const c of candidates) {
         if (pick.length >= COUNT) break;
         const ids = c.map((i) => spoken[i]!);
         if (ids.every((id) => still.has(id))) continue;
-        if (checkPlanShort(plan, { sceneIds: ids, parts: ids.map((id) => [id]), hook: "line" }).ok) pick.push(ids);
+        const parts = partsOf(c);
+        if (checkPlanShort(plan, { sceneIds: ids, parts, hook: "line" }).ok) pick.push(parts);
       }
       expect(pick, "enough whole-idea shorts in the fixture (D241)").toHaveLength(COUNT);
-      const shorts = pick.map((ids, k) => ({
-        from: ids[0]!, to: ids.at(-1)!, segments: ids.map((id) => ({ from: id, to: id })),
-        hook: "line" as const, hookKind: "striking" as const, title: `الشورت ${k + 1}: ${ids.length} من المشاهد`,
+      const shorts = pick.map((parts, k) => ({
+        from: parts[0]![0]!, to: parts.at(-1)!.at(-1)!, ...(parts.length > 1 ? { segments: parts.map((r) => ({ from: r[0]!, to: r.at(-1)! })) } : {}),
+        hook: "line" as const, hookKind: "striking" as const, title: `الشورت ${k + 1}: ${parts.flat().length} من المشاهد`,
       }));
       const saved = await st.call("PUT", `episodes/${EP}/shorts`, { shorts });
       ok(`save ${COUNT} shorts`, saved);

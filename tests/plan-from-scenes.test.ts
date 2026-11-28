@@ -39,7 +39,9 @@ describe.each(EPS)("الخطة المصمَّمة من scenes.md — %s", (ep) =
   const scenes = plan.chapters.flatMap((c) => c.scenes);
 
   it("الخطة المتتبَّعة هي ما يبنيه الأمر الآن (بلا نصوص الآيات، كما تُكتب)", () => {
-    const strip = (p: Plan) => JSON.parse(JSON.stringify({ ...p, updatedAt: "" }, (k, v) => (k === "text" && typeof v === "string" ? "" : v)));
+    // اختيارات المالك فوق الخطة المبنية (نبرة الحلقة ونبرة المشهد وعلم «عُدّل») لا تُعدّ خروجًا عن scenes.md
+    const OWNER = new Set(["tone", "edited"]);
+    const strip = (p: Plan) => JSON.parse(JSON.stringify({ ...p, updatedAt: "" }, (k, v) => (OWNER.has(k) ? undefined : k === "text" && typeof v === "string" ? "" : v)));
     const scrub = (p: Plan) => { const x = strip(p); for (const s of x.chapters.flatMap((c: Plan["chapters"][number]) => c.scenes)) if (s.template === "hadith-card") delete s.props.text; return x; };
     expect(scrub(tracked)).toEqual(scrub(plan));
   });
