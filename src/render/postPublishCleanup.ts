@@ -17,6 +17,10 @@
  * الحذف داخل جذور معروفة للحلقة وحدها (`deletionRoots`)، ملفًا ملفًا: لا `..` ولا رابط رمزي (يُرفض ولا يُتبع)، ولا ملف
  * متتبَّع في Git، ولا `.env`، ولا السجل الموقَّع (`scene-production.v1.json`). الافتراضي عرض بلا حذف؛ الحذف بـ `--delete`.
  * الترتيب المعتمد: النقل إلى Drive (D53) ← `place-master` ← `cleanup --delete`.
+ *
+ * D242 (النسخة العمودية الكاملة): ملفها في `render-queue/done/<مهمة vertical>/` مصدر قص الشورتس، فيبقى بعد نشر الحلقة
+ * حتى تُنشر الشورتس كلها (كل شورت في `plan.shorts` حالته «منشور» أو «ملغى»، وواحد منشور على الأقل)، مع الشروط الثلاثة
+ * نفسها. بعدها يُحذف هنا (المجلد المشترك) وفي مهمة ويندوز (`verticals` ببصمة كل ملف)، ولا يبقى إلا الشورتس المنشورة.
  */
 import path from "node:path";
 import { existsSync } from "node:fs";
@@ -35,7 +39,9 @@ export type CleanupLocation = "mac" | "share" | "windows";
 /** delete-all: كاش كامل. videos: الفيديو والملفات المؤقتة وحدها. out: مثل videos إلا الشورتس النهائية في out/package
  * (نسخة Master على الماك تُحذف بعد مطابقة النسخة الدائمة لبصمة الاعتماد، الشرط ٢). */
 export type RootRule = "delete-all" | "videos" | "out";
-export type CleanupRoot = { location: CleanupLocation; dir: string; rule: RootRule; label: string };
+export type CleanupRoot = { location: CleanupLocation; dir: string; rule: RootRule; label: string;
+  /** D242: مجلد النسخة العمودية في done/ (يبقى حتى تُنشر الشورتس كلها)، ومعرّف مهمتها وبصمتها من result.json */
+  vertical?: { job: string; sha256: string | null } };
 export type FileEntry = { location: CleanupLocation; path: string; bytes: number; what: string };
 export type Condition = { n: 1 | 2 | 3; ok: boolean; label: string; detail: string };
 export type CleanupContext = {
@@ -69,6 +75,9 @@ export type CleanupPlan = {
   approvedSha256: string | null;
   /** الجذور التي فُحصت (الحذف يعيد الفحص داخلها وحدها) */
   roots: CleanupRoot[];
+  /** D242: هل نُشرت الشورتس كلها (شرط حذف النسخة العمودية)، والنسخ العمودية التي تُحذف (لمهمة ويندوز) */
+  shorts?: { ok: boolean; detail: string };
+  verticals?: { job: string; sha256: string }[];
 };
 
 export const epNumOf = (episodeFolder: string) => episodeFolder.slice(0, 3);
@@ -188,6 +197,12 @@ export const doneRootsFor = async (share: string, channel: string, episodeFolder
     const job = await readJson<{ channel?: unknown; episode?: unknown; kind?: unknown; trial?: unknown }>(path.join(done, d, "job.json"));
     if (!job || job.channel !== channel || job.episode !== episodeFolder) continue;
     const kind = typeof job.kind === "string" ? job.kind : "?";
+    if (kind === "vertical" && !job.trial) {
+      const res = await readJson<{ sha256?: unknown }>(path.join(done, d, "result.json"));
+      const sha = typeof res?.sha256 === "string" && /^[a-f0-9]{64}$/.test(res.sha256) ? res.sha256 : null;
+      out.push({ location: "share", dir: path.join(done, d), rule: "videos", label: "النسخة العمودية الكاملة (render-queue/done)", vertical: { job: d, sha256: sha } });
+      continue;
+    }
     // قرار المالك: نواتج الطابور كلها (ومنها الشورتس) تجارب أو نسخ مؤقتة؛ المنشور يبقى في out/package وفي masters/
     out.push({ location: "share", dir: path.join(done, d), rule: "videos", label: `${job.trial ? "تجربة" : "ناتج العامل"} ${kind} (render-queue/done)` });
   }
@@ -206,6 +221,22 @@ export const publishedCondition = async (episodeDir: string): Promise<Condition>
   if (!url) return { n: 1, ok: false, label, detail: `منشورة في ${date} لكن بلا رابط يوتيوب صالح (published.url أو long.episodeUrl).` };
   return { n: 1, ok: true, label, detail: `منشورة في ${date}: ${url}` };
 };
+
+/**
+ * D242: شرط حذف النسخة العمودية: الشورتس كلها نُشرت. من `plan.json` للحلقة: كل شورت في `plan.shorts` حالته «منشور» أو
+ * «ملغى» (`state`)، وواحد منشور على الأقل. خطة بلا `plan.shorts` لا تُعدّ منشورة الشورتس.
+ */
+export const shortsPublishedCondition = async (episodeDir: string): Promise<{ ok: boolean; detail: string }> => {
+  const plan = await readJson<{ shorts?: { state?: unknown }[] }>(path.join(episodeDir, "plan.json"));
+  const list = Array.isArray(plan?.shorts) ? plan!.shorts : null;
+  if (!list || !list.length) return { ok: false, detail: "لا شورتس معرَّفة في plan.json؛ النسخة العمودية تبقى." };
+  const published = list.filter((s) => s?.state === "published").length;
+  const open = list.filter((s) => s?.state !== "published" && s?.state !== "cancelled").length;
+  if (open) return { ok: false, detail: `${open} من ${list.length} شورت لم يُنشر بعد (ولا أُلغي)؛ النسخة العمودية تبقى مصدرًا للقص.` };
+  if (!published) return { ok: false, detail: "كل الشورتس ملغاة ولا منشور منها؛ النسخة العمودية تبقى حتى يقرر المالك." };
+  return { ok: true, detail: `نُشرت الشورتس (${published} منشور، و${list.length - published} ملغى).` };
+};
+export const VERTICAL_HOLD_WHAT = "النسخة العمودية الكاملة (تبقى حتى تُنشر الشورتس كلها، D242)";
 
 /** السلامة: الفحص نفسه في worker-collect (الترميز والأبعاد والصوت والمدة والأثر) بأبعاد Master. */
 export const masterSoundness = (probe: VideoProbe): string[] => {
@@ -278,9 +309,19 @@ export const planCleanup = async (ctx: CleanupContext, deps: CleanupDeps): Promi
   }
   const del: FileEntry[] = [], keep: FileEntry[] = [], refused: { path: string; why: string }[] = [];
   if (!tracked) refused.push({ path: ctx.episodeDir, why: "تعذّر سؤال Git عن الملفات المتتبَّعة؛ لا حذف على الماك." });
+  // D242: النسخة العمودية تبقى حتى تُنشر الشورتس كلها
+  const shorts = roots.some((r) => r.vertical) ? await shortsPublishedCondition(ctx.episodeDir) : undefined;
+  const verticals: { job: string; sha256: string }[] = [];
   for (const root of roots) {
     if (root.location === "mac" && !tracked) continue;
     const r = await scanRoot(root, epNum, tracked ?? new Set(), protectedFiles);
+    if (root.vertical && !shorts?.ok) {
+      keep.push(...r.del.filter((x) => isVideoName(path.basename(x.path))).map((x) => ({ ...x, what: VERTICAL_HOLD_WHAT })));
+      del.push(...r.del.filter((x) => !isVideoName(path.basename(x.path))));
+      refused.push(...r.refused);
+      continue;
+    }
+    if (root.vertical?.sha256) verticals.push({ job: root.vertical.job, sha256: root.vertical.sha256 });
     del.push(...r.del); keep.push(...r.keep); refused.push(...r.refused);
   }
   // ما يبقى أيضًا: المكان الدائم كله، والصوت، وملفات التوقيت
@@ -291,7 +332,8 @@ export const planCleanup = async (ctx: CleanupContext, deps: CleanupDeps): Promi
   for (const w of await walk(path.join(ctx.episodeDir, "voice"))) if (!("refused" in w)) keep.push({ location: "mac", path: w.file, bytes: w.bytes, what: "صوت الراوي" });
 
   const conditions = [c1, c2, c3];
-  return { ctx, epNum, conditions, ok: conditions.every((c) => c.ok), delete: del, keep, refused, permanentMaster: perm, approvedSha256: approved?.fileSha256 ?? null, roots };
+  return { ctx, epNum, conditions, ok: conditions.every((c) => c.ok), delete: del, keep, refused, permanentMaster: perm, approvedSha256: approved?.fileSha256 ?? null, roots,
+    ...(shorts ? { shorts, verticals } : {}) };
 };
 
 /**
@@ -332,7 +374,8 @@ export const formatBytes = (n: number) =>
 export const summaryLine = (plan: CleanupPlan, freed: number, windowsQueued: boolean, skipped = 0) => {
   const shorts = new Set(plan.keep.filter((k) => /-short-\d+\.mp4$/.test(k.path)).map((k) => path.basename(k.path))).size;
   const voice = plan.keep.filter((k) => k.what === "صوت الراوي").length;
-  return `${plan.ctx.channel} ${plan.ctx.episodeFolder}: حُرّر ${formatBytes(freed)}؛ بقي Master (${plan.approvedSha256?.slice(0, 12)}…) في ${plan.permanentMaster}، و${shorts} شورت نهائي، وصوت الراوي (${voice} ملف)، وكل ما في Git${windowsQueued ? "، وتنظيف ويندوز في الطابور" : ""}${skipped ? `، ولم يُحذف ${skipped} ملف تغيّر بعد الفحص` : ""}.`;
+  const vertical = plan.keep.some((k) => k.what === VERTICAL_HOLD_WHAT) ? "، والنسخة العمودية حتى تُنشر الشورتس كلها" : "";
+  return `${plan.ctx.channel} ${plan.ctx.episodeFolder}: حُرّر ${formatBytes(freed)}؛ بقي Master (${plan.approvedSha256?.slice(0, 12)}…) في ${plan.permanentMaster}، و${shorts} شورت نهائي، وصوت الراوي (${voice} ملف)، وكل ما في Git${vertical}${windowsQueued ? "، وتنظيف ويندوز في الطابور" : ""}${skipped ? `، ولم يُحذف ${skipped} ملف تغيّر بعد الفحص` : ""}.`;
 };
 
 /* ── على الماك: السياق والاعتماديات الحقيقية ── */
@@ -375,6 +418,7 @@ export const formatPlan = (plan: CleanupPlan): string => {
   const lines: string[] = [`التنظيف بعد النشر (D240) — ${plan.ctx.channel} ${plan.ctx.episodeFolder}`, ""];
   for (const c of plan.conditions) lines.push(`${c.ok ? "✓" : "✗"} الشرط ${c.n}: ${c.label} — ${c.detail}`);
   lines.push("", plan.ok ? "الشروط كلها متحققة." : "لا حذف: شرط ناقص على الأقل.");
+  if (plan.shorts) lines.push(`${plan.shorts.ok ? "✓" : "…"} النسخة العمودية (D242): ${plan.shorts.ok ? "تُحذف مع الشروط الثلاثة؛ " : "تبقى؛ "}${plan.shorts.detail}`);
   const sum = (xs: FileEntry[]) => xs.reduce((a, x) => a + x.bytes, 0);
   const grouped = (xs: FileEntry[]) => {
     const g = new Map<string, FileEntry[]>();

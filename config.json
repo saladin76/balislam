@@ -35,6 +35,14 @@
         "concurrency": 1,
         "timeoutMs": 300000
       },
+      "vertical": {
+        "label": "عمودي 1080×1920 · أعلى جودة",
+        "scale": 1,
+        "crf": 14,
+        "x264Preset": "slow",
+        "audioBitrate": "320k",
+        "timeoutMs": 300000
+      },
       "preview": {
         "label": "معاينة 1080p",
         "scale": 1,

@@ -13,6 +13,7 @@ import { enter, exit, fade } from "./motion";
 import { estimateTimings } from "./timing";
 import { ChannelLogo, useChannel } from "../../channel/context";
 import type { SceneBase } from "./types";
+import { PORTRAIT_TEXT } from "../safeArea";
 
 /** خلفية الثيم: لون الخلفية مع زخرفته الخفيفة (لا تنافس النص). */
 const Motif: React.FC<{ t: Theme; w: number; h: number; frame: number; rtl: boolean }> = ({ t, w, h, frame, rtl }) => {
@@ -141,7 +142,7 @@ const NotebookCover: React.FC<{ w: number; h: number; u: number }> = ({ w, h, u 
  * وبجواره شريط القراءة الأحمر الرفيع معلّقًا من حافة الدفتر. لا كتلة لون تنافس المحتوى.
  */
 const DateTape: React.FC<{ text: string; size: number; u: number; a: number; portrait: boolean; dark: boolean }> = ({ text, size, u, a, portrait, dark }) => (
-  <div style={{ position: "absolute", top: (portrait ? 220 : 26) * u, insetInlineStart: (portrait ? 72 : 96) * u, display: "flex", alignItems: "flex-start", gap: 18 * u }}>
+  <div style={{ position: "absolute", top: (portrait ? PORTRAIT_TEXT.inline.top : 26) * u, insetInlineStart: (portrait ? PORTRAIT_TEXT.inline.inset : 96) * u, display: "flex", alignItems: "flex-start", gap: 18 * u }}>
     <div style={{ width: 16 * u, height: 84 * u * (0.3 + 0.7 * a), background: NB.tape, clipPath: `polygon(0 0, 100% 0, 100% 100%, 50% calc(100% - ${7 * u}px), 0 100%)`, opacity: 0.9 }} />
     <div
       style={{
@@ -176,7 +177,7 @@ type ShellProps = SceneBase & {
 
 /**
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
- * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (منطقة آمنة للشورت تتجنب أسفل 22% وأعلى 12%).
+ * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (نصوص الغلاف داخل المنطقة الآمنة للشورتس، D242: src/remotion/safeArea.ts).
  */
 export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant, exitFrames = 8, frameless = false }) => {
   useBrandFonts();
@@ -217,8 +218,8 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
           <div
             style={{
               position: "absolute",
-              top: portrait ? 250 : 64,
-              insetInlineStart: portrait ? 72 : 96,
+              top: portrait ? PORTRAIT_TEXT.inline.top : 64,
+              insetInlineStart: portrait ? PORTRAIT_TEXT.inline.inset : 96,
               fontSize: eyebrowSize,
               fontWeight: 600,
               color: eyebrowColors?.text ?? t.colors.inkSoft,
@@ -234,7 +235,7 @@ export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow
         ) : null}
         {children}
         {watermark ? (
-          <div style={{ position: "absolute", top: portrait ? 244 : 56, insetInlineEnd: portrait ? 64 : 72, opacity: 0.88 * fade(frame, 6, 16) }}>
+          <div style={{ position: "absolute", top: portrait ? PORTRAIT_TEXT.inline.top : 56, insetInlineEnd: portrait ? PORTRAIT_TEXT.inline.inset : 72, opacity: 0.88 * fade(frame, 6, 16) }}>
             <ChannelLogo theme={t} size={portrait ? 84 : 72} tile />
           </div>
         ) : null}

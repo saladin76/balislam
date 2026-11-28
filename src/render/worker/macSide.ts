@@ -145,7 +145,9 @@ export const publishSnapshot = async (share: string, media: EpisodeMedia, mediaR
 export const workerJobId = (channel: string, episodeFolder: string, n: number, fingerprint: unknown) =>
   `${channel}-${episodeFolder.slice(0, 3)}-short-${n}-${createHash("sha256").update(JSON.stringify(fingerprint)).digest("hex").slice(0, 12)}`;
 
-export const submitWorkerShorts = async (ep: string, share: string, o: { only?: number; log?: (m: string) => void } = {}) => {
+export const submitWorkerShorts = async (ep: string, share: string, o: { only?: number; log?: (m: string) => void; /** D242: رندر الشورت العمودي منفصلًا موقوف؛ للمهام القديمة وحدها */ legacyD226?: true } = {}) => {
+  // D242: كل الشورتس قصّ من النسخة العمودية الكاملة (studioJobs.submitVerticalShorts)، لا رندر عمودي منفصل لكل شورت
+  if (!o.legacyD226) throw new Error("D242: الشورتس تُقص من النسخة العمودية وحدها: npx bal worker-submit <الحلقة> --shorts (بعد worker-submit-vertical وworker-import).");
   const log = o.log ?? (() => {});
   const ctx = await macShortsContext(ep);
   // D234: لا مهمة رندر لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (والعامل يفحصها ثانية في قلب الرندر)
@@ -239,7 +241,9 @@ export const defaultCollectDeps: CollectDeps = {
 export type CollectedRecord = { jobId: string; n: number; file: string; workerSha256: string; sha256: string; worker: string; commit: string; collectedAt: string; motion: number };
 
 /** يتحقق من ناتج العامل وما بعده على الماك؛ يعيد أسباب الرفض أو الملف النهائي في out/package. */
-export const importVerified = async (ctx: Pick<MacShortsContext, "dir" | "id" | "plan">, job: WorkerJob, source: string, deps: CollectDeps, o: { replace?: boolean; artist: string; exempt: Set<number> }) => {
+export const importVerified = async (ctx: Pick<MacShortsContext, "dir" | "id" | "plan">, job: Pick<WorkerJob, "id" | "n">, source: string, deps: CollectDeps,
+  o: { replace?: boolean; artist: string; exempt: Set<number>; /** D242: الشورت المقصوص من النسخة العمودية 1080×1920 */ size?: { width: number; height: number } }) => {
+  const size = o.size ?? SHORT_SIZE;
   const final = path.join(ctx.dir, `${ctx.id}-short-${job.n}.mp4`);
   const temp = path.join(ctx.dir, `.worker-${job.id}.importing.mp4`);
   await rm(temp, { force: true });
@@ -250,7 +254,7 @@ export const importVerified = async (ctx: Pick<MacShortsContext, "dir" | "id" | 
     const probe = await deps.probe(temp);
     const traces = probe.tags.flatMap((t) => findTraces(t));
     if (traces.length) return { refused: [`أثر لأدوات الإنتاج بعد التنظيف: ${traces.join("، ")}`] };
-    if (probe.videoCodec !== "h264" || probe.width !== SHORT_SIZE.width || probe.height !== SHORT_SIZE.height || probe.audioCodec !== "aac")
+    if (probe.videoCodec !== "h264" || probe.width !== size.width || probe.height !== size.height || probe.audioCodec !== "aac")
       return { refused: ["تغيّر الملف بعد تنظيف البيانات الوصفية."] };
     const motion = await deps.measureMotion(temp, o.exempt);
     if (motion.percent < MOTION_MIN) return { refused: [`قاعدة القناة: الحركة ${motion.percent}% أقل من ${MOTION_MIN}%.`], motion };

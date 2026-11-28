@@ -9,7 +9,7 @@
  */
 import path from "node:path";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, readFile, rm } from "node:fs/promises";
+import { lstat, mkdir, readdir, readFile, rm } from "node:fs/promises";
 import { QUEUE_DIR, WORKER_CHANNELS, inShare, sha256File, workerName, writeJsonAtomic, type WorkerChannel } from "./protocol";
 import {
   deletionRoots, executeCleanup, gitTrackedUnder, pathEscape, permanentMasterRel, scanRoot, MASTERS_DIR, epNumOf, type CleanupPlan,
@@ -25,11 +25,14 @@ export type CleanupJob = {
   masterSha256: string;
   /** المسار الدائم داخل المجلد المشترك: masters/<القناة>/<الحلقة>/<NNN>-episode.mp4 */
   master: string;
+  /** D242: النسخ العمودية في render-queue/done/ التي تحقق الماك أن شورتسها نُشرت كلها (المعرّف والبصمة) */
+  verticals?: { job: string; sha256: string }[];
   createdAt: string;
 };
 
 const fail = (m: string): never => { throw new Error(`مهمة تنظيف غير صالحة: ${m}`); };
-const KNOWN = ["version", "kind", "id", "channel", "episode", "masterSha256", "master", "createdAt"];
+const KNOWN = ["version", "kind", "id", "channel", "episode", "masterSha256", "master", "verticals", "createdAt"];
+const JOB_ID = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
 
 export const validateCleanupJob = (raw: unknown): CleanupJob => {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) return fail("ليست كائن JSON.");
@@ -42,6 +45,14 @@ export const validateCleanupJob = (raw: unknown): CleanupJob => {
   if (typeof r.masterSha256 !== "string" || !SHA256.test(r.masterSha256)) fail("بصمة Master.");
   if (r.master !== permanentMasterRel(r.channel as string, r.episode as string)) fail("مسار Master ليس المكان الدائم للحلقة.");
   if (typeof r.createdAt !== "string" || Number.isNaN(Date.parse(r.createdAt))) fail("وقت الإنشاء.");
+  if (r.verticals !== undefined) {
+    if (!Array.isArray(r.verticals) || r.verticals.length > 20) fail("النسخ العمودية.");
+    for (const v of r.verticals as unknown[]) {
+      const x = v as Record<string, unknown>;
+      if (typeof x !== "object" || x === null || Object.keys(x).sort().join(",") !== "job,sha256" || typeof x.job !== "string" || !JOB_ID.test(x.job)
+        || x.job.length > 120 || typeof x.sha256 !== "string" || !SHA256.test(x.sha256)) fail("النسخة العمودية.");
+    }
+  }
   return r as unknown as CleanupJob;
 };
 
@@ -59,7 +70,10 @@ export const queueWindowsCleanup = async (share: string, plan: CleanupPlan): Pro
   const job: CleanupJob = {
     version: 1, kind: "cleanup", id: cleanupJobId(plan.ctx.channel, plan.ctx.episodeFolder, plan.approvedSha256),
     channel: plan.ctx.channel as WorkerChannel, episode: plan.ctx.episodeFolder, masterSha256: plan.approvedSha256,
-    master: permanentMasterRel(plan.ctx.channel, plan.ctx.episodeFolder), createdAt: new Date().toISOString(),
+    master: permanentMasterRel(plan.ctx.channel, plan.ctx.episodeFolder),
+    // D242: النسخة العمودية بعد نشر الشورتس كلها وحده (planCleanup يملأها حينها)
+    ...(plan.shorts?.ok && plan.verticals?.length ? { verticals: plan.verticals } : {}),
+    createdAt: new Date().toISOString(),
   };
   validateCleanupJob(job);
   const p = cleanupPaths(share);
@@ -90,7 +104,35 @@ export const runCleanupJob = async (share: string, repo: string, job: CleanupJob
     plan.delete.push(...r.del); plan.refused.push(...r.refused);
   }
   const r = await executeCleanup(plan);
-  return { freed: r.freed, deleted: r.deleted.length, skipped: [...plan.refused, ...r.skipped] };
+  const v = await deleteVerticals(share, job, deps);
+  return { freed: r.freed + v.freed, deleted: r.deleted.length + v.deleted, skipped: [...plan.refused, ...r.skipped, ...v.skipped] };
+};
+
+/**
+ * D242: النسخة العمودية في المجلد المشترك (على قرص ويندوز نفسه): تُحذف إن بقيت بعد حذف الماك، بالشروط نفسها: Master تحقق
+ * منه العامل أعلاه، والمهمة done/<المعرّف>/job.json نسخة عمودية لهذه الحلقة، والملف داخل done/ بلا رابط رمزي، وبصمته
+ * هي التي كتبها الماك. غيابها (حذفها الماك) ليس خطأ.
+ */
+export const deleteVerticals = async (share: string, job: CleanupJob, deps: Pick<WorkerCleanupDeps, "sha256File"> = defaults) => {
+  let freed = 0, deleted = 0;
+  const skipped: { path: string; why: string }[] = [];
+  const done = path.join(share, QUEUE_DIR, "done");
+  for (const v of job.verticals ?? []) {
+    const file = path.join(done, v.job, `${v.job}.mp4`);
+    if (!existsSync(file)) continue;
+    const escape = await pathEscape(done, file);
+    if (escape) { skipped.push({ path: file, why: escape }); continue; }
+    let src: { kind?: unknown; channel?: unknown; episode?: unknown; purpose?: unknown } | null = null;
+    try { src = JSON.parse(await readFile(path.join(done, v.job, "job.json"), "utf8")); } catch { src = null; }
+    if (!src || src.kind !== "vertical" || src.channel !== job.channel || src.episode !== job.episode || src.purpose !== "studio") {
+      skipped.push({ path: file, why: "ليست النسخة العمودية لهذه الحلقة" }); continue;
+    }
+    if ((await deps.sha256File(file)) !== v.sha256) { skipped.push({ path: file, why: "بصمة النسخة العمودية تغيّرت؛ لا حذف" }); continue; }
+    const st = await lstat(file);
+    await rm(file, { force: false });
+    freed += st.size; deleted++;
+  }
+  return { freed, deleted, skipped };
 };
 
 /** دورة العامل: كل مهام التنظيف المنتظرة. الفاشلة تُنقل إلى cleanup-failed/ بسببها. */

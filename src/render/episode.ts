@@ -22,7 +22,7 @@ import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { assertEpisodeOutputConfined, assertNoLinkedPath, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
-import { qualitySpec, type Quality } from "./quality";
+import { isPublishQuality, qualitySpec, type Quality } from "./quality";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -177,6 +177,8 @@ export const assertMasterRenderGates = async (o: { episode: string; plan: Plan; 
 };
 
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
+  // D242: النسخة العمودية الكاملة تُرندر على جهاز الرندر وحده بمهمتها المبوَّبة كـMaster (worker-submit-vertical)
+  if (opts.quality === "vertical") throw Error("النسخة العمودية الكاملة (D242) على جهاز الرندر وحده: npx bal worker-submit-vertical.");
   if (opts.scenePreview && opts.quality === "master")
     throw Error("A scene review preview cannot be used as a Master approval.");
   if (opts.draftMarks && (opts.quality === "master" || !opts.scenePreview))
@@ -343,7 +345,8 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
       });
     }
     // المرحلة A (المهمة ٣): ما يُنشر (الحلقة والشورتس) بعلو −14 LUFS بقياسين وكسب خطي (src/studio/quality/normalize.ts)
-    if (o.quality === "master" && !o.scenePreview) {
+    // D242: والنسخة العمودية الكاملة (ومنها تُقص الشورتس المنشورة) بالعلو نفسه
+    if (isPublishQuality(o.quality) && !o.scenePreview) {
       const { normalizeProgramLoudness } = await import("../studio/quality/normalize");
       const r = await normalizeProgramLoudness(tempOutput, q.audioBitrate);
       if (r.type !== "silent") log(100, `علو الصوت: ${r.before.toFixed(1)} ← ${r.after?.toFixed(1)} LUFS`);

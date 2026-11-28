@@ -182,9 +182,12 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
     await assertEditorPassed(scriptPath);
     const { plan, media, narrationGain } = job.inputs;
     assertRenderMediaOwnership(scriptPath, media);
-    progress(0, "تجهيز لقطة الوسائط");
-    say("تجهيز لقطة الوسائط…");
-    await installSnapshot(share, job);
+    // D242: قص الشورت من النسخة العمودية لا يقرأ الوسائط (الملف نفسه مصدره)
+    if (!job.cut) {
+      progress(0, "تجهيز لقطة الوسائط");
+      say("تجهيز لقطة الوسائط…");
+      await installSnapshot(share, job);
+    }
     const output = workerOutputFor(scriptPath, job.id);
     await assertEpisodeOutputConfined(scriptPath, output);
     await rm(output, { force: true });
@@ -232,6 +235,17 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
         review = { file: name, sha256: await sha256File(rv), bytes: (await stat(rv)).size, width: p.width, height: p.height };
         extra.push({ name, file: rv });
       }
+    } else if (job.cut) {
+      // D242: الشورت مقطع من النسخة العمودية (D241 كما على الماك: فكرة كاملة بمشاهد الخطة)
+      (await import("../../package/shortIdeaPlan")).assertShortRenderIdea(plan, { sceneIds: job.cut.sceneIds });
+      progress(0, "النسخة العمودية");
+      const { resolveCutSource, cutVertical } = await import("./verticalCut");
+      const src = await resolveCutSource(share, job);
+      say(`قص الشورت ${job.n} من النسخة العمودية (${job.cut.ranges.length} مقطع)…`);
+      progress(10, "قص الشورت");
+      await mkdir(path.dirname(output), { recursive: true });
+      file = await cutVertical(src.file, output, job.cut, meta);
+      renderedAt = new Date().toISOString();
     } else {
       progress(0, "قطع المشاهد");
       const cuts = [];

@@ -29,8 +29,9 @@ import { assertOneMachine, episodeSceneMachines, machineOfResult, MAC_MACHINE, t
 import { assertCommitMatchesWorkingTree, publishSnapshot, DURATION_TOLERANCE_SEC } from "./macSide";
 import {
   doneVideoName, ensureQueue, heartbeatFile, HEARTBEAT_STALE_MS, isProgressName, planSha256, queuePaths, readProgress, sha256File, sizeFor,
-  validateJobV2, writeJsonAtomic, type Heartbeat, type TrialX264Preset, type JobProgress, type RenderSpec, type WorkerJobV2, type WorkerResult,
+  validateJobV2, writeJsonAtomic, type CutSpec, type Heartbeat, type TrialX264Preset, type JobProgress, type RenderSpec, type WorkerJobV2, type WorkerResult,
 } from "./protocol";
+import { cutSeconds } from "./verticalShorts";
 
 const fps = (config as { video: { fps: number } }).video.fps;
 /** الوصل يقص صمت البداية (KI-091، حتى ~3.5 ث)، فمدته قد تقصر عن مدة الخطة بهذا القدر وحده */
@@ -160,6 +161,41 @@ export const buildMasterJob = async (ep: string, inputs: Awaited<ReturnType<type
   });
 };
 
+/**
+ * D242: النسخة العمودية الكاملة 1080×1920 (الحلقة كلها، بمدخلات Master نفسها: الخطة ولقطة الوسائط وربح العلوّ ووضع
+ * التوقيت). فحوص المحتوى للنسخة النهائية قبل الإرسال (assertMasterReady)، وD233 كـMaster: مشاهد الحلقة من جهاز الرندر.
+ */
+export const buildVerticalJob = async (ep: string, inputs: Awaited<ReturnType<typeof fullEpisodeInputs>>, b: Base, share: string): Promise<WorkerJobV2> => {
+  if (b.purpose !== "studio") throw new Error("النسخة العمودية الكاملة للاستوديو وحده؛ التجربة بمشاهد بعينها (worker-submit-scenes --orientation portrait --purpose trial).");
+  const { assertMasterReady, voiceTimingMode } = await import("../episode");
+  await assertMasterReady({ scriptPath: inputs.scriptPath, plan: inputs.plan, media: inputs.media, channel: loadChannel() });
+  const machine = assertOneMachine(await episodeSceneMachines(path.join(path.dirname(inputs.scriptPath), "previews"),
+    inputs.plan.chapters.flatMap((c) => c.scenes.map((s) => s.id))), "النسخة العمودية");
+  if (machine === MAC_MACHINE)
+    throw new Error("لا نسخة عمودية على جهاز الرندر: مشاهد الحلقة رُندرت على الماك (D233). أعد رندر المشاهد على جهاز الرندر أولًا.");
+  const mediaRel = await publishSnapshot(share, inputs.media);
+  const render: RenderSpec = { orientation: "portrait", quality: "vertical", scope: { all: true }, scenePreview: false,
+    timingMode: await voiceTimingMode(inputs.scriptPath, inputs.plan, inputs.media) };
+  const sha = planSha256(inputs.plan);
+  return validateJobV2({
+    ...baseFields(b), id: idFor(b, "vertical", "", { c: b.commit, sha, base: inputs.media.base, render, g: inputs.narrationGain }),
+    kind: "vertical", media: mediaRel, render,
+    expected: { durationSec: secondsOf(inputs.plan, inputs.media), ...sizeFor("vertical", "portrait") },
+    inputs: { planSha256: sha, plan: inputs.plan, media: inputs.media, narrationGain: inputs.narrationGain },
+  });
+};
+
+/** D242: شورت مقصوص من النسخة العمودية: مدخلاتها نفسها، وبصمة ملفها، ومقاطعه بالإطارات (verticalShorts.ts). */
+export const buildCutJob = (vertical: WorkerJobV2, verticalSha256: string, n: number, sceneIds: string[], ranges: CutSpec["ranges"], b: Base): WorkerJobV2 => {
+  if (vertical.kind !== "vertical") throw new Error("القص من النسخة العمودية وحدها.");
+  const cut: CutSpec = { source: { job: vertical.id, sha256: verticalSha256 }, sceneIds: [...sceneIds], ranges, fps };
+  return validateJobV2({
+    ...baseFields(b), id: idFor(b, "cut", String(n), { c: b.commit, cut }), kind: "cut", n, media: vertical.media, cut,
+    expected: { durationSec: cutSeconds(ranges, fps), ...sizeFor("vertical", "portrait") },
+    inputs: vertical.inputs,
+  });
+};
+
 /** يكتب المهمة في jobs/ إلا إن وُجدت (منتظرة أو جارية أو منتهية)؛ والفاشلة السابقة تُنقل جانبًا. */
 export const enqueue = async (share: string, job: WorkerJobV2) => {
   const q = await ensureQueue(share);
@@ -252,6 +288,51 @@ export const submitTrial = async (ep: string, share: string, o: { tag: string; o
   return rec;
 };
 
+/**
+ * D242 (تجربة قبل التعميم): مشاهد بعينها عمودية 1080×1920 بجودة vertical على الويندوز، ليرى المالك كيف تُعاد صياغة
+ * المشهد للعمودي (الرسم والنص والترجمة والآية داخل المنطقة الآمنة) قبل النسخة العمودية الكاملة. كل مشهد مهمة «trial»
+ * بخطته المقصوصة عليه ووسائطه (كقطعة المشهد في الاستوديو)، لا تدخل الحزمة ولا السجل الموقّع أبدًا؛ وتُقرأ نتائجها بـ
+ * `bal worker-trial-collect --out <المجلد نفسه>` (تُنسخ الملفات إلى <المجلد>/vertical/).
+ */
+export const submitVerticalTrialScenes = async (ep: string, share: string, o: { scenes: string[]; tag: string; outDir: string; log?: (m: string) => void }) => {
+  const log = o.log ?? (() => {});
+  if (!o.scenes.length) throw new Error("التجربة العمودية لمشاهد بعينها: --scenes c1-s2,c1-s3,…");
+  if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(o.tag) || o.tag.length > 40) throw new Error("وسم التجربة: حروف لاتينية صغيرة وأرقام وشرطات.");
+  const scriptPath = await resolveScriptPath(ep);
+  // D234 بلا استثناء، قبل أي حساب أو نسخ
+  await assertEditorPassed(scriptPath);
+  const channel = loadChannel().id;
+  const episodeFolder = path.basename(path.dirname(scriptPath));
+  const commit = await assertCommitMatchesWorkingTree(projectRoot, channel, episodeFolder);
+  await mkdir(o.outDir, { recursive: true });
+  const rec: TrialRecord = existsSync(trialRecordFile(o.outDir)) ? JSON.parse(await readFile(trialRecordFile(o.outDir), "utf8"))
+    : { tag: o.tag, episode: episodeFolder, channel, commit, submittedAt: new Date().toISOString(), jobs: [], submitted: {} };
+  if (rec.tag !== o.tag || rec.episode !== episodeFolder || rec.channel !== channel) throw new Error(`مجلد التجربة ${o.outDir} لتجربة أخرى (${rec.channel} ${rec.episode} ${rec.tag}).`);
+  const { shotsRenderInputs } = await import("../shotsPreview");
+  const t0 = Date.now();
+  let k = 0;
+  for (const id of o.scenes) {
+    const cut = await shotsRenderInputs(ep, [id], { sceneDraft: true, allowPendingRecitation: true });
+    assertTemplatesApproved(cut.plan);
+    if (cut.pendingRecitation.length) log(`تنبيه: ${id} آية بلا تلاوة معتمدة؛ تظهر في التجربة صامتة بلا علامة المسودة.`);
+    const mediaRel = await publishSnapshot(share, cut.media);
+    const render: RenderSpec = { orientation: "portrait", quality: "vertical", scope: { all: true }, scenePreview: false, timingMode: "scene-preview" };
+    const b: Base = { channel, episodeFolder, commit, purpose: "trial", trial: o.tag, createdAt: new Date(t0 + k++).toISOString() };
+    const sha = planSha256(cut.plan);
+    const job = validateJobV2({
+      ...baseFields(b), id: idFor(b, "trial", `v-${id}`, { c: commit, sha, base: cut.media.base, render }), kind: "trial", media: mediaRel, render,
+      expected: { durationSec: secondsOf(cut.plan, cut.media), ...sizeFor("vertical", "portrait") },
+      inputs: { planSha256: sha, plan: cut.plan, media: cut.media, narrationGain: {} },
+    });
+    const fresh = await enqueue(share, job);
+    rec.submitted[job.id] = job;
+    if (!rec.jobs.some((j) => j.id === job.id)) rec.jobs.push({ id: job.id, kind: job.kind, sceneId: id });
+    log(`${fresh ? "أُرسلت" : "موجودة من قبل"}: ${id} عمودي ← ${job.id} (${job.expected.durationSec} ث، 1080×1920)`);
+  }
+  await writeFile(trialRecordFile(o.outDir), JSON.stringify(rec, null, 1) + "\n");
+  return rec;
+};
+
 export type TrialRow = {
   id: string; kind: string; sceneId?: string; status: "queued" | "running" | "done" | "failed" | "missing"; progress?: JobProgress | null;
   error?: string; startedAt?: string; finishedAt?: string; wallSec?: number; bundleSec?: number; renderSec?: number; finalizeSec?: number;
@@ -292,7 +373,7 @@ export const collectTrial = async (share: string, outDir: string, o: { copy?: bo
       if (o.copy !== false && !refused.length) {
         const small = job.render?.quality === "master" ? (result.review ? path.join(doneDir, result.review.file) : null) : file;
         if (small && existsSync(small)) {
-          const dest = path.join(outDir, j.kind === "scene" ? "scenes" : "", path.basename(small));
+          const dest = path.join(outDir, j.kind === "scene" ? "scenes" : job.render?.quality === "vertical" ? "vertical" : "", path.basename(small));
           await mkdir(path.dirname(dest), { recursive: true });
           if (!existsSync(dest) || (await sha256File(dest)) !== (await sha256File(small))) await copyFile(small, dest);
           row.local = path.relative(outDir, dest);
