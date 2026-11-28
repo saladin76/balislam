@@ -41,7 +41,9 @@ type Section = { type: "preamble" } | { type: "chapter"; chapter: Chapter } | { 
  * أرقام الأسطر تبدأ من 1 لتطابق ما يظهر في المحرر.
  */
 export const parseScript = (source: string, file = "script.md"): ParsedScript => {
-  const lines = source.replace(/\r\n?/g, "\n").split("\n");
+  // تعليقات HTML ملاحظات إنتاج لا تُنطق ولا تصير مشاهد (كما يقرؤها محرر السكريبت، src/studio/scriptPipeline.ts):
+  // تُمحى بنصها وتبقى أسطرها فارغة، فلا تتغير أرقام الأسطر.
+  const lines = source.replace(/\r\n?/g, "\n").replace(/<!--[\s\S]*?-->/g, (m) => m.replace(/[^\n]/g, "")).split("\n");
   const issues: Issue[] = [];
   const chapters: Chapter[] = [];
   const citations: Citation[] = [];

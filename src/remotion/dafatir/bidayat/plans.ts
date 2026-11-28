@@ -34,6 +34,8 @@ export const parseBidayatPlan = (md: string): BdPlanRow[] => {
  * والتحرير النهائي للمحرر (٢٧ نوفمبر): الأرض اليابسة وخط البحر (006، `bd06-dryland`)، لأن جملتي افتتاح 006 حُذفتا وصار افتتاحها مشهد اللوح وحده.
  * والمراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): الأرض المتشققة والماء من الشقوق (`bd07-cracks` و`bd07-seep`: لا مستند لجفاف سابق) والخيط والعقدة ٧
  * (`bd07-thread`: حُذفت جملة الوصل «بعد عقدة السفينة…» بدمجها في سؤال «ومن أين جاء ماء الطوفان؟»).
+ * والتحرير النهائي لمحرر المحتوى على 002 (٢٧ نوفمبر): الخيط على أفق الليل (`bd03-thread-night`)، لأن جملته c2-s4
+ * «ونقف في هذه الحلقة أيضًا مع ما أخبرنا به القرآن عن إدريس عليه السلام.» حُذفت؛ الخيط بعقده يظهر في c2-s17، واسم إدريس عليه السلام في c2-s24.
  */
 export const BD_REMOVED: string[] = [
   "bd02-side-note", "bd02-names-wash", "bd02-place-slip", "bd02-forged-verse", "bd02-mound",
@@ -43,7 +45,7 @@ export const BD_REMOVED: string[] = [
   "bd04-noon-stone", "bd04-counter",
   "bd08-tafsir-sketch", "bd08-pale-margin", "bd08-symbol-copies", "bd08-no-foundation", "bd08-before-house",
   "bd02-blank-line", "bd04-closing-slip", "bd03-question", "bd03-same-time", "bd04-shadow-dial", "bd06-dryland",
-  "bd07-cracks", "bd07-seep", "bd07-thread",
+  "bd07-cracks", "bd07-seep", "bd07-thread", "bd03-thread-night",
   "bd09-names", "bd09-compass", "bd09-isnad", "bd09-baqiya", "bd09-one-house", "bd09-blanks", "bd09-new-start", "bd09-margin",
 ];
 

@@ -1,0 +1,912 @@
+{
+  "version": 1,
+  "episode": "002",
+  "title": "ابنا آدم والأجيال الأولى",
+  "domain": "islamic",
+  "themeId": "warm",
+  "channel": "dafatir-alzaman",
+  "lang": "ar",
+  "overlays": {
+    "captions": true,
+    "motif": true,
+    "watermark": true,
+    "chapterLabel": false
+  },
+  "updatedAt": "2026-11-27T23:01:49.416Z",
+  "intro": false,
+  "chapters": [
+    {
+      "number": 1,
+      "title": "",
+      "scenes": [
+        {
+          "id": "c1-s1",
+          "template": "horizon-shot",
+          "narration": "كيف دلّ غرابٌ ابنَ آدمَ على ما يفعل بجثمان أخيه؟ من هنا نبدأ قصة ابني آدم.",
+          "line": 32,
+          "props": {
+            "shot": "bd02-feather"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s2",
+          "template": "horizon-shot",
+          "narration": "في الحلقة الماضية، «خلق آدم عليه السلام وبداية البشرية»، عقدنا على خيط الزمن عقدته الأولى: هبوط آدم وزوجه إلى الأرض، وتوبة الله عليه.",
+          "line": 34,
+          "props": {
+            "shot": "bd02-thread-ground"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s3",
+          "template": "horizon-shot",
+          "narration": "واليوم نعقد العقدة الثانية، في بيت آدم عليه السلام نفسه.",
+          "line": 36,
+          "props": {
+            "shot": "bd02-thread-ground"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s4",
+          "template": "horizon-shot",
+          "narration": "ماذا كان في العالم في تلك الأيام؟ هنا نقف عند حدود ما نعرف.",
+          "line": 38,
+          "props": {
+            "shot": "bd02-world-dark"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s5",
+          "template": "horizon-shot",
+          "narration": "يخبرنا القرآن أن البشر يرجعون إلى أصل واحد. وفي قصة ابني آدم نعود إلى خبرٍ من بداياتهم، لا نعرف له سنةً نضعها على خط الزمن.",
+          "line": 40,
+          "props": {
+            "shot": "bd02-world-dark"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s6",
+          "template": "horizon-shot",
+          "narration": "ولهذا لن نضع على الخريطة ضوءًا لا نملك عليه دليلًا.",
+          "line": 42,
+          "props": {
+            "shot": "bd02-world-dark"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s7",
+          "template": "horizon-shot",
+          "narration": "أما القصة نفسها، فلم نأخذها من رواية متأخرة. لقد حكاها القرآن الكريم في آيات من سورة المائدة.",
+          "line": 44,
+          "props": {
+            "shot": "lib-gloss",
+            "tafsir": "رواية متأخرة",
+            "tafsirWord": "رواية",
+            "tafsirLabel": "رواية",
+            "ref": "المائدة ٢٧–٣٢",
+            "matnWord": "حكاها"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s8",
+          "template": "horizon-shot",
+          "narration": "وأمر الله نبيه محمدًا صلى الله عليه وسلم أن يخبر الناس بخبرهما كما وقع.",
+          "line": 46,
+          "props": {
+            "shot": "bd02-tell"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s9",
+          "template": "verse-card",
+          "narration": "",
+          "line": 48,
+          "props": {
+            "text": "",
+            "reference": "المائدة · ٢٧",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "5:27"
+        },
+        {
+          "id": "c1-s10",
+          "template": "horizon-shot",
+          "narration": "ابنان من أبناء آدم، قرّب كل واحد منهما قربانًا إلى الله.",
+          "line": 50,
+          "props": {
+            "shot": "bd02-offerings"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s11",
+          "template": "horizon-shot",
+          "narration": "فتُقبّل قربانُ أحدهما، ولم يُتقبّل قربانُ الآخر.",
+          "line": 52,
+          "props": {
+            "shot": "bd02-offerings"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s12",
+          "template": "horizon-shot",
+          "narration": "كيف عرفا أن قربانًا قُبل وآخر رُدّ؟ القرآن لا يذكر ذلك.",
+          "line": 54,
+          "props": {
+            "shot": "bd02-offerings"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s13",
+          "template": "horizon-shot",
+          "narration": "وذكرهما القرآن بلفظِ ابني آدم، وبهذا اللفظ نروي قصتهما.",
+          "line": 56,
+          "props": {
+            "shot": "lib-term",
+            "term": "ابنا آدم",
+            "termWord": "ابني",
+            "kind": "text",
+            "source": "المائدة ٢٧",
+            "sourceWord": "القرآن"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s17",
+          "template": "horizon-shot",
+          "narration": "فهدّد الذي لم يُتقبّل قربانُه أخاه بالقتل.",
+          "line": 58,
+          "props": {
+            "shot": "bd02-wind-cloth"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s19",
+          "template": "horizon-shot",
+          "narration": "وجاء جواب أخيه واضحًا: قبول القربان مرتبط بالتقوى.",
+          "line": 60,
+          "props": {
+            "shot": "bd02-wind-cloth"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s20",
+          "template": "verse-card",
+          "narration": "",
+          "line": 62,
+          "props": {
+            "text": "",
+            "reference": "المائدة · ٢٨",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "5:28"
+        },
+        {
+          "id": "c1-s21",
+          "template": "horizon-shot",
+          "narration": "ثم قال الأخ الصالح إنه لن يمدّ يده ليقتل أخاه، وإن مدّ أخوه يده إليه.",
+          "line": 64,
+          "props": {
+            "shot": "bd02-halted-stroke"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s22",
+          "template": "horizon-shot",
+          "narration": "ولم يكن ذلك ضعفًا. فقد ذكر علّته: إنه يخاف الله.",
+          "line": 66,
+          "props": {
+            "shot": "bd02-halted-stroke"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s23",
+          "template": "horizon-shot",
+          "narration": "وفي الآية التي بعدها يحذّر أخاه من عاقبة العدوان، ومن الإثم الذي يحمله إن أقدم على قتله.",
+          "line": 68,
+          "props": {
+            "shot": "bd02-two-loads"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s24",
+          "template": "verse-card",
+          "narration": "",
+          "line": 70,
+          "props": {
+            "text": "",
+            "reference": "المائدة · ٢٩",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "5:29"
+        },
+        {
+          "id": "c1-s25",
+          "template": "horizon-shot",
+          "narration": "لكن الكلام لم يوقف ما في النفس.",
+          "line": 72,
+          "props": {
+            "shot": "bd02-dusk-plain"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s26",
+          "template": "horizon-shot",
+          "narration": "فما زالت نفسه تهوّن عليه الجريمة حتى استجاب لها.",
+          "line": 74,
+          "props": {
+            "shot": "bd02-dusk-plain"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s27",
+          "template": "verse-card",
+          "narration": "",
+          "line": 76,
+          "props": {
+            "text": "",
+            "reference": "المائدة · ٣٠",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "5:30"
+        },
+        {
+          "id": "c1-s28",
+          "template": "horizon-shot",
+          "narration": "وقعت الجريمة. أخبرنا القرآن أنه قتل أخاه، ولا نعلم بدليل ثابت كيف قتله أو أين وقع ذلك.",
+          "line": 78,
+          "props": {
+            "shot": "bd02-long-shadow"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s30",
+          "template": "horizon-shot",
+          "narration": "لكن الذي نعلمه يقينًا أنه خسر خسارة عظيمة.",
+          "line": 80,
+          "props": {
+            "shot": "bd02-long-shadow"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s31",
+          "template": "horizon-shot",
+          "narration": "وفي صحيح مسلم، عن عبد الله بن مسعود رضي الله عنه، أن النبي صلى الله عليه وسلم قال:",
+          "line": 82,
+          "props": {
+            "shot": "bd02-hadith-lead"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s32",
+          "template": "hadith-card",
+          "narration": "",
+          "line": 84,
+          "props": {
+            "text": "لَا تُقْتَلُ نَفْسٌ ظُلْمًا إِلَّا كَانَ عَلَى ابْنِ آدَمَ الْأَوَّلِ كِفْلٌ مِنْ دَمِهَا، لِأَنَّهُ كَانَ أَوَّلَ مَنْ سَنَّ الْقَتْلَ",
+            "narrator": "عبد الله بن مسعود",
+            "reference": "صحيح مسلم ١٦٧٧",
+            "grade": "صحيح"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s33",
+          "template": "horizon-shot",
+          "narration": "والكِفل نصيب.",
+          "line": 86,
+          "props": {
+            "shot": "lib-term",
+            "term": "الكِفل",
+            "termWord": "والكفل",
+            "kind": "text",
+            "note": "نصيب",
+            "noteWord": "نصيب"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s34",
+          "template": "horizon-shot",
+          "narration": "فأول من سنّ القتل يحمل نصيبًا من إثم القتل ظلمًا الذي وقع بعده، ويظل كل قاتل مسؤولًا عن فعله.",
+          "line": 88,
+          "props": {
+            "shot": "bd02-first-mark"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s34a",
+          "template": "horizon-shot",
+          "narration": "ويذكر القرآن القربان والتهديد والقتل والندم، ويقف بنا عند هذا القدر من الخبر.",
+          "line": 90,
+          "props": {
+            "shot": "lib-timeline",
+            "title": "يذكر القرآن",
+            "titleWord": "القرآن",
+            "items": "القربان = القربان | والتهديد = التهديد | والقتل = القتل | والندم = الندم"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s35",
+          "template": "horizon-shot",
+          "narration": "ثم وقف القاتل أمام ما صنع، ولا يدري ماذا يفعل.",
+          "line": 92,
+          "props": {
+            "shot": "bd02-bare-earth"
+          },
+          "sfx": [],
+          "tone": "calm",
+          "edited": true
+        },
+        {
+          "id": "c1-s37",
+          "template": "horizon-shot",
+          "narration": "فأرسل الله إليه غرابًا.",
+          "line": 94,
+          "props": {
+            "shot": "bd02-crow"
+          },
+          "sfx": [],
+          "tone": "calm",
+          "edited": true
+        },
+        {
+          "id": "c1-s38",
+          "template": "horizon-shot",
+          "narration": "يحفر في التراب، ليريه كيف يستر جسد أخيه.",
+          "line": 96,
+          "props": {
+            "shot": "bd02-crow"
+          },
+          "sfx": [],
+          "tone": "calm",
+          "edited": true
+        },
+        {
+          "id": "c1-s39",
+          "template": "verse-card",
+          "narration": "",
+          "line": 98,
+          "props": {
+            "text": "",
+            "reference": "المائدة · ٣١",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "5:31"
+        },
+        {
+          "id": "c1-s40",
+          "template": "horizon-shot",
+          "narration": "فتساءل كيف عجز أن يفعل مثل ما فعل الغراب، وغلبه الندم.",
+          "line": 100,
+          "props": {
+            "shot": "bd02-crow"
+          },
+          "sfx": [],
+          "tone": "calm",
+          "edited": true
+        },
+        {
+          "id": "c1-s44",
+          "template": "horizon-shot",
+          "narration": "ونُسب إلى آدم عليه السلام شعرٌ في رثاء ابنه، ولم تثبت نسبته. وقد قال ابن كثير عن الأبيات: وهذا الشعر فيه نظر.",
+          "line": 102,
+          "props": {
+            "shot": "lib-term",
+            "term": "لم تثبت نسبته",
+            "termWord": "تثبت",
+            "kind": "text",
+            "source": "ابن كثير: فيه نظر",
+            "sourceWord": "كثير"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s46",
+          "template": "horizon-shot",
+          "narration": "وهنا يظهر الفرق بين خبر يثبت، وخبر يُروى، وخبر لا تصح نسبته.",
+          "line": 104,
+          "props": {
+            "shot": "bd02-three-seals"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s47",
+          "template": "horizon-shot",
+          "narration": "فماذا بقي لنا من هذه القصة؟",
+          "line": 106,
+          "props": {
+            "shot": "bd02-thread-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s48",
+          "template": "horizon-shot",
+          "narration": "بقي أولًا أن قربان أحد الأخوين لم يُقبَل، فهدّد أخاه، ثم وقع ما هدّده به. فكيف بدأت القصة بقربان وانتهت إلى قتل؟",
+          "line": 108,
+          "props": {
+            "shot": "bd02-crack-grows"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s49",
+          "template": "horizon-shot",
+          "narration": "وبقي أن الطريق كان مفتوحًا أمامه ليصلح ما في قلبه، فقد دلّه أخوه على التقوى.",
+          "line": 110,
+          "props": {
+            "shot": "bd02-crack-grows"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s50",
+          "template": "verse-card",
+          "narration": "",
+          "line": 112,
+          "props": {
+            "text": "",
+            "reference": "المائدة · ٣٢",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "5:32"
+        },
+        {
+          "id": "c1-s51",
+          "template": "horizon-shot",
+          "narration": "وبقي أن قيمة النفس الواحدة عند الله عظيمة. فعقب هذه القصة ذكر الله ما كتب على بني إسرائيل: أن قتل نفسٍ واحدة بغير حق كقتل البشر كلهم، وإحياءها كإحياء البشر كلهم.",
+          "line": 114,
+          "props": {
+            "shot": "bd02-one-and-all"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s52",
+          "template": "horizon-shot",
+          "narration": "وبقي ذلك الدرس الصامت من الغراب: أن الإنسان قد يتعلم ممن هو أضعف منه، إذا تواضع وأبصر.",
+          "line": 116,
+          "props": {
+            "shot": "bd02-feather"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s53",
+          "template": "horizon-shot",
+          "narration": "ومضت الأيام بعد ذلك، وكثر أبناء آدم وأحفاده.",
+          "line": 118,
+          "props": {
+            "shot": "bd02-thread-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s54",
+          "template": "horizon-shot",
+          "narration": "ومن قصة الأخوين ننتقل إلى خبر الأجيال الأولى من أبناء آدم عليه السلام.",
+          "line": 120,
+          "props": {
+            "shot": "bd02-thread-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s1",
+          "template": "horizon-shot",
+          "narration": "على أرض واسعة في الليل، يشتعل موقد صغير. ثم موقد ثانٍ بعيدًا عنه، ثم ثالث، ثم عشرة.",
+          "line": 131,
+          "props": {
+            "shot": "bd03-hearths"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s2",
+          "template": "horizon-shot",
+          "narration": "كل موقد بيت، وكل بيت جيل جديد من أبناء آدم عليه السلام.",
+          "line": 135,
+          "props": {
+            "shot": "bd03-hearth-house"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s6",
+          "template": "horizon-shot",
+          "narration": "نبدأ بما ثبت.",
+          "line": 141,
+          "props": {
+            "shot": "lib-term",
+            "term": "ثابت",
+            "termWord": "ثبت"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s7",
+          "template": "horizon-shot",
+          "narration": "أخبرنا الله أن الناس كلهم من أصل واحد.",
+          "line": 143,
+          "props": {
+            "shot": "bd03-one-origin"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s8",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة النساء:",
+          "line": 145,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "النساء · ١",
+            "tagWord": "النساء"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s9",
+          "template": "verse-card",
+          "narration": "",
+          "line": 147,
+          "props": {
+            "text": "",
+            "reference": "النساء · ١",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "4:1"
+        },
+        {
+          "id": "c2-s10",
+          "template": "horizon-shot",
+          "narration": "من أب واحد وأم واحدة، انتشر البشر كلهم. هذا ثابت بنص القرآن.",
+          "line": 151,
+          "props": {
+            "shot": "bd03-hearths-spread"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s11",
+          "template": "horizon-shot",
+          "narration": "وأخبرنا أيضًا أن الناس كانوا في أول أمرهم أمة واحدة.",
+          "line": 153,
+          "props": {
+            "shot": "bd03-one-umma"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s12",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة البقرة:",
+          "line": 155,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "البقرة · ٢١٣",
+            "tagWord": "البقرة"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s13",
+          "template": "verse-card",
+          "narration": "",
+          "line": 157,
+          "props": {
+            "text": "",
+            "reference": "البقرة · ٢١٣ (جزء)",
+            "reciter": "",
+            "partial": "1"
+          },
+          "sfx": [],
+          "ayahKey": "2:213"
+        },
+        {
+          "id": "c2-s14",
+          "template": "horizon-shot",
+          "narration": "فعلى أي شيء كانوا أمة واحدة؟",
+          "line": 161,
+          "props": {
+            "shot": "bd03-margin-note"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s15",
+          "template": "horizon-shot",
+          "narration": "وجاء في أثرٍ عن ابن عباس رضي الله عنهما أن بين نوح وآدم عليهما السلام عشرة قرون، كانوا فيها على شريعة من الحق.",
+          "line": 163,
+          "props": {
+            "shot": "bd03-margin-note"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s16",
+          "template": "horizon-shot",
+          "narration": "ومعناه: أن البشر بدؤوا على التوحيد، ثم جاء الاختلاف بعد ذلك.",
+          "line": 165,
+          "props": {
+            "shot": "bd03-one-then-many"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s17",
+          "template": "horizon-shot",
+          "narration": "وماذا تعني عشرة قرون هنا؟ القرن في كلام العرب قد يكون مئة سنة، وقد يكون جيلًا من الناس. ولا نعرف أيهما المقصود هنا.",
+          "line": 169,
+          "props": {
+            "shot": "bd03-ten-knots"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s18",
+          "template": "horizon-shot",
+          "narration": "فلن نكتب رقمًا. المسافة بين آدم ونوح عليهما السلام، على خيطنا، عشر عقد بلا تاريخ.",
+          "line": 173,
+          "props": {
+            "shot": "bd03-ten-knots"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s19",
+          "template": "horizon-shot",
+          "narration": "وفي كتب التاريخ قوائم طويلة بأسماء هذه الأجيال، وبأعمار تبلغ مئات السنين لكل واحد منهم. أكثر هذه القوائم منقول من أخبار أهل الكتاب.",
+          "line": 177,
+          "props": {
+            "shot": "bd03-long-scroll"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s20",
+          "template": "horizon-shot",
+          "narration": "وقاعدتنا فيها ما علّمنا النبي صلى الله عليه وسلم: لا نصدّقهم ولا نكذّبهم.",
+          "line": 181,
+          "props": {
+            "shot": "bd03-long-scroll"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s21",
+          "template": "horizon-shot",
+          "narration": "فلن نذكر الأعمار، ولن نبني على الأسماء شيئًا.",
+          "line": 183,
+          "props": {
+            "shot": "bd03-long-scroll"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s24",
+          "template": "horizon-shot",
+          "narration": "ونقف الآن مع إدريس عليه السلام، أحد الأنبياء الذين سمّاهم القرآن وأثنى عليهم.",
+          "line": 187,
+          "props": {
+            "shot": "bd03-third-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s25",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة مريم:",
+          "line": 189,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "مريم · ٥٦–٥٧",
+            "tagWord": "مريم"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s26",
+          "template": "verse-card",
+          "narration": "",
+          "line": 191,
+          "props": {
+            "text": "",
+            "reference": "مريم · ٥٦–٥٧",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "19:56-57"
+        },
+        {
+          "id": "c2-s27",
+          "template": "horizon-shot",
+          "narration": "وأثنى الله على إدريس عليه السلام، فوصفه بالصدق العظيم والنبوة، وأخبر برفعه مكانًا عليًّا.",
+          "line": 195,
+          "props": {
+            "shot": "bd03-three-words"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s28",
+          "template": "horizon-shot",
+          "narration": "وذكره الله مع الصابرين.",
+          "line": 197,
+          "props": {
+            "shot": "bd03-three-words"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s29",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة الأنبياء:",
+          "line": 199,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "الأنبياء · ٨٥",
+            "tagWord": "الأنبياء"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s30",
+          "template": "verse-card",
+          "narration": "",
+          "line": 201,
+          "props": {
+            "text": "",
+            "reference": "الأنبياء · ٨٥",
+            "reciter": ""
+          },
+          "sfx": [],
+          "ayahKey": "21:85"
+        },
+        {
+          "id": "c2-s31",
+          "template": "horizon-shot",
+          "narration": "وفي حديث المعراج الصحيح أن النبي صلى الله عليه وسلم لقي إدريس عليه السلام في السماء الرابعة. وأما موضع إدريس على خطّ الأجيال، فلا نعلمه على التعيين.",
+          "line": 205,
+          "props": {
+            "shot": "bd03-hadith-note"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s32",
+          "template": "hadith-card",
+          "narration": "",
+          "line": 207,
+          "props": {
+            "text": "ثُمَّ عُرِجَ بِنَا إِلَى السَّمَاءِ الرَّابِعَةِ… فَإِذَا أَنَا بِإِدْرِيسَ، فَرَحَّبَ وَدَعَا لِي بِخَيْرٍ",
+            "narrator": "أنس بن مالك",
+            "reference": "صحيح مسلم ١٦٢",
+            "grade": "صحيح"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s36",
+          "template": "horizon-shot",
+          "narration": "فماذا بقي في أيدينا؟ أصل واحد، وبداية على التوحيد، ونبيّ صادق رفع الله منزلته.",
+          "line": 211,
+          "props": {
+            "shot": "bd03-what-remains"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s37",
+          "template": "horizon-shot",
+          "narration": "وبين ذلك مسافة طويلة لا نعرف طولها، ولن نملأها بما لا نعرف.",
+          "line": 215,
+          "props": {
+            "shot": "bd03-gap"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s38",
+          "template": "horizon-shot",
+          "narration": "لكن الأمة الواحدة لم تبق واحدة. وفي الحلقة القادمة نسأل: ما الذي ثبت عن بداية الشرك؟",
+          "line": 217,
+          "props": {
+            "shot": "bd03-dimming"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s39",
+          "template": "horizon-shot",
+          "narration": "وأنت، ما الذي يفرّق عندك بين خبر ثابت وخبر مشهور؟ اكتب لنا في التعليقات.",
+          "line": 221,
+          "props": {
+            "shot": "lib-compare",
+            "aLabel": "خبر ثابت",
+            "bLabel": "خبر مشهور",
+            "verdict": "open",
+            "aWord": "ثابت",
+            "bWord": "مشهور",
+            "verdictWord": "اكتب"
+          },
+          "sfx": []
+        }
+      ]
+    }
+  ],
+  "series": {
+    "id": "bidayat",
+    "name": "البدايات",
+    "kind": "series",
+    "number": 2,
+    "identity": {
+      "channel": "dafatir-alzaman",
+      "accent": "#E07A3F",
+      "accentBase": "#E07A3F",
+      "onAccent": "#2A1E3F",
+      "paper": "#F1E4CB",
+      "ink": "#2A1E3F",
+      "card": {
+        "bg": "#2A1E3F",
+        "ink": "#F1E4CB"
+      },
+      "motif": "stars",
+      "fonts": {
+        "heading": "Amiri",
+        "body": "Tajawal",
+        "wordmark": "Amiri"
+      },
+      "title": {
+        "weight": "bold",
+        "size": "m",
+        "ornament": "rule"
+      },
+      "intro": "sting",
+      "thumbnail": {
+        "badge": "band"
+      },
+      "emblem": {
+        "base": "horizon-book",
+        "parts": [
+          "book"
+        ]
+      },
+      "clamped": []
+    },
+    "template": {},
+    "stampedAt": "2026-11-27T19:58:49.926Z"
+  },
+  "tone": "warm"
+}
