@@ -63,6 +63,8 @@ channels/*/episodes/*/previews/*.m4v
 channels/*/episodes/*/previews/*.MP4
 # وصل السرد في التجميع (src/studio/seamsRecord.ts): يخص ملف الفيديو المحلي وحده
 channels/*/episodes/*/previews/*.seams.json
+# D233: مصدر قطع المشاهد على هذا الجهاز (من رندرها) محلي كالفيديو نفسه
+channels/*/episodes/*/previews/scene-provenance.json
 # بطاقة الجودة (src/studio/quality/measure.ts): قياس الملف المحلي وحده
 channels/*/episodes/*/previews/*.quality.json
 
