@@ -8,6 +8,7 @@ import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { fontFamilies } from "../../../brand/fonts";
 import { PORTRAIT_TEXT } from "../safeArea";
+import { useBrandFonts } from "../useBrandFonts";
 
 export type QuietSpan = { from: number; to: number };
 /** ثواني التلاشي عند الظهور والغياب */
@@ -31,8 +32,12 @@ export const ShortTitle: React.FC<{ text: string; quiet: QuietSpan[] }> = ({ tex
   const frame = useCurrentFrame();
   const { fps, width } = useVideoConfig();
   const opacity = shortTitleOpacity(frame / fps, quiet);
+  return <ShortTitleText text={text} opacity={opacity} k={width / 1080} />;
+};
+
+/** النص نفسه بأسلوب القناة داخل المنطقة الآمنة (D243)؛ يرسمه ShortTitle في الرندر، وShortTitleStill لقص الشورت من النسخة العمودية */
+export const ShortTitleText: React.FC<{ text: string; opacity: number; k: number }> = ({ text, opacity, k }) => {
   if (!text.trim() || opacity <= 0) return null;
-  const k = width / 1080;
   return (
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <div
@@ -45,4 +50,11 @@ export const ShortTitle: React.FC<{ text: string; quiet: QuietSpan[] }> = ({ tex
       </div>
     </AbsoluteFill>
   );
+};
+
+/** D243 (قرار المالك ٢٨ نوفمبر): عنوان الشورت المقصوص من النسخة العمودية: صورة PNG شفافة 1080×1920 بالعنوان كاملًا، يركّبها
+ *  القص (verticalCut.ts) أول ثلاث ثوانٍ بتلاشٍ قصير، ولا يُرسم في نافذة سكون مقصود. */
+export const ShortTitleStill: React.FC<{ text: string }> = ({ text }) => {
+  useBrandFonts();
+  return <ShortTitleText text={text} opacity={1} k={1} />;
 };

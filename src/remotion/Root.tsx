@@ -32,6 +32,7 @@ import { HorizonAudioReel, HorizonTest, HZ_FPS, HZ_TOTAL, horizonAudioMetadata }
 import { MIHRAB_FRAMES } from "./scenes/MihrabIntro";
 import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
+import { ShortTitleStill } from "./scenes/ShortTitle";
 
 /** نماذج أساليب بديلة (أساس اقتراحات الستوري بورد قبل اعتماد أسلوب الحلقة). */
 const styleDemos = { silhouette: SilhouetteDemo, "flat-modern": FlatModernDemo, "paper-cut": PaperCutDemo, isometric: IsometricDemo } as const;
@@ -148,6 +149,8 @@ export const RemotionRoot: React.FC = () => (
         <Composition key={`style-${id}`} id={`style-${id}`} component={C} durationInFrames={9 * config.video.fps} fps={config.video.fps} {...sizes.landscape} />
       ))}
     <Still id="thumbnail-en" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "Why do we put off what matters?", highlight: "what matters?", element: "hourglass-patience", lang: "en" }} />
+    {/* D243: عنوان الشورت المقصوص من النسخة العمودية (PNG شفاف يركّبه القص أول ثلاث ثوانٍ) */}
+    <Still id="short-title" component={ShortTitleStill} {...sizes.portrait} defaultProps={{ text: "متى بدأت قصة الإنسان على الأرض؟" }} />
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
     {/* نسخة المراجعة البصرية (الأمر 014): بملء الإطار، بلا صوت، ولا تُنشر */}
     <Composition id="review-014-landscape" component={ReviewReel014} durationInFrames={review014Frames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "landscape" as const }} />

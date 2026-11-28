@@ -35,7 +35,7 @@ import { assertCommitMatchesWorkingTree } from "./macSide";
 import { buildCutJob, buildJoinJob, buildMasterJob, buildSceneJob, buildVerticalJob, enqueue, fullEpisodeInputs, verifyV2Output, type Base } from "./macJobs";
 import {
   doneVideoName, planSha256, queuePaths, readProgress, seamsName, sha256File, validateJobV2, writeJsonAtomic,
-  type WorkerJobV2, type WorkerResult,
+  type CutSpec, type WorkerJobV2, type WorkerResult,
 } from "./protocol";
 import type { JoinedRecord } from "../../studio/assembleScenes";
 import type { Plan } from "../../plan/types";
@@ -311,13 +311,31 @@ export const submitVerticalShorts = async (ep: string, share: string, o: { only?
   const sent: string[] = [], existing: string[] = [];
   for (const seg of segments) {
     const ranges = cutRangesFor(spans, seg);
-    const job = buildCutJob(src.job, src.sha256, seg.n, seg.sceneIds, ranges, ctx.base());
+    const title = await cutTitleFor(ctx.scriptPath, vplan, vmedia, seg);
+    const job = buildCutJob(src.job, src.sha256, seg.n, seg.sceneIds, ranges, ctx.base(), title);
     const fresh = await enqueue(share, job);
     await rememberSentJob(ctx.scriptPath, job);
     (fresh ? sent : existing).push(job.id);
     log(`${fresh ? "أُرسل" : "موجود من قبل"}: الشورت ${seg.n} قصًّا من النسخة العمودية ← ${job.id} (${job.expected.durationSec} ث، ${ranges.length} مقطع)`);
   }
   return { sent, existing, commit: ctx.commit, vertical: src.record.id };
+};
+
+/**
+ * D243 (قرار المالك ٢٨ نوفمبر): عنوان الشورت المقصوص: العنوان القصير (سؤال الشورت أو خطافه من حزمة النشر، shortTitleFor)
+ * أول ثلاث ثوانٍ حتى أول سكون مقصود (shortTitleSeconds على خط الشورت)، بعد فحص الأثر. بلا عنوان أو بسكون في أوله: بلا عنوان.
+ */
+export const cutTitleFor = async (scriptPath: string, plan: Plan, media: EpisodeMedia, seg: ShortSegment) => {
+  const { shortTitleFor } = await import("../../package/package");
+  const text = (await shortTitleFor(scriptPath, seg))?.replace(/\s+/g, " ").trim();
+  if (!text) return undefined;
+  (await import("../../package/traces")).assertNoTraces([{ name: `عنوان الشورت ${seg.n}`, text }]);
+  const { segmentPlan } = await import("../../plan/shorts");
+  const { intendedStillness } = await import("../stillnessSpans");
+  const { shortTitleSeconds } = await import("./verticalShorts");
+  const sp = segmentPlan(plan, seg);
+  const seconds = shortTitleSeconds(intendedStillness(sp.plan, 0, media, sp.chapter));
+  return seconds ? { text: text.slice(0, 120), seconds } : undefined;
 };
 
 /* ── importing ── */
@@ -381,6 +399,8 @@ export type StudioImportDeps = {
     masterApproved: (ep: string) => Promise<void>;
     current: (ep: string) => Promise<{ plan: Plan; media: EpisodeMedia; introFrames: number }>;
     collect: (ep: string, job: WorkerJobV2, source: string, o: { scriptPath: string; seg: ShortSegment; plan: Plan; media: EpisodeMedia; introFrames: number }) => Promise<{ file: string; sha: string; motion: number } | { refused: string[] }>;
+    /** عنوان الشورت كما يُحسب الآن (cutTitleFor) */
+    title: (ep: string, scriptPath: string, plan: Plan, media: EpisodeMedia, seg: ShortSegment) => Promise<CutSpec["title"]>;
   };
   master: {
     current: (ep: string) => Promise<{ planSha256: string; mediaBase: string; gain: Record<string, number> }>;
@@ -430,6 +450,7 @@ export const defaultStudioImportDeps = (): StudioImportDeps => ({
       return { plan: x.plan, media: x.media, introFrames: introFramesFor(channelInfo(loadChannel()), x.plan) };
     },
     collect: (ep, job, source, o) => collectCutShort(ep, job, source, o),
+    title: (_ep, scriptPath, plan, media, seg) => cutTitleFor(scriptPath, plan, media, seg),
   },
   master: {
     current: async (ep) => {
@@ -608,6 +629,9 @@ export const importStudioJobs = async (ep: string, share: string, o: { log?: (m:
         if (!seg) reasons.push(`الشورت ${job.n} لم يعد في الخطة.`);
         else {
           if (seg.sceneIds.join() !== c.sceneIds.join()) reasons.push(`تغيّرت مشاهد الشورت ${job.n} بعد الإرسال؛ أعد الإرسال.`);
+          try {
+            if (JSON.stringify(await cutDeps.title(ep, scriptPath, cur.plan, cur.media, seg) ?? null) !== JSON.stringify(c.title ?? null)) reasons.push(`تغيّر عنوان الشورت ${job.n} بعد الإرسال؛ أعد الإرسال.`);
+          } catch (e) { reasons.push((e as Error).message); }
           if (seg.state) reasons.push(`الشورت ${job.n} ${seg.state === "published" ? "منشور" : "ملغى"}؛ لا يُعاد قصه.`);
           const { verticalSceneSpans, cutRangesFor } = await import("./verticalShorts");
           try {
