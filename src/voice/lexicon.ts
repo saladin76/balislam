@@ -35,11 +35,20 @@ export const lexiconFileFor = (channel?: string) => path.join(channelPaths(chann
 export const coreOf = (w: string) => w.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, "");
 const QURAN_MARK = /[﴿﴾]/;
 
-export const loadLexicon = async (channel?: string): Promise<LexiconDoc> => {
+/** قاموس القناة وحده (للكتابة عليه: لا يُحفظ القاموس الثابت في ملف القناة) */
+const loadChannelLexicon = async (channel?: string): Promise<LexiconDoc> => {
   const d = await readJson<LexiconDoc>(lexiconFileFor(channel));
   if (!d || !Array.isArray(d.entries)) return { entries: [] };
-  return { ...d, entries: d.entries.filter((e) => e && typeof e.word === "string" && typeof e.say === "string" && e.word && e.say)
-    .map((e) => (e.match !== undefined && e.match !== "exact" && e.match !== "letters" ? { ...e, match: undefined } : e)) };
+  return { ...d, entries: d.entries.filter((e) => e && typeof e.word === "string" && typeof e.say === "string" && e.word && e.say) };
+};
+export const loadLexicon = async (channel?: string): Promise<LexiconDoc> => {
+  const d = await readJson<LexiconDoc>(lexiconFileFor(channel));
+  const own = !d || !Array.isArray(d.entries) ? [] : d.entries.filter((e) => e && typeof e.word === "string" && typeof e.say === "string" && e.word && e.say)
+    .map((e) => (e.match !== undefined && e.match !== "exact" && e.match !== "letters" ? { ...e, match: undefined } : e));
+  // D254: القاموس الثابت للقنوات الثلاث (pronunciation/قاموس-النطق.md) بعد قاموس القناة (قاموس القناة يغلب في الكلمة نفسها)
+  const { loadSharedLexicon } = await import("./pronunciationExchange");
+  const shared = (await loadSharedLexicon(path.resolve(channelPaths(channel).dir, "..", ".."))).filter((e) => !own.some((o) => o.word === e.word));
+  return { ...(d ?? {}), entries: [...own, ...shared] };
 };
 
 const writeAtomic = async (file: string, text: string) => {
@@ -82,7 +91,7 @@ export const setLexiconEntry = async (word: string, say: string, note?: string, 
   if (bad) throw new Error(bad);
   if (isNoopSay(word, say)) throw new Error(NOOP_SAY);
   if (match !== undefined && match !== "exact" && match !== "letters") throw new Error("نوع المطابقة غير معروف.");
-  const doc = await loadLexicon(channel);
+  const doc = await loadChannelLexicon(channel);
   const w = coreOf(word.trim());
   const keep = doc.entries.find((e) => e.word === w)?.match;
   const m = match ?? keep;
@@ -94,7 +103,7 @@ export const setLexiconEntry = async (word: string, say: string, note?: string, 
   return next;
 };
 export const removeLexiconEntry = async (word: string, channel?: string): Promise<LexiconDoc> => {
-  const doc = await loadLexicon(channel);
+  const doc = await loadChannelLexicon(channel);
   const w = coreOf(word.trim());
   if (!doc.entries.some((e) => e.word === w)) throw new Error("الكلمة غير موجودة في قاموس النطق؛ حدّث الصفحة.");
   const next = { ...doc, entries: doc.entries.filter((e) => e.word !== w) };

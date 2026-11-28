@@ -62,7 +62,16 @@ export const handleStockRoutes = async (ctx: RouteCtx): Promise<boolean> => {
       if (refused) return send(res, 403, { error: refused }), true;
       const notYet = await channelMod.runWithChannel(target, () => store.draftApprovalRefusal(target, num));
       if (notYet) return send(res, 409, { error: notYet }), true;
-      return send(res, 200, { ok: true, ...(await channelMod.runWithChannel(target, () => store.approveDraftScript(target, num))) }), true;
+      const approved = await channelMod.runWithChannel(target, () => store.approveDraftScript(target, num));
+      // D254: بعد الاعتماد يُكتب طلب النطق للمدقق الخارجي ويُفتح للمالك؛ فشله لا يمس الاعتماد
+      if (!process.env.VITEST) void channelMod.runWithChannel(target, async () => {
+        const { writePronRequest } = await import("../../../src/voice/pronunciationRequestFile.ts");
+        const w = await writePronRequest(target, num);
+        const { execFile } = await import("node:child_process");
+        execFile("open", [w.file], () => {});
+        execFile("osascript", ["-e", `display notification "طلب النطق جاهز: ${num}" with title "الاستوديو" subtitle "مطلوب منك"`], () => {});
+      }).catch((e: Error) => console.error("[studio] pron request:", e.message));
+      return send(res, 200, { ok: true, ...approved }), true;
     }
     return send(res, 405, { error: "طلب غير مدعوم." }), true;
   } catch (e) { return fail(e); }

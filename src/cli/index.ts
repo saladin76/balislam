@@ -322,6 +322,40 @@ program
   });
 
 // العمل ٩: فحص النطق المحلي (src/voice/pronunciation/). القياس قبل التفعيل؛ التثبيت والتفعيل بزر المالك في الاستوديو.
+program
+  .command("pron-request")
+  .description("D254: ملف طلب تدقيق النطق للمدقق الخارجي (للمراجعة/النطق/طلب-<القناة>-<الحلقة>.md): جملة في كل سطر بلا آيات، وكلمات القاموس")
+  .argument("<episode>", "رقم الحلقة")
+  .action(async (episode: string) => {
+    const { currentChannelId } = await import("../channel");
+    const { writePronRequest } = await import("../voice/pronunciationRequestFile");
+    const w = await writePronRequest(currentChannelId(), episode);
+    console.log(`كُتب ${w.file} (${w.count} جملة).`);
+  });
+
+program
+  .command("pron-import")
+  .description("D254: يستورد رد مدقق النطق بعد الفحوص (المعرّفات والعدد والحروف)؛ عند النجاح يصير tashkeel.md للحلقة ويُضاف للقاموس الثابت، وعند الفشل رسالة جاهزة للمدقق")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--file <path>", "ملف الرد (الافتراضي للمراجعة/النطق/رد-<القناة>-<الحلقة>.md)")
+  .action(async (episode: string, opts: { file?: string }) => {
+    const { importReply } = await import("../voice/pronunciationExchange");
+    const { pronRowsFor, pronDir } = await import("../voice/pronunciationRequestFile");
+    const { currentChannelId } = await import("../channel");
+    const { writeFile } = await import("node:fs/promises");
+    const r = { ...(await pronRowsFor(episode)), channel: currentChannelId() };
+    const file = opts.file ?? path.join(pronDir(), `رد-${r.channel}-${episode}.md`);
+    const res = await importReply({ root: projectRoot, channel: r.channel, episode, scriptPath: r.scriptPath, req: r.rows, replyMd: await readFile(file, "utf8") });
+    if (!res.ok) {
+      const out = path.join(pronDir(), `رد-مرفوض-${r.channel}-${episode}.md`);
+      await writeFile(out, res.message);
+      console.error(`رُفض الرد. الرسالة الجاهزة للمدقق: ${out}`);
+      process.exitCode = 1;
+      return;
+    }
+    console.log(`قُبل الرد: ${res.tashkeel} صار تشكيل الصوت المعتمد للحلقة، وأُضيف ${res.added} مدخلًا جديدًا إلى القاموس الثابت.`);
+  });
+
 const pronCmd = program
   .command("pron-check")
   .description("فحص النطق المحلي (faster-whisper على هذا الجهاز، بلا رفع للصوت): الحالة، وقياس الإنذار الكاذب، وفحص حلقة");
