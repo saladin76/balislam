@@ -353,7 +353,10 @@ const LongScroll = reverent((q) => {
   const tab = k.on(0, "الكتاب");
   const rule = k.draw(1, "وقاعدتنا", 0.9);
   const a = k.draw(1, "نصدقهم", 0.9), b = k.draw(1, "نكذبهم", 0.9);
-  const ref = S >= 1 ? k.on(1, "نكذبهم", 0.8) : 0;
+  // D242 (c2-s20 الحركة ٨٨٪، الحد ٩٥٪): مرجع القاعدة يظهر على «علّمنا» (مصدر التعليم لحظة ذكره) لا مع «نكذّبهم»، فيملأ
+  // فجوة «فيها ما علّمنا النبي» بحدث من معناها؛ وسطر تحته يُمدّ على «النبي» (الحدث يتأخر آليًا عن نافذة لفظ الجلالة بعدها)
+  const ref = S >= 1 ? k.on(1, "علمنا", 0.8) : 0;
+  const refLine = S >= 1 ? k.draw(1, "النبي", 0.7) : 0;
   const fold2 = k.on(2, "الأعمار", 0.8);
   const seal = k.on(2, "الأسماء");
   const half = k.on(2, "شيئا", 0.9);
@@ -375,6 +378,7 @@ const LongScroll = reverent((q) => {
         <path d="M1365 270 V340" stroke={C.inkSoft} strokeWidth={3} opacity={b} />
         <Write id="b3ls-b" x={1205} y={310} size={42} p={b} label="ولا نكذّبهم" />
         <Txt x={1365} y={400} size={28} q={ref} color={C.inkSoft}>البخاري ٤٤٨٥</Txt>
+        <Ink d="M1460 420 H1270" w={3} p={refLine} c={C.gold} />
       </g>} />
   );
 });

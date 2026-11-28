@@ -1,5 +1,6 @@
 import { planOrder, sceneNames } from "../i18n/sceneNames";
 import { assertTemplatesApproved } from "../plan/templateApproval";
+import { assertNoSilentQuoteScenes } from "../plan/silentQuotes";
 import { assertEditorPassed, scriptPathFromRenderMedia } from "../studio/scriptPipelineStore";
 import { consumeMacRenderPermit } from "./macRenderPermit";
 import type { ChannelConfig } from "../channel/types";
@@ -267,6 +268,8 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   const { plan, media } = o;
   // D228: لا يُرندر مشهد بقالب أو لقطة غير معتمدة من المالك (ستوري بورد ← اختيار النموذج ← اعتماده)
   assertTemplatesApproved(plan);
+  // D242: ولا مشهد آية أو حديث صامت في «دفاتر الزمن»
+  assertNoSilentQuoteScenes(plan);
   // D234: ولا رندر لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الحلقة من وصف وسائطها؛ على الماك وعلى العامل بالـcommit نفسه)
   const editorScript = scriptPathFromRenderMedia(media.base);
   if (!editorScript) throw new Error("وسائط الرندر لا تسمّي حلقتها؛ لا يُعرف سكريبتها لفحص المحرر (D234).");

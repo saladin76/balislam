@@ -107,14 +107,32 @@ export const parseItems = (v?: string) =>
       return { anchor: anchor.replace(/^[?؟]/, ""), text, uncertain };
     });
 
+/**
+ * D242: سطر أو سطران «lead» يكتبهما الكاتب بالحبر لحظة نطق كلماتهما (lib-term على الصفحة اليسرى، lib-gloss أعلى اليمنى)،
+ * بكلمات الجملة نفسها: «نُسب إلى آدم / شعرٌ في رثاء ابنه» ومراسيها «ونسب / شعر» (الفاصل / أو |) (وبلا مرسى: أول كلمة في السطر).
+ * اختياري؛ بلا lead لا يتغير المشهد.
+ */
+export const leadLines = (p: Record<string, string | undefined>): { text: string; anchor: string }[] => {
+  const lines = (p.lead ?? "").split(/[|/]/).map((x) => x.trim()).filter(Boolean);
+  const anchors = (p.leadWord ?? "").split(/[|/]/).map((x) => x.trim());
+  return lines.map((text, i) => ({ text, anchor: anchors[i] || firstWord(text) }));
+};
+const leadAnchors = (p: Record<string, string | undefined>) => leadLines(p).map((l) => l.anchor);
+const leadTimes = (q: ReturnType<typeof cues>, p: Record<string, string | undefined>, t: number) =>
+  leadLines(p).map((l) => {
+    const len = Math.min(1.4, 0.4 + 0.07 * letterCount(l.text));
+    const a = q.safe(q.at(l.anchor, 0.4) - 0.05, len);
+    return { ...l, a, len, p: prog(t, a, a + len) };
+  });
+
 /** كل المراسي التي تطلبها حقول مشهد مكتبة (لفحص الخطة) */
 export const libAnchors = (shot: string, p: Record<string, string | undefined>): string[] => {
   const f = (k: string) => (p[k] ? [p[k]!] : []);
   switch (shot) {
     case "lib-term":
-      return [p.termWord || firstWord(p.term), ...f("subWord"), ...f("sourceWord"), ...f("noteWord")].filter(Boolean);
+      return [...leadAnchors(p), p.termWord || firstWord(p.term), ...f("subWord"), ...f("sourceWord"), ...f("noteWord")].filter(Boolean);
     case "lib-gloss":
-      return [...f("matnWord"), ...f("tafsirWord"), ...f("noteWord")];
+      return [...leadAnchors(p), ...f("matnWord"), ...f("tafsirWord"), ...f("noteWord"), ...f("refWord"), ...f("refSubWord")];
     case "lib-compare":
       return [...(p.title ? [p.titleWord || firstWord(p.title)] : []), ...f("aWord"), ...f("bWord"), ...f("verdictWord")];
     case "verse-tag":
@@ -390,7 +408,10 @@ const Term: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   const badge = p.kind ? pop(t, q.safe(q.at(p.sourceWord, tA + len + 0.2), 0.5)) : 0;
   const nA = p.note ? q.safe(q.at(p.noteWord || firstWord(p.note), Math.max(sA, tA) + 1.2) - 0.05, 0.6) : Infinity;
   const noteBox = prog(t, nA, nA + 0.6);
+  // D242: سطور lead على الصفحة اليسرى قبل المصطلح (الكاميرا إليها ثم إلى المصطلح)
+  const leads = leadTimes(q, p, t);
   const cam = q.cam(t, { cx: 1365, cy: 520, s: 1.04 }, [
+    ...(leads.length ? [{ a: leads[0]!.a - 0.25, b: leads[0]!.a + 0.8, cx: 600, cy: 480, s: 1.12 }] : []),
     { a: tA - 0.25, b: tA + len, cx: 1365, cy: 470, s: 1.2 },
     ...(Number.isFinite(sA) ? [{ a: sA - 0.2, b: sA + 0.6, cx: 1365, cy: 540, s: 1.06 }] : []),
     ...(Number.isFinite(nA) ? [{ a: nA - 0.3, b: nA + 0.6, cx: 960, cy: 520, s: 1 }] : []),
@@ -410,7 +431,8 @@ const Term: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
       <Flow now={t} items={wordTimes(p.note, tl, nA + 0.1)} style={{ position: "relative", marginTop: 8, fontFamily: Amiri, fontWeight: 700, fontSize: 44, color: C.inkSoft, textAlign: "right" }} />
     </div>
   ) : null;
-  return <Book id="lt" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} htmlR={htmlR} htmlL={htmlL} />;
+  const L = leads.length ? <g>{leads.map((l, i) => <WriteIn key={i} id={`ltl${i}`} x={560} y={430 + i * 120} size={60} p={l.p} label={l.text} color={C.inkSoft} />)}</g> : undefined;
+  return <Book id="lt" t={t} dur={dur} exit={exit} from={from} cam={cam} R={R} L={L} htmlR={htmlR} htmlL={htmlL} />;
 };
 
 // ───────────────────────── متن وحاشية وتعليق ─────────────────────────
@@ -425,6 +447,12 @@ const Gloss: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   const tA = p.tafsir ? q.safe(q.at(p.tafsirWord || firstWord(p.tafsir), mA + 1.6) - 0.1, 0.6) : Infinity;
   const nA = p.note ? q.safe(q.at(p.noteWord || firstWord(p.note), Math.min(tA, 99) + 2) - 0.1, 0.6) : Infinity;
   const matn = prog(t, mA, mA + 0.6, easeOut);
+  // D242: سطر المرجع وسطر «من القرآن الكريم» عند كلمتيهما إن سُمّيتا (refWord/refSubWord)، وسطر lead أعلى الصفحة اليمنى
+  const rA = p.refWord ? q.safe(q.at(p.refWord, mA + 0.6), 0.5) : mA;
+  const rsA = p.refSubWord ? q.safe(q.at(p.refSubWord, mA + 0.6), 0.5) : mA;
+  const oRef = p.refWord ? prog(t, rA, rA + 0.5, easeOut) : undefined;
+  const oSub = p.refSubWord ? prog(t, rsA, rsA + 0.5, easeOut) : undefined;
+  const leads = leadTimes(q, p, t);
   const card = prog(t, tA, tA + 0.6, easeOut);
   const note = prog(t, nA, nA + 0.6, easeOut);
   const cam = q.cam(t, { cx: 1365, cy: 500, s: 1.08 }, [
@@ -435,7 +463,8 @@ const Gloss: React.FC<ShotProps> = ({ t, tl, dur, exit, from, p }) => {
   const R = (
     <g>
       <Head p={p} />
-      {p.ref ? <VerseRefPanel refText={p.ref} o={matn} /> : null}
+      {leads.map((l, i) => <WriteIn key={i} id={`lgl${i}`} x={1365} y={250 - i * 70} size={54} p={l.p} label={l.text} color={C.inkSoft} />)}
+      {p.ref ? <VerseRefPanel refText={p.ref} o={matn} oRef={oRef} oSub={oSub} /> : null}
       {!p.ref && p.matn ? <Ink d="M1690 300 H1040 V620 H1690 Z" w={3.5} p={matn} c={C.ink} /> : null}
     </g>
   );

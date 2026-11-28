@@ -218,12 +218,35 @@ program
       const scenes = r.plan.chapters.flatMap((c) => c.scenes);
       const count = (t: string) => scenes.filter((s) => s.template === t).length;
       console.log(`الخطة من scenes.md: ${scenes.length} مشهدًا — horizon-shot ${count("horizon-shot")}، بطاقة آية ${count("verse-card")}، بطاقة حديث ${count("hadith-card")}.`);
+      if (r.report.attached.length) console.log(`D242 — الآيات والأحاديث داخل اللقطات: ${r.report.attached.map((a) => `${a.card}←${a.to}`).join("، ")}`);
       if (r.report.wordsOnly.length) console.log(`بالكلمات وحدها (لقطة pending): ${r.report.wordsOnly.join("، ")}`);
       if (r.report.unusedRows.length) console.log(`صفوف في scenes.md بلا نص في السكريبت (لا تدخل الخطة): ${r.report.unusedRows.join("، ")}`);
       if (r.droppedShorts > 0) console.log(`شورتس في الخطة القديمة لم يعد لها مشهد (لم تُنقل): ${r.droppedShorts}`);
       if (r.problems.length) { console.log(`مشكلات (${r.problems.length}):\n${r.problems.map((p) => `- ${p}`).join("\n")}`); process.exitCode = 1; }
       if (r.written) console.log(`كُتبت: ${path.relative(projectRoot, r.file)}${r.backup ? ` (نسخة احتياطية: ${path.basename(r.backup)})` : ""}${r.seriesLinkWritten ? "، وملف انتماء السلسلة series.json" : ""}`);
       else if (!opts.write) console.log("عرض فقط؛ للكتابة: --write");
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("inline-quotes")
+  .description("دفاتر الزمن (D242): كل بطاقة آية/حديث صامتة في plan.json تُلحق بلقطة «خط الأفق» المجاورة كما في 001 (النص على الصفحة والراوي مستمر)، بلا تغيير كلمة ولا حقل للمالك. عرض فقط إلا بـ --write")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--write", "اكتب plan.json (نسخة احتياطية أولًا)")
+  .action(async (episode: string, opts: { write?: boolean }) => {
+    const { inlineQuotesFile } = await import("../plan/fromScenesFile");
+    try {
+      const r = await inlineQuotesFile(episode, { write: opts.write === true });
+      if (!r.attached.length && !r.unattached.length) { console.log("لا بطاقة آية أو حديث صامتة في الخطة؛ لا شيء يتغير."); return; }
+      for (const a of r.attached) console.log(`${a.card} (${a.kind === "verse" ? "آية" : "حديث"} ${a.ref}) ← ${a.to} (${a.side === "prev" ? "السابقة" : "التالية"}، ${a.words} كلمة)`);
+      for (const u of r.unattached) console.log(`لم تُلحق: ${u.card} — ${u.reason}`);
+      console.log(`المشاهد المحذوفة: ${r.removed.join("، ") || "—"}؛ نص كل مشهد باقٍ كما كان (لا صوت جديد).`);
+      if (r.written) console.log(`كُتبت: ${path.relative(projectRoot, r.file)}${r.backup ? ` (نسخة احتياطية: ${path.basename(r.backup)})` : ""}`);
+      else if (!opts.write) console.log("عرض فقط؛ للكتابة: --write");
+      if (r.unattached.length) process.exitCode = 1;
     } catch (e) {
       console.error((e as Error).message);
       process.exitCode = 1;
