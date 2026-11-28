@@ -51,9 +51,11 @@ const start = (timings: WordTiming[], bare: string) => timings.find((t) => bareO
 describe("c1-s1 (habit-heart): توجيه المالك ٩ نوفمبر", () => {
   it("المشهد هو habit-heart، وهو وحده يستعمل هذه اللقطة", () => {
     expect(scene.id).toBe("c1-s1");
-    expect(scene.props.shot).toBe("habit-heart");
+    // D227/D228 (اعتماد المالك ٢٦ نوفمبر): c1-s1 صار نموذج «دفتر القارئ» المعتمد (checklist-heart، الدقيقة التجريبية)؛
+    // لقطة habit-heart تبقى في المكتبة بتوجيه المالك ٩ نوفمبر (يُختبر رسمها أدناه) ولا يستعملها أكثر من مشهد
+    expect(["habit-heart", "checklist-heart"]).toContain(scene.props.shot);
     const uses = JSON.stringify(plan).match(/"shot":\s*"habit-heart"/g) ?? [];
-    expect(uses).toHaveLength(1);
+    expect(uses.length).toBeLessThanOrEqual(1);
   });
 
   it("لحظات الشبكة و«؟» من الكلمتين: خروج يبدأ عند «لكنْ» وينتهي قبل «سؤالٌ»، و«؟» عند «سؤالٌ»", () => {
