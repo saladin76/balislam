@@ -23,7 +23,7 @@ import type { Plan } from "../src/plan/types";
 const DIR = "channels/dafatir-alzaman/episodes";
 const EPS = ["002", "004", "006", "008"];
 /** لقطات بانتظار التصميم بأمر المالك (فقرتا محرر 006، الدفعة ٢١): «بالكلمات وحدها» حتى تُصمَّم؛ لا تدخل نسخة نهائية */
-const PENDING: Record<string, string[]> = { "006": ["c1-s19a", "c1-s19b", "c1-s28a"] };
+const PENDING: Record<string, string[]> = { "006": ["c1-s19a", "c1-s28a"] };
 const dirOf = (e: string) => path.join(DIR, readdirSync(DIR).find((d) => d.startsWith(`${e}-`))!);
 const channel = loadChannel("dafatir-alzaman");
 const build = (e: string) => {
