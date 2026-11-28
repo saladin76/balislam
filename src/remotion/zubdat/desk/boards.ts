@@ -25,7 +25,8 @@ export type DeskBoard = {
 
 /** نص آية طه ١٤ كما ثبّته المالك في سكريبت 001 حرفًا (tests/zubdat-desk-storyboard.test.ts يطابقه بالسكريبت) */
 export const TAHA_14 = "إِنَّنِىٓ أَنَا ٱللَّهُ لَآ إِلَـٰهَ إِلَّآ أَنَا۠ فَٱعْبُدْنِى وَأَقِمِ ٱلصَّلَوٰةَ لِذِكْرِىٓ";
-export const TAHA_14_REF = "طه · ١٤";
+/** رقم الآية تحت نصها (اسم السورة في رأس البطاقة)؛ لا «·» بجوار الأرقام فتُقرأ صفرًا */
+export const TAHA_14_REF = "الآية ١٤";
 
 const id = (scene: number, v: DeskVariant) => `storyboard-zubdat-desk-s${scene}-${v}`;
 const b = (scene: number, sceneId: string, variant: DeskVariant, title: string, motion: string, why: string): DeskBoard =>

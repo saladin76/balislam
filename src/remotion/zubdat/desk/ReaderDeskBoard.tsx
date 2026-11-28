@@ -138,8 +138,8 @@ const Sun: React.FC<{ id: string; x0: number; y0: number; x1: number; y1: number
   const band = (x: number, w: number) => `${x},${y0} ${x + w},${y0} ${x + w - slope},${y1} ${x - slope},${y1}`;
   return (
     <g style={{ mixBlendMode: "screen" }} filter={`url(#${id}-soft)`}>
-      <polygon points={band(x0 + (x1 - x0) * 0.58, 300)} fill="rgba(255,236,196,0.42)" />
-      <polygon points={band(x0 + (x1 - x0) * 0.58 + 390, 170)} fill="rgba(255,236,196,0.34)" />
+      <polygon points={band(x0 + (x1 - x0) * 0.58, 300)} fill="rgba(255,236,196,0.36)" />
+      <polygon points={band(x0 + (x1 - x0) * 0.58 + 390, 170)} fill="rgba(255,236,196,0.28)" />
     </g>
   );
 };
@@ -329,6 +329,8 @@ type SceneDef = {
   page: (c: Ctx) => React.ReactNode;
   /** موضع رأس القلم لحظة الذروة (محلي في الدفتر)، أو null بلا يد. عند الهامش الأيمن أو في سطر فارغ: لا تغطي اليد كتابة */
   pen: Pen;
+  /** موضع القلم في اللقطة القريبة (ج) إن اختلف، فلا تدخل اليد نطاق الترجمة */
+  penC?: Pen;
   props: "calendar" | "book" | "bookBracket" | "clock" | "papers" | "verse";
   caption: string;
   /** مركز اللقطة القريبة (محلي في الدفتر) */
@@ -364,7 +366,7 @@ const SCENES: Record<number, SceneDef> = {
       return (
         <g>
           <Row x={L} y={170} size={48} segs={[{ t: "نقرأ…" }, { t: "والذهن في مكان آخر", c: DK.grey }]} />
-          {[{ t: "مواعيد", x: L - 40, y: 250, r: -7, c: DK.note[0] }, { t: "هموم", x: L - 200, y: 300, r: 5, c: DK.note[2] }, { t: "رسائل", x: L - 360, y: 240, r: -3, c: DK.note[1] }].map((n) => (
+          {[{ t: "مواعيد", x: L - 150, y: 200, r: -7, c: DK.note[0] }, { t: "هموم", x: L - 290, y: 245, r: 5, c: DK.note[2] }, { t: "رسائل", x: L - 410, y: 195, r: -3, c: DK.note[1] }].map((n) => (
             <g key={n.t} transform={`translate(${n.x} ${n.y}) rotate(${n.r})`}>
               <rect x={-150} y={-56} width={150} height={112} rx={4} fill={n.c} stroke="#DADAD3" strokeWidth={2} />
               <text x={-14} y={10} direction="rtl" textAnchor="start" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 36, fill: DK.ink }}>{n.t}</text>
@@ -376,6 +378,7 @@ const SCENES: Record<number, SceneDef> = {
       );
     },
     pen: { x: 1112, y: 640, tool: "marker" },
+    penC: { x: 1112, y: 420, tool: "marker" },
     props: "calendar",
     caption: "بل عن قلب أكثر انتباها",
     focus: { x: 880, y: 420 },
@@ -397,7 +400,6 @@ const SCENES: Record<number, SceneDef> = {
           <Row x={R} y={470} size={50} c={DK.red} segs={[{ t: "كيف نهيئ" }, { t: "قلوبنا؟", hl: true }]} />
           <path d={`M${st[0]!.x - 26} ${y} Q ${(st[0]!.x + st[1]!.x) / 2} ${y - 70} ${st[1]!.x + 26} ${y} M${st[1]!.x - 26} ${y} Q ${(st[1]!.x + st[2]!.x) / 2} ${y - 70} ${st[2]!.x + 26} ${y}`}
             stroke={DK.blue} strokeWidth={5} fill="none" strokeDasharray="16 14" strokeLinecap="round" />
-          <path d={`M${st[2]!.x + 40} ${y - 44} l-18 14 l20 10`} stroke={DK.blue} strokeWidth={5} fill="none" strokeLinecap="round" strokeLinejoin="round" />
           {st.map((s, i) => (
             <g key={s.t}>
               <circle cx={s.x} cy={y} r={20} fill={i === 0 ? DK.red : DK.paper} stroke={i === 0 ? DK.red : DK.blue} strokeWidth={5} />
@@ -407,15 +409,16 @@ const SCENES: Record<number, SceneDef> = {
           <g transform={`translate(${st[0]!.x} ${y - 112})`}>
             <path d="M0 60 C -30 20 -30 -10 0 -10 C 30 -10 30 20 0 60 Z" fill={DK.red} />
             <circle cx={0} cy={8} r={9} fill={DK.paper} />
-            <text x={-40} y={18} direction="rtl" textAnchor="start" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 34, fill: DK.red }}>نحن هنا</text>
+            <text x={26} y={18} direction="rtl" textAnchor="end" style={{ fontFamily: HAND, fontWeight: 700, fontSize: 30, fill: DK.red }}>نحن هنا</text>
           </g>
         </g>
       );
     },
     pen: { x: 1112, y: 600, tool: "red" },
+    penC: { x: 1112, y: 470, tool: "red" },
     props: "book",
     caption: "سنبدأ مما يسبقهما: كيف نهيئ قلوبنا؟",
-    focus: { x: 880, y: 340 },
+    focus: { x: 880, y: 360 },
   },
   4: {
     page: ({ w }) => {
@@ -477,6 +480,7 @@ const SCENES: Record<number, SceneDef> = {
       );
     },
     pen: { x: 1112, y: 660, tool: "red" },
+    penC: { x: 1112, y: 400, tool: "red" },
     props: "clock",
     caption: "فالعبادة ليست مهمة نعبرها على عجل",
     focus: { x: 880, y: 380 },
@@ -486,7 +490,7 @@ const SCENES: Record<number, SceneDef> = {
       const R = w - 110, L = w / 2 - 90;
       return (
         <g>
-          {["تقرير", "رسائل", "اجتماع"].map((t, i) => <Row key={t} x={L - 150} y={150 + i * 60} size={42} c={DK.grey} segs={[{ t: `• ${t}` }]} />)}
+          {["تقرير", "رسائل", "اجتماع"].map((t, i) => <Row key={t} x={L - 150} y={150 + i * 60} size={42} c={DK.grey} segs={[{ t }]} />)}
           <path d="M0 0 L0 470 L520 0 Z" fill="#F1EEE6" opacity={0.82} stroke={DK.paperEdge} strokeWidth={2} />
           <path d="M0 470 L520 0 L470 450 Z" fill="#E3DED2" opacity={0.78} stroke={DK.paperEdge} strokeWidth={2} />
           <Row x={R} y={220} size={56} c={DK.ink} segs={[{ t: "التهيؤ", hl: true }]} />
@@ -557,6 +561,7 @@ const World: React.FC<{ scene: number; v: DeskVariant; id: string; layer: "all" 
   const far = v === "b";
   const showFar = layer !== "near", showNear = layer !== "far";
   const verse = def.props === "verse";
+  const pen = v === "c" ? (def.penC ?? def.pen) : def.pen;
   return (
     <g>
       {showFar && <Desk seed={20261128} x0={L.desk[0]} y0={L.desk[1]} x1={L.desk[2]} y1={L.desk[3]} />}
@@ -568,7 +573,7 @@ const World: React.FC<{ scene: number; v: DeskVariant; id: string; layer: "all" 
           {verse && v === "b" && <VerseCard x={nb.x + 120} y={nb.y + 40} w={640} h={420} rot={-4} id={id} />}
           {/* القلم بعيد عن البطاقة (توقير): على المكتب في (أ)، وعلى طرف الصفحة البعيد في (ب) */}
           {verse && (v === "b" ? <LyingPen x={nb.x + nb.w - 60} y={nb.y + 140} rot={112} id={id} /> : <LyingPen x={120} y={720} rot={-8} id={id} />)}
-          {def.pen && <WritingHand x={nb.x + def.pen.x * (nb.w / 1180)} y={nb.y + def.pen.y * (nb.h / 720)} tool={def.pen.tool} id={id} edge={L.edge} />}
+          {pen && <WritingHand x={nb.x + pen.x * (nb.w / 1180)} y={nb.y + pen.y * (nb.h / 720)} tool={pen.tool} id={id} edge={L.edge} />}
         </>
       )}
       {showNear && <Sun id={id} x0={L.desk[0]} y0={L.desk[1]} x1={L.desk[2]} y1={L.desk[3]} />}
