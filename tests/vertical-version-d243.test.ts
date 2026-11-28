@@ -14,7 +14,7 @@ import { recordPreviewProvenance } from "../src/render/worker/provenance";
 import { QUALITY, isPublishQuality } from "../src/render/quality";
 import type { VideoProbe } from "../src/render/worker/probe";
 
-// D242: every episode gets a full vertical version (1080×1920, composed for vertical), rendered on Windows after every scene
+// D243: every episode gets a full vertical version (1080×1920, composed for vertical), rendered on Windows after every scene
 // is approved, behind the Master in the queue; every short is a cut of it (D241 kept); it is deleted after the shorts are published.
 const owned: string[] = [];
 afterEach(async () => { for (const d of owned.splice(0)) await rm(d, { recursive: true, force: true }); });
@@ -45,7 +45,7 @@ const cutJob = (over: Record<string, unknown> = {}) => base({
   expected: { durationSec: 20, width: 1080, height: 1920 }, ...over,
 });
 
-describe("D242: the vertical quality and the job kinds", () => {
+describe("D243: the vertical quality and the job kinds", () => {
   it("vertical = Master's encoder settings (crf 14, slow, AAC 320k) at 1080×1920, normalised like everything published", () => {
     expect(QUALITY.vertical).toMatchObject({ scale: 1, crf: QUALITY.master.crf, x264Preset: "slow", audioBitrate: "320k" });
     expect(sizeFor("vertical", "portrait")).toEqual({ width: 1080, height: 1920 });
@@ -104,7 +104,7 @@ describe("D242: the vertical quality and the job kinds", () => {
   });
 });
 
-describe("D242: shorts are frame-exact cuts of the vertical", () => {
+describe("D243: shorts are frame-exact cuts of the vertical", () => {
   // three 10 s scenes; the narration seam overlaps 12 frames between c1-s1 and c1-s2 (computed by hand here)
   const spans: SceneSpan[] = [
     { id: "c1-s1", start: 0, clean: 0, end: 288 },
@@ -167,7 +167,7 @@ const finish = async (share: string, job: WorkerJobV2, bytes: string, worker = "
   return result;
 };
 
-describe("D242: the worker finds the vertical by fingerprint", () => {
+describe("D243: the worker finds the vertical by fingerprint", () => {
   it("resolveCutSource accepts only this episode's studio vertical with the exact bytes", async () => {
     const share = await tmp("bal-share-");
     const v = verticalJob();
@@ -218,7 +218,7 @@ const setup = async () => {
   return { share, epDir, scriptPath, calls, probes, deps, probeFor, setMaster: (v: boolean) => { masterOk = v; } };
 };
 
-describe("D242: the vertical comes back verified like the Master, and only then are shorts cut", () => {
+describe("D243: the vertical comes back verified like the Master, and only then are shorts cut", () => {
   it("import: verified against the job as sent, the current inputs, D233 and every Master gate; stays on the share (no copy)", async () => {
     const t = await setup();
     const v = verticalJob();
@@ -285,7 +285,7 @@ describe("D242: the vertical comes back verified like the Master, and only then 
   });
 });
 
-describe("D242: the gates in source order (like the Master)", () => {
+describe("D243: the gates in source order (like the Master)", () => {
   const body = (f: string, from: string, to?: string) => { const s = src(f); const a = s.indexOf(from); return s.slice(a, to ? s.indexOf(to, a + 1) : undefined); };
   it("worker-submit-vertical: editor, bal make preflight without voice, every Master gate, then the job", () => {
     const b = body("src/render/worker/studioJobs.ts", "export const submitStudioVertical", "export type VerticalSource");

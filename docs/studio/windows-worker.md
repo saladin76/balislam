@@ -142,7 +142,7 @@ npx bal -c dafatir-alzaman worker-collect 002 --share $S
 - **D233:** التجميع وMaster يُرفضان إن كانت قطعة مشهد من الماك؛ أعد رندرها على الويندوز بـ`--scenes`.
 - **العامل** يحتاج commit فيه المرحلة ٢ ليرسل سجل الوصلات (`<id>.seams.json`)؛ وبدونه يُنشر التجميع بلا أوقات وصلاته (تنبيه عند الاستيراد).
 
-## D242: النسخة العمودية الكاملة، ومنها وحدها الشورتس
+## D243: النسخة العمودية الكاملة، ومنها وحدها الشورتس
 
 بعد «اعتمد التجميع» (بوابات Master نفسها؛ لا صوت يُولَّد):
 
@@ -160,7 +160,7 @@ npx bal -c dafatir-alzaman cleanup 002 --share $S --delete             # يحذ�
 - **الأولوية:** الحلقة تأخذ المهام بالأولوية ثم الأقدم: `vertical` و`cut` بعد كل ما سواها، فـMaster المنتظر يسبق العمودية ولو أُرسلت قبله. المهمة الجارية لا تُقاطَع.
 - **القص:** دقيق بالإطار بإعادة ترميز بإعدادات vertical نفسها (crf 14 slow، AAC 320k)، لأن نسخ التيار يقطع عند الإطارات المفتاحية وحدها (كل ~٨ ثوانٍ) فيخالف D241. العامل يجد ملف العمودية ببصمته في `done/` ويعيد فحص D241 قبل القص.
 - **التجربة** (لا تدخل الحزمة ولا السجل): `npx bal -c dafatir-alzaman worker-submit-scenes 002 --scenes c1-s2,c1-s10,c1-s20 --orientation portrait --purpose trial --out <مجلد> --share $S`، ثم `npx bal worker-trial-collect --share $S --out <المجلد نفسه>` (الملفات في `<المجلد>/vertical/`).
-- **مرة واحدة على ويندوز:** الأولوية ومهمة التنظيف الموسّعة في حلقة العامل نفسها، فأعد تشغيله على commit فيه D242: `schtasks /End /TN "bal-render-worker"` ثم `cd /d C:\bal-render && git fetch --depth=50 origin main && git checkout --detach FETCH_HEAD` ثم `schtasks /Run /TN "bal-render-worker"`. نوعا `vertical` و`cut` نفسهما لا يحتاجانها.
+- **مرة واحدة على ويندوز:** الأولوية ومهمة التنظيف الموسّعة في حلقة العامل نفسها، فأعد تشغيله على commit فيه D243: `schtasks /End /TN "bal-render-worker"` ثم `cd /d C:\bal-render && git fetch --depth=50 origin main && git checkout --detach FETCH_HEAD` ثم `schtasks /Run /TN "bal-render-worker"`. نوعا `vertical` و`cut` نفسهما لا يحتاجانها.
 - **الزمن المتوقع:** مهمة واحدة للحلقة كلها (حزمة Remotion واحدة)، فلا يتكرر تجميع الحزمة لكل مشهد كما في قطع المشاهد؛ إطارات 1080×1920 بعدد بكسلات 1920×1080 نفسه، وx264 «slow» أبطأ من «veryfast» في الترميز. التقدير لحلقة ٨ دقائق: ساعة ونصف إلى ساعتين ونصف (يُقاس في أول رندر ويُكتب هنا).
 
 ## مخاطر معروفة

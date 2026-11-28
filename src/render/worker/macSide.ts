@@ -145,9 +145,9 @@ export const publishSnapshot = async (share: string, media: EpisodeMedia, mediaR
 export const workerJobId = (channel: string, episodeFolder: string, n: number, fingerprint: unknown) =>
   `${channel}-${episodeFolder.slice(0, 3)}-short-${n}-${createHash("sha256").update(JSON.stringify(fingerprint)).digest("hex").slice(0, 12)}`;
 
-export const submitWorkerShorts = async (ep: string, share: string, o: { only?: number; log?: (m: string) => void; /** D242: رندر الشورت العمودي منفصلًا موقوف؛ للمهام القديمة وحدها */ legacyD226?: true } = {}) => {
-  // D242: كل الشورتس قصّ من النسخة العمودية الكاملة (studioJobs.submitVerticalShorts)، لا رندر عمودي منفصل لكل شورت
-  if (!o.legacyD226) throw new Error("D242: الشورتس تُقص من النسخة العمودية وحدها: npx bal worker-submit <الحلقة> --shorts (بعد worker-submit-vertical وworker-import).");
+export const submitWorkerShorts = async (ep: string, share: string, o: { only?: number; log?: (m: string) => void; /** D243: رندر الشورت العمودي منفصلًا موقوف؛ للمهام القديمة وحدها */ legacyD226?: true } = {}) => {
+  // D243: كل الشورتس قصّ من النسخة العمودية الكاملة (studioJobs.submitVerticalShorts)، لا رندر عمودي منفصل لكل شورت
+  if (!o.legacyD226) throw new Error("D243: الشورتس تُقص من النسخة العمودية وحدها: npx bal worker-submit <الحلقة> --shorts (بعد worker-submit-vertical وworker-import).");
   const log = o.log ?? (() => {});
   const ctx = await macShortsContext(ep);
   // D234: لا مهمة رندر لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (والعامل يفحصها ثانية في قلب الرندر)
@@ -242,7 +242,7 @@ export type CollectedRecord = { jobId: string; n: number; file: string; workerSh
 
 /** يتحقق من ناتج العامل وما بعده على الماك؛ يعيد أسباب الرفض أو الملف النهائي في out/package. */
 export const importVerified = async (ctx: Pick<MacShortsContext, "dir" | "id" | "plan">, job: Pick<WorkerJob, "id" | "n">, source: string, deps: CollectDeps,
-  o: { replace?: boolean; artist: string; exempt: Set<number>; /** D242: الشورت المقصوص من النسخة العمودية 1080×1920 */ size?: { width: number; height: number } }) => {
+  o: { replace?: boolean; artist: string; exempt: Set<number>; /** D243: الشورت المقصوص من النسخة العمودية 1080×1920 */ size?: { width: number; height: number } }) => {
   const size = o.size ?? SHORT_SIZE;
   const final = path.join(ctx.dir, `${ctx.id}-short-${job.n}.mp4`);
   const temp = path.join(ctx.dir, `.worker-${job.id}.importing.mp4`);

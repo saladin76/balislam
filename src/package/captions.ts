@@ -20,7 +20,7 @@ const ts = (sec: number) => {
  * وإن لم يوجد صوت يقدّر التوقيت. السطر الواحد بعدد كلمات سطر الترجمة في الهوية.
  */
 export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia, identity?: Pick<Identity, "motion">,
-  /** D242: بداية كل مشهد في الملف بالثواني إن لم يكن تتابعًا بوصلاته (الشورت المقصوص من النسخة العمودية) */
+  /** D243: بداية كل مشهد في الملف بالثواني إن لم يكن تتابعًا بوصلاته (الشورت المقصوص من النسخة العمودية) */
   startOf?: (scene: PlanScene) => number | undefined): string => {
   const per = Math.max(3, identity?.motion.captionWords ?? 6);
   const fps = config.video.fps;

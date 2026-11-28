@@ -945,7 +945,7 @@ program
 // D226: جهاز رندر ثانٍ (ويندوز) للشورتس. الماك يرسل ويستلم ويتحقق؛ العامل يرندر فقط (docs/studio/windows-worker.md).
 program
   .command("worker-submit")
-  .description("D242: قص الشورتس من النسخة العمودية الكاملة على جهاز الرندر بعد اعتماد Master (D241 على كل شورت)")
+  .description("D243: قص الشورتس من النسخة العمودية الكاملة على جهاز الرندر بعد اعتماد Master (D241 على كل شورت)")
   .argument("<episode>", "رقم الحلقة")
   .option("--short <n>", "شورت واحد برقمه")
   .option("--shorts", "كل الشورتس (الافتراضي)")
@@ -961,10 +961,10 @@ program
 
 program
   .command("worker-collect")
-  .description("D242: استلام الشورتس المقصوصة من النسخة العمودية بعد التحقق على الماك (البصمة والأبعاد والمدة والحركة والأثر وD241)")
+  .description("D243: استلام الشورتس المقصوصة من النسخة العمودية بعد التحقق على الماك (البصمة والأبعاد والمدة والحركة والأثر وD241)")
   .argument("<episode>", "رقم الحلقة")
   .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
-  .option("--legacy", "D226: استلام شورتس قديمة رُندرت منفصلة قبل D242")
+  .option("--legacy", "D226: استلام شورتس قديمة رُندرت منفصلة قبل D243")
   .option("--replace", "مع --legacy: نقل شورت قديم بالاسم نفسه إلى superseded/ بدل الرفض")
   .action(async (episode: string, opts: { share: string; replace?: boolean; legacy?: boolean }) => {
     if (opts.legacy) {
@@ -990,7 +990,7 @@ program
   .argument("<episode>", "رقم الحلقة")
   .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
   .option("--scenes <ids>", "مشاهد بعينها مفصولة بفواصل («أنتج هذا المشهد» لكل منها)")
-  .option("--orientation <o>", "landscape (الافتراضي) أو portrait: تجربة عمودية 1080×1920 (D242) مع --purpose trial")
+  .option("--orientation <o>", "landscape (الافتراضي) أو portrait: تجربة عمودية 1080×1920 (D243) مع --purpose trial")
   .option("--purpose <p>", "studio (الافتراضي) أو trial: تجربة لا تدخل الحزمة ولا السجل")
   .option("--tag <tag>", "وسم التجربة (الافتراضي <الحلقة>-vertical)")
   .option("--out <dir>", "مجلد التجربة على الماك (للقراءة بـ worker-trial-collect)")
@@ -999,7 +999,7 @@ program
     const orientation = opts.orientation ?? "landscape", purpose = opts.purpose ?? "studio";
     if (!["landscape", "portrait"].includes(orientation) || !["studio", "trial"].includes(purpose)) throw new Error("--orientation landscape|portrait و--purpose studio|trial.");
     if (orientation === "portrait" || purpose === "trial") {
-      // D242: المشاهد العمودية تجربة وحدها قبل التعميم (النسخة العمودية الكاملة بـ worker-submit-vertical)
+      // D243: المشاهد العمودية تجربة وحدها قبل التعميم (النسخة العمودية الكاملة بـ worker-submit-vertical)
       if (orientation !== "portrait" || purpose !== "trial") throw new Error("المشاهد العمودية تجربة وحدها: --orientation portrait --purpose trial (والنسخة العمودية الكاملة: worker-submit-vertical).");
       const scenes = opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean) ?? [];
       if (!opts.out) throw new Error("--out <مجلد على الماك> مطلوب للتجربة.");
@@ -1042,7 +1042,7 @@ program
 
 program
   .command("worker-submit-vertical")
-  .description("D242: إرسال النسخة العمودية الكاملة 1080×1920 إلى جهاز الرندر، مبوَّبة كـMaster (بعد اعتماد كل المشاهد والتجميع)، وأولويتها بعد Master")
+  .description("D243: إرسال النسخة العمودية الكاملة 1080×1920 إلى جهاز الرندر، مبوَّبة كـMaster (بعد اعتماد كل المشاهد والتجميع)، وأولويتها بعد Master")
   .argument("<episode>", "رقم الحلقة")
   .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
   .action(async (episode: string, opts: { share: string }) => {

@@ -25,7 +25,7 @@ export type CleanupJob = {
   masterSha256: string;
   /** المسار الدائم داخل المجلد المشترك: masters/<القناة>/<الحلقة>/<NNN>-episode.mp4 */
   master: string;
-  /** D242: النسخ العمودية في render-queue/done/ التي تحقق الماك أن شورتسها نُشرت كلها (المعرّف والبصمة) */
+  /** D243: النسخ العمودية في render-queue/done/ التي تحقق الماك أن شورتسها نُشرت كلها (المعرّف والبصمة) */
   verticals?: { job: string; sha256: string }[];
   createdAt: string;
 };
@@ -71,7 +71,7 @@ export const queueWindowsCleanup = async (share: string, plan: CleanupPlan): Pro
     version: 1, kind: "cleanup", id: cleanupJobId(plan.ctx.channel, plan.ctx.episodeFolder, plan.approvedSha256),
     channel: plan.ctx.channel as WorkerChannel, episode: plan.ctx.episodeFolder, masterSha256: plan.approvedSha256,
     master: permanentMasterRel(plan.ctx.channel, plan.ctx.episodeFolder),
-    // D242: النسخة العمودية بعد نشر الشورتس كلها وحده (planCleanup يملأها حينها)
+    // D243: النسخة العمودية بعد نشر الشورتس كلها وحده (planCleanup يملأها حينها)
     ...(plan.shorts?.ok && plan.verticals?.length ? { verticals: plan.verticals } : {}),
     createdAt: new Date().toISOString(),
   };
@@ -109,7 +109,7 @@ export const runCleanupJob = async (share: string, repo: string, job: CleanupJob
 };
 
 /**
- * D242: النسخة العمودية في المجلد المشترك (على قرص ويندوز نفسه): تُحذف إن بقيت بعد حذف الماك، بالشروط نفسها: Master تحقق
+ * D243: النسخة العمودية في المجلد المشترك (على قرص ويندوز نفسه): تُحذف إن بقيت بعد حذف الماك، بالشروط نفسها: Master تحقق
  * منه العامل أعلاه، والمهمة done/<المعرّف>/job.json نسخة عمودية لهذه الحلقة، والملف داخل done/ بلا رابط رمزي، وبصمته
  * هي التي كتبها الماك. غيابها (حذفها الماك) ليس خطأ.
  */

@@ -5,7 +5,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 
 /**
- * D242: كل نص عمودي داخل المنطقة الآمنة للشورتس (يوتيوب شورتس وتيك توك وريلز): الترجمة، وسطر الكلام العلوي، وعنوان
+ * D243: كل نص عمودي داخل المنطقة الآمنة للشورتس (يوتيوب شورتس وتيك توك وريلز): الترجمة، وسطر الكلام العلوي، وعنوان
  * الشورت، وعنوان الفصل والشعار. الثوابت ومصادرها في src/remotion/safeArea.ts.
  */
 vi.mock("remotion", async (orig) => ({ ...((await orig()) as Record<string, unknown>), useCurrentFrame: () => 40, useVideoConfig: () => ({ fps: 30, width: 1080, height: 1920, durationInFrames: 300 }) }));
@@ -23,7 +23,7 @@ const captionSizes = ["balislam", "dafatir-alzaman", "zubdat-alkutub"].map((c) =
 const px = (style: string, prop: string) => { const m = new RegExp(`(?:^|;)${prop}:(-?[0-9.]+)px`).exec(style); return m ? Number(m[1]) : null; };
 const styleOf = (html: string, attr: string) => { const m = new RegExp(`${attr}[^>]*style="([^"]*)"|style="([^"]*)"[^>]*${attr}`).exec(html); return (m?.[1] ?? m?.[2] ?? "").replace(/\s/g, ""); };
 
-describe("المنطقة الآمنة للشورتس (D242)", () => {
+describe("المنطقة الآمنة للشورتس (D243)", () => {
   it("الأرقام: الأشد من Meta (14%/35%/6%) وTikTok (240/660/120 وعمود الأزرار 180)، على 1080×1920", () => {
     expect(PORTRAIT_FRAME).toEqual({ width: 1080, height: 1920 });
     expect(SHORTS_SAFE_AREA).toEqual({ top: 270, bottom: 672, left: 120, right: 180 });

@@ -182,7 +182,7 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
     await assertEditorPassed(scriptPath);
     const { plan, media, narrationGain } = job.inputs;
     assertRenderMediaOwnership(scriptPath, media);
-    // D242: قص الشورت من النسخة العمودية لا يقرأ الوسائط (الملف نفسه مصدره)
+    // D243: قص الشورت من النسخة العمودية لا يقرأ الوسائط (الملف نفسه مصدره)
     if (!job.cut) {
       progress(0, "تجهيز لقطة الوسائط");
       say("تجهيز لقطة الوسائط…");
@@ -236,7 +236,7 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
         extra.push({ name, file: rv });
       }
     } else if (job.cut) {
-      // D242: الشورت مقطع من النسخة العمودية (D241 كما على الماك: فكرة كاملة بمشاهد الخطة)
+      // D243: الشورت مقطع من النسخة العمودية (D241 كما على الماك: فكرة كاملة بمشاهد الخطة)
       (await import("../../package/shortIdeaPlan")).assertShortRenderIdea(plan, { sceneIds: job.cut.sceneIds });
       progress(0, "النسخة العمودية");
       const { resolveCutSource, cutVertical } = await import("./verticalCut");

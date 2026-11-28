@@ -6,8 +6,8 @@
  * حلقة الرحلة الثابتة لكل قناة (tests/fixtures/e2e/<channel>/) ومعها خمسة مشاهد متكلَّمة أخرى، فتصير ثمانية مشاهد
  * تكفي لخمسة وعشرين مقطعًا مختلفًا (المكرر مرفوض كما كان). الترتيب كما هو: كل المشاهد ← التجميع ← Master ←
  * اعتماده ← اختيار ٢٥ مقطعًا ← «اصنع الشورتس والريلز».
- * D242 (٢٨ نوفمبر): الشورتس كلها قصّ من النسخة العمودية الكاملة على جهاز الرندر، فـ«اصنع الشورتس والريلز» يُرفض برسالة
- * D242 ولا يكتب شورتًا، وتبقى المقاطع الخمسة والعشرون محفوظة في الخطة للقص (القص ومهامه في tests/vertical-version-d242.test.ts).
+ * D243 (٢٨ نوفمبر): الشورتس كلها قصّ من النسخة العمودية الكاملة على جهاز الرندر، فـ«اصنع الشورتس والريلز» يُرفض برسالة
+ * D243 ولا يكتب شورتًا، وتبقى المقاطع الخمسة والعشرون محفوظة في الخطة للقص (القص ومهامه في tests/vertical-version-d243.test.ts).
  *
  * Run: `npm run e2e` (BAL_E2E_CHANNELS=all for the three channels).
  */
@@ -209,14 +209,14 @@ for (const channel of selectedChannels()) {
       expect(masterSha).toBe(await sha256File(masterFile));
       ok("approve Master", await decide({ action: "approve-master", expectedSha256: masterSha, confirmedWatched: true }));
 
-      // ── D242 (٢٨ نوفمبر): الشورتس لا تُرندر في الاستوديو؛ كلها قصّ من النسخة العمودية الكاملة على جهاز الرندر ──────
-      // «اصنع الشورتس والريلز» بعد Master المعتمد يُرفض برسالة D242 ولا يكتب شورتًا (القص وحده في tests/vertical-version-d242.test.ts).
+      // ── D243 (٢٨ نوفمبر): الشورتس لا تُرندر في الاستوديو؛ كلها قصّ من النسخة العمودية الكاملة على جهاز الرندر ──────
+      // «اصنع الشورتس والريلز» بعد Master المعتمد يُرفض برسالة D243 ولا يكتب شورتًا (القص وحده في tests/vertical-version-d243.test.ts).
       const start = await st.call("POST", "jobs", { kind: "shorts", episode: EP });
       ok("shorts job after the Master", start);
       const done = await waitFor("shorts refused", () => st.call("GET", "jobs"), (x) => x.body.find((j: any) => j.id === start.body.id)?.status !== "running", 600_000, 1000);
       const sj = done.body.find((x: any) => x.id === start.body.id);
-      expect(sj.status, "shorts are cut from the vertical version, not rendered here (D242)").toBe("error");
-      expect((sj.log ?? []).join("\n")).toContain("D242");
+      expect(sj.status, "shorts are cut from the vertical version, not rendered here (D243)").toBe("error");
+      expect((sj.log ?? []).join("\n")).toContain("D243");
       expect((await readdir(pkgDir)).filter((n) => /-short-\d+\.mp4$/.test(n)), "no short rendered on its own").toEqual([]);
       // the 25 saved shorts stay the plan's selection for the cuts (D152: no limit)
       expect((await st.call("GET", `episodes/${EP}`)).body.plan.shorts).toHaveLength(COUNT);

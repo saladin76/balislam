@@ -84,7 +84,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
     if (!shorts.length || shortPick.issues.length) throw new Error(shortPick.issues.join(" ") || "لا مقاطع شورتس في الخطة.");
     // D241: كل شورت فكرة كاملة وحده (خطاف، وفكرة تامة، وختام واضح، ولا إشارة إلى خارجه) قبل أي رندر
     (await import("./shortIdeaPlan")).assertShortsIdea(plan, shorts);
-    // D242: لا رندر عمودي لكل شورت؛ الفيديو قصّ من النسخة العمودية على جهاز الرندر (النصوص والترجمة بلا فيديو تبقى)
+    // D243: لا رندر عمودي لكل شورت؛ الفيديو قصّ من النسخة العمودية على جهاز الرندر (النصوص والترجمة بلا فيديو تبقى)
     if (!opts.skipVideo) throw new Error(SHORTS_FROM_VERTICAL);
   }
 
@@ -193,7 +193,7 @@ export const packageEpisode = async (opts: PackageOptions) => {
       await writeFile(renderInfoFile(dir), JSON.stringify(info, null, 2) + "\n");
       await writeFile(reportFile, `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     } else {
-      // D242: لا يصل هنا شورت (البوابة أعلى الدالة قبل الوسائط)؛ كل الشورتس قصّ من النسخة العمودية الكاملة
+      // D243: لا يصل هنا شورت (البوابة أعلى الدالة قبل الوسائط)؛ كل الشورتس قصّ من النسخة العمودية الكاملة
       throw new Error(SHORTS_FROM_VERTICAL);
     }
     files.push("motion-report.md");
@@ -215,8 +215,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
   return { dir, files, hasVoice };
 };
 
-/** D242: رسالة رفض رندر الشورتس على الماك */
-export const SHORTS_FROM_VERTICAL = "D242: الشورتس تُقص من النسخة العمودية الكاملة على جهاز الرندر (npx bal worker-submit-vertical، ثم worker-import، ثم worker-submit <الحلقة> --shorts وworker-collect)، لا رندر لكل شورت.";
+/** D243: رسالة رفض رندر الشورتس على الماك */
+export const SHORTS_FROM_VERTICAL = "D243: الشورتس تُقص من النسخة العمودية الكاملة على جهاز الرندر (npx bal worker-submit-vertical، ثم worker-import، ثم worker-submit <الحلقة> --shorts وworker-collect)، لا رندر لكل شورت.";
 
 /** `<id>-handoff-set.json`: the Master's sha256 and the subtitle/thumbnail files made with it (sha256 each). */
 export const handoffSetFileFor = (dir: string, id: string) => path.join(dir, `${id}-handoff-set.json`);

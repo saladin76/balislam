@@ -162,7 +162,7 @@ export const buildMasterJob = async (ep: string, inputs: Awaited<ReturnType<type
 };
 
 /**
- * D242: النسخة العمودية الكاملة 1080×1920 (الحلقة كلها، بمدخلات Master نفسها: الخطة ولقطة الوسائط وربح العلوّ ووضع
+ * D243: النسخة العمودية الكاملة 1080×1920 (الحلقة كلها، بمدخلات Master نفسها: الخطة ولقطة الوسائط وربح العلوّ ووضع
  * التوقيت). فحوص المحتوى للنسخة النهائية قبل الإرسال (assertMasterReady)، وD233 كـMaster: مشاهد الحلقة من جهاز الرندر.
  */
 export const buildVerticalJob = async (ep: string, inputs: Awaited<ReturnType<typeof fullEpisodeInputs>>, b: Base, share: string): Promise<WorkerJobV2> => {
@@ -185,7 +185,7 @@ export const buildVerticalJob = async (ep: string, inputs: Awaited<ReturnType<ty
   });
 };
 
-/** D242: شورت مقصوص من النسخة العمودية: مدخلاتها نفسها، وبصمة ملفها، ومقاطعه بالإطارات (verticalShorts.ts). */
+/** D243: شورت مقصوص من النسخة العمودية: مدخلاتها نفسها، وبصمة ملفها، ومقاطعه بالإطارات (verticalShorts.ts). */
 export const buildCutJob = (vertical: WorkerJobV2, verticalSha256: string, n: number, sceneIds: string[], ranges: CutSpec["ranges"], b: Base): WorkerJobV2 => {
   if (vertical.kind !== "vertical") throw new Error("القص من النسخة العمودية وحدها.");
   const cut: CutSpec = { source: { job: vertical.id, sha256: verticalSha256 }, sceneIds: [...sceneIds], ranges, fps };
@@ -289,7 +289,7 @@ export const submitTrial = async (ep: string, share: string, o: { tag: string; o
 };
 
 /**
- * D242 (تجربة قبل التعميم): مشاهد بعينها عمودية 1080×1920 بجودة vertical على الويندوز، ليرى المالك كيف تُعاد صياغة
+ * D243 (تجربة قبل التعميم): مشاهد بعينها عمودية 1080×1920 بجودة vertical على الويندوز، ليرى المالك كيف تُعاد صياغة
  * المشهد للعمودي (الرسم والنص والترجمة والآية داخل المنطقة الآمنة) قبل النسخة العمودية الكاملة. كل مشهد مهمة «trial»
  * بخطته المقصوصة عليه ووسائطه (كقطعة المشهد في الاستوديو)، لا تدخل الحزمة ولا السجل الموقّع أبدًا؛ وتُقرأ نتائجها بـ
  * `bal worker-trial-collect --out <المجلد نفسه>` (تُنسخ الملفات إلى <المجلد>/vertical/).

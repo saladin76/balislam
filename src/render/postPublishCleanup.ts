@@ -18,7 +18,7 @@
  * متتبَّع في Git، ولا `.env`، ولا السجل الموقَّع (`scene-production.v1.json`). الافتراضي عرض بلا حذف؛ الحذف بـ `--delete`.
  * الترتيب المعتمد: النقل إلى Drive (D53) ← `place-master` ← `cleanup --delete`.
  *
- * D242 (النسخة العمودية الكاملة): ملفها في `render-queue/done/<مهمة vertical>/` مصدر قص الشورتس، فيبقى بعد نشر الحلقة
+ * D243 (النسخة العمودية الكاملة): ملفها في `render-queue/done/<مهمة vertical>/` مصدر قص الشورتس، فيبقى بعد نشر الحلقة
  * حتى تُنشر الشورتس كلها (كل شورت في `plan.shorts` حالته «منشور» أو «ملغى»، وواحد منشور على الأقل)، مع الشروط الثلاثة
  * نفسها. بعدها يُحذف هنا (المجلد المشترك) وفي مهمة ويندوز (`verticals` ببصمة كل ملف)، ولا يبقى إلا الشورتس المنشورة.
  */
@@ -40,7 +40,7 @@ export type CleanupLocation = "mac" | "share" | "windows";
  * (نسخة Master على الماك تُحذف بعد مطابقة النسخة الدائمة لبصمة الاعتماد، الشرط ٢). */
 export type RootRule = "delete-all" | "videos" | "out";
 export type CleanupRoot = { location: CleanupLocation; dir: string; rule: RootRule; label: string;
-  /** D242: مجلد النسخة العمودية في done/ (يبقى حتى تُنشر الشورتس كلها)، ومعرّف مهمتها وبصمتها من result.json */
+  /** D243: مجلد النسخة العمودية في done/ (يبقى حتى تُنشر الشورتس كلها)، ومعرّف مهمتها وبصمتها من result.json */
   vertical?: { job: string; sha256: string | null } };
 export type FileEntry = { location: CleanupLocation; path: string; bytes: number; what: string };
 export type Condition = { n: 1 | 2 | 3; ok: boolean; label: string; detail: string };
@@ -75,7 +75,7 @@ export type CleanupPlan = {
   approvedSha256: string | null;
   /** الجذور التي فُحصت (الحذف يعيد الفحص داخلها وحدها) */
   roots: CleanupRoot[];
-  /** D242: هل نُشرت الشورتس كلها (شرط حذف النسخة العمودية)، والنسخ العمودية التي تُحذف (لمهمة ويندوز) */
+  /** D243: هل نُشرت الشورتس كلها (شرط حذف النسخة العمودية)، والنسخ العمودية التي تُحذف (لمهمة ويندوز) */
   shorts?: { ok: boolean; detail: string };
   verticals?: { job: string; sha256: string }[];
 };
@@ -223,7 +223,7 @@ export const publishedCondition = async (episodeDir: string): Promise<Condition>
 };
 
 /**
- * D242: شرط حذف النسخة العمودية: الشورتس كلها نُشرت. من `plan.json` للحلقة: كل شورت في `plan.shorts` حالته «منشور» أو
+ * D243: شرط حذف النسخة العمودية: الشورتس كلها نُشرت. من `plan.json` للحلقة: كل شورت في `plan.shorts` حالته «منشور» أو
  * «ملغى» (`state`)، وواحد منشور على الأقل. خطة بلا `plan.shorts` لا تُعدّ منشورة الشورتس.
  */
 export const shortsPublishedCondition = async (episodeDir: string): Promise<{ ok: boolean; detail: string }> => {
@@ -236,7 +236,7 @@ export const shortsPublishedCondition = async (episodeDir: string): Promise<{ ok
   if (!published) return { ok: false, detail: "كل الشورتس ملغاة ولا منشور منها؛ النسخة العمودية تبقى حتى يقرر المالك." };
   return { ok: true, detail: `نُشرت الشورتس (${published} منشور، و${list.length - published} ملغى).` };
 };
-export const VERTICAL_HOLD_WHAT = "النسخة العمودية الكاملة (تبقى حتى تُنشر الشورتس كلها، D242)";
+export const VERTICAL_HOLD_WHAT = "النسخة العمودية الكاملة (تبقى حتى تُنشر الشورتس كلها، D243)";
 
 /** السلامة: الفحص نفسه في worker-collect (الترميز والأبعاد والصوت والمدة والأثر) بأبعاد Master. */
 export const masterSoundness = (probe: VideoProbe): string[] => {
@@ -309,7 +309,7 @@ export const planCleanup = async (ctx: CleanupContext, deps: CleanupDeps): Promi
   }
   const del: FileEntry[] = [], keep: FileEntry[] = [], refused: { path: string; why: string }[] = [];
   if (!tracked) refused.push({ path: ctx.episodeDir, why: "تعذّر سؤال Git عن الملفات المتتبَّعة؛ لا حذف على الماك." });
-  // D242: النسخة العمودية تبقى حتى تُنشر الشورتس كلها
+  // D243: النسخة العمودية تبقى حتى تُنشر الشورتس كلها
   const shorts = roots.some((r) => r.vertical) ? await shortsPublishedCondition(ctx.episodeDir) : undefined;
   const verticals: { job: string; sha256: string }[] = [];
   for (const root of roots) {
@@ -418,7 +418,7 @@ export const formatPlan = (plan: CleanupPlan): string => {
   const lines: string[] = [`التنظيف بعد النشر (D240) — ${plan.ctx.channel} ${plan.ctx.episodeFolder}`, ""];
   for (const c of plan.conditions) lines.push(`${c.ok ? "✓" : "✗"} الشرط ${c.n}: ${c.label} — ${c.detail}`);
   lines.push("", plan.ok ? "الشروط كلها متحققة." : "لا حذف: شرط ناقص على الأقل.");
-  if (plan.shorts) lines.push(`${plan.shorts.ok ? "✓" : "…"} النسخة العمودية (D242): ${plan.shorts.ok ? "تُحذف مع الشروط الثلاثة؛ " : "تبقى؛ "}${plan.shorts.detail}`);
+  if (plan.shorts) lines.push(`${plan.shorts.ok ? "✓" : "…"} النسخة العمودية (D243): ${plan.shorts.ok ? "تُحذف مع الشروط الثلاثة؛ " : "تبقى؛ "}${plan.shorts.detail}`);
   const sum = (xs: FileEntry[]) => xs.reduce((a, x) => a + x.bytes, 0);
   const grouped = (xs: FileEntry[]) => {
     const g = new Map<string, FileEntry[]>();

@@ -312,7 +312,7 @@ describe("D240: Windows cleanup is a queued worker job", () => {
   });
 });
 
-describe("D242: the full vertical version stays until the shorts are published, then goes like the rest", () => {
+describe("D243: the full vertical version stays until the shorts are published, then goes like the rest", () => {
   const VJOB = "dafatir-alzaman-001-vertical-abcdef012345";
   const withVertical = async (shorts: { from: string; to: string; state?: string }[] | null) => {
     const f = await fixture();

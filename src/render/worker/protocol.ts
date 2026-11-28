@@ -165,7 +165,7 @@ const jobFile = (dir: string, id: string) => {
   return path.join(dir, `${id}.json`);
 };
 
-/** المهام المنتظرة: الأولوية (D242) ثم الأقدم (وقت الإنشاء ثم الاسم). الملف التالف لا يوقف الطابور: يُتجاوز. */
+/** المهام المنتظرة: الأولوية (D243) ثم الأقدم (وقت الإنشاء ثم الاسم). الملف التالف لا يوقف الطابور: يُتجاوز. */
 export const pendingJobs = async (share: string): Promise<JobEnvelope[]> => {
   const p = queuePaths(share);
   if (!existsSync(p.jobs)) return [];
@@ -173,7 +173,7 @@ export const pendingJobs = async (share: string): Promise<JobEnvelope[]> => {
   for (const f of (await readdir(p.jobs)).filter((x) => x.endsWith(".json") && !x.startsWith(".")).sort()) {
     try { out.push(validateEnvelope(JSON.parse(await readFile(path.join(p.jobs, f), "utf8")))); } catch { /* يظهر في المهمة نفسها حين تُؤخذ */ }
   }
-  // D242: الأولوية أولًا (العمودية وقصها بعد كل ما سواها)، ثم الأقدم
+  // D243: الأولوية أولًا (العمودية وقصها بعد كل ما سواها)، ثم الأقدم
   return out.sort((a, b) => jobPriority(a.kind) - jobPriority(b.kind) || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
 };
 
@@ -299,11 +299,11 @@ export const acquireLock = async (share: string, now = () => Date.now(), host = 
 
 export const JOB_KINDS = ["scene", "assembly", "prefinal", "master", "short", "thumbnail", "trial", "vertical", "cut"] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
-/** أنواع ترندر تكوين Remotion، وأنواع تصل قطع المشاهد (ffmpeg)، و«cut» شورت يُقص من النسخة العمودية (D242، ffmpeg) */
+/** أنواع ترندر تكوين Remotion، وأنواع تصل قطع المشاهد (ffmpeg)، و«cut» شورت يُقص من النسخة العمودية (D243، ffmpeg) */
 export const RENDER_KINDS: readonly JobKind[] = ["scene", "master", "short", "trial", "vertical"];
 export const JOIN_KINDS: readonly JobKind[] = ["assembly", "prefinal"];
 /**
- * D242: أولوية الطابور (الأصغر أولًا، ثم وقت الإنشاء): النسخة العمودية وقص الشورتس منها بعد كل ما سواها، فلا تؤخر
+ * D243: أولوية الطابور (الأصغر أولًا، ثم وقت الإنشاء): النسخة العمودية وقص الشورتس منها بعد كل ما سواها، فلا تؤخر
  * Master ولا أي مهمة أخرى منتظرة. لا تُقاطَع مهمة جارية: عمودية بدأت قبل إرسال Master تكمل ثم يأتي Master.
  */
 export const jobPriority = (kind: string) => (kind === "vertical" || kind === "cut" ? 1 : 0);
@@ -315,7 +315,7 @@ export type JobPurpose = "studio" | "trial";
 
 export type RenderSpec = {
   orientation: "landscape" | "portrait";
-  /** vertical (D242): 1080×1920 بإعدادات master بلا تكبير؛ للنسخة العمودية الكاملة ولتجارب المشاهد العمودية وحدها */
+  /** vertical (D243): 1080×1920 بإعدادات master بلا تكبير؛ للنسخة العمودية الكاملة ولتجارب المشاهد العمودية وحدها */
   quality: "preview" | "master" | "vertical";
   /** المشاهد المعروضة: كل الخطة، أو فصل، أو مقطع (sceneIds) */
   scope: { all: true } | { chapter: number } | { sceneIds: string[] };
@@ -363,7 +363,7 @@ export type WorkerJobV2 = {
   media: string;
   render?: RenderSpec;
   join?: JoinSpec;
-  /** D242: قص شورت من النسخة العمودية (cut وحده) */
+  /** D243: قص شورت من النسخة العمودية (cut وحده) */
   cut?: CutSpec;
   expected: { durationSec: number; width: number; height: number };
   inputs: { planSha256: string; plan: Plan; media: EpisodeMedia; narrationGain: Record<string, number> };

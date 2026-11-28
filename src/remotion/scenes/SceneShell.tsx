@@ -177,7 +177,7 @@ type ShellProps = SceneBase & {
 
 /**
  * غلاف كل مشهد: الخلفية، عنوان الفصل، شريط الترجمة، والخروج الموحّد.
- * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (نصوص الغلاف داخل المنطقة الآمنة للشورتس، D242: src/remotion/safeArea.ts).
+ * المقاسات: أفقي 1920×1080، عمودي 1080×1920 (نصوص الغلاف داخل المنطقة الآمنة للشورتس، D243: src/remotion/safeArea.ts).
  */
 export const SceneShell: React.FC<ShellProps> = ({ themeId, orientation, eyebrow, narration, narrationTimings, captions = true, backdrop, motif = true, watermark = false, children, durationInFrames, background, eyebrowColors, captionVariant, exitFrames = 8, frameless = false }) => {
   useBrandFonts();

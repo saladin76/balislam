@@ -43,7 +43,7 @@ import type { CollectDeps } from "./macSide";
 export type StudioKind = "scene" | "assembly" | "prefinal" | "master" | "vertical" | "cut";
 export type StudioJobRecord = {
   id: string; kind: StudioKind; sceneId?: string;
-  /** D242: رقم الشورت المقصوص من النسخة العمودية (cut وحده) */
+  /** D243: رقم الشورت المقصوص من النسخة العمودية (cut وحده) */
   n?: number;
   /** scene jobs: the scene's input fingerprint when sent, and the ledger's render mode (D145: current = one scene, ahead = drafts) */
   sourceSha256?: string; mode?: "current" | "ahead";
@@ -214,7 +214,7 @@ export const submitStudioMaster = async (ep: string, share: string, o: { log?: (
 };
 
 /**
- * D242: النسخة العمودية الكاملة 1080×1920، مبوَّبة كـMaster حرفيًا (فحوص `bal make` بلا صوت يُولَّد، وكل بوابات Master:
+ * D243: النسخة العمودية الكاملة 1080×1920، مبوَّبة كـMaster حرفيًا (فحوص `bal make` بلا صوت يُولَّد، وكل بوابات Master:
  * اعتماد كل المشاهد ثم التجميع المعتمد، والتلاوات، والحركة، والستوري بورد)، وأولويتها في الطابور بعد Master فلا تؤخره.
  */
 export const submitStudioVertical = async (ep: string, share: string, o: { log?: (m: string) => void } = {}) => {
@@ -236,7 +236,7 @@ export const submitStudioVertical = async (ep: string, share: string, o: { log?:
 
 export type VerticalSource = { record: StudioJobRecord; job: WorkerJobV2; sha256: string; file: string };
 /**
- * D242: النسخة العمودية التي تُقص منها الشورتس: مستوردة بعد التحقق (verifyV2Output والبوابات)، ومدخلاتها (الخطة ولقطة
+ * D243: النسخة العمودية التي تُقص منها الشورتس: مستوردة بعد التحقق (verifyV2Output والبوابات)، ومدخلاتها (الخطة ولقطة
  * الوسائط وربح العلوّ) هي مدخلات الحلقة الآن، وMaster الحلقة معتمد بعينه (القاعدة الرابعة: الشورتس بعد اعتماد Master).
  * بلا ذلك تُرفض الشورتس.
  */
@@ -244,7 +244,7 @@ export const approvedVertical = async (ep: string, scriptPath: string, current: 
   masterApproved: () => Promise<void>): Promise<VerticalSource> => {
   const idx = await readStudioIndex(scriptPath);
   const recs = Object.values(idx.jobs).filter((r) => r.kind === "vertical" && r.imported).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
-  if (!recs.length) throw new Error("لا شورتس بلا نسخة عمودية مستوردة (D242): أرسلها بـ «bal worker-submit-vertical» ثم «bal worker-import».");
+  if (!recs.length) throw new Error("لا شورتس بلا نسخة عمودية مستوردة (D243): أرسلها بـ «bal worker-submit-vertical» ثم «bal worker-import».");
   const rec = recs[0]!;
   const job = await readSentJob(scriptPath, rec.id);
   if (!job) throw new Error(`سجل النسخة العمودية ${rec.id} مفقود على هذا الماك.`);
@@ -259,7 +259,7 @@ export const approvedVertical = async (ep: string, scriptPath: string, current: 
 };
 
 /**
- * D242: كل الشورتس قصّ من النسخة العمودية (لا رندر عمودي منفصل). D241 على كل شورت قبل الإرسال كما كان، ومقاطعه بالإطارات
+ * D243: كل الشورتس قصّ من النسخة العمودية (لا رندر عمودي منفصل). D241 على كل شورت قبل الإرسال كما كان، ومقاطعه بالإطارات
  * من خطة النسخة العمودية ووسائطها نفسها.
  */
 export const submitVerticalShorts = async (ep: string, share: string, o: { only?: number; log?: (m: string) => void } = {}) => {
@@ -296,7 +296,7 @@ export const submitVerticalShorts = async (ep: string, share: string, o: { only?
 /* ── importing ── */
 
 /**
- * D242: استلام شورت مقصوص بعد التحقق: إلى out/package/<NNN>-short-<n>.mp4 بالطريق نفسه لشورتس العامل (importVerified:
+ * D243: استلام شورت مقصوص بعد التحقق: إلى out/package/<NNN>-short-<n>.mp4 بالطريق نفسه لشورتس العامل (importVerified:
  * تنظيف البيانات الوصفية على الماك ثم فحص الأثر، ومقياس الحركة ≥ 80%)، وترجمته بأوقات المقاطع في الملف المقصوص.
  */
 export const collectCutShort = async (ep: string, job: WorkerJobV2, source: string,
@@ -349,7 +349,7 @@ export type StudioImportDeps = {
      */
     record: (ep: string, sha256: string) => Promise<void>;
   };
-  /** D242: الشورت المقصوص من النسخة العمودية: Master المعتمد، والخطة الحالية ووسائطها، والاستلام إلى out/package */
+  /** D243: الشورت المقصوص من النسخة العمودية: Master المعتمد، والخطة الحالية ووسائطها، والاستلام إلى out/package */
   cut?: {
     masterApproved: (ep: string) => Promise<void>;
     current: (ep: string) => Promise<{ plan: Plan; media: EpisodeMedia; introFrames: number }>;
@@ -448,7 +448,7 @@ const localCopy = async (deps: StudioImportDeps, source: string, dir: string, id
  * Imports every finished studio job of this episode that this Mac sent, in the order sent (scenes, then joins, then the
  * Master). A scene sent again later supersedes its older job. Refusals are said in Arabic and never imported.
  */
-export const importStudioJobs = async (ep: string, share: string, o: { log?: (m: string) => void; deps?: StudioImportDeps; scriptPath?: string; /** D242: worker-collect يستلم القص وحده */ kinds?: StudioKind[] } = {}) => {
+export const importStudioJobs = async (ep: string, share: string, o: { log?: (m: string) => void; deps?: StudioImportDeps; scriptPath?: string; /** D243: worker-collect يستلم القص وحده */ kinds?: StudioKind[] } = {}) => {
   const log = o.log ?? (() => {});
   const deps = o.deps ?? defaultStudioImportDeps();
   const cutDeps = deps.cut ?? defaultStudioImportDeps().cut!;
@@ -548,7 +548,7 @@ export const importStudioJobs = async (ep: string, share: string, o: { log?: (m:
           rec.imported = { at: new Date().toISOString(), sha256: pubSha, worker: result.worker, file: pub.file };
         } finally { await rm(temp, { force: true }); }
       } else if (rec.kind === "vertical") {
-        // D242: تُتحقق كـMaster (المدخلات نفسها الآن، وD233، وكل البوابات)، وتبقى في المجلد المشترك (done/) مصدرًا للقص؛
+        // D243: تُتحقق كـMaster (المدخلات نفسها الآن، وD233، وكل البوابات)، وتبقى في المجلد المشترك (done/) مصدرًا للقص؛
         // لا تُنسخ إلى الماك ولا تُنشر هي نفسها، والمنشور منها الشورتس وحدها
         const cur = await deps.master.current(ep);
         if (cur.planSha256 !== job.inputs.planSha256) reasons.push("تغيّرت خطة الحلقة بعد الإرسال؛ أعد الإرسال.");
