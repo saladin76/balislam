@@ -30,7 +30,7 @@ describe("D251: لوحات «الخريطة الحيّة» و«المكان وا
       const bs = PM_BOARDS.filter((b) => b.scene === s);
       expect(bs.map((b) => b.variant)).toEqual(PM_DIRECTION_VARIANTS[bs[0]!.direction]);
     }
-    for (const d of ["map", "place"] as const) expect(PM_BOARDS.filter((b) => b.direction === d).length).toBe(6);
+    for (const d of ["map", "place"] as const) expect(PM_BOARDS.filter((b) => b.direction === d).length).toBe(6); // owner-pin-ok: عقد الستوري بورد في الكود (boards.ts وstillsProtocol)، لا محتوى المالك
     expect(new Set(PM_BOARDS.map((b) => b.composition)).size).toBe(PM_BOARDS.length);
     for (const b of PM_BOARDS) expect(b.composition).toMatch(/^storyboard-dafatir-prophets-s\d-[abcd]$/);
   });
@@ -105,13 +105,13 @@ describe("D251: لوحات «الخريطة الحيّة» و«المكان وا
 
   it("مجموعة stills «dafatir-prophets» من القائمة المسموحة: ١٢ صورة 1920×1080 بأسماء عربية في مجلدها", () => {
     const set = STORYBOARD_SETS["dafatir-prophets"]!;
-    expect(set.channel).toBe("dafatir-alzaman");
+    expect(set.channel).toBe("dafatir-alzaman"); // owner-pin-ok: عقد الستوري بورد في الكود (boards.ts وstillsProtocol)، لا محتوى المالك
     expect(set.folder).toBe(PM_FOLDER);
-    expect(set.boards.length).toBe(12);
+    expect(set.boards.length).toBe(12); // owner-pin-ok: عقد الستوري بورد في الكود (boards.ts وstillsProtocol)، لا محتوى المالك
     expect(set.boards.map((b) => b.arabicFile)).toContain("مشهد-1-نموذج-أ.png");
     expect(set.boards.map((b) => b.arabicFile)).toContain("مشهد-6-نموذج-د.png");
     const job = buildStillsJob("dafatir-prophets", "b".repeat(40));
-    expect(validateStillsJob(job).stills.length).toBe(12);
+    expect(validateStillsJob(job).stills.length).toBe(12); // owner-pin-ok: عقد الستوري بورد في الكود (boards.ts وstillsProtocol)، لا محتوى المالك
     expect(() => validateStillsJob({ ...job, stills: [{ composition: "storyboard-zubdat-desk-s1-a", file: "zubdat-desk-s1-a.png" }] })).toThrow(/ليس من المجموعة/);
   });
 });
