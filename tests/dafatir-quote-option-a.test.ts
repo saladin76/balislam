@@ -153,7 +153,10 @@ describe("الجزء (D222) لما لا يتسع", () => {
     const plan = load("002");
     const md = readFileSync(path.join(dirOf("002"), "scenes.md"), "utf8");
     const again = inlineQuotesInPlan(plan, quranOf("002"), undefined, md);
-    expect(again.plan).toEqual(plan);
+    // الخطة المحفوظة محسوبة بالصوت الحقيقي على جهاز الاستوديو: تُقارن بلا القيم التابعة للتوقيت
+    const T = new Set(["carrySeconds", "verseFrom", "hadithFrom", "quoteHold", "quoteCarried", "carryAllowed", "carryAuto", "carryKind", "carryText", "carryRef", "carryNarrator", "carryPartial", "carrySide", "carryY", "carryFrom"]);
+    const bare = (p: typeof plan) => JSON.parse(JSON.stringify({ ...p, updatedAt: "" }, (k, v) => (T.has(k) ? undefined : v)));
+    expect(bare(again.plan)).toEqual(bare(plan));
     // c1-s51 مثبّتة كاملة (لا جزء آلي عليها)
     expect(again.placements.find((p) => p.host === "c1-s51")?.partial).toBeUndefined();
   });

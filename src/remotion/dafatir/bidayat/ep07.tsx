@@ -405,15 +405,15 @@ const Far = reverent((q) => {
   );
 });
 
-// ─── c2-s25: وحال بينهما الموج ───
+// ─── c2-s25: وفصل الموج بين نوح عليه السلام وابنه (الدفعة ٢١ البند ٤٢٤) ───
 const WaveBetween = reverent((q) => {
-  const k = cueKit(q, ["وحال"]);
+  const k = cueKit(q, ["وفصل"]);
   const { t } = k;
-  const rise = k.draw(0, "وحال", 1.0);
+  const rise = k.draw(0, "وفصل", 1.0);
   const calm = k.on(0, "الموج", 1.2);
   const h = 360 * rise * (1 - 0.85 * calm);
   const wy = mix(500, 330, calm);
-  const cam = k.cam(NEUTRAL, [[0, "وحال", { cx: 960, cy: 480, s: 1.1 }, 1.0], [0, "الموج", NEUTRAL, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "وفصل", { cx: 960, cy: 480, s: 1.1 }, 1.0], [0, "الموج", NEUTRAL, 1.2]]);
   const both = (
     <g>
       <Peak x={560} y={640} w={420} h={300} p={1 - calm} />
