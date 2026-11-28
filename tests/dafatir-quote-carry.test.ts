@@ -125,8 +125,19 @@ describe("خطط «دفاتر الزمن» المتتبَّعة: كل بطاقة
       // بنية الخطة كما يحسبها الأمر (قيم الاستمرار نفسها قد تُحدَّث بتوقيت الصوت الحقيقي على جهاز الاستوديو)
       const bare = (xs: PlanScene[]) => xs.map((x) => ({ ...x, props: Object.fromEntries(Object.entries(x.props).filter(([k]) => !(CARRY_KEYS as readonly string[]).includes(k))) }));
       expect(bare(r.scenes)).toEqual(bare(plan.chapters[0]!.scenes));
-      for (const s of plan.chapters[0]!.scenes) if (s.props.carryText) expect(r.scenes.find((x) => x.id === s.id)!.props.carryText, s.id).toBe(s.props.carryText);
-      expect(Object.fromEntries(r.carries.filter((c) => c.shortfall > 0).map((c) => [c.host, c.shortfall]))).toEqual(KNOWN[ep] ?? {});
+      // الخطة المحفوظة قد تحمل استمرارًا محسوبًا بالصوت الحقيقي (جهاز الاستوديو)، فيمتد إلى مشهد أبعد أو أقرب من التقدير:
+      // يُفحص اتساقها هي: كل مشهد يحمل carryText يأخذه من بطاقة مضيف قبله في سلسلة متصلة، وكل مضيف استمرار له تالٍ يحمله
+      const ss = plan.chapters[0]!.scenes;
+      const quoteText = (x: PlanScene) => x.props.verseText || x.props.hadithText || "";
+      ss.forEach((s, i) => {
+        if (!s.props.carryText) return;
+        let j = i - 1;
+        while (j >= 0 && ss[j]!.props.carryText === s.props.carryText && !quoteText(ss[j]!)) j--;
+        expect(j >= 0 && quoteText(ss[j]!) === s.props.carryText, `${ep} ${s.id}: استمرار بلا مضيف`).toBe(true);
+      });
+      for (const s of ss) if (s.props.quoteCarried) expect(ss.find((x) => x.id === s.props.quoteCarried)?.props.carryText, `${ep} ${s.id}`).toBe(quoteText(s) || s.props.carryText);
+      // والنقص (بالتقدير هنا) لا يكون إلا فيما سُمّي ينتظر قرار المالك
+      for (const c of r.carries.filter((x) => x.shortfall > 0)) expect(Object.keys(KNOWN[ep] ?? {}), `${ep} ${c.host}`).toContain(c.host);
     });
   }
 });

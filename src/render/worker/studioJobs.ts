@@ -77,6 +77,8 @@ const writeMotionFix = async (scriptPath: string, sceneId: string, fix: MotionFi
   await writeJsonAtomic(motionFixFile(scriptPath), { version: 1, scenes } satisfies MotionFixFile);
 };
 /** «يحتاج إصلاح: الحركة ٨٢٪ أقل من ٩٥٪ …» */
+/** ثوانٍ مقيسة (خارج السكون المقصود) لا تُحكم فيها النسبة: لا يزيد مقطع ساكن على ثانيتين (القاعدة الثانية) */
+export const MOTION_SHORT_COUNTED_SEC = 2;
 export const motionFixMessage = (sceneId: string, percent: number, min: number) =>
   `يحتاج إصلاح: حركة المشهد ${sceneId} ${percent}% خارج السكون المقصود، أقل من حد القناة ${min}%؛ رُفضت القطعة ولم تدخل الاستوديو مسودة. أصلح حركة اللقطة ثم أعد إرسالها (D242).`;
 
@@ -555,7 +557,9 @@ export const importStudioJobs = async (ep: string, share: string, o: { log?: (m:
           motionLines.push(`- ${motionSummary(motion, `المشهد ${id} (جهاز الرندر ${result.worker})`)}`);
           // D242: دون حد القناة (٩٥٪ دفاتر الزمن، ٨٠٪ غيرها) يُرفض فورًا ويُعلَّم «يحتاج إصلاح»، ولا يُنشر مسودة
           const min = interactivityMinFor(job.channel);
-          if (motion.percent < min) {
+          // D246: مشهد تغطي بطاقة آيته أو حديثه (سكون مقصود) جُلّه يبقى منه ثانية أو ثانيتان تُقاسان: النسبة فيهما بلا معنى
+          // (ثانية ساكنة واحدة = ٠٪)، والحكم فيهما بقاعدة «لا مقطع ساكن فوق ثانيتين» نفسها، فلا يُرفض ما دون ذلك
+          if (motion.seconds > MOTION_SHORT_COUNTED_SEC && motion.percent < min) {
             await writeMotionFix(scriptPath, id, { percent: motion.percent, min, at: new Date().toISOString(), job: job.id, worker: result.worker });
             const msg = motionFixMessage(id, motion.percent, min);
             log(msg);
