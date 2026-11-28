@@ -1175,6 +1175,36 @@ program
   });
 
 program
+  .command("storyboard-stills")
+  .description("D247: صور ستوري بورد D228 الثابتة على جهاز الرندر (الماك لا يرندر): يرسل مهمة stills لمجموعة مسجَّلة بالـcommit الحالي")
+  .argument("<set>", "مجموعة الستوري بورد، مثل zubdat-desk")
+  .option("--share <path>", "المجلد المشترك على الماك", "/Volumes/bal-share")
+  .action(async (set: string, opts: { share: string }) => {
+    const S = await import("../render/worker/stillsProtocol");
+    const commit = await S.assertStillsCommit(projectRoot);
+    const r = await S.writeStillsJob(path.resolve(opts.share), S.buildStillsJob(set, commit));
+    console.log(`${r.already ? "المهمة مرسلة من قبل" : "أُرسلت المهمة"} ${r.id} (${S.STORYBOARD_SETS[set]!.boards.length} صورة @ ${commit.slice(0, 8)}). بعد انتهائها: bal storyboard-stills-collect ${set} --share ${opts.share}`);
+  });
+
+program
+  .command("storyboard-stills-collect")
+  .description("D247: يستلم صور الستوري بورد من جهاز الرندر بعد التحقق (البصمة وPNG والأبعاد، وحذف النص المضمَّن) إلى ~/Desktop/للمراجعة/ستوري-بورد/<المجلد>/ مع storyboard.json")
+  .argument("<set>", "مجموعة الستوري بورد، مثل zubdat-desk")
+  .option("--share <path>", "المجلد المشترك على الماك", "/Volumes/bal-share")
+  .option("--job <id>", "معرّف المهمة (الافتراضي أحدث نتيجة للمجموعة)")
+  .option("--out <dir>", "مجلد الستوري بورد (الافتراضي مجلد المجموعة في «للمراجعة»)")
+  .action(async (set: string, opts: { share: string; job?: string; out?: string }) => {
+    const S = await import("../render/worker/stillsProtocol");
+    const { storyboardsRoot } = await import("../studio/storyboards");
+    const def = S.STORYBOARD_SETS[set];
+    if (!def) throw new Error(`مجموعة ستوري بورد غير مسجَّلة: ${set}`);
+    const share = path.resolve(opts.share);
+    const id = opts.job ?? (await S.findStillsDone(share, set));
+    if (!id) throw new Error(`لا نتيجة منتهية للمجموعة ${set} بعد في done/ (bal worker-status --share ${opts.share}).`);
+    await S.collectStills(share, id, path.resolve(opts.out ?? path.join(storyboardsRoot(), def.folder)), { log: (m) => console.log(m) });
+  });
+
+program
   .command("place-master")
   .description("D240: ينسخ Master المعتمد إلى مكانه الدائم masters/<القناة>/<الحلقة>/<NNN>-episode.mp4 في المجلد المشترك ويتحقق من بصمته بالسجل الموقَّع")
   .argument("<episode>", "رقم الحلقة")
