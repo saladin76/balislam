@@ -69,6 +69,12 @@ export const bundleCacheKeyFor = (commit: string, media: { base: string }) => cr
 
 /** مهمة واحدة من running/: يرندرها ويكتب done/<id>/. يرمي خطأ بسببه عند أي فشل (ويكتب العامل failed/). */
 export const renderWorkerJob = async (share: string, id: string, log: (line: string) => void = () => {}) => {
+  // D247: صور الستوري بورد الثابتة (الإصدار 3) طريقها وحدها أدناه: لا خطة ولا وسائط ولا تكوين حلقة
+  if (/^stills-[a-z0-9-]+$/.test(id)) {
+    const { isStillsJob, validateStillsJob } = await import("./stillsProtocol");
+    const raw: unknown = JSON.parse(await readFile(path.join(queuePaths(share).running, `${id}.json`), "utf8"));
+    if (isStillsJob(raw)) return renderStillsJob(share, validateStillsJob(raw), log);
+  }
   const job = await runningJob(share, id);
   if (isV2(job)) {
     // D232: كل الأنواع الأخرى (المشهد والوصل وMaster والتجارب) أدناه
@@ -293,5 +299,57 @@ export const renderWorkerJobV2 = async (share: string, raw: WorkerJobV2, log: (l
     clearInterval(sampler);
     clearInterval(ticker);
     for (const f of cleanup) await rm(f, { force: true });
+  }
+};
+
+/* ── D247: صور الستوري بورد الثابتة (مهمة stills) ── */
+
+/**
+ * يرندر تكوينات مجموعة ستوري بورد مسجَّلة (validateStillsJob فحصها بكود هذا الـcommit: «storyboard-» ومن القائمة
+ * المسموحة وحدها) صورًا PNG إلى renders/worker-stills/<id>/ ثم done/<id>/. لا يقرأ خطة ولا وسائط ولا صوتًا، ولا يمر
+ * بـrenderComposition (لا تكوين حلقة). الناتج للمراجعة وحدها، ويتحقق منه الماك عند الاستلام (collectStills).
+ */
+export const renderStillsJob = async (share: string, job: import("./stillsProtocol").StillsJob, log: (line: string) => void = () => {}) => {
+  const { completeStillsJob } = await import("./stillsProtocol");
+  const startedAt = new Date().toISOString();
+  const lines: string[] = [];
+  const say = (m: string) => { lines.push(m); log(m); };
+  if (currentChannelId() !== job.channel) throw new Error(`القناة النشطة ليست قناة المهمة (${job.channel}).`);
+  const head = await headCommit(projectRoot);
+  if (head !== job.commit) throw new Error(`الكود المحمَّل (${head.slice(0, 8)}) ليس commit المهمة (${job.commit.slice(0, 8)}).`);
+  const outDir = path.join(projectRoot, "renders", "worker-stills", job.id);
+  await rm(outDir, { recursive: true, force: true });
+  await mkdir(outDir, { recursive: true });
+  const { renderStill, selectComposition, openBrowser } = await import("@remotion/renderer");
+  const { browserExecutable, createIsolatedRenderBundle } = await import("../bundle");
+  const { emptyMedia } = await import("../../plan/media");
+  void writeProgress(share, { id: job.id, percent: 0, stage: "تجميع المشروع", at: startedAt, startedAt });
+  say("تجميع المشروع…");
+  const sandbox = await createIsolatedRenderBundle(emptyMedia);
+  try {
+    const browser = await openBrowser("chrome", { browserExecutable: browserExecutable() });
+    const rendered: { file: string; composition: string; path: string }[] = [];
+    try {
+      let i = 0;
+      for (const s of job.stills) {
+        const composition = await selectComposition({ serveUrl: sandbox.serveUrl, id: s.composition, inputProps: {}, puppeteerInstance: browser });
+        if (composition.durationInFrames !== 1) throw new Error(`${s.composition} ليس صورة ثابتة (Still).`);
+        const out = path.join(outDir, s.file);
+        await renderStill({ serveUrl: sandbox.serveUrl, composition, inputProps: {}, output: out, imageFormat: "png", scale: job.width / composition.width,
+          overwrite: true, puppeteerInstance: browser });
+        rendered.push({ file: s.file, composition: s.composition, path: out });
+        i++;
+        say(`${s.composition}: ${i}/${job.stills.length}`);
+        void writeProgress(share, { id: job.id, percent: Math.round((i / job.stills.length) * 100), stage: "رندر الصور", at: new Date().toISOString(), startedAt });
+      }
+    } finally {
+      await browser.close({ silent: true });
+    }
+    const r = await completeStillsJob(share, job, rendered, { commit: head, worker: workerName(), startedAt, finishedAt: new Date().toISOString(), logTail: lines.join("\n") });
+    say(`انتهى: ${rendered.length} صورة في done/${job.id}/`);
+    return r.dir;
+  } finally {
+    await sandbox.cleanup();
+    await rm(outDir, { recursive: true, force: true });
   }
 };

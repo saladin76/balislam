@@ -10,6 +10,7 @@ import { correctionInboxView } from "./notesInbox";
 import { AFTER_PREPARATION_ACTION, productionBlocks, textBlocks, type AfterPreparationChange, type AfterPreparationWhat } from "./afterPreparation";
 import { type AuditEvent, type SignedSceneLedger, type CurrentInput, sign, optionalFileGeneration, stateFileFor, readLedger, saveLedger, serialized, sceneFile, assemblyFile, masterFile, exists } from "./sceneLedgerStore";
 import { sourceNow } from "./sceneInputs";
+import { staleCheck } from "./ledgerArchive";
 
 /**
  * The ledger state under its lock: reconciliation with the current inputs, «تحديث بعد التجهيز» (carry-forward,
@@ -229,30 +230,15 @@ export const withState = async <T>(episode: string,
     }
     // Detect a changed or edit-and-restored preview/assembly/Master by inode
     // generation as well as bytes. Never silently revive a former approval.
-    let next = doc.state;
-    const epochs = { ...doc.previewEpochs };
-    let stale = false;
-    for (const scene of next.scenes) {
-      if (scene.status !== "approved" && scene.status !== "in_review") continue;
-      const currentEpoch = await optionalFileGeneration(sceneFile(current.scriptPath, scene.id));
-      if (!epochs[scene.id] || epochs[scene.id] !== currentEpoch) {
-        next = { ...next, scenes: next.scenes.map(other => other.id === scene.id ?
-          { id: other.id, sourceSha256: other.sourceSha256, status: "needs_revision" as const } : other),
-          assembly: undefined, master: undefined };
-        delete epochs[scene.id];
-        stale = true;
-      }
-    }
-    if (next.assembly && (!doc.assemblyEpoch ||
-        doc.assemblyEpoch !== await optionalFileGeneration(assemblyFile(current.scriptPath)))) {
-      next = { ...next, assembly: undefined, master: undefined };
-      stale = true;
-    }
-    if (next.master && (!doc.masterEpoch ||
-        doc.masterEpoch !== await optionalFileGeneration(masterFile(current.scriptPath)))) {
-      next = { ...next, master: undefined };
-      stale = true;
-    }
+    // D244: جيل مؤرشف بعد النشر (archived:<sha>) صالح ما دام الملف مفقودًا؛ أي ملف يظهر مكانه يفتح المشهد كما كان
+    const gens: Record<string, string> = {};
+    for (const scene of doc.state.scenes)
+      if (scene.status === "approved" || scene.status === "in_review") gens[scene.id] = await optionalFileGeneration(sceneFile(current.scriptPath, scene.id));
+    const { state: next, epochs, stale } = staleCheck(doc, {
+      scene: (id) => gens[id] ?? "missing",
+      assembly: doc.state.assembly ? await optionalFileGeneration(assemblyFile(current.scriptPath)) : "missing",
+      master: doc.state.master ? await optionalFileGeneration(masterFile(current.scriptPath)) : "missing",
+    });
     if (stale) {
       doc = sign({ ...doc, state: next, revision: doc.revision + 1,
         previewEpochs: epochs,
