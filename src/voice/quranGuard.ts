@@ -131,5 +131,7 @@ export const quranMask = (original: string[]): boolean[] => {
  */
 export const planVerseTexts = (plan: { chapters: { scenes: { template?: string; ayahKey?: string; props?: Record<string, unknown> }[] }[] } | null | undefined): string[] =>
   (plan?.chapters ?? []).flatMap((c) => c.scenes)
-    .flatMap((s) => [isVerseScene(s) && typeof s.props?.text === "string" ? s.props.text : "", typeof s.props?.verseText === "string" ? s.props.verseText : ""])
+    .flatMap((s) => [isVerseScene(s) && typeof s.props?.text === "string" ? s.props.text : "", typeof s.props?.verseText === "string" ? s.props.verseText : "",
+      // D246: الآية المستمرة من مشهد سابق (النص نفسه)
+      s.props?.carryKind !== "hadith" && typeof s.props?.carryText === "string" ? s.props.carryText : ""])
     .filter((t) => t.trim() && !t.startsWith("‹"));

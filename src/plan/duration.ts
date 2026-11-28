@@ -3,7 +3,7 @@ import { templateById } from "./templates";
 import type { PlanScene } from "./types";
 import type { EpisodeMedia } from "./media";
 import { recitationSeconds } from "../quran/recitationTimeline";
-import { HZ_META, hasHzQuote, hzEstimateSeconds, hzSentences, verseWindow } from "../remotion/dafatir/horizon/meta";
+import { HZ_META, hasHzQuote, hzEstimateSeconds, hzSentences, quoteHoldsScene, verseWindow } from "../remotion/dafatir/horizon/meta";
 import { timelineFromWords } from "../remotion/dafatir/horizon/timeline";
 import { SILENCE_POLICY } from "../remotion/dafatir/audio/silence";
 import type { VoiceClip } from "../voice/generate";
@@ -83,7 +83,7 @@ export const sceneSeconds = (scene: PlanScene, media?: Pick<EpisodeMedia, "voice
       // أقل مدة بحسب التصميم (minEnd) مقدرة على التوقيت التقديري ثم مقيسة بنسبة طول الصوت الحقيقي
       // استشهاد بصري صامت (الأمر 032): زمن قراءة الآية يُحسب على كلمات الصوت الحقيقي نفسها التي يرسم بها HorizonShot
       // البطاقة، فلا يقصر المشهد عنه ولا يطول بتقدير؛ و0.9 ث بعده كما في التقدير (خروج البطاقة وقلب الصفحة)
-      if (hasHzQuote(props) && voiced.words?.length) {
+      if (quoteHoldsScene(props) && voiced.words?.length) {
         try {
           const vw = verseWindow(props, timelineFromWords(hzSentences(scene.narration), voiced.words.map((w) => ({ word: w.word, start: w.start, end: w.end })), 0));
           if (vw) return Math.max(MIN_SECONDS, base, vw[1] + 0.3);
@@ -128,7 +128,7 @@ export const sceneHoldFloor = (scene: PlanScene, media?: Pick<EpisodeMedia, "voi
     const props = scene.props as Record<string, string | undefined>;
     const tail = voiced.timing ? horizonTail(scene, voiced.timing, voiced.duration) : (m?.tail ?? config.voice.tailSeconds);
     let floor = Math.max(end, S - tail);
-    if (hasHzQuote(props)) {
+    if (quoteHoldsScene(props)) {
       try {
         const vw = verseWindow(props, timelineFromWords(hzSentences(scene.narration), voiced.words.map((w) => ({ word: w.word, start: w.start, end: w.end })), 0));
         if (vw) floor = Math.max(floor, vw[1]);
