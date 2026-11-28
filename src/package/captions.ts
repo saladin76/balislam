@@ -19,7 +19,9 @@ const ts = (sec: number) => {
  * ملف ترجمة عربية SRT يُرفع إلى يوتيوب مع الفيديو. يستخدم توقيت كلمات الصوت الحقيقي،
  * وإن لم يوجد صوت يقدّر التوقيت. السطر الواحد بعدد كلمات سطر الترجمة في الهوية.
  */
-export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia, identity?: Pick<Identity, "motion">): string => {
+export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia, identity?: Pick<Identity, "motion">,
+  /** D243: بداية كل مشهد في الملف بالثواني إن لم يكن تتابعًا بوصلاته (الشورت المقصوص من النسخة العمودية) */
+  startOf?: (scene: PlanScene) => number | undefined): string => {
   const per = Math.max(3, identity?.motion.captionWords ?? 6);
   const fps = config.video.fps;
   const cues: { start: number; end: number; text: string }[] = [];
@@ -35,9 +37,11 @@ export const buildSrt = (plan: Plan, scenes: PlanScene[], media: EpisodeMedia, i
         : scene.narration
           ? estimateTimings(scene.narration, 6, Math.round(dur * fps) - 12).map((w) => ({ word: w.word, start: w.start / fps, end: w.end / fps }))
           : [];
+    const base = startOf?.(scene) ?? offset;
     for (let i = 0; i < words.length; i += per) {
       const chunk = words.slice(i, i + per);
-      cues.push({ start: offset + chunk[0]!.start, end: offset + chunk[chunk.length - 1]!.end + 0.15, text: chunk.map((w) => w.word).join(" ") });
+      const start = Math.max(0, base + chunk[0]!.start);
+      cues.push({ start, end: Math.max(start + 0.05, base + chunk[chunk.length - 1]!.end + 0.15), text: chunk.map((w) => w.word).join(" ") });
     }
     offset += adv[k]! / fps;
   }

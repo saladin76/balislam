@@ -968,7 +968,7 @@ program
 // D226: جهاز رندر ثانٍ (ويندوز) للشورتس. الماك يرسل ويستلم ويتحقق؛ العامل يرندر فقط (docs/studio/windows-worker.md).
 program
   .command("worker-submit")
-  .description("D226: إرسال الشورتس إلى جهاز الرندر الثاني بعد اعتماد النسخة النهائية (المجلد المشترك)")
+  .description("D243: قص الشورتس من النسخة العمودية الكاملة على جهاز الرندر بعد اعتماد Master (D241 على كل شورت)")
   .argument("<episode>", "رقم الحلقة")
   .option("--short <n>", "شورت واحد برقمه")
   .option("--shorts", "كل الشورتس (الافتراضي)")
@@ -977,22 +977,32 @@ program
     await assertProducible(episode);
     const only = opts.short !== undefined ? Number(opts.short) : undefined;
     if (only !== undefined && (!Number.isInteger(only) || only < 1)) throw new Error("رقم الشورت غير صالح.");
-    const { submitWorkerShorts } = await import("../render/worker/macSide");
-    const r = await submitWorkerShorts(episode, path.resolve(opts.share), { only, log: (m) => console.log(m) });
-    console.log(`أُرسلت ${r.written.length} مهمة (والموجودة من قبل ${r.skipped.length}) بالـcommit ${r.commit.slice(0, 8)}. بعد انتهاء العامل: bal worker-collect ${episode} --share ${opts.share}`);
+    const { submitVerticalShorts } = await import("../render/worker/studioJobs");
+    const r = await submitVerticalShorts(episode, path.resolve(opts.share), { only, log: (m) => console.log(m) });
+    console.log(`أُرسل ${r.sent.length} قص (والموجود من قبل ${r.existing.length}) من النسخة العمودية ${r.vertical} بالـcommit ${r.commit.slice(0, 8)}. بعد انتهاء العامل: bal worker-collect ${episode} --share ${opts.share}`);
   });
 
 program
   .command("worker-collect")
-  .description("D226: استلام شورتس جهاز الرندر الثاني بعد التحقق منها على الماك (البصمة والأبعاد والمدة والحركة والأثر)")
+  .description("D243: استلام الشورتس المقصوصة من النسخة العمودية بعد التحقق على الماك (البصمة والأبعاد والمدة والحركة والأثر وD241)")
   .argument("<episode>", "رقم الحلقة")
   .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
-  .option("--replace", "نقل شورت قديم بالاسم نفسه إلى superseded/ بدل الرفض")
-  .action(async (episode: string, opts: { share: string; replace?: boolean }) => {
-    const { collectWorkerShorts } = await import("../render/worker/macSide");
-    const r = await collectWorkerShorts(episode, path.resolve(opts.share), { replace: opts.replace, log: (m) => console.log(m) });
-    for (const x of r.refused) console.error(`مرفوض ${x.id}:\n  - ${x.reasons.join("\n  - ")}`);
-    console.log(`استُلم ${r.imported.length}، ورُفض ${r.refused.length}. المرفوض لا يدخل الحزمة أبدًا.`);
+  .option("--legacy", "D226: استلام شورتس قديمة رُندرت منفصلة قبل D243")
+  .option("--replace", "مع --legacy: نقل شورت قديم بالاسم نفسه إلى superseded/ بدل الرفض")
+  .action(async (episode: string, opts: { share: string; replace?: boolean; legacy?: boolean }) => {
+    if (opts.legacy) {
+      const { collectWorkerShorts } = await import("../render/worker/macSide");
+      const r = await collectWorkerShorts(episode, path.resolve(opts.share), { replace: opts.replace, log: (m) => console.log(m) });
+      for (const x of r.refused) console.error(`مرفوض ${x.id}:\n  - ${x.reasons.join("\n  - ")}`);
+      console.log(`استُلم ${r.imported.length}، ورُفض ${r.refused.length}. المرفوض لا يدخل الحزمة أبدًا.`);
+      if (r.refused.length) process.exitCode = 1;
+      return;
+    }
+    const { importStudioJobs } = await import("../render/worker/studioJobs");
+    const r = await importStudioJobs(episode, path.resolve(opts.share), { kinds: ["cut"], log: (m) => console.log(m) });
+    for (const x of r.rows.filter((x) => x.status !== "superseded" && x.status !== "imported"))
+      console.log(`- الشورت ${x.n}: ${x.status}${x.progress ? ` ${x.progress}` : ""}${x.reasons?.length ? `\n    - ${x.reasons.join("\n    - ")}` : ""}`);
+    console.log(`استُلم الآن ${r.imported.length}، ورُفض أو فشل ${r.refused.length}. يشاهد المالك كل شورت كاملًا قبل النشر؛ المرفوض لا يدخل الحزمة أبدًا.`);
     if (r.refused.length) process.exitCode = 1;
   });
 
@@ -1003,8 +1013,25 @@ program
   .argument("<episode>", "رقم الحلقة")
   .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
   .option("--scenes <ids>", "مشاهد بعينها مفصولة بفواصل («أنتج هذا المشهد» لكل منها)")
-  .action(async (episode: string, opts: { share: string; scenes?: string }) => {
+  .option("--orientation <o>", "landscape (الافتراضي) أو portrait: تجربة عمودية 1080×1920 (D243) مع --purpose trial")
+  .option("--purpose <p>", "studio (الافتراضي) أو trial: تجربة لا تدخل الحزمة ولا السجل")
+  .option("--tag <tag>", "وسم التجربة (الافتراضي <الحلقة>-vertical)")
+  .option("--out <dir>", "مجلد التجربة على الماك (للقراءة بـ worker-trial-collect)")
+  .action(async (episode: string, opts: { share: string; scenes?: string; orientation?: string; purpose?: string; tag?: string; out?: string }) => {
     await assertProducible(episode);
+    const orientation = opts.orientation ?? "landscape", purpose = opts.purpose ?? "studio";
+    if (!["landscape", "portrait"].includes(orientation) || !["studio", "trial"].includes(purpose)) throw new Error("--orientation landscape|portrait و--purpose studio|trial.");
+    if (orientation === "portrait" || purpose === "trial") {
+      // D243: المشاهد العمودية تجربة وحدها قبل التعميم (النسخة العمودية الكاملة بـ worker-submit-vertical)
+      if (orientation !== "portrait" || purpose !== "trial") throw new Error("المشاهد العمودية تجربة وحدها: --orientation portrait --purpose trial (والنسخة العمودية الكاملة: worker-submit-vertical).");
+      const scenes = opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean) ?? [];
+      if (!opts.out) throw new Error("--out <مجلد على الماك> مطلوب للتجربة.");
+      const tag = opts.tag ?? `${episode}-vertical`;
+      const { submitVerticalTrialScenes } = await import("../render/worker/macJobs");
+      const r = await submitVerticalTrialScenes(episode, path.resolve(opts.share), { scenes, tag, outDir: path.resolve(opts.out), log: (m) => console.log(m) });
+      console.log(`التجربة العمودية ${r.tag}: ${r.jobs.length} مهمة بالـcommit ${r.commit.slice(0, 8)}. للقراءة: bal worker-trial-collect --share ${opts.share} --out ${opts.out}`);
+      return;
+    }
     const { submitStudioScenes } = await import("../render/worker/studioJobs");
     const r = await submitStudioScenes(episode, path.resolve(opts.share), { scenes: opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean), log: (m) => console.log(m) });
     console.log(`أُرسل ${r.sent.length} مشهدًا (والموجود من قبل ${r.existing.length}) بالـcommit ${r.commit.slice(0, 8)}. التقدم: bal worker-status --share ${opts.share}؛ وبعد انتهائها: bal worker-import ${episode} --share ${opts.share}`);
@@ -1034,6 +1061,18 @@ program
     const { submitStudioMaster } = await import("../render/worker/studioJobs");
     const r = await submitStudioMaster(episode, path.resolve(opts.share), { log: (m) => console.log(m) });
     console.log(`${r.fresh ? "أُرسل" : "موجود من قبل"} ${r.id}. بعد انتهائه: bal worker-import ${episode} --share ${opts.share}`);
+  });
+
+program
+  .command("worker-submit-vertical")
+  .description("D243: إرسال النسخة العمودية الكاملة 1080×1920 إلى جهاز الرندر، مبوَّبة كـMaster (بعد اعتماد كل المشاهد والتجميع)، وأولويتها بعد Master")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    await assertProducible(episode);
+    const { submitStudioVertical } = await import("../render/worker/studioJobs");
+    const r = await submitStudioVertical(episode, path.resolve(opts.share), { log: (m) => console.log(m) });
+    console.log(`${r.fresh ? "أُرسلت" : "موجودة من قبل"} ${r.id}. بعد انتهائها: bal worker-import ${episode} --share ${opts.share}`);
   });
 
 program

@@ -3,7 +3,7 @@ import path from "node:path";
 import { tmpdir } from "node:os";
 import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
-import { mkdir, mkdtemp, readdir, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
 import {
   executeCleanup, pathEscape, permanentMasterPath, placeMaster, planCleanup, summaryLine, type CleanupContext, type CleanupDeps,
 } from "../src/render/postPublishCleanup";
@@ -309,5 +309,85 @@ describe("D240: Windows cleanup is a queued worker job", () => {
     expect(existsSync(f.permMaster)).toBe(true);
     expect(await readdir(cleanupPaths(f.share).done)).toEqual([`${id}.json`]);
     expect(await readdir(cleanupPaths(f.share).jobs)).toEqual([]);
+  });
+});
+
+describe("D243: the full vertical version stays until the shorts are published, then goes like the rest", () => {
+  const VJOB = "dafatir-alzaman-001-vertical-abcdef012345";
+  const withVertical = async (shorts: { from: string; to: string; state?: string }[] | null) => {
+    const f = await fixture();
+    const dir = path.join(f.share, "render-queue", "done", VJOB);
+    const video = await put(path.join(dir, `${VJOB}.mp4`), "VERTICAL");
+    await put(path.join(dir, "job.json"), JSON.stringify({ channel: CH, episode: EP, kind: "vertical", purpose: "studio" }));
+    await put(path.join(dir, "result.json"), JSON.stringify({ sha256: sha("VERTICAL") }));
+    if (shorts) await put(path.join(f.ep, "plan.json"), JSON.stringify({ chapters: [], shorts }));
+    return { ...f, video, vdir: dir };
+  };
+  const queued = async (share: string) => {
+    const files = await readdir(cleanupPaths(share).jobs);
+    return validateCleanupJob(JSON.parse(await readFile(path.join(cleanupPaths(share).jobs, files[0]!), "utf8")));
+  };
+
+  it("kept (with the episode otherwise cleaned) while a short is still unpublished, and no Windows deletion is queued for it", async () => {
+    const f = await withVertical([{ from: "c1-s1", to: "c1-s2", state: "published" }, { from: "c1-s3", to: "c1-s4" }]);
+    const plan = await planCleanup(f.ctx, depsFor(f));
+    expect(plan.ok).toBe(true);
+    expect(plan.shorts?.ok).toBe(false);
+    expect(plan.delete.map((x) => x.path)).not.toContain(f.video);
+    expect(plan.keep.find((x) => x.path === f.video)?.what).toMatch(/النسخة العمودية/);
+    await executeCleanup(plan);
+    expect(existsSync(f.video)).toBe(true);
+    expect(existsSync(f.sceneClip)).toBe(false);
+    await queueWindowsCleanup(f.share, plan);
+    expect((await queued(f.share)).verticals).toBeUndefined();
+    expect(summaryLine(plan, 0, true)).toContain("النسخة العمودية");
+  });
+
+  it("no plan.shorts, or every short cancelled: the vertical stays", async () => {
+    for (const shorts of [null, [{ from: "a", to: "b", state: "cancelled" }]]) {
+      const f = await withVertical(shorts);
+      const plan = await planCleanup(f.ctx, depsFor(f));
+      expect(plan.shorts?.ok).toBe(false);
+      expect(plan.delete.map((x) => x.path)).not.toContain(f.video);
+    }
+  });
+
+  it("every short published or cancelled (one published at least) + the three conditions: deleted on the share and queued for Windows with its fingerprint", async () => {
+    const f = await withVertical([{ from: "c1-s1", to: "c1-s2", state: "published" }, { from: "c1-s3", to: "c1-s4", state: "cancelled" }]);
+    const plan = await planCleanup(f.ctx, depsFor(f));
+    expect(plan.shorts?.ok).toBe(true);
+    expect(plan.delete.map((x) => x.path)).toContain(f.video);
+    expect(plan.verticals).toEqual([{ job: VJOB, sha256: sha("VERTICAL") }]);
+    await queueWindowsCleanup(f.share, plan);
+    const job = await queued(f.share);
+    expect(job.verticals).toEqual([{ job: VJOB, sha256: sha("VERTICAL") }]);
+    // the Windows worker deletes it too if the Mac could not (same share disk), after its own Master check
+    const r = await runCleanupJob(f.share, f.repo, job, { sha256File, gitTracked: async () => new Set() });
+    expect(existsSync(f.video)).toBe(false);
+    expect(r.deleted).toBeGreaterThan(0);
+  });
+
+  it("the published-shorts rule deletes nothing if one of the three conditions fails", async () => {
+    const f = await withVertical([{ from: "c1-s1", to: "c1-s2", state: "published" }]);
+    const plan = await planCleanup(f.ctx, depsFor(f, { approvedMaster: async () => null }));
+    expect(plan.ok).toBe(false);
+    await expect(executeCleanup(plan)).rejects.toThrow(/لا حذف/);
+    expect(existsSync(f.video)).toBe(true);
+  });
+
+  it("Windows: a vertical whose bytes changed, or that is not this episode's vertical, is never deleted", async () => {
+    const f = await withVertical([{ from: "c1-s1", to: "c1-s2", state: "published" }]);
+    const base = { version: 1, kind: "cleanup", id: `cleanup-${CH}-001-${sha(MASTER).slice(0, 12)}`, channel: CH, episode: EP, masterSha256: sha(MASTER),
+      master: `masters/${CH}/${EP}/001-episode.mp4`, createdAt: "2026-11-28T10:00:00Z" };
+    const changed = validateCleanupJob({ ...base, verticals: [{ job: VJOB, sha256: "e".repeat(64) }] });
+    const r = await runCleanupJob(f.share, f.repo, changed, { sha256File, gitTracked: async () => new Set() });
+    expect(existsSync(f.video)).toBe(true);
+    expect(r.skipped.map((s) => s.why).join(" ")).toMatch(/بصمة النسخة العمودية/);
+    expect(() => validateCleanupJob({ ...base, verticals: [{ job: "../x", sha256: "e".repeat(64) }] })).toThrow();
+    expect(() => validateCleanupJob({ ...base, verticals: [{ job: VJOB, sha256: "e".repeat(64), path: "C:/x" }] })).toThrow();
+    await put(path.join(f.vdir, "job.json"), JSON.stringify({ channel: CH, episode: "002-ibna-adam", kind: "vertical", purpose: "studio" }));
+    const r2 = await runCleanupJob(f.share, f.repo, validateCleanupJob({ ...base, verticals: [{ job: VJOB, sha256: sha("VERTICAL") }] }), { sha256File, gitTracked: async () => new Set() });
+    expect(existsSync(f.video)).toBe(true);
+    expect(r2.skipped.map((s) => s.why).join(" ")).toMatch(/ليست النسخة العمودية/);
   });
 });
