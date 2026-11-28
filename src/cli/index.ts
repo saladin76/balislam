@@ -1121,21 +1121,74 @@ program
     const m = await import("../render/postPublishCleanup");
     const share = path.resolve(opts.share);
     const plan = await m.planCleanup(await m.macCleanupContext(episode, share), await m.macCleanupDeps(episode));
+    // D244 البند ٦: الحالة التي سيعرضها الاستوديو بعد الحذف؛ إن تغيّرت لا حذف
+    const { predictCleanup, archiveBeforeCleanup } = await import("../studio/ledgerArchiveOps");
+    const deleted = new Set(plan.delete.map((f) => path.resolve(f.path)));
+    const pred = await predictCleanup(episode, deleted, plan.approvedSha256).catch((e: Error) => ({ error: e.message }));
+    const predLine = "error" in pred ? `حالة الاستوديو بعد الحذف: تعذّر حسابها (${pred.error}) — لا حذف.`
+      : pred.same ? `حالة الاستوديو بعد الحذف: كما هي (${pred.after.approvedScenes}/${pred.after.scenes} مشهد معتمد، التجميع ${pred.after.assemblyApproved ? "معتمد" : "غير معتمد"}، Master ${pred.after.master ? "معتمد" : "—"}، ${pred.after.published ? "منشورة" : "غير منشورة"})؛ يُؤرشف ${pred.archived.length} مشهد قبل الحذف.`
+      : `حالة الاستوديو بعد الحذف ستتغيّر: من ${JSON.stringify(pred.before)} إلى ${JSON.stringify(pred.after)} — لا حذف.`;
+    const predOk = !("error" in pred) && pred.same;
     if (!opts.delete || opts.dryRun) {
       console.log(m.formatPlan(plan));
-      if (!plan.ok) process.exitCode = 1;
+      console.log(predLine);
+      if (!plan.ok || !predOk) process.exitCode = 1;
       return;
     }
-    if (!plan.ok) {
+    if (!plan.ok || !predOk) {
       console.error(m.formatPlan(plan));
+      console.error(predLine);
       console.error("توقف التنظيف: لم يُحذف شيء.");
       process.exitCode = 1;
       return;
     }
+    // D244 البند ٥: نسخة احتياطية للسجلات كلها على المجلد المشترك قبل أي حذف (بلا نسخة لا حذف)
+    const { backupLedgers } = await import("../studio/ledgerBackup");
+    const b = await backupLedgers(projectRoot, share, "cleanup");
+    console.log(`نسخة احتياطية للسجل: ${b.dir} (${b.count} سجل).`);
+    await archiveBeforeCleanup(episode, deleted, plan.approvedSha256!);
     const r = await m.executeCleanup(plan);
     const { queueWindowsCleanup } = await import("../render/worker/cleanupQueue");
     const queued = await queueWindowsCleanup(share, plan).then(() => true, () => false);
+    const after = await predictCleanup(episode, new Set(), plan.approvedSha256);
+    if (!after.same || JSON.stringify(after.after) !== JSON.stringify((pred as { before: unknown }).before)) {
+      console.error(`تحذير: تغيّرت حالة الاستوديو بعد الحذف (${JSON.stringify(after.after)}). النسخة الاحتياطية في ${b.dir}.`);
+      process.exitCode = 1;
+    }
     console.log(m.summaryLine(plan, r.freed, queued, r.skipped.length));
+  });
+
+program
+  .command("ledger-backup")
+  .description("D244: نسخة احتياطية للسجل الموقّع لكل الحلقات على المجلد المشترك (backups/ledger/)، وتبقى آخر ٣٠")
+  .option("--share <path>", "المجلد المشترك على الماك", "/Volumes/bal-share")
+  .action(async (opts: { share: string }) => {
+    const { backupLedgers } = await import("../studio/ledgerBackup");
+    const b = await backupLedgers(projectRoot, path.resolve(opts.share), "manual");
+    console.log(`نُسخ ${b.count} سجل إلى ${b.dir}${b.pruned.length ? `، وحُذفت ${b.pruned.length} نسخة أقدم من آخر ٣٠` : ""}.`);
+  });
+
+program
+  .command("ledger-restore")
+  .description("D244: يعيد حالة حلقة منشورة من أحداث سجلها الموقّعة نفسها (بعد تنظيف أسقطها)؛ عرض فقط بلا --write")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--share <path>", "المجلد المشترك على الماك", "/Volumes/bal-share")
+  .option("--write", "اكتب الحالة المسترجعة (بعد نسخة احتياطية)")
+  .action(async (episode: string, opts: { share: string; write?: boolean }) => {
+    const m = await import("../render/postPublishCleanup");
+    const share = path.resolve(opts.share);
+    const ctx = await m.macCleanupContext(episode, share);
+    const perm = m.permanentMasterPath(share, ctx.channel, ctx.episodeFolder);
+    const { byteSha256 } = await import("../studio/sceneLedgerStore");
+    const permSha = await byteSha256(perm);
+    if (opts.write) {
+      const { backupLedgers } = await import("../studio/ledgerBackup");
+      const b = await backupLedgers(projectRoot, share, "manual");
+      console.log(`نسخة احتياطية للسجل: ${b.dir}`);
+    }
+    const { restoreFromHistory } = await import("../studio/ledgerArchiveOps");
+    const r = await restoreFromHistory(episode, permSha, Boolean(opts.write));
+    console.log(`قبل: ${JSON.stringify(r.before)}\nبعد: ${JSON.stringify(r.after)}\n${r.written ? "كُتبت الحالة المسترجعة." : "عرض فقط (أضف --write للكتابة)."}`);
   });
 
 program

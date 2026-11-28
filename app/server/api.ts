@@ -165,6 +165,13 @@ export const balApi = (): Plugin => ({
       .then(([m, ch]) => m.migrateLegacyRecords({ channelsDir: ch.channelsDir() }))
       .then((r) => { if (r.moved.length || r.skipped.length) console.log(`[studio] ${r.moved.length ? "legacy records archived" : "legacy records left in place"}: ${r.moved.length} moved, ${r.skipped.length} left.`); })
       .catch((e) => console.error("[studio] legacy migration:", (e as Error).message));
+    // D244 البند ٥: نسخة يومية للسجل الموقّع لكل الحلقات على المجلد المشترك (backups/ledger/، آخر ٣٠)؛ تُفحص كل ساعة
+    if (!process.env.VITEST) void load("/src/studio/ledgerBackup.ts").then((m) => {
+      const share = process.env.BAL_SHARE || "/Volumes/bal-share";
+      const tick = () => m.dailyLedgerBackup(root, share).then((d: string | null) => { if (d) console.log(`[studio] ledger backup: ${d}`); }).catch(() => {});
+      void tick();
+      setInterval(tick, 60 * 60 * 1000).unref?.();
+    }).catch((e) => console.error("[studio] ledger backup:", (e as Error).message));
     // D191: الطابور الليلي (ما اعتمده المالك وحده، بلا صوت مدفوع ولا نشر) والمراجعة الأسبوعية، ما دام الاستوديو يعمل
     void startNightlyScheduler(root, load).catch((e) => console.error("[studio] nightly scheduler:", (e as Error).message));
     // «كل الأماكن نسخة واحدة» (D101): حفظ محتوى المالك في main واستقبال التحديثات آليًا، على جهاز المالك وحده
