@@ -17,6 +17,7 @@ import { loadPlan } from "../../plan/io";
 import { prepareRenderMedia } from "../../plan/collect";
 import { cutPlans } from "../../plan/sceneCut";
 import { assertTemplatesApproved } from "../../plan/templateApproval";
+import { assertNoSilentQuoteScenes } from "../../plan/silentQuotes";
 import { assertEditorPassed } from "../../studio/scriptPipelineStore";
 import type { Plan } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
@@ -77,6 +78,7 @@ export const buildSceneJob = async (ep: string, sceneId: string, b: Base, share:
   const cut = await shotsRenderInputs(ep, [sceneId], { sceneDraft: true, allowPendingRecitation: true });
   const { plan, pendingRecitation } = cut;
   assertTemplatesApproved(plan);
+  assertNoSilentQuoteScenes(plan);
   // تجربة «حزمة واحدة للحلقة»: لقطة وسائط الحلقة كاملة (تحوي وسائط المشهد نفسها) لكل المشاهد، فتتطابق مفاتيح الحزمة على العامل
   if (o.sharedMedia && JSON.stringify(o.sharedMedia.voice[sceneId] ?? null) !== JSON.stringify(cut.media.voice[sceneId] ?? null))
     throw new Error(`وسائط المشهد ${sceneId} في لقطة الحلقة ليست وسائط قطعته.`);
@@ -100,6 +102,7 @@ export const fullEpisodeInputs = async (ep: string, o: { requireApprovedQuran: b
   const plan = await loadPlan(ep);
   if (!plan) throw new Error("لا توجد خطة للحلقة.");
   assertTemplatesApproved(plan);
+  assertNoSilentQuoteScenes(plan);
   const media = await prepareRenderMedia(ep, plan, { requireApprovedQuran: o.requireApprovedQuran });
   const { narrationLoudness } = await import("../../studio/narrationLoudness");
   const loud = await narrationLoudness(scriptPath, plan, media);

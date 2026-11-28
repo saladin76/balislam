@@ -11,7 +11,9 @@
  * studio through the very steps a Mac render goes through, so the scene ledger stays the only authority:
  *   - a scene cut → previews/scene-<id>-av.mp4 (putEpisodePreview), its provenance (D233), and the ledger's render-to-input
  *     proof (recordSceneRenderEvidence). It arrives as a DRAFT ready for review: never submitted, never approved (Rule 6);
- *     its motion is measured (the motion meter, intended stillness exempt) and said in the note and the report;
+ *     its motion is measured (the motion meter, intended stillness exempt) and said in the note and the report; below the
+ *     channel's minimum (interactivityMinFor: 95% dafatir-alzaman, 80% others) the cut is refused at once and the scene is
+ *     marked «يحتاج إصلاح» in out/worker-studio/needs-fix.json (D242), never imported as a draft;
  *   - the assembly / pre-final → previews/episode.mp4 / the pre-final slot with its seams record (publishJoined), after the
  *     approved (or current) cuts are checked to be exactly the bytes the worker joined;
  *   - the Master → out/package/<NNN>-episode.mp4 through packageEpisode itself (texts, kit and trace checks, thumbnails,
@@ -25,7 +27,8 @@ import { resolveScriptPath } from "../../script/episodes";
 import { assertEditorPassed } from "../../studio/scriptPipelineStore";
 import { loadChannel } from "../../channel";
 import { projectRoot } from "../../config/paths";
-import { motionSummary, MOTION_MIN, type MotionReport } from "../motionMeter";
+import { motionSummary, type MotionReport } from "../motionMeter";
+import { interactivityMinFor } from "../../studio/quality/interactivity";
 import { probeVideo, type VideoProbe } from "./probe";
 import { assertOneMachine, episodeSceneMachines, previewMachines, recordPreviewProvenance } from "./provenance";
 import { assertCommitMatchesWorkingTree } from "./macSide";
@@ -52,6 +55,30 @@ export type StudioJobRecord = {
   refused?: { at: string; reasons: string[] };
 };
 export type StudioIndex = { version: 1; jobs: Record<string, StudioJobRecord> };
+
+/**
+ * D242 (قرار المالك ٢٨ نوفمبر): قطعة مشهد من جهاز الرندر حركتها (خارج السكون المقصود) دون حد القناة
+ * (interactivityMinFor: ٩٥٪ لـ«دفاتر الزمن»، ٨٠٪ لغيرها) تُرفض فورًا ولا تدخل الاستوديو مسودةً، ويُعلَّم المشهد «يحتاج إصلاح»
+ * هنا (محلي، لا يُرفع)، فيعرضه «٢ المشاهد» بنسبته حتى تصل قطعة تبلغ الحد. ليس قرار مراجعة ولا يمس السجل الموقَّع.
+ */
+export type MotionFix = { percent: number; min: number; at: string; job: string; worker: string };
+export type MotionFixFile = { version: 1; scenes: Record<string, MotionFix> };
+export const motionFixFile = (scriptPath: string) => path.join(studioDir(scriptPath), "needs-fix.json");
+export const readMotionFixes = async (scriptPath: string): Promise<Record<string, MotionFix>> => {
+  try {
+    const raw = JSON.parse(await readFile(motionFixFile(scriptPath), "utf8")) as MotionFixFile;
+    return raw?.version === 1 && raw.scenes && typeof raw.scenes === "object" ? raw.scenes : {};
+  } catch { return {}; }
+};
+const writeMotionFix = async (scriptPath: string, sceneId: string, fix: MotionFix | null) => {
+  const scenes = await readMotionFixes(scriptPath);
+  if (fix) scenes[sceneId] = fix; else if (scenes[sceneId]) delete scenes[sceneId]; else return;
+  await mkdir(studioDir(scriptPath), { recursive: true });
+  await writeJsonAtomic(motionFixFile(scriptPath), { version: 1, scenes } satisfies MotionFixFile);
+};
+/** «يحتاج إصلاح: الحركة ٨٢٪ أقل من ٩٥٪ …» */
+export const motionFixMessage = (sceneId: string, percent: number, min: number) =>
+  `يحتاج إصلاح: حركة المشهد ${sceneId} ${percent}% خارج السكون المقصود، أقل من حد القناة ${min}%؛ رُفضت القطعة ولم تدخل الاستوديو مسودة. أصلح حركة اللقطة ثم أعد إرسالها (D242).`;
 
 /** Local, never pushed (channels/*\/episodes/*\/out/ is ignored): what this Mac sent, and the exact jobs. */
 export const studioDir = (scriptPath: string) => path.join(path.dirname(scriptPath), "out", "worker-studio");
@@ -505,12 +532,20 @@ export const importStudioJobs = async (ep: string, share: string, o: { log?: (m:
           // Rule 2: the motion meter on the cut (intended stillness exempt), said beside it; the Master is held to ≥ 80%
           const motion = await deps.measureMotion(temp, cur.exempt);
           motionLines.push(`- ${motionSummary(motion, `المشهد ${id} (جهاز الرندر ${result.worker})`)}`);
-          const weak = motion.percent < MOTION_MIN ? `؛ تنبيه: الحركة ${motion.percent}% أقل من ${MOTION_MIN}%` : "";
+          // D242: دون حد القناة (٩٥٪ دفاتر الزمن، ٨٠٪ غيرها) يُرفض فورًا ويُعلَّم «يحتاج إصلاح»، ولا يُنشر مسودة
+          const min = interactivityMinFor(job.channel);
+          if (motion.percent < min) {
+            await writeMotionFix(scriptPath, id, { percent: motion.percent, min, at: new Date().toISOString(), job: job.id, worker: result.worker });
+            const msg = motionFixMessage(id, motion.percent, min);
+            log(msg);
+            refuse([msg]);
+            continue;
+          }
           // like verifyBeforePublish of the Mac render: a scene edited meanwhile never gets this cut
           await deps.scene.allowed(ep, id, rec.sourceSha256!, rec.mode!);
           const pub = await deps.scene.publish(ep, `scene-${id}-av`, temp, {
             title: `المشهد ${id} — صوت وصورة للمراجعة`,
-            note: `رُندر على جهاز الرندر «${result.worker}» (${job.commit.slice(0, 8)})؛ الحركة ${motion.percent}%${weak}. مسودة غير معتمدة حتى يشاهدها المالك ويقرر.`,
+            note: `رُندر على جهاز الرندر «${result.worker}» (${job.commit.slice(0, 8)})؛ الحركة ${motion.percent}%. مسودة غير معتمدة حتى يشاهدها المالك ويقرر.`,
           });
           const sha = await deps.sha256File(pub.file);
           if (sha !== result.sha256) throw new Error("القطعة المنشورة لا تطابق بصمة جهاز الرندر.");
@@ -518,7 +553,7 @@ export const importStudioJobs = async (ep: string, share: string, o: { log?: (m:
           await recordPreviewProvenance(previews, id, { machine: result.worker, commit: job.commit, sha256: sha });
           await deps.scene.evidence(ep, id, rec.sourceSha256!, rec.mode!);
           rec.imported = { at: new Date().toISOString(), sha256: sha, worker: result.worker, file: pub.file, motion: motion.percent };
-          if (weak) log(`المشهد ${id}${weak}.`);
+          await writeMotionFix(scriptPath, id, null);
         } finally { await rm(temp, { force: true }); }
       } else if (rec.kind === "assembly" || rec.kind === "prefinal") {
         const what = rec.kind === "assembly" ? "التجميع" : "نسخة قبل النهائية";

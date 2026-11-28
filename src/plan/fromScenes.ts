@@ -11,8 +11,12 @@
  * القواعد:
  * - نص المشهد من السكريبت حرفيًا (لا من `scenes.md`): صف الجدول يحدد المشهد ومعرّفه ولقطته وحقوله فقط. فقرة السكريبت
  *   تُنسب إلى أول صف (بالترتيب) يحتوي نصها؛ والفقرات المتتالية في الصف نفسه مشهد واحد (كما يضم صف «… » «…» فقرتين).
- * - بطاقات الآية والحديث كما يولّدها المحرك من السكريبت (`verse-card` بنصه من السكريبت، و`hadith-card`)، بمعرّف صفها
- *   في الجدول بالترتيب. نص الآية لا يُكتب في plan.json (يُدمج من السكريبت عند القراءة، `stripQuran`).
+ * - الآيات والأحاديث كما في 001 (D242، قرار المالك ٢٨ نوفمبر): لا مشهد `verse-card` ولا `hadith-card` صامت. كل بطاقة يولّدها
+ *   المحرك من السكريبت (بمعرّف صفها في الجدول بالترتيب) تُلحق بلقطة متكلَّمة مجاورة (`attachQuoteCards`): نص الآية على صفحتها
+ *   (`verseKey`/`verseText`/`versePartial`/`verseFrom`) أو نص الحديث (`hadithText`/`hadithRef`/`hadithNarrator`/`hadithFrom`)،
+ *   والراوي مستمر. الجارة الأطول كلامًا (بعدد الكلمات؛ عند التساوي التالية)، ولا لقطة `pending` إن وُجدت غيرها، ولا لقطة
+ *   تحمل اقتباسًا قبلها (الأحاديث تُلحق أولًا ثم الآيات، فإن تنازعتا لقطة أخذها الحديث وذهبت الآية إلى جارتها الأخرى). نص الآية في `verseText` من السكريبت كما يأخذه المحرك للبطاقة (كما في
+ *   خطة 001)، فيقابله فحص Tanzil (D220)؛ ونص الحديث لا يُقابل بالمصحف ولا يُرسل إلى الصوت. ومعرّف البطاقة يُحذف من الخطة.
  * - تعليقات HTML في السكريبت ملاحظات إنتاج لا تُنطق ولا تصير مشاهد (يحذفها المحلل).
  * - حقول مشهد المكتبة من وصف الصف بصيغة «`الحقل` «القيمة»» (أو «`الحقل`: «القيمة»»)، وللحقول المعلنة لذلك المشهد
  *   وحدها (`LIB_UI`). `verse-tag` بلا مرجع يأخذ مرجع بطاقة الآية التي تليه، وكلمة ختمه اسم السورة إن نُطق.
@@ -95,6 +99,119 @@ export type FromScenesReport = {
   unknownShots: string[];
   /** بطاقات آية/حديث لا يقابلها صف بالترتيب */
   cardMismatch: string[];
+  /** D242: كل بطاقة أُلحقت بلقطة متكلَّمة (لا مشهد صامت) */
+  attached: AttachedQuote[];
+  /** D242: بطاقة لم تجد لقطة متكلَّمة تحملها (تبقى، ويرفضها فحص الخطة في «دفاتر الزمن») */
+  unattached: { card: string; reason: string }[];
+};
+
+/* ── D242: الآيات والأحاديث داخل اللقطة كما في 001 ── */
+
+export type AttachedQuote = { card: string; kind: "verse" | "hadith"; ref: string; to: string; side: "prev" | "next"; words: number };
+
+const isQuoteCard = (s: PlanScene) => (s.template === "verse-card" || s.template === "hadith-card") && !s.narration.trim();
+const wordCount = (t: string) => t.split(/\s+/).filter((w) => /\p{L}/u.test(w)).length;
+const hostsQuote = (s: PlanScene) => Boolean(s.props.verseText?.trim() || s.props.hadithText?.trim());
+const SACRED_WORD = /الله|لله|ربنا|ربه|ربك|سبحانه|تعالي|تعالى/;
+
+/** كلمة ظهور البطاقة: أول كلمة في نص اللقطة ليست ذكرًا لله (verseWindow يزيح النافذة لتتسع داخل الكلام وبعد نافذة الذكر) */
+export const quoteFromWord = (narration: string): string => {
+  const words = narration.split(/\s+/).map((w) => w.replace(/[.،,:؛?؟!«»"“”()…\-–—]/g, "")).filter((w) => /\p{L}/u.test(w));
+  return words.find((w) => !SACRED_WORD.test(normalizeArabic(w))) ?? words[0] ?? "";
+};
+
+/**
+ * D242: يُلحق كل بطاقة آية/حديث صامتة بلقطة «خط الأفق» متكلَّمة مجاورة، ويحذف البطاقة. دالة خالصة يشترك فيها بناء الخطة من
+ * scenes.md وتحويل خطة قائمة (`inlineQuotesInPlan`)، فلا يختلف الناتجان. لا تغيّر نص أي مشهد.
+ * بطاقة الآية تحتاج نصها في props.text (من السكريبت)؛ بلا نص أو بنص مؤقت تبقى وتُذكر.
+ */
+export const attachQuoteCards = (input: PlanScene[]): { scenes: PlanScene[]; attached: AttachedQuote[]; unattached: { card: string; reason: string }[] } => {
+  const scenes = input.map((s) => ({ ...s, props: { ...s.props } }));
+  const attached: AttachedQuote[] = [], unattached: { card: string; reason: string }[] = [];
+  const drop = new Set<number>();
+  const spoken = (i: number) => {
+    const s = scenes[i];
+    return s && s.template === "horizon-shot" && s.narration.trim() ? s : undefined;
+  };
+  const neighbour = (i: number, step: -1 | 1): number | undefined => {
+    for (let k = i + step; k >= 0 && k < scenes.length; k += step) {
+      if (isQuoteCard(scenes[k]!)) continue;
+      return spoken(k) ? k : undefined;
+    }
+    return undefined;
+  };
+  // الأحاديث أولًا ثم الآيات: الحديث تمهّد له عادة لقطته المجاورة («الصحيحان»، «حديث المعراج»)، والآية تمهّد لها لقطة
+  // verse-tag أو تحملها الجارة الأخرى؛ فإن تنازعت بطاقتان لقطة واحدة أخذها الحديث وذهبت الآية إلى جارتها الأخرى
+  const order = scenes.map((_, i) => i).filter((i) => isQuoteCard(scenes[i]!))
+    .sort((a, b) => Number(scenes[a]!.template === "verse-card") - Number(scenes[b]!.template === "verse-card") || a - b);
+  for (const i of order) {
+    const card = scenes[i]!;
+    const kind = card.template === "verse-card" ? "verse" as const : "hadith" as const;
+    const text = card.props.text ?? "";
+    const ref = kind === "verse" ? card.ayahKey ?? "" : card.props.reference ?? "";
+    if (!text.trim() || text.startsWith("‹") || !ref.trim()) { unattached.push({ card: card.id, reason: kind === "verse" ? "بطاقة آية بلا نص أو بلا مرجع في السكريبت" : "بطاقة حديث بلا نص أو بلا مرجع" }); continue; }
+    const opts = ([[-1, "prev"], [1, "next"]] as const)
+      .map(([step, side]) => ({ k: neighbour(i, step), side }))
+      .filter((o): o is { k: number; side: "prev" | "next" } => o.k !== undefined && !hostsQuote(scenes[o.k]!));
+    if (!opts.length) { unattached.push({ card: card.id, reason: "لا لقطة متكلَّمة مجاورة بلا اقتباس تحمله" }); continue; }
+    const real = opts.filter((o) => scenes[o.k]!.props.shot !== "pending");
+    const pool = real.length ? real : opts;
+    // الأطول كلامًا؛ وعند التساوي التالية
+    const best = pool.reduce((a, b) => {
+      const wa = wordCount(scenes[a.k]!.narration), wb = wordCount(scenes[b.k]!.narration);
+      return wb > wa || (wb === wa && b.side === "next") ? b : a;
+    });
+    const host = scenes[best.k]!;
+    const from = quoteFromWord(host.narration);
+    // صفحة البطاقة: الفارغة إن عُرف أن اللقطة ترسم على صفحة واحدة (HZ_META.quoteSide)، وإلا الافتراضي كما في 001
+    const side = HZ_META[host.props.shot ?? ""]?.quoteSide;
+    if (kind === "verse") {
+      host.props.verseKey = ref;
+      host.props.verseText = text;
+      if (card.props.partial === "1") host.props.versePartial = "1";
+      host.props.verseFrom = from;
+      if (side) host.props.verseSide = side;
+    } else {
+      host.props.hadithText = text;
+      host.props.hadithRef = ref;
+      if (card.props.narrator?.trim()) host.props.hadithNarrator = card.props.narrator.trim();
+      host.props.hadithFrom = from;
+      if (side) host.props.hadithSide = side;
+    }
+    drop.add(i);
+    attached.push({ card: card.id, kind, ref, to: host.id, side: best.side, words: wordCount(host.narration) });
+  }
+  // التقرير بترتيب البطاقات في الخطة
+  const pos = new Map(input.map((s, i) => [s.id, i]));
+  attached.sort((a, b) => pos.get(a.card)! - pos.get(b.card)!);
+  return { scenes: scenes.filter((_, i) => !drop.has(i)), attached, unattached };
+};
+
+/**
+ * D242: تحويل خطة قائمة (لا إعادة بنائها): نصوص الآيات من السكريبت (quranFromScript) في بطاقاتها ثم attachQuoteCards في كل
+ * فصل. كل ما سواه كما هو حرفيًا (النبرة، edited، الشورتس، السلسلة، الحقول). يرفض إن تغيّر نص أي مشهد باقٍ، أو كان شورت
+ * يشير إلى بطاقة حُذفت.
+ */
+export const inlineQuotesInPlan = (plan: Plan, quran: QuranTexts): { plan: Plan; attached: AttachedQuote[]; unattached: { card: string; reason: string }[]; removed: string[] } => {
+  const attached: AttachedQuote[] = [], unattached: { card: string; reason: string }[] = [];
+  const chapters = plan.chapters.map((c) => {
+    const filled = c.scenes.map((s) => s.template === "verse-card" && s.ayahKey && !s.props.text?.trim() && quran[s.ayahKey]
+      ? { ...s, props: { ...s.props, text: quran[s.ayahKey]! } } : s);
+    const r = attachQuoteCards(filled);
+    attached.push(...r.attached);
+    unattached.push(...r.unattached);
+    // البطاقة التي بقيت تعود كما كانت (لا نص آية في plan.json لبطاقة، stripQuran)
+    const back = new Map(c.scenes.map((s) => [s.id, s]));
+    return { ...c, scenes: r.scenes.map((s) => (s.template === "verse-card" ? back.get(s.id)! : s)) };
+  });
+  const before = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s.narration]));
+  const after = chapters.flatMap((c) => c.scenes);
+  for (const s of after) if (before.get(s.id) !== s.narration) throw new Error(`تغيّر نص المشهد ${s.id}؛ التحويل لا يمس النص.`);
+  const removed = attached.map((a) => a.card);
+  for (const sh of plan.shorts ?? [])
+    for (const id of [sh.from, sh.to, ...(sh.segments ?? []).flatMap((x) => [x.from, x.to])])
+      if (removed.includes(id)) throw new Error(`الشورت «${sh.title ?? sh.from}» يبدأ أو ينتهي ببطاقة ستُحذف (${id})؛ عدّله أولًا.`);
+  return { plan: { ...plan, chapters }, attached, unattached, removed };
 };
 
 export type FromScenesInput = {
@@ -112,7 +229,7 @@ export type FromScenesInput = {
 export const planFromScenes = (input: FromScenesInput): { plan: Plan; report: FromScenesReport } => {
   const base = generatePlan(input.parsed, null, input.quran ?? {}, input.channel);
   const rows = parseScenesTable(input.scenesMd).filter((r) => !r.struck);
-  const report: FromScenesReport = { unplaced: [], unusedRows: [], wordsOnly: [], unknownShots: [], cardMismatch: [] };
+  const report: FromScenesReport = { unplaced: [], unusedRows: [], wordsOnly: [], unknownShots: [], cardMismatch: [], attached: [], unattached: [] };
   const used = new Set<string>();
   const textRows = rows.map((r) => ({ r, k: rowKind(r), t: flat(quoted(r.cell)) }));
   const cardRows = textRows.filter((x) => x.k.kind === "verse" || x.k.kind === "hadith");
@@ -194,6 +311,12 @@ export const planFromScenes = (input: FromScenesInput): { plan: Plan; report: Fr
 
   for (const x of textRows) if (!used.has(x.r.id)) report.unusedRows.push(x.r.id);
 
+  // D242: لا بطاقة صامتة — كل بطاقة على صفحة لقطة متكلَّمة مجاورة (بعد ربط تمهيد الآية بمرجعها أعلاه)
+  const inline = attachQuoteCards(scenes);
+  scenes.splice(0, scenes.length, ...inline.scenes);
+  report.attached = inline.attached;
+  report.unattached = inline.unattached;
+
   const ids = new Set<string>();
   for (const s of scenes) {
     if (ids.has(s.id)) throw new Error(`معرّف مكرر في الخطة: ${s.id}`);
@@ -221,4 +344,5 @@ export const fromScenesProblems = (r: FromScenesReport): string[] => [
   ...r.unplaced.map((u) => `نص في السكريبت بلا صف في scenes.md (السطر ${u.line}): «${u.text.slice(0, 60)}»`),
   ...r.unknownShots.map((u) => `لقطة غير موجودة في مكتبة «خط الأفق»: ${u}`),
   ...r.cardMismatch.map((u) => `بطاقة بلا صف مقابل في scenes.md: ${u}`),
+  ...r.unattached.map((u) => `D242: البطاقة ${u.card} لم تُلحق بلقطة متكلَّمة (${u.reason})`),
 ];

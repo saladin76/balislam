@@ -6,6 +6,7 @@ import { lightingIssues } from "./lighting";
 import { transitionIssues } from "./transitions";
 import type { Plan } from "./types";
 import { shotWordPlanIssues } from "./shotWords";
+import { silentQuoteScenes } from "./silentQuotes";
 import { langPack, langPacks } from "../i18n/packs";
 import { isCuratedBeat, isDrawable, needsElement, parseBeats } from "./beats";
 import { elementExclusion, excludeReasonAr, figuresAllowed, setExclusion, templateExclusion, type LibraryRules } from "../channel/library";
@@ -133,6 +134,8 @@ export const planIssues = (plan: Plan, channel?: LibraryRules | { id: string; ru
         out.push({ level: "error", sceneId: s.id, message: "لوحة وثائقية بلا صورة: ولّد الصورة من الوصف وارفعها من إعدادات المشهد.", early: true });
       if (s.backdrop && !hasElement(s.backdrop)) out.push({ level: "warning", sceneId: s.id, message: `الخلفية «${s.backdrop}» غير موجودة.` });
     }
+  // D242: «دفاتر الزمن» بلا مشهد آية أو حديث صامت (النص داخل لقطة «خط الأفق» المجاورة كما في 001)
+  for (const x of silentQuoteScenes(plan, plan.channel ?? channel?.id)) out.push({ level: "error", sceneId: x.sceneId, message: x.message, early: true });
   // Isolated policy review: never infer an approval from a creative heuristic.
   out.push(...channelProductionIssues(plan, channel));
   // اللقطات المصمَّمة على نص سابق (D-5، M4): تنبيه واضح، والقالب يعرض الكلمات وحدها بدل الرسم الخاطئ

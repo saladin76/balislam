@@ -14,7 +14,7 @@ import { quranFromScript } from "../quran/scriptText";
 import { backupPlanFile, planFromScriptOnly, planPathFor, readJson, writePlanFile } from "./io";
 import { isDesignedPlan, scriptPlanDivergence, designedScenes } from "./designed";
 import { unapprovedScenes, loadApprovals } from "./templateApproval";
-import { fromScenesProblems, planFromScenes, type FromScenesReport } from "./fromScenes";
+import { fromScenesProblems, inlineQuotesInPlan, planFromScenes, type AttachedQuote, type FromScenesReport } from "./fromScenes";
 import { episodeSeriesOf, getSeries, EPISODE_SERIES_FILE } from "../channel/seriesStore";
 import { stampSeries, type SeriesStamp } from "../channel/series";
 import type { Plan } from "./types";
@@ -77,6 +77,32 @@ export const planFromScenesFile = async (episode: string, o: { write?: boolean; 
     await writeFile(path.join(dir, EPISODE_SERIES_FILE), JSON.stringify({ series: series.stamp!.id, stamp: series.stamp }, null, 2) + "\n", "utf8");
     result.seriesLinkWritten = true;
   }
+  result.written = true;
+  return result;
+};
+
+/**
+ * D242: `bal inline-quotes <الحلقة>`: يحوّل plan.json القائمة (لا يعيد بناءها): كل بطاقة آية/حديث صامتة تُلحق بلقطة
+ * «خط الأفق» المجاورة (inlineQuotesInPlan، الدالة نفسها في planFromScenes)، وكل ما سواها كما هو (النبرة، edited، الشورتس،
+ * السلسلة). يتحقق قبل الكتابة: نص كل مشهد باقٍ كما كان بايتًا ببايت (فالتسجيلات تبقى صالحة بلا صوت جديد)، ولا بطاقة بقيت.
+ * عرض فقط إلا بـ write (نسخة احتياطية أولًا).
+ */
+export type InlineQuotesResult = { file: string; plan: Plan; attached: AttachedQuote[]; unattached: { card: string; reason: string }[]; removed: string[]; written: boolean; backup?: string };
+export const inlineQuotesFile = async (episode: string, o: { write?: boolean } = {}): Promise<InlineQuotesResult> => {
+  const scriptPath = await resolveScriptPath(episode);
+  const file = planPathFor(scriptPath);
+  const raw = await readFile(file, "utf8");
+  const plan = JSON.parse(raw) as Plan;
+  const parsed = parseScript(await readFile(scriptPath, "utf8"), scriptPath);
+  const r = inlineQuotesInPlan(plan, quranFromScript(parsed).texts);
+  // نص كل مشهد باقٍ كما كان (الدالة تتحقق، وهذا تأكيد على الملف نفسه)
+  const before = new Map(plan.chapters.flatMap((c) => c.scenes).map((s) => [s.id, s.narration]));
+  for (const s of r.plan.chapters.flatMap((c) => c.scenes)) if (before.get(s.id) !== s.narration) throw new Error(`تغيّر نص ${s.id}`);
+  const result: InlineQuotesResult = { file, ...r, written: false };
+  if (!o.write || !r.attached.length) return result;
+  if (r.unattached.length) throw new Error(`لم تُكتب الخطة: بطاقات لم تُلحق:\n${r.unattached.map((u) => `- ${u.card}: ${u.reason}`).join("\n")}`);
+  result.backup = await backupPlanFile(scriptPath);
+  await writePlanFile(file, r.plan);
   result.written = true;
   return result;
 };
