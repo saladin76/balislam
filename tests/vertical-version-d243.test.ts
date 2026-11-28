@@ -6,8 +6,8 @@ import { existsSync, readFileSync } from "node:fs";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import config from "../config.json";
 import { ensureQueue, jobPriority, pendingJobs, planSha256, queuePaths, sizeFor, validateJobV2, writeJsonAtomic, type WorkerJobV2, type WorkerResult } from "../src/render/worker/protocol";
-import { cutArgs, cutFilter, resolveCutSource } from "../src/render/worker/verticalCut";
-import { cutRangesFor, cutSeconds, sceneStartsInCut, verticalSceneSpans, type SceneSpan } from "../src/render/worker/verticalShorts";
+import { cutArgs, cutFilter, resolveCutSource, TITLE_FADE_SEC } from "../src/render/worker/verticalCut";
+import { cutRangesFor, cutSeconds, sceneStartsInCut, shortTitleSeconds, verticalSceneSpans, type SceneSpan } from "../src/render/worker/verticalShorts";
 import { approvedVertical, importStudioJobs, readStudioIndex, rememberSentJob, type StudioImportDeps } from "../src/render/worker/studioJobs";
 import { buildCutJob } from "../src/render/worker/macJobs";
 import { recordPreviewProvenance } from "../src/render/worker/provenance";
@@ -212,6 +212,7 @@ const setup = async () => {
       masterApproved: async () => { calls.push("master-approved"); if (!masterOk) throw new Error("Master غير معتمد"); },
       current: async () => ({ plan: plan as never, media: media as never, introFrames: 0 }),
       collect: async (_ep, job) => { calls.push(`collect ${job.n}`); return { file: path.join(epDir, "out", "package", `002-short-${job.n}.mp4`), sha: "f".repeat(64), motion: 88 }; },
+      title: async () => undefined,
     },
   };
   const probeFor = (job: WorkerJobV2): VideoProbe => ({ videoCodec: "h264", audioCodec: "aac", width: job.expected.width, height: job.expected.height, durationSec: job.expected.durationSec, tags: [] }) as unknown as VideoProbe;
@@ -282,6 +283,47 @@ describe("D243: the vertical comes back verified like the Master, and only then 
     expect(ok.refused).toEqual([]);
     expect(ok.rows.map((x) => x.kind)).toEqual(["cut"]);
     expect(t.calls).toContain("collect 1");
+  });
+});
+
+describe("D243: the short's title (owner, 28 Nov): the short hook for the first 3 seconds only, inside the safe area", () => {
+  it("3 seconds, or until the first intended stillness (minus the fade); none if the short opens in stillness", () => {
+    expect(shortTitleSeconds([])).toBe(3);
+    expect(shortTitleSeconds([{ from: 2.5, to: 6 }])).toBe(2.2);
+    expect(shortTitleSeconds([{ from: 0, to: 4 }])).toBeNull();
+    expect(shortTitleSeconds([{ from: 1.1, to: 4 }])).toBeNull();
+    expect(shortTitleSeconds([{ from: 9, to: 12 }])).toBe(3);
+  });
+  it("the cut burns the channel-style PNG over the first seconds with a short fade, then the picture goes on without it", () => {
+    const a = cutArgs("in.mp4", "out.mp4", [{ from: 0, to: 288 }], 30, undefined, { png: "t.png", seconds: 3 });
+    expect(a.slice(a.indexOf("-framerate"), a.indexOf("t.png") + 1)).toEqual(["-framerate", "30", "-loop", "1", "-t", "3.000", "-i", "t.png"]);
+    const f = cutFilter([{ from: 0, to: 288 }], 30, 3);
+    expect(f).toContain(`fade=t=in:st=0:d=${TITLE_FADE_SEC}:alpha=1,fade=t=out:st=2.700:d=${TITLE_FADE_SEC}:alpha=1[t]`);
+    expect(f).toContain("[vc][t]overlay=0:0:eof_action=pass");
+    expect(f.endsWith("[v]")).toBe(true);
+    // without a title the filter is the plain cut
+    expect(cutFilter([{ from: 0, to: 288 }], 30)).not.toContain("overlay");
+  });
+  it("the job carries the title only within its rules, and the worker refuses a traced title before drawing", () => {
+    const withTitle = (title: unknown) => { const j = cutJob(); (j.cut as Record<string, unknown>).title = title; return j; };
+    expect(validateJobV2(withTitle({ text: "متى بدأت القصة؟", seconds: 3 })).cut?.title?.seconds).toBe(3);
+    expect(() => validateJobV2(withTitle({ text: "متى؟", seconds: 4 }))).toThrow(/مدة عنوان/);
+    expect(() => validateJobV2(withTitle({ text: "سطر\nآخر", seconds: 3 }))).toThrow(/نص عنوان/);
+    expect(() => validateJobV2(withTitle({ text: "متى؟", seconds: 3, png: "C:/x.png" }))).toThrow(/حقل غير معروف/);
+    const src = readFileSync(path.join(root, "src/render/worker/verticalCut.ts"), "utf8");
+    const body = src.slice(src.indexOf("export const cutVertical"));
+    expect(body.indexOf("findTraces(cut.title.text)")).toBeLessThan(body.indexOf("renderShortTitlePng("));
+    expect(src).toContain('id: "short-title"');
+    expect(readFileSync(path.join(root, "src/remotion/Root.tsx"), "utf8")).toContain('<Still id="short-title" component={ShortTitleStill}');
+    // the title box is the ShortTitle text itself, inside the D243 safe area (tests/vertical-safe-area.test.tsx)
+    expect(readFileSync(path.join(root, "src/remotion/scenes/ShortTitle.tsx"), "utf8")).toContain("<ShortTitleText text={text} opacity={1} k={1} />");
+  });
+  it("Mac side: the title is the short's own title from the publish kit, traces-checked, with its seconds from the short's stillness", () => {
+    const src = readFileSync(path.join(root, "src/render/worker/studioJobs.ts"), "utf8");
+    const b = src.slice(src.indexOf("export const cutTitleFor"), src.indexOf("/* ── importing ── */"));
+    expect(b.indexOf("shortTitleFor(")).toBeLessThan(b.indexOf("assertNoTraces("));
+    expect(b).toContain("shortTitleSeconds(intendedStillness(");
+    expect(src).toContain("تغيّر عنوان الشورت");
   });
 });
 
