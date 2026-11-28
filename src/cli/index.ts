@@ -240,9 +240,12 @@ program
     const { inlineQuotesFile } = await import("../plan/fromScenesFile");
     try {
       const r = await inlineQuotesFile(episode, { write: opts.write === true });
-      if (!r.attached.length && !r.unattached.length) { console.log("لا بطاقة آية أو حديث صامتة في الخطة؛ لا شيء يتغير."); return; }
+      if (!r.attached.length && !r.unattached.length && !r.carries.length) { console.log("لا بطاقة آية أو حديث صامتة ولا بطاقة تحتاج استمرارًا؛ لا شيء يتغير."); return; }
       for (const a of r.attached) console.log(`${a.card} (${a.kind === "verse" ? "آية" : "حديث"} ${a.ref}) ← ${a.to} (${a.side === "prev" ? "السابقة" : "التالية"}، ${a.words} كلمة)`);
       for (const u of r.unattached) console.log(`لم تُلحق: ${u.card} — ${u.reason}`);
+      // D246: البطاقة تبقى زمن قراءتها وتستمر إلى ما بعد مشهدها
+      console.log(`توقيت الاستمرار: ${r.voiced ? `صوت حقيقي لـ${r.voiced} مشهدًا (وتقدير لغيره)` : "تقديري (لا صوت على هذا الجهاز)"}`);
+      for (const c of r.carries) console.log(`استمرار ${c.host} (${c.kind === "verse" ? "آية" : "حديث"} ${c.ref}، قراءة ${c.read} ث): في مشهدها ${c.inHost} ث${c.carried.map((x) => ` ← ${x.id} ${x.seconds} ث`).join("")}${c.shortfall ? ` — نقص ${c.shortfall} ث (${c.stop}؛ D222: جزء معلَّم بقرار المتخصص)` : ""}`);
       console.log(`المشاهد المحذوفة: ${r.removed.join("، ") || "—"}؛ نص كل مشهد باقٍ كما كان (لا صوت جديد).`);
       if (r.written) console.log(`كُتبت: ${path.relative(projectRoot, r.file)}${r.backup ? ` (نسخة احتياطية: ${path.basename(r.backup)})` : ""}`);
       else if (!opts.write) console.log("عرض فقط؛ للكتابة: --write");

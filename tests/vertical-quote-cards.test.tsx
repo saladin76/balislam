@@ -79,8 +79,9 @@ describe("بطاقات الآية والحديث في العمودي (D243)", ()
 
   it("HorizonShot: في العمودي لا بطاقة على صفحة الدفتر، بل بطاقة الشاشة في نافذة الآية نفسها والراوي مستمر", () => {
     const src = readFileSync(path.resolve(import.meta.dirname, "..", "src/remotion/scenes/HorizonShot.tsx"), "utf8");
-    expect(src).toContain("vw && verseShow > 0 && !portrait ?");
-    expect(src).toContain("{portrait && vw && verseShow > 0 ? (");
+    // D246: والبطاقة المستمرة بين مشهدين (screenCard) في مساحة الشاشة في الأفقي، وPortraitQuoteCard نفسها في العمودي
+    expect(src).toContain("vw && verseShow > 0 && !screenCard && !portrait ?");
+    expect(src).toContain("{portrait && vw && verseShow > 0 && quote ? (");
     expect(src).toContain("<PortraitQuoteCard");
   });
 });

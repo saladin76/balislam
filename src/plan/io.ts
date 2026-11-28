@@ -43,7 +43,24 @@ export const readPlanFile = async (scriptPath: string): Promise<Plan | null> => 
   const legacy = (await readJson<QuranTexts>(quranPathFor(scriptPath))) ?? {};
   const sources = Object.fromEntries(plan.chapters.flatMap((c) => c.scenes)
     .filter((s) => s.ayahKey && s.props?.meaningSource).map((s) => [s.ayahKey!, s.props.meaningSource!]));
-  return withQuran(plan, { ...historicalMeanings(legacy, sources), ...authored.texts });
+  return withVoicedQuoteCarries(withQuran(plan, { ...historicalMeanings(legacy, sources), ...authored.texts }), scriptPath);
+};
+
+/**
+ * D246: استمرار بطاقة الآية/الحديث إلى ما بعد مشهدها محسوب من توقيت الصوت الحقيقي حيث وُجد على هذا الجهاز
+ * (voice/index.json بسرعة الإلقاء المطبَّقة)، فيقرأ الرندر والمدة والسكون المقصود وفحص الشاشة الواقفة القيمة نفسها من الخطة.
+ * بلا صوت تبقى قيم الخطة (التقدير) كما هي. لا يمس خطة بلا استشهاد بصري.
+ */
+const withVoicedQuoteCarries = async (plan: Plan, scriptPath: string): Promise<Plan> => {
+  const { hasHzQuote } = await import("../remotion/dafatir/horizon/meta");
+  if (!plan.chapters.some((c) => c.scenes.some((s) => s.template === "horizon-shot" && hasHzQuote(s.props)))) return plan;
+  const raw = (await readJson<Record<string, import("../voice/generate").VoiceClip>>(path.join(path.dirname(scriptPath), "voice", "index.json")).catch(() => null)) ?? {};
+  if (!Object.keys(raw).length) return plan;
+  const { pacedOverlay } = await import("../voice/paceFile");
+  const { computeQuoteCarries } = await import("./quoteCarry");
+  const { emptyMedia } = await import("./media");
+  const media = { ...emptyMedia, voice: await pacedOverlay(scriptPath, raw) };
+  return { ...plan, chapters: plan.chapters.map((c) => ({ ...c, scenes: computeQuoteCarries(c.scenes, media, { channelId: plan.channel }).scenes })) };
 };
 
 export const loadPlan = async (episode: string): Promise<Plan | null> => readPlanFile(await resolveScriptPath(episode));

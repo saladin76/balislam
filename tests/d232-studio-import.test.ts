@@ -299,6 +299,18 @@ describe("D242: worker-import refuses a scene cut below the channel's motion min
     expect(await readMotionFixes(t.scriptPath)).toEqual({});
   });
 
+  it("D246: a scene almost all under its quote card (≤ 2 measured seconds outside intended stillness) is not judged by percent", async () => {
+    const t = await setup();
+    const job = sceneJob("c1-s1");
+    await rememberSentJob(t.scriptPath, job, { sourceSha256: "a".repeat(64), mode: "current" });
+    await finish(t.share, job, "card-cut");
+    t.probes.set(job.id, probeFor(job));
+    t.deps.measureMotion = async () => ({ percent: 0, seconds: 1, activeSeconds: 0, perSecond: [], still: [] });
+    const r = await t.run();
+    expect(r.imported.map((x) => x.sceneId)).toEqual(["c1-s1"]);
+    expect(r.refused).toEqual([]);
+  });
+
   it("the threshold is the channel's own (interactivityMinFor), read from the job, and the studio shows the mark", () => {
     expect(src("src/render/worker/studioJobs.ts")).toContain("interactivityMinFor(job.channel)");
     expect(src("src/studio/sceneService.ts")).toContain("readMotionFixes");

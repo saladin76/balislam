@@ -86,7 +86,7 @@ export const intendedStillness = (plan: Plan, startSec: number, media?: Pick<Epi
               // عدد الكلمات مختلف: يبقى التقدير
             }
           }
-          const vw = verseWindow(s.props as Record<string, string | undefined>, tl);
+          const vw = verseWindow(s.props as Record<string, string | undefined>, tl, d);
           // D219: نافذة الآية نفسها (ظهور البطاقة قدر قراءتها والراوي يكمل) سكون مقصود كلها
           if (vw) {
             const from = t + vw[0];

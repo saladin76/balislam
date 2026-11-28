@@ -35,6 +35,8 @@ export const COMPOSITION_FIELDS: Record<string, CompositionFields> = {
   "alley-world": { shot: [], layout: ["shot", "setting", "figures"] },
   // آلات الجزري: كل لقطة (زاوية) تكوين
   "jazari-machine": { shot: [], layout: ["shot"] },
+  // دفتر القارئ: كل لقطة (نموذج من الستوري بورد) تكوين
+  "reader-notebook": { shot: [], layout: ["shot"] },
 };
 
 /**
