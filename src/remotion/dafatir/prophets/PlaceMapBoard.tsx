@@ -125,6 +125,14 @@ const WADIS: LL[][] = [
 ];
 
 type Peak = { depth: number; faces: { d: string; fill: string; o: number }[]; shadow: string };
+/** كتلة كل سلسلة: خطها مزاحًا غربًا (ضوء) وشرقًا (ظل) بعرض يتبع العمق */
+const buildMassifs = (merc: GeoProjection, p3: P3, scale: number) => RIDGES.map((ridge) => {
+  const pts = ridge.pts.map((ll) => merc(ll) as Pt);
+  const off = (dx: number) => line(pts.map(([x, y]) => { const q = p3(x + dx, y); return [q[0], q[1]] as Pt; }));
+  const mid = pts[Math.floor(pts.length / 2)]!;
+  const k = 1 / p3(mid[0], mid[1])[2];
+  return { lit: off(-ridge.h * scale * 0.6), shade: off(ridge.h * scale * 0.6), w: ridge.h * scale * 2.2 * k * 1300 };
+});
 const buildPeaks = (merc: GeoProjection, p3: P3, scale: number, seed: number, clip: (x: number, y: number) => boolean): Peak[] => {
   const r = rng(seed);
   const out: Peak[] = [];
@@ -206,6 +214,7 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
     for (let lon = -180; lon <= 180; lon += 10) graticule.push(path({ type: "LineString", coordinates: Array.from({ length: 33 }, (_, i) => [lon, -80 + i * 5]) }) ?? "");
     for (let lat = -80; lat <= 80; lat += 10) graticule.push(path({ type: "LineString", coordinates: Array.from({ length: 73 }, (_, i) => [-180 + i * 5, lat]) }) ?? "");
     const peaks = buildPeaks(merc, p3, view.reliefScale, seed, inside);
+    const massifs = buildMassifs(merc, p3, view.reliefScale);
     const harrat = view.scale > 2000 ? HARRAT.map((h, i) => blob(merc, p3, h, seed + i * 7)) : [];
     const wadis = view.scale > 2000 ? WADIS.map((w) => path({ type: "LineString", coordinates: w }) ?? "") : [];
     const rivers = RIVERS.map((rv) => path({ type: "LineString", coordinates: rv.points }) ?? "");
@@ -232,7 +241,7 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
       const gy = -2600 + k * 82 + r() * 30;
       grain.push(line(Array.from({ length: 25 }, (_, i) => P(-3000 + i * 250, gy + Math.sin(i * 0.9 + k) * 12))));
     }
-    return { path, land: path(LAND50) ?? "", sheetPts, graticule, peaks, harrat, wadis, rivers, warm, known, deskPts, grain, P, p3 };
+    return { path, land: path(LAND50) ?? "", sheetPts, graticule, peaks, massifs, harrat, wadis, rivers, warm, known, deskPts, grain, P, p3 };
   }, [view, seed]);
 
   const sheetD = poly(g.sheetPts);
@@ -251,10 +260,11 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
         </linearGradient>
         <filter id={`${id}-paper`} x="0" y="0" width="1" height="1">
           <feTurbulence type="fractalNoise" baseFrequency="0.012" numOctaves="3" seed={seed} result="n" />
-          <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.29  0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0.20 0" />
+          <feColorMatrix in="n" type="matrix" values="0 0 0 0 0.29  0 0 0 0 0.18  0 0 0 0 0.12  0 0 0 0.09 0" />
           <feComposite in2="SourceGraphic" operator="in" />
         </filter>
         <filter id={`${id}-soft`}><feGaussianBlur stdDeviation="6" /></filter>
+        <filter id={`${id}-massif`} x="-0.2" y="-0.2" width="1.4" height="1.4"><feGaussianBlur stdDeviation="9" /></filter>
         <filter id={`${id}-fogblur`} x="-0.3" y="-0.3" width="1.6" height="1.6"><feGaussianBlur stdDeviation="32" /></filter>
         <filter id={`${id}-warmblur`} x="-0.5" y="-0.5" width="2" height="2"><feGaussianBlur stdDeviation="22" /></filter>
         <clipPath id={`${id}-sheet`}><path d={sheetD} /></clipPath>
@@ -309,10 +319,14 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
         ))}
         {g.wadis.map((d, i) => <path key={i} d={d} stroke={PM.wadi} strokeWidth={2} strokeDasharray="7 5" fill="none" opacity={0.75} />)}
         {g.rivers.map((d, i) => <path key={i} d={d} stroke={PM.river} strokeWidth={view.scale > 2000 ? 3 : 1.6} fill="none" strokeLinecap="round" opacity={0.85} />)}
-        {g.peaks.map((p, i) => <path key={`s${i}`} d={p.shadow} fill={PM.shadeDeep} opacity={0.16} />)}
+        <g filter={`url(#${id}-massif)`}>
+          {g.massifs.map((m, i) => <path key={`ms${i}`} d={m.shade} stroke={PM.shadeDeep} strokeWidth={m.w} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.28} />)}
+          {g.massifs.map((m, i) => <path key={`ml${i}`} d={m.lit} stroke={PM.lit} strokeWidth={m.w * 0.8} strokeLinecap="round" strokeLinejoin="round" fill="none" opacity={0.55} />)}
+        </g>
+        {g.peaks.map((p, i) => <path key={`s${i}`} d={p.shadow} fill={PM.shadeDeep} opacity={0.12} />)}
         {g.peaks.map((p, i) => (
           <g key={i}>
-            {p.faces.map((f, k) => <path key={k} d={f.d} fill={f.fill} opacity={f.o} stroke={PM.coast} strokeWidth={0.5} strokeOpacity={0.35} strokeLinejoin="round" />)}
+            {p.faces.map((f, k) => <path key={k} d={f.d} fill={f.fill} opacity={0.88} />)}
           </g>
         ))}
         {view.sheet ? <path d={sheetD} fill="#fff" filter={`url(#${id}-paper)`} /> : null}
@@ -323,15 +337,15 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
       {/* ضوء الغروب الجانبي على المشهد كله */}
       <rect width={W} height={H} fill={`url(#${id}-light)`} />
 
-      {view.legend ? <Legend id={id} p3={g.p3} sheet={view.sheet} at={view.sheet ? [-560, 360] : [0, 0]} empty={!view.sheet} /> : null}
+      {view.legend ? <Legend id={id} p3={g.p3} sheet={view.sheet} at={view.sheet ? [-560, 360] : [0, 0]} /> : null}
       {view.tray ? <PinTray id={id} p3={g.p3} at={[-80, 400]} /> : null}
       {view.stamp ? <Stamp p3={g.p3} at={view.sheet ? [430, -170] : null} /> : null}
     </svg>
   );
 };
 
-/** مفتاح الخريطة: «ضوء = موضع ثابت بدليل» (ورقة على الخريطة في أ، ولوحة في الزاوية مع عدّاد «٠» في ب) */
-const Legend: React.FC<{ id: string; p3: P3; sheet: boolean; at: Pt; empty: boolean }> = ({ id, p3, sheet, at, empty }) => {
+/** مفتاح الخريطة: «ضوء = موضع ثابت بدليل» (ورقة على الخريطة في أ، ولوحة في الزاوية في ب) */
+const Legend: React.FC<{ id: string; p3: P3; sheet: boolean; at: Pt }> = ({ id, p3, sheet, at }) => {
   const body = (
     <g>
       <rect x={-310} y={-120} width={620} height={250} rx={10} fill="#FBF4E6" stroke={C.ink} strokeWidth={2.5} />
@@ -342,12 +356,6 @@ const Legend: React.FC<{ id: string; p3: P3; sheet: boolean; at: Pt; empty: bool
       <text x={150} y={20} direction="rtl" textAnchor="start" style={{ fontFamily: TAJ, fontWeight: 700, fontSize: 32, fill: C.inkText }}>ضوء = موضع ثابت بدليل</text>
       <circle cx={190} cy={78} r={15} fill="none" stroke={C.inkSoft} strokeWidth={2.5} strokeDasharray="4 4" />
       <text x={150} y={90} direction="rtl" textAnchor="start" style={{ fontFamily: TAJ, fontWeight: 500, fontSize: 30, fill: C.inkSoft }}>بلا ضوء = لا نعلم</text>
-      {empty ? (
-        <g>
-          <rect x={-292} y={-20} width={80} height={110} rx={8} fill="none" stroke={C.ribbon} strokeWidth={2.5} />
-          <text x={-252} y={56} textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: 70, fill: C.ribbon }}>٠</text>
-        </g>
-      ) : null}
     </g>
   );
   if (sheet) return <g transform={planeMatrix(p3, at[0], at[1])}><g transform="rotate(-4)"><rect x={-304} y={-112} width={620} height={250} fill="#000" opacity={0.25} transform="translate(10 12)" filter={`url(#${id}-soft)`} />{body}</g></g>;
@@ -377,7 +385,7 @@ const Stamp: React.FC<{ p3: P3; at: Pt | null }> = ({ p3, at }) => {
     <g transform="rotate(-9)" opacity={0.9}>
       <rect x={-200} y={-62} width={400} height={118} rx={12} fill="none" stroke={C.ribbon} strokeWidth={7} />
       <rect x={-186} y={-48} width={372} height={90} rx={6} fill="none" stroke={C.ribbon} strokeWidth={2.5} />
-      <text x={0} y={22} direction="rtl" textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: 64, fill: C.ribbon }}>لا نعلم</text>
+      <text x={0} y={22} textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: 64, fill: C.ribbon }}>لا نعلم</text>
     </g>
   );
   return at ? <g transform={planeMatrix(p3, at[0], at[1])}>{s}</g> : <g transform="translate(1540 210)">{s}</g>;
@@ -643,12 +651,6 @@ const Mountain: React.FC<{ id: string; hz: number; crane: boolean; seed: number;
     const y = base - 40 - k * (crane ? 70 : 52);
     return line(Array.from({ length: 60 }, (_, i) => [peakX - span + (i / 59) * span * 2, y + Math.sin(i * 0.45 + k * 2) * 7 + Math.sin(i * 1.7) * 3] as Pt));
   });
-  const gullies = Array.from({ length: 11 }, (_, i) => {
-    const sx = peakX + (r() - 0.5) * span * 0.5, sy = peakY + 40 + r() * 120;
-    const ex = peakX + (i / 10 - 0.5) * span * 1.5 + (r() - 0.5) * 80;
-    const mx = (sx + ex) / 2 + (r() - 0.5) * 60, my = (sy + base) / 2 + (r() - 0.5) * 40;
-    return { d: `M${sx.toFixed(0)} ${sy.toFixed(0)} Q${mx.toFixed(0)} ${my.toFixed(0)} ${ex.toFixed(0)} ${base}`, lit: ex < peakX, w: 2 + r() * 5 };
-  });
   const txt = crane ? { x: peakX - 40, y: peakY + 300, size: 210 } : { x: peakX - 20, y: peakY + 210, size: 150 };
   return (
     <g>
@@ -656,7 +658,6 @@ const Mountain: React.FC<{ id: string; hz: number; crane: boolean; seed: number;
       <path d={d} fill={`url(#${id}-mount)`} />
       {/* سفوح وأخاديد */}
       <g clipPath={`url(#${id}-mclip)`}>
-        {gullies.map((g, i) => <path key={i} d={g.d} stroke={g.lit ? "#E7B98A" : "#0D0A14"} strokeWidth={g.w} fill="none" opacity={g.lit ? 0.22 : 0.3} strokeLinecap="round" />)}
         {contours.map((c, i) => <path key={`c${i}`} d={c} stroke="#D9C7B0" strokeWidth={1.6} fill="none" opacity={0.32 - i * 0.07} />)}
       </g>
       {/* الاسم مكتوبًا في المكان: ذهب بخط عربي على السفح، والضباب يمر أمام أسفله */}
