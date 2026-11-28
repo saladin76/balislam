@@ -114,11 +114,19 @@ export const hasHzQuote = (props: Record<string, unknown> | undefined): boolean 
 export const quoteHoldsScene = (props: Record<string, unknown> | undefined): boolean =>
   hasHzQuote(props) && !(props as Record<string, unknown>).quoteCarried && !(props as Record<string, unknown>).quoteHold && !(props as Record<string, unknown>).carryText;
 
-/** بداية البطاقة في مشهدها الحامل (D219/D242): من كلمتها، وتتقدم لتتسع داخل الكلام، ولا قبل نهاية نافذة ذكر سابقة */
-export const quoteStart = (from: string, text: string, tl: Timeline): number => {
-  const p = from.trim().replace(/[\u064B-\u0652\u0670\u0640]/g, "");
-  const hit = p ? tl.words.find((x) => x.w.replace(/[\u064B-\u0652\u0670\u0640]/g, "").startsWith(p)) : tl.words[0];
+/**
+ * بداية البطاقة في مشهدها الحامل (D219/D242): من كلمتها، وتتقدم لتتسع داخل الكلام، ولا قبل نهاية نافذة ذكر سابقة.
+ * الكلمة «كلمة» أو «كلمة#2» (الورود الثاني لما يبدأ بها، كمراسي الرسم).
+ * firm (D246 «أ»، `quoteFirm: "1"`): البطاقة لا تتقدم عن كلمتها أبدًا — كلمتها بعد أول فكرة مرسومة في اللقطة، فلا تظهر على
+ * دفتر فارغ؛ وما لا يتسع داخل الكلام يستمر إلى المشهد التالي إن جاز (carryAllowed) أو يُختصر جزءًا (D222).
+ */
+export const quoteStart = (from: string, text: string, tl: Timeline, firm = false): number => {
+  const [w, n] = from.trim().split("#");
+  const strip = (x: string) => x.replace(/[\u064B-\u0652\u0670\u0640]/g, "");
+  const p = strip(w ?? "");
+  const hit = p ? tl.words.filter((x) => strip(x.w).startsWith(p))[(Number(n) || 1) - 1] : tl.words[0];
   const a = hit ? hit.s : 0.4;
+  if (firm && hit) return a;
   const read = verseReadSeconds(text);
   const last = tl.words.length ? tl.words[tl.words.length - 1]!.e : a + read;
   let floor = tl.words[0]?.s ?? 0.3;
@@ -138,7 +146,7 @@ export const verseWindow = (props: Record<string, string | undefined>, tl: Timel
     const c = Number(props.carrySeconds);
     return [0, Math.min(Number.isFinite(c) && c > 0 ? c : 0, end)];
   }
-  const s = quoteStart(q.from, q.text, tl);
+  const s = quoteStart(q.from, q.text, tl, props.quoteFirm === "1");
   if (props.quoteCarried) return [s, end];
   // D246: القراءة تتسع في ذيل المشهد نفسه قبل بداية التالي (لا سقف عند آخر كلمة، ولا تمد المشهد)
   if (props.quoteHold) return [s, Math.min(s + verseReadSeconds(q.text), dur ?? Infinity)];

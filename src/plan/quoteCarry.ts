@@ -7,6 +7,8 @@
  * - التالي: حقول `carry*` (النص والمرجع والراوي والجزء والموضع ومعرّف الحامل) و`carrySeconds` = ما بقي من زمن القراءة منذ
  *   بدايته، بزمن بداية المشهد التالي الفعلي (sceneAdvanceFrames: قد يبدأ تحت ذيل الحامل)؛ وإن جاوز ما بقي كلامه، عُلّم هو أيضًا
  *   `quoteCarried` واستمرت إلى ما بعده.
+ * D246 «أ» (قرار المالك ٢٨ نوفمبر): ولا تستمر إلا إلى مشهد معلَّم `carryAllowed: "1"` (يكمل الراوي فيه الاقتباس نفسه؛
+ * يضعه placeQuotes في src/plan/quotePlacement.ts أو المحرر/المالك)، وإلا خرجت قبله وبقيت في ذيل حاملها (quoteHold).
  * لا تستمر البطاقة إلى مشهد ليس «خط الأفق» متكلَّمًا، ولا إلى مشهد يحمل اقتباسًا آخر، ولا إلى تمهيد آية أخرى أو مشهد ذكر ساكن (HZ_META.still): ما بقي حينها «نقص» يُذكر في التقرير
  * (وحكمه D222: جزء معلَّم بقرار المتخصص، لا سكوت أطول).
  * التوقيت: كلمات الصوت الحقيقي إن طابق نص المشهد (كما يرسمه HorizonShot)، وإلا التقدير. دالة خالصة محدَّدة: تُعيد الحساب
@@ -65,7 +67,7 @@ export const computeQuoteCarries = (input: PlanScene[], media: Pick<EpisodeMedia
     const q = hzQuote(sc.props);
     if (!q || q.carried) return;
     const tl = sceneTimeline(sc, media);
-    const s = quoteStart(q.from, q.text, tl);
+    const s = quoteStart(q.from, q.text, tl, sc.props.quoteFirm === "1");
     const read = verseReadSeconds(q.text);
     if (s + read <= lastWord(tl) + VERSE_AFTER_SPEECH + 1e-6) return;
     sc.props.quoteCarried = scenes[i + 1]?.id ?? "";
@@ -86,7 +88,9 @@ export const computeQuoteCarries = (input: PlanScene[], media: Pick<EpisodeMedia
       const why = !sc ? "آخر الحلقة" : sc.template !== "horizon-shot" || !sc.narration.trim() ? `${sc.id} ليس لقطة متكلَّمة`
         : hzQuote(sc.props) ? `${sc.id} يحمل اقتباسًا آخر`
         // تمهيد آية أخرى («كما جاء في سورة …») أو مشهد ذكر ساكن: بطاقة آية غيرها فوقه لا تطابق كلامه (القاعدة الثالثة)
-        : HZ_META[sc.props.shot ?? ""]?.still ? `${sc.id} تمهيد آية أو ذكر` : "";
+        : HZ_META[sc.props.shot ?? ""]?.still ? `${sc.id} تمهيد آية أو ذكر`
+        // D246 «أ»: لا تستمر إلا في الموضوع نفسه — المشهد التالي معلَّم carryAllowed «1» (المحوّل حيث يكمل الراوي الاقتباس بوضوح، أو المحرر/المالك)
+        : sc.props.carryAllowed !== "1" ? `${sc.id} موضوع آخر (بلا carryAllowed)` : "";
       if (why) { rec.stop = why; break; }
       prev.props.quoteCarried = sc!.id;
       Object.assign(sc!.props, {
