@@ -108,8 +108,8 @@ describe("الرسم: البطاقة المستمرة في مساحة الشاش
   it("HorizonShot يرسم بطاقة الاستمرار خارج كاميرا الدفتر برفع الإطار نفسه", () => {
     const src = readFileSync("src/remotion/scenes/HorizonShot.tsx", "utf8");
     expect(src).toMatch(/const screenCard = Boolean\(carriedOn \|\| quote\?\.carried\)/);
-    expect(src).toMatch(/screenCard \? <AbsoluteFill style=\{\{ transform: `translateY\(\$\{-lift\}px\)` \}\}>\{card\}<\/AbsoluteFill>/);
-    expect(src).toMatch(/VersePageContext\.Provider value=\{vw && verseShow > 0 && !screenCard \? card : null\}/);
+    expect(src).toMatch(/!portrait && vw && verseShow > 0 && screenCard \? <AbsoluteFill style=\{\{ transform: `translateY\(\$\{-lift\}px\)` \}\}>\{card\}<\/AbsoluteFill>/);
+    expect(src).toMatch(/VersePageContext\.Provider value=\{vw && verseShow > 0 && !screenCard && !portrait \? card : null\}/);
   });
 });
 
@@ -166,3 +166,17 @@ describe("مرجع البطاقة وموضعها (D246)", () => {
     }
   });
 });
+
+describe("العمودي (D243 + D246): البطاقة المستمرة في المستطيل نفسه", () => {
+  it("مستطيل PortraitQuoteCard من النص والمرجع وحدهما (الحامل والمستمر إليه)، ومرجعه باسم السورة، وHorizonShot يمرر carry*", async () => {
+    const { portraitQuoteLayout, quoteRefLine } = await import("../src/remotion/dafatir/horizon/portraitQuote");
+    const ref = quoteRefLine({ kind: "verse", text: LONG, refKey: "5:27" });
+    expect(ref).toBe("المائدة: ٢٧");
+    expect(portraitQuoteLayout(LONG, ref)).toEqual(portraitQuoteLayout(LONG, quoteRefLine({ kind: "verse", text: LONG, refKey: "5:27" })));
+    const src = readFileSync("src/remotion/scenes/HorizonShot.tsx", "utf8");
+    expect(src).toMatch(/refKey: String\(c \? pr\.carryRef : pr\.verseKey\)/);
+    expect(src).toMatch(/PortraitQuoteCard progress=\{quoteProgress\}/);
+    expect(src).toMatch(/!screenCard && !portrait \? card : null/);
+  });
+});
+

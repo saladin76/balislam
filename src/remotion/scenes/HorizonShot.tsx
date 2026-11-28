@@ -4,13 +4,14 @@ import { SceneShell } from "./SceneShell";
 import { C, Dusk, HadithPageCard, LiveFrameContext, PageHeadContext, SAFE_LIFT, VerseCard, VersePageContext, VerseWindowContext, prog } from "../dafatir/horizon/kit";
 import { Book, ChapterHead, NEUTRAL, SceneCloseContext, VERSE_SETTLE, parseCam } from "../dafatir/horizon/book";
 import { HZ_SCENES } from "../dafatir/horizon/episode001";
-import { HZ_LEAD, HZ_META, hzQuote, hzSentences, verseWindow } from "../dafatir/horizon/meta";
+import { HZ_LEAD, HZ_META, hzQuote, hzSentences, verseReadSeconds, verseWindow } from "../dafatir/horizon/meta";
 import { activeTime, breathAt, breathBeats, breathStill } from "../dafatir/horizon/breath";
 import { buildTimeline, timelineFromWords, type Timeline } from "../dafatir/horizon/timeline";
 import { VERSE_PLACEHOLDER } from "../../plan/quranText";
 import { pageLetterBudget, pageOpacity, pageWindows, versePages } from "../../quran/versePages";
 import { horizonShotWordIssue } from "../../plan/shotWords";
 import { verseRef } from "../dafatir/horizon/kit";
+import { PortraitQuoteCard } from "../dafatir/horizon/portraitQuote";
 import type { SceneBase, StringFields } from "./types";
 
 /** حقول مشاهد المكتبة العامة (lib-*) */
@@ -127,7 +128,8 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   // («أخبرنا الله» قبل البقرة ٣٨، «وأباح الله» قبل البقرة ٣٥، «ربه» قبل الأعراف ٢٣ — كانت العودة تبدأ داخل نافذة اللفظ)
   const cam = vw ? settlePose(live, activeTime(t, breath.wins), [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)]) : live;
   // D217: المشهد يرتفع في الإطار الأفقي فيبقى شريط الترجمة لها وحدها، والدفتر يعرف وضع الكاميرا الحية الفعلي فيقيّد تأطيره
-  const lift = props.orientation === "portrait" ? 0 : SAFE_LIFT;
+  const portrait = props.orientation === "portrait";
+  const lift = portrait ? 0 : SAFE_LIFT;
   const pageHead = React.useMemo(() => (pr.pageHead?.trim() && !/الله|لله/.test(pr.pageHead) ? { text: pr.pageHead.trim(), side: pr.pageHeadSide === "r" ? "r" as const : "l" as const, y: Number(pr.pageHeadY) || 190 } : null), [pr.pageHead, pr.pageHeadSide, pr.pageHeadY]);
   const liveFrame = props.orientation === "portrait" ? null : { s: cam.s, y: cam.y - lift };
   // D214: رسم المشهد نفسه (الحبر والخيط والعناصر) يسكن أيضًا في نوافذ الذكر: يأخذ «الزمن المرئي» (activeTime) بدل الزمن،
@@ -138,6 +140,10 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const side = (c ? pr.carrySide : quote?.kind === "hadith" ? (pr.hadithSide ?? pr.verseSide) : pr.verseSide) === "l" ? "l" as const : "r" as const;
   const yRaw = c ? pr.carryY : quote?.kind === "hadith" ? (pr.hadithY ?? pr.verseY) : pr.verseY;
   const y = yRaw ? Number(yRaw) : undefined;
+  // تقدم القراءة (لصفحات البطاقة العمودية الطويلة) على عمر البطاقة كله لا على نافذة المشهد وحده (D246)
+  const readSec = quote ? verseReadSeconds(quote.text) : 1;
+  const quoteProgress = !vw ? 0 : Math.min(1, Math.max(0, c ? (readSec - Number(pr.carrySeconds || 0) + t) / readSec
+    : carriedOn ? (t - vw[0]) / readSec : (t - vw[0]) / Math.max(0.001, vw[1] - vw[0])));
   const card = !quote ? null : quote.kind === "hadith"
     // D242: الحديث على الصفحة كالآية، بحقوله hadith*؛ والموضع من hadithSide/hadithY (وإلا verseSide/verseY)
     ? <HadithPageCard show={verseShow} text={quote.text} refText={String(c ? pr.carryRef : pr.hadithRef)} narrator={c ? pr.carryNarrator : pr.hadithNarrator} side={side} y={y} />
@@ -148,7 +154,9 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
         <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
         <SceneCloseContext.Provider value={vis.close}>
           <VerseWindowContext.Provider value={vw ? [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)] : null}>
-          <VersePageContext.Provider value={vw && verseShow > 0 && !screenCard ? card : null}>
+          {/* D243: في العمودي البطاقة في الشاشة داخل المنطقة الآمنة (PortraitQuoteCard أدناه)، لا على صفحة الدفتر التي يقع نصفها خارج الإطار */}
+          {/* D246: والبطاقة المستمرة بين مشهدين في مساحة الشاشة أيضًا (أدناه) */}
+          <VersePageContext.Provider value={vw && verseShow > 0 && !screenCard && !portrait ? card : null}>
             <LiveFrameContext.Provider value={liveFrame}>
             <PageHeadContext.Provider value={pageHead}>
             <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y - lift}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
@@ -162,7 +170,14 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
             </LiveFrameContext.Provider>
           </VersePageContext.Provider>
           {/* D246: البطاقة المستمرة بين مشهدين في مساحة الشاشة (برفع الإطار الأفقي نفسه)، ساكنة كاملة */}
-          {vw && verseShow > 0 && screenCard ? <AbsoluteFill style={{ transform: `translateY(${-lift}px)` }}>{card}</AbsoluteFill> : null}
+          {!portrait && vw && verseShow > 0 && screenCard ? <AbsoluteFill style={{ transform: `translateY(${-lift}px)` }}>{card}</AbsoluteFill> : null}
+          {/* D243 + D246: في العمودي مستطيلها محدد بنصها ومرجعها وحدهما، فهو نفسه في الحامل والمستمر إليه؛ وتقدم الصفحات على عمر البطاقة كله */}
+          {portrait && vw && verseShow > 0 && quote ? (
+            <PortraitQuoteCard progress={quoteProgress}
+              quote={quote.kind === "hadith"
+                ? { kind: "hadith", text: quote.text, refText: String(c ? pr.carryRef : pr.hadithRef), narrator: c ? pr.carryNarrator : pr.hadithNarrator }
+                : { kind: "verse", text: quote.text, refKey: String(c ? pr.carryRef : pr.verseKey), partial: (c ? pr.carryPartial : pr.versePartial) === "1" }} />
+          ) : null}
           </VerseWindowContext.Provider>
         </SceneCloseContext.Provider>
       </AbsoluteFill>
