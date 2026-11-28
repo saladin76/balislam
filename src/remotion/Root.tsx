@@ -34,6 +34,7 @@ import type { Identity } from "../../brand/identity/index";
 import type { ChannelInfo } from "../channel/types";
 import { ShortTitleStill } from "./scenes/ShortTitle";
 import { DESK_STILLS, ReaderDeskBoard } from "./zubdat/desk/ReaderDeskBoard";
+import { PM_STILLS, PlaceMapBoard } from "./dafatir/prophets/PlaceMapBoard";
 
 /** نماذج أساليب بديلة (أساس اقتراحات الستوري بورد قبل اعتماد أسلوب الحلقة). */
 const styleDemos = { silhouette: SilhouetteDemo, "flat-modern": FlatModernDemo, "paper-cut": PaperCutDemo, isometric: IsometricDemo } as const;
@@ -154,6 +155,8 @@ export const RemotionRoot: React.FC = () => (
     <Still id="short-title" component={ShortTitleStill} {...sizes.portrait} defaultProps={{ text: "متى بدأت قصة الإنسان على الأرض؟" }} />
     {/* D247: ستوري بورد «مكتب القارئ» (زبدة الكتب) — صور للمراجعة وحدها على جهاز الرندر (مهمة stills)، لا قالب إنتاج */}
     {DESK_STILLS.map((s) => <Still key={s.id} id={s.id} component={ReaderDeskBoard} {...sizes.landscape} defaultProps={s.props} />)}
+    {/* D251: ستوري بورد «الخريطة الحيّة» و«المكان والنور» (دفاتر الزمن) — صور للمراجعة وحدها على جهاز الرندر، لا قالب إنتاج */}
+    {PM_STILLS.map((s) => <Still key={s.id} id={s.id} component={PlaceMapBoard} {...sizes.landscape} defaultProps={s.props} />)}
     <Still id="thumbnail" component={Thumbnail} width={1280} height={720} defaultProps={{ themeId: "paper" as const, title: "لماذا نؤجّل ما نعرف أنه مهم؟", highlight: "نعرف أنه مهم", element: "hourglass-patience" }} />
     {/* نسخة المراجعة البصرية (الأمر 014): بملء الإطار، بلا صوت، ولا تُنشر */}
     <Composition id="review-014-landscape" component={ReviewReel014} durationInFrames={review014Frames()} fps={config.video.fps} {...sizes.landscape} defaultProps={{ orientation: "landscape" as const }} />

@@ -157,6 +157,6 @@ describe("D247: مهمة stills على جهاز الرندر", () => {
     const body = src.slice(src.indexOf("export const renderStillsJob"));
     expect(body).not.toMatch(/renderComposition|installSnapshot|inputs\.plan|narrationGain/);
     expect(body).toContain("createIsolatedRenderBundle(emptyMedia)");
-    expect(Object.keys(STORYBOARD_SETS)).toEqual(["zubdat-desk"]); // owner-pin-ok: سجل المجموعات في الكود
+    expect(Object.keys(STORYBOARD_SETS)).toEqual(["zubdat-desk", "dafatir-prophets"]); // owner-pin-ok: سجل المجموعات في الكود (D251 أضاف مجموعة دفاتر الزمن)
   });
 });

@@ -14,6 +14,7 @@ import { createHash } from "node:crypto";
 import { existsSync } from "node:fs";
 import { copyFile, mkdir, readdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { DESK_BOARDS, boardFileName, boardVariantName } from "../../remotion/zubdat/desk/boards";
+import { PM_BOARDS, PM_FOLDER, pmFileName, pmVariantName } from "../../remotion/dafatir/prophets/boards";
 import { git, headCommit } from "./git";
 import { ensureQueue, queuePaths, sha256File, tail, validateEnvelope, workerName, writeJsonAtomic, type WorkerChannel } from "./protocol";
 
@@ -38,6 +39,18 @@ export const STORYBOARD_SETS: Record<string, StoryboardSet> = {
     boards: DESK_BOARDS.map((b) => ({
       composition: b.composition, file: `${b.composition.replace(/^storyboard-/, "")}.png`, arabicFile: boardFileName(b),
       scene: b.scene, variant: boardVariantName(b), title: b.title, motion: b.motion, why: b.why,
+    })),
+  },
+  // D251: «الخريطة الحيّة» و«المكان والنور» لحلقات الأنبياء والصحابة (دفاتر الزمن): ٦ مشاهد × نموذجان من أسلوب كل مشهد
+  "dafatir-prophets": {
+    channel: "dafatir-alzaman",
+    episode: "002-ibna-adam",
+    folder: PM_FOLDER,
+    width: 1920,
+    height: 1080,
+    boards: PM_BOARDS.map((b) => ({
+      composition: b.composition, file: `${b.composition.replace(/^storyboard-/, "")}.png`, arabicFile: pmFileName(b),
+      scene: b.scene, variant: pmVariantName(b), title: b.title, motion: b.motion, why: b.why,
     })),
   },
 };
