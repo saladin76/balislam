@@ -43,7 +43,10 @@ describe("الخطة: الحديث والربط وشاشة النهاية", () =
   });
 
   it("الخطة السليمة بلا موانع، والآية بنص مؤقت تمنع النسخة النهائية", () => {
-    expect(planIssues(plan).filter((i) => i.level === "error")).toEqual([]);
+    // D248: نموذج السكريبت فيه فقاعة كلام (character-talk) ومشهد بشخص يذكر النبي ﷺ؛ تمنعهما ضوابط شخصيات «بالإسلام» وحدها
+    const errs = planIssues(plan).filter((i) => i.level === "error");
+    expect(errs.filter((i) => !i.message.startsWith("D248:"))).toEqual([]);
+    expect(errs.map((i) => i.message).join("\n")).toMatch(/فقاعة الكلام/);
     const noQuran = generatePlan(parsed, null, {});
     expect(planIssues(noQuran).some((i) => i.level === "error" && i.message.includes("بنص مؤقت"))).toBe(true);
   });

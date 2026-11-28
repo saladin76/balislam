@@ -18,6 +18,7 @@ import { prepareRenderMedia } from "../../plan/collect";
 import { cutPlans } from "../../plan/sceneCut";
 import { assertTemplatesApproved } from "../../plan/templateApproval";
 import { assertNoSilentQuoteScenes } from "../../plan/silentQuotes";
+import { assertCharacterPolicy } from "../../plan/characterPolicy";
 import { assertEditorPassed } from "../../studio/scriptPipelineStore";
 import type { Plan } from "../../plan/types";
 import type { EpisodeMedia } from "../../plan/media";
@@ -79,6 +80,8 @@ export const buildSceneJob = async (ep: string, sceneId: string, b: Base, share:
   const { plan, pendingRecitation } = cut;
   assertTemplatesApproved(plan);
   assertNoSilentQuoteScenes(plan);
+  // D248: شخصيات «بالإسلام» بضوابطها الخمس
+  assertCharacterPolicy(plan);
   // تجربة «حزمة واحدة للحلقة»: لقطة وسائط الحلقة كاملة (تحوي وسائط المشهد نفسها) لكل المشاهد، فتتطابق مفاتيح الحزمة على العامل
   if (o.sharedMedia && JSON.stringify(o.sharedMedia.voice[sceneId] ?? null) !== JSON.stringify(cut.media.voice[sceneId] ?? null))
     throw new Error(`وسائط المشهد ${sceneId} في لقطة الحلقة ليست وسائط قطعته.`);
@@ -103,6 +106,8 @@ export const fullEpisodeInputs = async (ep: string, o: { requireApprovedQuran: b
   if (!plan) throw new Error("لا توجد خطة للحلقة.");
   assertTemplatesApproved(plan);
   assertNoSilentQuoteScenes(plan);
+  // D248: شخصيات «بالإسلام» بضوابطها الخمس
+  assertCharacterPolicy(plan);
   const media = await prepareRenderMedia(ep, plan, { requireApprovedQuran: o.requireApprovedQuran });
   const { narrationLoudness } = await import("../../studio/narrationLoudness");
   const loud = await narrationLoudness(scriptPath, plan, media);

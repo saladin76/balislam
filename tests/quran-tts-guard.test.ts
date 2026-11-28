@@ -260,6 +260,7 @@ describe("every TTS call site goes through the guard", () => {
     expect(calls).toEqual([
       path.join("app", "server", "routes", "voice.ts"), // voice sample (also checked before the client)
       path.join("src", "voice", "generate.ts"), // scenes, dafatir parts, preview lines (synthesizeLines)
+      path.join("src", "voice", "characterVoice.ts"), // D249/D250: character lines, library voice only (never the cloned narrator)
       path.join("src", "voice", "sentenceGenerate.ts"), // one sentence, word fix (sentenceVoice.ts actions call it)
       path.join("src", "voice", "sfx.ts"), // sound effects
     ].sort());
