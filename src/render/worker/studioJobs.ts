@@ -32,16 +32,22 @@ import { interactivityMinFor } from "../../studio/quality/interactivity";
 import { probeVideo, type VideoProbe } from "./probe";
 import { assertOneMachine, episodeSceneMachines, previewMachines, recordPreviewProvenance } from "./provenance";
 import { assertCommitMatchesWorkingTree } from "./macSide";
-import { buildJoinJob, buildMasterJob, buildSceneJob, enqueue, fullEpisodeInputs, verifyV2Output, type Base } from "./macJobs";
+import { buildCutJob, buildJoinJob, buildMasterJob, buildSceneJob, buildVerticalJob, enqueue, fullEpisodeInputs, verifyV2Output, type Base } from "./macJobs";
 import {
   doneVideoName, planSha256, queuePaths, readProgress, seamsName, sha256File, validateJobV2, writeJsonAtomic,
   type WorkerJobV2, type WorkerResult,
 } from "./protocol";
 import type { JoinedRecord } from "../../studio/assembleScenes";
+import type { Plan } from "../../plan/types";
+import type { EpisodeMedia } from "../../plan/media";
+import type { ShortSegment } from "../../plan/shorts";
+import type { CollectDeps } from "./macSide";
 
-export type StudioKind = "scene" | "assembly" | "prefinal" | "master";
+export type StudioKind = "scene" | "assembly" | "prefinal" | "master" | "vertical" | "cut";
 export type StudioJobRecord = {
   id: string; kind: StudioKind; sceneId?: string;
+  /** D243: رقم الشورت المقصوص من النسخة العمودية (cut وحده) */
+  n?: number;
   /** scene jobs: the scene's input fingerprint when sent, and the ledger's render mode (D145: current = one scene, ahead = drafts) */
   sourceSha256?: string; mode?: "current" | "ahead";
   commit: string; submittedAt: string;
@@ -100,7 +106,7 @@ export const rememberSentJob = async (scriptPath: string, job: WorkerJobV2, extr
   if (!existsSync(sentJobFile(scriptPath, job.id))) await writeJsonAtomic(sentJobFile(scriptPath, job.id), job);
   const idx = await readStudioIndex(scriptPath);
   const prev = idx.jobs[job.id];
-  idx.jobs[job.id] = { ...(prev ?? {}), id: job.id, kind: job.kind as StudioKind, ...(job.sceneId ? { sceneId: job.sceneId } : {}), commit: job.commit,
+  idx.jobs[job.id] = { ...(prev ?? {}), id: job.id, kind: job.kind as StudioKind, ...(job.sceneId ? { sceneId: job.sceneId } : {}), ...(job.n !== undefined ? { n: job.n } : {}), commit: job.commit,
     submittedAt: prev?.submittedAt ?? job.createdAt, ...extra };
   // a re-send of a refused job is a new chance
   if (!prev?.imported) delete idx.jobs[job.id]!.refused;
@@ -234,7 +240,119 @@ export const submitStudioMaster = async (ep: string, share: string, o: { log?: (
   return { id: job.id, fresh, commit: ctx.commit };
 };
 
+/**
+ * D243: النسخة العمودية الكاملة 1080×1920، مبوَّبة كـMaster حرفيًا (فحوص `bal make` بلا صوت يُولَّد، وكل بوابات Master:
+ * اعتماد كل المشاهد ثم التجميع المعتمد، والتلاوات، والحركة، والستوري بورد)، وأولويتها في الطابور بعد Master فلا تؤخره.
+ */
+export const submitStudioVertical = async (ep: string, share: string, o: { log?: (m: string) => void } = {}) => {
+  const log = o.log ?? (() => {});
+  const { finalPreflight, assertNoVoiceToGenerate } = await import("../../package/make");
+  await assertEditorPassed(await resolveScriptPath(ep));
+  await finalPreflight(ep, { log, regenerate: false });
+  await assertNoVoiceToGenerate(ep);
+  const ctx = await studioContext(ep);
+  const inputs = await fullEpisodeInputs(ep, { requireApprovedQuran: true });
+  const { assertMasterRenderGates } = await import("../episode");
+  await assertMasterRenderGates({ episode: ep, plan: inputs.plan, media: inputs.media });
+  const job = await buildVerticalJob(ep, inputs, ctx.base(), share);
+  const fresh = await enqueue(share, job);
+  await rememberSentJob(ctx.scriptPath, job);
+  log(`${fresh ? "أُرسلت" : "موجودة من قبل"}: النسخة العمودية 1080×1920 ← ${job.id} (${job.expected.durationSec} ث؛ بعد Master في الطابور)`);
+  return { id: job.id, fresh, commit: ctx.commit };
+};
+
+export type VerticalSource = { record: StudioJobRecord; job: WorkerJobV2; sha256: string; file: string };
+/**
+ * D243: النسخة العمودية التي تُقص منها الشورتس: مستوردة بعد التحقق (verifyV2Output والبوابات)، ومدخلاتها (الخطة ولقطة
+ * الوسائط وربح العلوّ) هي مدخلات الحلقة الآن، وMaster الحلقة معتمد بعينه (القاعدة الرابعة: الشورتس بعد اعتماد Master).
+ * بلا ذلك تُرفض الشورتس.
+ */
+export const approvedVertical = async (ep: string, scriptPath: string, current: { planSha256: string; mediaBase: string; gain: Record<string, number> },
+  masterApproved: () => Promise<void>): Promise<VerticalSource> => {
+  const idx = await readStudioIndex(scriptPath);
+  const recs = Object.values(idx.jobs).filter((r) => r.kind === "vertical" && r.imported).sort((a, b) => b.submittedAt.localeCompare(a.submittedAt));
+  if (!recs.length) throw new Error("لا شورتس بلا نسخة عمودية مستوردة (D243): أرسلها بـ «bal worker-submit-vertical» ثم «bal worker-import».");
+  const rec = recs[0]!;
+  const job = await readSentJob(scriptPath, rec.id);
+  if (!job) throw new Error(`سجل النسخة العمودية ${rec.id} مفقود على هذا الماك.`);
+  const why: string[] = [];
+  if (job.inputs.planSha256 !== current.planSha256) why.push("تغيّرت خطة الحلقة بعد النسخة العمودية");
+  if (job.inputs.media.base !== current.mediaBase) why.push("تغيّرت وسائط الحلقة (الصوت أو الصور) بعدها");
+  if (JSON.stringify(job.inputs.narrationGain) !== JSON.stringify(current.gain)) why.push("تغيّر علوّ السرد بعدها");
+  if (why.length) throw new Error(`النسخة العمودية ${rec.id} قديمة: ${why.join("، ")}. أعد إرسالها (bal worker-submit-vertical) ثم استوردها.`);
+  try { await masterApproved(); }
+  catch (e) { throw new Error(`الشورتس بعد اعتماد Master بعينه (القاعدة الرابعة): ${(e as Error).message}`); }
+  return { record: rec, job, sha256: rec.imported!.sha256, file: rec.imported!.file };
+};
+
+/**
+ * D243: كل الشورتس قصّ من النسخة العمودية (لا رندر عمودي منفصل). D241 على كل شورت قبل الإرسال كما كان، ومقاطعه بالإطارات
+ * من خطة النسخة العمودية ووسائطها نفسها.
+ */
+export const submitVerticalShorts = async (ep: string, share: string, o: { only?: number; log?: (m: string) => void } = {}) => {
+  const log = o.log ?? (() => {});
+  const ctx = await studioContext(ep);
+  const inputs = await fullEpisodeInputs(ep, { requireApprovedQuran: true });
+  const { requireSceneMasterReady } = await import("../../studio/sceneService");
+  const src = await approvedVertical(ep, ctx.scriptPath, { planSha256: planSha256(inputs.plan), mediaBase: inputs.media.base, gain: inputs.narrationGain },
+    () => requireSceneMasterReady(ep));
+  const { shortSegments } = await import("../../plan/shorts");
+  const pick = shortSegments(inputs.plan);
+  if (!pick.segments.length || pick.issues.length) throw new Error(pick.issues.join(" ") || "لا مقاطع شورتس في الخطة.");
+  // D241: الشورت فكرة كاملة وحده (كل شورتس الخطة، كما في worker-submit القديم)
+  (await import("../../package/shortIdeaPlan")).assertShortsIdea(inputs.plan, pick.segments);
+  const segments = pick.segments.filter((s) => (o.only === undefined || s.n === o.only) && !s.state);
+  if (!segments.length) throw new Error(o.only !== undefined ? `لا شورت برقم ${o.only} يُقص (غير موجود، أو منشور أو ملغى).` : "لا شورت يُقص (كلها منشورة أو ملغاة).");
+  const { verticalSceneSpans, cutRangesFor } = await import("./verticalShorts");
+  const { introFramesFor } = await import("../../remotion/scenes/ChannelIntro");
+  const { channelInfo } = await import("../../channel");
+  const vplan = src.job.inputs.plan, vmedia = src.job.inputs.media;
+  const spans = verticalSceneSpans(vplan, vmedia, introFramesFor(channelInfo(loadChannel()), vplan));
+  const sent: string[] = [], existing: string[] = [];
+  for (const seg of segments) {
+    const ranges = cutRangesFor(spans, seg);
+    const job = buildCutJob(src.job, src.sha256, seg.n, seg.sceneIds, ranges, ctx.base());
+    const fresh = await enqueue(share, job);
+    await rememberSentJob(ctx.scriptPath, job);
+    (fresh ? sent : existing).push(job.id);
+    log(`${fresh ? "أُرسل" : "موجود من قبل"}: الشورت ${seg.n} قصًّا من النسخة العمودية ← ${job.id} (${job.expected.durationSec} ث، ${ranges.length} مقطع)`);
+  }
+  return { sent, existing, commit: ctx.commit, vertical: src.record.id };
+};
+
 /* ── importing ── */
+
+/**
+ * D243: استلام شورت مقصوص بعد التحقق: إلى out/package/<NNN>-short-<n>.mp4 بالطريق نفسه لشورتس العامل (importVerified:
+ * تنظيف البيانات الوصفية على الماك ثم فحص الأثر، ومقياس الحركة ≥ 80%)، وترجمته بأوقات المقاطع في الملف المقصوص.
+ */
+export const collectCutShort = async (ep: string, job: WorkerJobV2, source: string,
+  o: { scriptPath: string; seg: ShortSegment; plan: Plan; media: EpisodeMedia; introFrames: number; deps?: CollectDeps; replace?: boolean }) => {
+  const { importVerified, defaultCollectDeps } = await import("./macSide");
+  const { segmentPlan } = await import("../../plan/shorts");
+  const { exemptForRender } = await import("../stillness");
+  const { buildSrt } = await import("../../package/captions");
+  const { assertNoTraces } = await import("../../package/traces");
+  const { scenesOf } = await import("../../remotion/scenes/Episode");
+  const { loadChannelIdentity } = await import("../../channel");
+  const { verticalSceneSpans, sceneStartsInCut } = await import("./verticalShorts");
+  const { sizeFor } = await import("./protocol");
+  const channel = loadChannel();
+  const dir = path.join(path.dirname(o.scriptPath), "out", "package");
+  await mkdir(dir, { recursive: true });
+  const id = o.plan.episode || ep;
+  const sp = segmentPlan(o.plan, o.seg);
+  const r = await importVerified({ dir, id, plan: o.plan }, { id: job.id, n: job.n! }, source, o.deps ?? defaultCollectDeps,
+    { replace: o.replace, artist: channel.name, exempt: await exemptForRender(sp.plan, o.media, sp.chapter), size: sizeFor("vertical", "portrait") });
+  if ("refused" in r && r.refused) return { refused: r.refused };
+  const lang = o.plan.lang ?? channel.language;
+  const starts = sceneStartsInCut(verticalSceneSpans(o.plan, o.media, o.introFrames), o.seg);
+  const srtName = `${id}-short-${job.n}.${lang}.srt`;
+  const srt = buildSrt(o.plan, scenesOf(sp).map((x) => x.scene), o.media, loadChannelIdentity(), (s) => starts.get(s.id));
+  assertNoTraces([{ name: srtName, text: srt }]);
+  await writeFile(path.join(dir, srtName), srt);
+  return { file: r.file!, sha: r.sha!, motion: r.motion!.percent };
+};
 
 export type StudioImportDeps = {
   sha256File: (file: string) => Promise<string>;
@@ -257,6 +375,12 @@ export type StudioImportDeps = {
      * its own join («اجمع الحلقة»: decision `assemble`). Not an approval: «اعتمد التجميع» stays the owner's press.
      */
     record: (ep: string, sha256: string) => Promise<void>;
+  };
+  /** D243: الشورت المقصوص من النسخة العمودية: Master المعتمد، والخطة الحالية ووسائطها، والاستلام إلى out/package */
+  cut?: {
+    masterApproved: (ep: string) => Promise<void>;
+    current: (ep: string) => Promise<{ plan: Plan; media: EpisodeMedia; introFrames: number }>;
+    collect: (ep: string, job: WorkerJobV2, source: string, o: { scriptPath: string; seg: ShortSegment; plan: Plan; media: EpisodeMedia; introFrames: number }) => Promise<{ file: string; sha: string; motion: number } | { refused: string[] }>;
   };
   master: {
     current: (ep: string) => Promise<{ planSha256: string; mediaBase: string; gain: Record<string, number> }>;
@@ -297,6 +421,16 @@ export const defaultStudioImportDeps = (): StudioImportDeps => ({
     publish: async (kind, ep, scriptPath, file, joined, cuts, meta) => (await import("../../studio/assembleScenes")).publishJoined(kind, ep, scriptPath, file, joined, cuts, meta),
     record: async (ep, sha256) => { await (await import("../../studio/sceneService")).decideSceneProduction(ep, { action: "assemble", expectedSha256: sha256 }); },
   },
+  cut: {
+    masterApproved: async (ep) => (await import("../../studio/sceneService")).requireSceneMasterReady(ep),
+    current: async (ep) => {
+      const x = await fullEpisodeInputs(ep, { requireApprovedQuran: true });
+      const { introFramesFor } = await import("../../remotion/scenes/ChannelIntro");
+      const { channelInfo } = await import("../../channel");
+      return { plan: x.plan, media: x.media, introFrames: introFramesFor(channelInfo(loadChannel()), x.plan) };
+    },
+    collect: (ep, job, source, o) => collectCutShort(ep, job, source, o),
+  },
   master: {
     current: async (ep) => {
       const x = await fullEpisodeInputs(ep, { requireApprovedQuran: true });
@@ -324,7 +458,7 @@ export const parseSeams = (raw: unknown): JoinedRecord | null => {
   return { fps: r.fps as number, sceneSeconds: ss as Record<string, number>, seams: r.seams as JoinedRecord["seams"], loudness: loud as JoinedRecord["loudness"] };
 };
 
-export type ImportRow = { id: string; kind: StudioKind; sceneId?: string; status: "imported" | "refused" | "queued" | "running" | "failed" | "missing" | "superseded";
+export type ImportRow = { id: string; kind: StudioKind; sceneId?: string; n?: number; status: "imported" | "refused" | "queued" | "running" | "failed" | "missing" | "superseded";
   reasons?: string[]; progress?: string; file?: string; motion?: number; fresh?: boolean };
 
 /** Copies the worker file next to its target and checks the bytes did not change on the way (the share is untrusted). */
@@ -341,23 +475,25 @@ const localCopy = async (deps: StudioImportDeps, source: string, dir: string, id
  * Imports every finished studio job of this episode that this Mac sent, in the order sent (scenes, then joins, then the
  * Master). A scene sent again later supersedes its older job. Refusals are said in Arabic and never imported.
  */
-export const importStudioJobs = async (ep: string, share: string, o: { log?: (m: string) => void; deps?: StudioImportDeps; scriptPath?: string } = {}) => {
+export const importStudioJobs = async (ep: string, share: string, o: { log?: (m: string) => void; deps?: StudioImportDeps; scriptPath?: string; /** D243: worker-collect يستلم القص وحده */ kinds?: StudioKind[] } = {}) => {
   const log = o.log ?? (() => {});
   const deps = o.deps ?? defaultStudioImportDeps();
+  const cutDeps = deps.cut ?? defaultStudioImportDeps().cut!;
   const scriptPath = o.scriptPath ?? await resolveScriptPath(ep);
   const epDir = path.dirname(scriptPath);
   const previews = path.join(epDir, "previews");
   const q = queuePaths(share);
   const idx = await readStudioIndex(scriptPath);
-  const order: StudioKind[] = ["scene", "prefinal", "assembly", "master"];
+  const order: StudioKind[] = ["scene", "prefinal", "assembly", "master", "vertical", "cut"];
   const recs = Object.values(idx.jobs).sort((a, b) => order.indexOf(a.kind) - order.indexOf(b.kind) || a.submittedAt.localeCompare(b.submittedAt));
   const rows: ImportRow[] = [];
   const motionLines: string[] = [];
   for (const rec of recs) {
-    const row: ImportRow = { id: rec.id, kind: rec.kind, ...(rec.sceneId ? { sceneId: rec.sceneId } : {}), status: "missing" };
+    if (o.kinds && !o.kinds.includes(rec.kind)) continue;
+    const row: ImportRow = { id: rec.id, kind: rec.kind, ...(rec.sceneId ? { sceneId: rec.sceneId } : {}), ...(rec.n !== undefined ? { n: rec.n } : {}), status: "missing" };
     rows.push(row);
     if (rec.imported) { Object.assign(row, { status: "imported", file: rec.imported.file, motion: rec.imported.motion }); continue; }
-    const newer = recs.find((r) => r !== rec && r.kind === rec.kind && r.sceneId === rec.sceneId && r.submittedAt > rec.submittedAt);
+    const newer = recs.find((r) => r !== rec && r.kind === rec.kind && r.sceneId === rec.sceneId && r.n === rec.n && r.submittedAt > rec.submittedAt);
     if (newer) { row.status = "superseded"; continue; }
     const doneDir = path.join(q.done, rec.id);
     if (!existsSync(doneDir)) {
@@ -446,6 +582,44 @@ export const importStudioJobs = async (ep: string, share: string, o: { log?: (m:
           if (rec.kind === "assembly") await deps.join.record(ep, pubSha);
           rec.imported = { at: new Date().toISOString(), sha256: pubSha, worker: result.worker, file: pub.file };
         } finally { await rm(temp, { force: true }); }
+      } else if (rec.kind === "vertical") {
+        // D243: تُتحقق كـMaster (المدخلات نفسها الآن، وD233، وكل البوابات)، وتبقى في المجلد المشترك (done/) مصدرًا للقص؛
+        // لا تُنسخ إلى الماك ولا تُنشر هي نفسها، والمنشور منها الشورتس وحدها
+        const cur = await deps.master.current(ep);
+        if (cur.planSha256 !== job.inputs.planSha256) reasons.push("تغيّرت خطة الحلقة بعد الإرسال؛ أعد الإرسال.");
+        if (cur.mediaBase !== job.inputs.media.base) reasons.push("تغيّرت وسائط الحلقة (الصوت أو الصور) بعد الإرسال؛ أعد الإرسال.");
+        if (JSON.stringify(cur.gain) !== JSON.stringify(job.inputs.narrationGain)) reasons.push("تغيّر علوّ السرد بعد الإرسال؛ أعد الإرسال.");
+        try {
+          const m = assertOneMachine(await episodeSceneMachines(previews, job.inputs.plan.chapters.flatMap((c) => c.scenes.map((s) => s.id))), "النسخة العمودية");
+          if (m !== result.worker) reasons.push(`مشاهد الحلقة من «${m}» لا من جهاز الرندر الذي صنع النسخة العمودية (${result.worker}) (D233).`);
+        } catch (e) { reasons.push((e as Error).message); }
+        if (!reasons.length) { try { await deps.master.gates(ep); } catch (e) { reasons.push((e as Error).message); } }
+        if (reasons.length) { refuse(reasons); continue; }
+        rec.imported = { at: new Date().toISOString(), sha256: result.sha256, worker: result.worker, file };
+      } else if (rec.kind === "cut") {
+        const c = job.cut!;
+        const v = idx.jobs[c.source.job];
+        if (!v || v.kind !== "vertical" || !v.imported || v.imported.sha256 !== c.source.sha256) reasons.push("النسخة العمودية التي قُص منها هذا الشورت لم تُستورد هنا بالبصمة نفسها.");
+        const cur = await cutDeps.current(ep);
+        if (planSha256(cur.plan) !== job.inputs.planSha256) reasons.push("تغيّرت خطة الحلقة بعد الإرسال؛ أعد الإرسال.");
+        if (cur.media.base !== job.inputs.media.base) reasons.push("تغيّرت وسائط الحلقة بعد الإرسال؛ أعد الإرسال.");
+        const { shortSegments } = await import("../../plan/shorts");
+        const seg = shortSegments(cur.plan).segments.find((s) => s.n === job.n);
+        if (!seg) reasons.push(`الشورت ${job.n} لم يعد في الخطة.`);
+        else {
+          if (seg.sceneIds.join() !== c.sceneIds.join()) reasons.push(`تغيّرت مشاهد الشورت ${job.n} بعد الإرسال؛ أعد الإرسال.`);
+          if (seg.state) reasons.push(`الشورت ${job.n} ${seg.state === "published" ? "منشور" : "ملغى"}؛ لا يُعاد قصه.`);
+          const { verticalSceneSpans, cutRangesFor } = await import("./verticalShorts");
+          try {
+            if (JSON.stringify(cutRangesFor(verticalSceneSpans(cur.plan, cur.media, cur.introFrames), seg)) !== JSON.stringify(c.ranges)) reasons.push(`تغيّرت مقاطع الشورت ${job.n} بعد الإرسال.`);
+          } catch (e) { reasons.push((e as Error).message); }
+        }
+        try { (await import("../../package/shortIdeaPlan")).assertShortRenderIdea(cur.plan, { sceneIds: c.sceneIds }); } catch (e) { reasons.push((e as Error).message); }
+        try { await cutDeps.masterApproved(ep); } catch (e) { reasons.push(`الشورتس بعد اعتماد Master بعينه: ${(e as Error).message}`); }
+        if (reasons.length || !seg) { refuse(reasons); continue; }
+        const r = await cutDeps.collect(ep, job, file, { scriptPath, seg, plan: cur.plan, media: cur.media, introFrames: cur.introFrames });
+        if ("refused" in r) { refuse(r.refused); continue; }
+        rec.imported = { at: new Date().toISOString(), sha256: r.sha, worker: result.worker, file: r.file, motion: r.motion };
       } else {
         const cur = await deps.master.current(ep);
         if (cur.planSha256 !== job.inputs.planSha256) reasons.push("تغيّرت خطة الحلقة بعد الإرسال؛ أعد الإرسال.");
@@ -471,7 +645,7 @@ export const importStudioJobs = async (ep: string, share: string, o: { log?: (m:
       }
       delete rec.refused;
       Object.assign(row, { status: "imported", file: rec.imported!.file, motion: rec.imported!.motion, fresh: true });
-      log(`استُورد: ${rec.sceneId ? `المشهد ${rec.sceneId}` : rec.kind} ← ${path.relative(epDir, rec.imported!.file)}`);
+      log(`استُورد: ${rec.sceneId ? `المشهد ${rec.sceneId}` : rec.kind === "cut" ? `الشورت ${rec.n}` : rec.kind} ← ${rec.kind === "vertical" ? rec.imported!.file : path.relative(epDir, rec.imported!.file)}`);
     } catch (e) {
       refuse([...reasons, (e as Error).message]);
     } finally {

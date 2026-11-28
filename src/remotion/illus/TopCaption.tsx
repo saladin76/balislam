@@ -3,6 +3,7 @@ import { interpolate, spring } from "remotion";
 import { ID } from "./palette";
 import type { WordTiming } from "../scenes/timing";
 import { normalizeArabic } from "../../script/quranMeta";
+import { PORTRAIT_TEXT } from "../safeArea";
 
 /**
  * كابشن «بالإسلام» العلوي: الجملة التي تُقال الآن في أعلى الشاشة (سطر واحد في الأفقي)،
@@ -83,7 +84,7 @@ export const TopCaption: React.FC<{ frame: number; fps: number; timings: WordTim
     // العمودي (033): خلف السطر لوح من ليل القناة بقدر ما يكفي لتباين 4.5:1 فوق أفتح ألوان الهوية (نافذة الفجر والورق)،
     // بحجم السطر وحده لا بعرض الإطار، فلا يحجب المشهد. الأفقي كما كان حرفًا.
     return (
-      <div style={{ position: "absolute", top: 250, left: 70, right: 70, display: "flex", justifyContent: "center", opacity: out * lineIn, transform: `translateY(${(1 - lineIn) * -10}px)` }}>
+      <div data-top-line="portrait" style={{ position: "absolute", top: PORTRAIT_TEXT.topLine.top, left: PORTRAIT_TEXT.topLine.left, right: PORTRAIT_TEXT.topLine.right, display: "flex", justifyContent: "center", opacity: out * lineIn, transform: `translateY(${(1 - lineIn) * -10}px)` }}>
         <div data-caption-plate={CAPTION_PLATE_ALPHA} style={{ ...box, maxWidth: "100%", padding: "8px 26px 12px", borderRadius: 30, background: captionPlate() }}>
           {words}
         </div>

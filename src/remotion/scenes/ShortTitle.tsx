@@ -7,6 +7,7 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { fontFamilies } from "../../../brand/fonts";
+import { PORTRAIT_TEXT } from "../safeArea";
 
 export type QuietSpan = { from: number; to: number };
 /** ثواني التلاشي عند الظهور والغياب */
@@ -36,7 +37,7 @@ export const ShortTitle: React.FC<{ text: string; quiet: QuietSpan[] }> = ({ tex
     <AbsoluteFill style={{ pointerEvents: "none" }}>
       <div
         data-short-title
-        style={{ position: "absolute", top: 150 * k, left: 70 * k, right: 70 * k, direction: "rtl", textAlign: "center", opacity,
+        style={{ position: "absolute", top: PORTRAIT_TEXT.topLine.top * k, left: PORTRAIT_TEXT.topLine.left * k, right: PORTRAIT_TEXT.topLine.right * k, direction: "rtl", textAlign: "center", opacity,
           fontFamily: fontFamilies.body, fontWeight: 700, fontSize: 60 * k, lineHeight: 1.35, color: "#FFFFFF",
           textShadow: `0 ${2 * k}px ${10 * k}px rgba(0,0,0,0.55), 0 0 ${2 * k}px rgba(0,0,0,0.6)` }}
       >

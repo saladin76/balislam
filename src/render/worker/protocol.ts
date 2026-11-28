@@ -165,7 +165,7 @@ const jobFile = (dir: string, id: string) => {
   return path.join(dir, `${id}.json`);
 };
 
-/** المهام المنتظرة، الأقدم أولًا (وقت الإنشاء ثم الاسم). الملف التالف لا يوقف الطابور: يُتجاوز. */
+/** المهام المنتظرة: الأولوية (D243) ثم الأقدم (وقت الإنشاء ثم الاسم). الملف التالف لا يوقف الطابور: يُتجاوز. */
 export const pendingJobs = async (share: string): Promise<JobEnvelope[]> => {
   const p = queuePaths(share);
   if (!existsSync(p.jobs)) return [];
@@ -173,7 +173,8 @@ export const pendingJobs = async (share: string): Promise<JobEnvelope[]> => {
   for (const f of (await readdir(p.jobs)).filter((x) => x.endsWith(".json") && !x.startsWith(".")).sort()) {
     try { out.push(validateEnvelope(JSON.parse(await readFile(path.join(p.jobs, f), "utf8")))); } catch { /* يظهر في المهمة نفسها حين تُؤخذ */ }
   }
-  return out.sort((a, b) => a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+  // D243: الأولوية أولًا (العمودية وقصها بعد كل ما سواها)، ثم الأقدم
+  return out.sort((a, b) => jobPriority(a.kind) - jobPriority(b.kind) || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
 };
 
 /** يكتب ملفًا كاملًا ثم ينقله ذريًا (لا يرى القارئ نصف ملف). */
@@ -296,17 +297,26 @@ export const acquireLock = async (share: string, now = () => Date.now(), host = 
 
 /* ── D232: الإصدار 2 — كل أنواع الرندر ── */
 
-export const JOB_KINDS = ["scene", "assembly", "prefinal", "master", "short", "thumbnail", "trial"] as const;
+export const JOB_KINDS = ["scene", "assembly", "prefinal", "master", "short", "thumbnail", "trial", "vertical", "cut"] as const;
 export type JobKind = (typeof JOB_KINDS)[number];
-/** أنواع ترندر تكوين Remotion، وأنواع تصل قطع المشاهد (ffmpeg) */
-export const RENDER_KINDS: readonly JobKind[] = ["scene", "master", "short", "trial"];
+/** أنواع ترندر تكوين Remotion، وأنواع تصل قطع المشاهد (ffmpeg)، و«cut» شورت يُقص من النسخة العمودية (D243، ffmpeg) */
+export const RENDER_KINDS: readonly JobKind[] = ["scene", "master", "short", "trial", "vertical"];
 export const JOIN_KINDS: readonly JobKind[] = ["assembly", "prefinal"];
+/**
+ * D243: أولوية الطابور (الأصغر أولًا، ثم وقت الإنشاء): النسخة العمودية وقص الشورتس منها بعد كل ما سواها، فلا تؤخر
+ * Master ولا أي مهمة أخرى منتظرة. لا تُقاطَع مهمة جارية: عمودية بدأت قبل إرسال Master تكمل ثم يأتي Master.
+ */
+export const jobPriority = (kind: string) => (kind === "vertical" || kind === "cut" ? 1 : 0);
+/** الشورت المقصوص من النسخة العمودية: الإطارات [from, to) منها بالترتيب، موصولة (D241: مشاهد الشورت كما في الخطة) */
+export type CutSpec = { source: { job: string; sha256: string }; sceneIds: string[]; ranges: { from: number; to: number }[]; fps: number };
+export const CUT_MAX_RANGES = 60;
 /** studio: ناتجه يُستورد بعد التحقق؛ trial: تجربة لا تدخل الحزمة ولا السجل أبدًا (تبقى في المجلد المشترك ومجلد مؤقت على الماك) */
 export type JobPurpose = "studio" | "trial";
 
 export type RenderSpec = {
   orientation: "landscape" | "portrait";
-  quality: "preview" | "master";
+  /** vertical (D243): 1080×1920 بإعدادات master بلا تكبير؛ للنسخة العمودية الكاملة ولتجارب المشاهد العمودية وحدها */
+  quality: "preview" | "master" | "vertical";
   /** المشاهد المعروضة: كل الخطة، أو فصل، أو مقطع (sceneIds) */
   scope: { all: true } | { chapter: number } | { sceneIds: string[] };
   /** قطعة مراجعة مشهد (بلا ضبط علوّ ولا Master) */
@@ -353,6 +363,8 @@ export type WorkerJobV2 = {
   media: string;
   render?: RenderSpec;
   join?: JoinSpec;
+  /** D243: قص شورت من النسخة العمودية (cut وحده) */
+  cut?: CutSpec;
   expected: { durationSec: number; width: number; height: number };
   inputs: { planSha256: string; plan: Plan; media: EpisodeMedia; narrationGain: Record<string, number> };
   createdAt: string;
@@ -365,11 +377,11 @@ export type JobEnvelope = { version: number; id: string; channel: WorkerChannel;
 
 /** الأبعاد المتوقعة من الجودة والاتجاه (config.json: 1920×1080 × المقياس) */
 export const sizeFor = (quality: RenderSpec["quality"], orientation: RenderSpec["orientation"]) => {
-  const k = quality === "master" ? 2 : 1;
+  const k = quality === "master" ? 2 : 1; // vertical وpreview بلا تكبير
   return orientation === "landscape" ? { width: 1920 * k, height: 1080 * k } : { width: 1080 * k, height: 1920 * k };
 };
 
-const KNOWN2 = new Set(["version", "id", "channel", "episode", "kind", "purpose", "trial", "n", "sceneId", "commit", "media", "render", "join", "expected", "inputs", "createdAt", "claimedBy", "claimedAt"]);
+const KNOWN2 = new Set(["version", "id", "channel", "episode", "kind", "purpose", "trial", "n", "sceneId", "commit", "media", "render", "join", "cut", "expected", "inputs", "createdAt", "claimedBy", "claimedAt"]);
 const SCENE_ID = /^[A-Za-z0-9_-]{1,80}$/;
 const exactKeys = (o: unknown, allowed: string[], required: string[], what: string): Record<string, unknown> => {
   if (!isObj(o)) return fail(`${what} مفقود.`);
@@ -407,8 +419,9 @@ export const validateJobV2 = (raw: unknown): WorkerJobV2 => {
     if (typeof r.trial !== "string" || !ID.test(r.trial) || r.trial.length > 60) fail("وسم التجربة غير صالح.");
     if (!String(r.id).startsWith("trial-")) fail("معرّف مهمة التجربة يبدأ بـtrial-.");
   } else if (r.trial !== undefined || String(r.id).startsWith("trial-")) fail("وسم التجربة ومعرّفها للتجارب وحدها.");
-  if (kind === "short") { if (!Number.isInteger(r.n) || (r.n as number) < 1 || (r.n as number) > 999) fail("رقم الشورت غير صالح."); }
+  if (kind === "short" || kind === "cut") { if (!Number.isInteger(r.n) || (r.n as number) < 1 || (r.n as number) > 999) fail("رقم الشورت غير صالح."); }
   else if (r.n !== undefined) fail("رقم الشورت للشورت وحده.");
+  if ((kind === "vertical" || kind === "cut") && r.purpose !== "studio") fail("النسخة العمودية وقص الشورتس منها للاستوديو وحده (التجربة بنوع trial).");
   if (kind === "scene") { if (typeof r.sceneId !== "string" || !SCENE_ID.test(r.sceneId)) fail("معرّف المشهد غير صالح."); }
   else if (r.sceneId !== undefined) fail("معرّف المشهد لمهمة المشهد وحدها.");
   const parts = safeRelative(r.media);
@@ -416,12 +429,14 @@ export const validateJobV2 = (raw: unknown): WorkerJobV2 => {
     fail("مسار لقطة الوسائط لا يطابق render-queue/media/<القناة>/<الحلقة>/<البصمة>.");
   const ex = exactKeys(r.expected, ["durationSec", "width", "height"], ["durationSec", "width", "height"], "المتوقَّع");
   if (typeof ex.durationSec !== "number" || !Number.isFinite(ex.durationSec) || ex.durationSec <= 0 || ex.durationSec > 4 * 3600) fail("المدة المتوقعة غير صالحة.");
+  if (kind !== "cut" && r.cut !== undefined) fail("القص للنوع cut وحده.");
   if (RENDER_KINDS.includes(kind)) {
     if (r.join !== undefined) fail("الوصل لأنواع الوصل وحدها.");
     const s = exactKeys(r.render, ["orientation", "quality", "scope", "scenePreview", "timingMode", "shortTitle", "draftMarks", "concurrency", "review1080", "x264Preset", "bundleCache", "chunkFrames"],
       ["orientation", "quality", "scope", "scenePreview", "timingMode"], "مواصفات الرندر");
     if (s.orientation !== "landscape" && s.orientation !== "portrait") fail("الاتجاه غير صالح.");
-    if (s.quality !== "preview" && s.quality !== "master") fail("الجودة غير صالحة.");
+    if (s.quality !== "preview" && s.quality !== "master" && s.quality !== "vertical") fail("الجودة غير صالحة.");
+    if (s.quality === "vertical" && (s.orientation !== "portrait" || (kind !== "vertical" && kind !== "trial"))) fail("جودة vertical للنسخة العمودية (portrait) وتجاربها وحدها.");
     if (typeof s.scenePreview !== "boolean") fail("scenePreview غير صالح.");
     if (!["estimated", "approved", "scene-preview"].includes(s.timingMode as string)) fail("وضع التوقيت غير صالح.");
     const scope = s.scope;
@@ -447,8 +462,31 @@ export const validateJobV2 = (raw: unknown): WorkerJobV2 => {
     if (kind === "scene" && (!s.scenePreview || s.orientation !== "landscape" || sk !== "sceneIds" || (scope as { sceneIds: string[] }).sceneIds.join() !== r.sceneId)) fail("مهمة المشهد: قطعة مراجعة أفقية لمشهدها وحده.");
     if (kind === "master" && (s.quality !== "master" || s.orientation !== "landscape" || sk !== "all" || s.scenePreview)) fail("Master: الحلقة كاملة أفقية بأعلى جودة.");
     if (kind === "short" && (s.quality !== "master" || s.orientation !== "portrait" || sk === "all")) fail("الشورت: مقطع عمودي بأعلى جودة.");
+    if (kind === "vertical" && (s.quality !== "vertical" || s.orientation !== "portrait" || sk !== "all" || s.scenePreview)) fail("النسخة العمودية: الحلقة كاملة 1080×1920 بجودة vertical.");
     const size = sizeFor(s.quality as RenderSpec["quality"], s.orientation as RenderSpec["orientation"]);
     if (ex.width !== size.width || ex.height !== size.height) fail(`الأبعاد المتوقعة ${size.width}×${size.height} لهذه الجودة.`);
+  } else if (kind === "cut") {
+    if (r.render !== undefined || r.join !== undefined) fail("القص بلا مواصفات رندر ولا وصل.");
+    const c = exactKeys(r.cut, ["source", "sceneIds", "ranges", "fps"], ["source", "sceneIds", "ranges", "fps"], "القص") as Record<string, unknown>;
+    const src = exactKeys(c.source, ["job", "sha256"], ["job", "sha256"], "مصدر القص") as { job: unknown; sha256: unknown };
+    if (typeof src.job !== "string" || !ID.test(src.job) || src.job.length > 120) fail("مهمة النسخة العمودية غير صالحة.");
+    if (typeof src.sha256 !== "string" || !SHA256.test(src.sha256)) fail("بصمة النسخة العمودية غير صالحة.");
+    if (!Number.isInteger(c.fps) || (c.fps as number) < 1 || (c.fps as number) > 120) fail("الإطارات في الثانية غير صالحة.");
+    const ids = c.sceneIds;
+    if (!Array.isArray(ids) || !ids.length || ids.some((x) => typeof x !== "string" || !SCENE_ID.test(x))) fail("مشاهد الشورت غير صالحة.");
+    const ranges = c.ranges;
+    if (!Array.isArray(ranges) || !ranges.length || ranges.length > CUT_MAX_RANGES) fail("مقاطع القص غير صالحة.");
+    let prev = -1, frames = 0;
+    for (const x of ranges as unknown[]) {
+      const g = exactKeys(x, ["from", "to"], ["from", "to"], "مقطع") as { from: unknown; to: unknown };
+      if (!Number.isInteger(g.from) || !Number.isInteger(g.to) || (g.from as number) < 0 || (g.to as number) <= (g.from as number)) fail("مقطع القص غير صالح.");
+      if ((g.from as number) < prev) fail("مقاطع القص متداخلة أو بغير ترتيب الحلقة.");
+      prev = g.to as number;
+      frames += (g.to as number) - (g.from as number);
+    }
+    if (Math.abs(frames / (c.fps as number) - (ex.durationSec as number)) > 0.002) fail("المدة المتوقعة لا تساوي مجموع مقاطع القص.");
+    const size = sizeFor("vertical", "portrait");
+    if (ex.width !== size.width || ex.height !== size.height) fail("الشورت المقصوص بأبعاد النسخة العمودية 1080×1920.");
   } else {
     if (r.render !== undefined) fail("مواصفات الرندر لأنواع الرندر وحدها.");
     const j = exactKeys(r.join, ["cuts"], ["cuts"], "الوصل") as { cuts: unknown };
