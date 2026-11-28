@@ -173,8 +173,10 @@ export const pendingJobs = async (share: string): Promise<JobEnvelope[]> => {
   for (const f of (await readdir(p.jobs)).filter((x) => x.endsWith(".json") && !x.startsWith(".")).sort()) {
     try { out.push(validateEnvelope(JSON.parse(await readFile(path.join(p.jobs, f), "utf8")))); } catch { /* يظهر في المهمة نفسها حين تُؤخذ */ }
   }
-  // D243: الأولوية أولًا (العمودية وقصها بعد كل ما سواها)، ثم الأقدم
-  return out.sort((a, b) => jobPriority(a.kind) - jobPriority(b.kind) || a.createdAt.localeCompare(b.createdAt) || a.id.localeCompare(b.id));
+  // D243: الأولوية أولًا (العمودية وقصها بعد كل ما سواها)؛ ثم D245: الحلقة الجارية حتى تنتهي، ثم التناوب بين القنوات، ثم الأقدم
+  const { readRotation, orderJobs } = await import("./rotation");
+  const rot = await readRotation(path.dirname(p.jobs));
+  return orderJobs(out, rot.current, jobPriority);
 };
 
 /** يكتب ملفًا كاملًا ثم ينقله ذريًا (لا يرى القارئ نصف ملف). */

@@ -1120,6 +1120,17 @@ program
     console.log(s.message);
     if (s.heartbeat) console.log(`النبض: ${s.heartbeat.host} ${s.heartbeat.state} منذ ${s.heartbeatAgeSec} ث @ ${s.heartbeat.commit?.slice(0, 8) ?? "?"}`);
     console.log(`في الطابور: ${s.queued.length}${s.queued.length ? ` (${s.queued.slice(0, 5).join("، ")}${s.queued.length > 5 ? "…" : ""})` : ""}`);
+    // D245: الجاري والتالي وبعده بالحلقة، والدور، وآخر ما تُخطّي
+    const P = await import("../render/worker/protocol");
+    const R = await import("../render/worker/rotation");
+    const share = path.resolve(opts.share);
+    const q = path.dirname(P.queuePaths(share).jobs);
+    const rot = await R.readRotation(q);
+    const pend = await P.pendingJobs(share);
+    const sum = R.queueSummary([], pend, rot.current, P.jobPriority);
+    console.log(`الحلقة الجارية: ${rot.current ? `${rot.current.channel} ${rot.current.episode}` : "—"} · التالي: ${sum.next ?? "—"} · بعده: ${sum.after ?? "—"} · الدور بعد الجارية: ${sum.turn}`);
+    const skipped = rot.log.filter((e) => e.skipped.length).slice(-3);
+    for (const e of skipped) console.log(`  تُخطّي الدور (${e.at.slice(0, 16)}): ${e.skipped.join("، ")} ← أُخذت ${e.channel} ${e.episode}`);
     if (!s.online) process.exitCode = 2;
   });
 
