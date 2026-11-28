@@ -193,6 +193,17 @@ export const safeFastForward = async (
   const mine = new Set(changes.map((c) => c.file));
   const removedUpstream = deletions.filter((f) => !mine.has(f) && existsSync(path.join(root, f)) && statSync(path.join(root, f)).isFile());
 
+  // D244 البند ٥: قبل أي دمج نسخة للسجل الموقّع لكل الحلقات على المجلد المشترك؛ إن لم يكن مركّبًا فعلى هذا الجهاز
+  // (~/balislam-backup/ledger-offline/backups/ledger/) بالقاعدة نفسها، ولا يُطبّق التحديث إن فشلت النسخة.
+  if (!process.env.VITEST) {
+    try {
+      const lb = await import("../../src/studio/ledgerBackup.ts");
+      const share = process.env.BAL_SHARE || "/Volumes/bal-share";
+      const target = existsSync(share) ? share : path.join(backupRoot(), "ledger-offline");
+      if (!existsSync(target)) await mkdir(target, { recursive: true });
+      await lb.backupLedgers(root, target, "update");
+    } catch (e) { return { ok: false, message: `تعذّرت نسخة السجل الاحتياطية قبل التحديث؛ لم يُعدل أي ملف. (${(e as Error).message})` }; }
+  }
   let backup: string | undefined;
   if (changes.length || removedUpstream.length) {
     try { backup = await snapshot(root, changes, head, upstream, removedUpstream); }
