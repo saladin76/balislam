@@ -111,3 +111,6 @@ channels/*/compilations/
 
 # اعتماد المالك لسكريبت المسودة (D213): محلي موقّع لا يُرفع
 channels/*/episodes/*/script-approval.local.json
+
+# نسخ الحلقات القديمة المحلية (أرشيف تجارب ٢D، لا تُرفع ولا تُنسخ في كل تحديث؛ قرار المالك ٢٨ نوفمبر: لا يُحذف منها شيء)
+channels/*/episodes/*/versions/
