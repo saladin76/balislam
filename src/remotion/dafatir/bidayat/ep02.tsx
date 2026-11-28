@@ -541,16 +541,24 @@ const ThreeSeals = reverent((q) => {
   const k = cueKit(q, ["الفرق"]);
   const head = k.draw(0, "الفرق", 0.9);
   const s = [k.on(0, "يثبت", 0.5), k.on(0, "يروى", 0.5), k.on(0, "نسبته", 0.5)];
+  // D242 (الحركة ٨٩٪ في رندر الويندوز، الحد ٩٥٪): أحداث على كلماتها في فجوات الجملة — «يظهر»: ثلاث خانات فارغة متقطعة تنتظر
+  // أختامها، «بين»: فاصلان بالحبر بين الخانات، وكل «خبر» يكتب سطر خانته قبل أن يُختم بكلمته (يثبت / يُروى / نسبته)
+  const slots = k.on(0, "يظهر", 0.6);
+  const split = k.draw(0, "بين", 0.7);
+  const lab = [k.on(0, "خبر", 0.45), k.on(0, "وخبر#1", 0.45), k.on(0, "وخبر#2", 0.45)];
   const cam = k.cam(NEUTRAL, [[0, "يثبت", { cx: 1200, cy: 520, s: 1.1 }, 1.2]]);
   const ROW = [[1560, "ثابت", "خبر يثبت"], [1200, "رواية", "خبر يُروى"], [820, "لا يصح", "لا تصح نسبته"]] as const;
   const row = (
     <g>
-      {ROW.map(([x, kind, lab], i) => (
+      {ROW.map(([x, kind, label], i) => (
         <g key={i}>
+          <rect x={x - 95} y={470} width={190} height={100} rx={14} fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="10 9" opacity={slots * (1 - s[i]!)} />
           <Seal x={x} y={520} q={s[i]!} kind={kind} s={0.7} />
-          <Txt x={x} y={640} size={38} q={s[i]!} color={C.inkSoft}>{lab}</Txt>
+          <Txt x={x} y={640} size={38} q={Math.max(lab[i]!, s[i]!)} color={C.inkSoft}>{label}</Txt>
         </g>
       ))}
+      <Ink d="M1380 450 V600" w={3} p={split} c={C.inkSoft} />
+      <Ink d="M1010 450 V600" w={3} p={split} c={C.inkSoft} />
     </g>
   );
   return <Leaf q={q} id="b2ts" cam={cam} L={row} R={<g>{row}<Write id="b2ts-h" x={1365} y={220} size={54} p={head} label="الفرق" color={C.inkSoft} /></g>} />;

@@ -58,7 +58,7 @@ const setup = async () => {
   const deps: StudioImportDeps = {
     sha256File: async (f) => sha(await readFile(f, "utf8")),
     probe: async (f) => probes.get(path.basename(f, ".mp4"))!,
-    measureMotion: async () => ({ percent: 91, seconds: 12, activeSeconds: 11, perSecond: [], still: [] }),
+    measureMotion: async () => ({ percent: 96, seconds: 12, activeSeconds: 11, perSecond: [], still: [] }),
     scene: {
       current: async () => ({ planSha256: planSha256(plan), mediaBase: media.base, exempt: new Set() }),
       allowed: async (_ep, id, s, mode) => { calls.push(`allowed ${id} ${s.slice(0, 4)} ${mode}`); },
@@ -111,7 +111,7 @@ describe("D232 phase 2: worker-import of scene cuts", () => {
     expect(t.calls).toEqual(["allowed c1-s1 aaaa ahead", "allowed c1-s1 aaaa ahead", "publish scene-c1-s1-av", "evidence c1-s1 aaaa ahead"]);
     const prov = JSON.parse(await readFile(provenanceFile(path.join(t.epDir, "previews")), "utf8"));
     expect(prov.scenes["c1-s1"]).toEqual({ machine: "Salah", commit: "b".repeat(40), sha256: sha("cut-bytes") });
-    expect((await readStudioIndex(t.scriptPath)).jobs[job.id]!.imported).toMatchObject({ sha256: sha("cut-bytes"), worker: "Salah", motion: 91 });
+    expect((await readStudioIndex(t.scriptPath)).jobs[job.id]!.imported).toMatchObject({ sha256: sha("cut-bytes"), worker: "Salah", motion: 96 });
     expect(await readFile(path.join(t.epDir, "out", "worker-studio", "motion-report.md"), "utf8")).toMatch(/المشهد c1-s1/);
     // a second run imports nothing again
     const again = await t.run();
@@ -270,5 +270,38 @@ describe("D232 phase 2: sending from the Mac keeps every gate", () => {
     const cli = src("src/cli/index.ts");
     for (const c of ["worker-submit-scenes", "worker-submit-prefinal", "worker-submit-assembly", "worker-submit-master", "worker-import", "worker-submit\")", "worker-collect"])
       expect(cli).toContain(c);
+  });
+});
+
+describe("D242: worker-import refuses a scene cut below the channel's motion minimum", () => {
+  it("dafatir-alzaman under 95%: refused at once, never published as a draft, marked «يحتاج إصلاح»; a good cut clears the mark", async () => {
+    const { readMotionFixes } = await import("../src/render/worker/studioJobs");
+    const t = await setup();
+    const job = sceneJob("c1-s1");
+    await rememberSentJob(t.scriptPath, job, { sourceSha256: "a".repeat(64), mode: "current" });
+    await finish(t.share, job, "weak-cut");
+    t.probes.set(job.id, probeFor(job));
+    t.deps.measureMotion = async () => ({ percent: 82, seconds: 12, activeSeconds: 9.8, perSecond: [], still: [] });
+    const r = await t.run();
+    expect(r.imported).toEqual([]);
+    expect(r.refused.map((x) => x.reasons!.join())).toEqual([expect.stringMatching(/يحتاج إصلاح: حركة المشهد c1-s1 82% .*95%/)]);
+    expect(t.calls.some((c) => c.startsWith("publish") || c.startsWith("evidence"))).toBe(false);
+    expect(existsSync(path.join(t.epDir, "previews", "scene-c1-s1-av.mp4"))).toBe(false);
+    expect(await readMotionFixes(t.scriptPath)).toMatchObject({ "c1-s1": { percent: 82, min: 95, job: job.id } });
+    // the scene sent again and back at 96%: imported, and the mark is gone
+    const again = sceneJob("c1-s1", "2026-11-27T11:00:00.000Z");
+    await rememberSentJob(t.scriptPath, again, { sourceSha256: "a".repeat(64), mode: "current" });
+    await finish(t.share, again, "good-cut");
+    t.probes.set(again.id, probeFor(again));
+    t.deps.measureMotion = async () => ({ percent: 96, seconds: 12, activeSeconds: 11.5, perSecond: [], still: [] });
+    const r2 = await t.run();
+    expect(r2.imported.map((x) => x.sceneId)).toEqual(["c1-s1"]);
+    expect(await readMotionFixes(t.scriptPath)).toEqual({});
+  });
+
+  it("the threshold is the channel's own (interactivityMinFor), read from the job, and the studio shows the mark", () => {
+    expect(src("src/render/worker/studioJobs.ts")).toContain("interactivityMinFor(job.channel)");
+    expect(src("src/studio/sceneService.ts")).toContain("readMotionFixes");
+    expect(src("app/src/workspace/sceneProduction/SceneStepParts.tsx")).toContain("motionFix");
   });
 });

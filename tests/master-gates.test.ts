@@ -49,6 +49,9 @@ const fresh = async () => {
   await writeFile(scriptPath, SCRIPT);
   const parsed = parseScript(SCRIPT, scriptPath);
   const plan = generatePlan(parsed, null, { "2:30": tanzilAyah(2, 30)! }, channel) as Plan;
+  // D242: «دفاتر الزمن» نفسها لا تقبل مشهد آية صامتًا (النص داخل لقطة «خط الأفق»؛ اختباره في آخر الملف)؛ هذه الحلقة المصطنعة
+  // تبقي بطاقة الآية لاختبار بوابات التلاوة والنص، فتُحمل على قناة اختبار بإعدادات «دفاتر الزمن» (قارئها) لا بقاعدة D242
+  plan.channel = "gates-fixture";
   const scenes = plan.chapters.flatMap((c) => c.scenes);
   const spoken = scenes.find((s) => s.narration.trim())!;
   const verse = scenes.find((s) => s.template === "verse-card")!;
@@ -121,5 +124,11 @@ describe("بوابات النسخة النهائية", () => {
     const s = await fresh();
     s.verse.props.text = "";
     await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).rejects.toThrow();
+  });
+
+  it("D242: مشهد آية صامت في «دفاتر الزمن» يمنع (النص داخل لقطة «خط الأفق» المجاورة كما في 001)", async () => {
+    const s = await fresh();
+    s.plan.channel = "dafatir-alzaman";
+    await expect(assertMasterReady({ scriptPath: s.scriptPath, plan: s.plan, media: s.media as never, channel })).rejects.toThrow(/D242: مشهد آية صامت/);
   });
 });
