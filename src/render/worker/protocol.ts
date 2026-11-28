@@ -310,7 +310,10 @@ export const JOIN_KINDS: readonly JobKind[] = ["assembly", "prefinal"];
  */
 export const jobPriority = (kind: string) => (kind === "vertical" || kind === "cut" ? 1 : 0);
 /** الشورت المقصوص من النسخة العمودية: الإطارات [from, to) منها بالترتيب، موصولة (D241: مشاهد الشورت كما في الخطة) */
-export type CutSpec = { source: { job: string; sha256: string }; sceneIds: string[]; ranges: { from: number; to: number }[]; fps: number };
+export type CutSpec = { source: { job: string; sha256: string }; sceneIds: string[]; ranges: { from: number; to: number }[]; fps: number;
+  /** D243 (قرار المالك): عنوان الشورت القصير (خطافه) أول `seconds` ثانية (حتى ٣، وقبل أي سكون مقصود)، يُركَّب في القص */
+  title?: { text: string; seconds: number } };
+export const SHORT_TITLE_MAX_SEC = 3;
 export const CUT_MAX_RANGES = 60;
 /** studio: ناتجه يُستورد بعد التحقق؛ trial: تجربة لا تدخل الحزمة ولا السجل أبدًا (تبقى في المجلد المشترك ومجلد مؤقت على الماك) */
 export type JobPurpose = "studio" | "trial";
@@ -469,7 +472,12 @@ export const validateJobV2 = (raw: unknown): WorkerJobV2 => {
     if (ex.width !== size.width || ex.height !== size.height) fail(`الأبعاد المتوقعة ${size.width}×${size.height} لهذه الجودة.`);
   } else if (kind === "cut") {
     if (r.render !== undefined || r.join !== undefined) fail("القص بلا مواصفات رندر ولا وصل.");
-    const c = exactKeys(r.cut, ["source", "sceneIds", "ranges", "fps"], ["source", "sceneIds", "ranges", "fps"], "القص") as Record<string, unknown>;
+    const c = exactKeys(r.cut, ["source", "sceneIds", "ranges", "fps", "title"], ["source", "sceneIds", "ranges", "fps"], "القص") as Record<string, unknown>;
+    if (c.title !== undefined) {
+      const t = exactKeys(c.title, ["text", "seconds"], ["text", "seconds"], "عنوان الشورت") as { text: unknown; seconds: unknown };
+      if (typeof t.text !== "string" || !t.text.trim() || t.text.length > 120 || /[\n\r\0]/.test(t.text)) fail("نص عنوان الشورت غير صالح.");
+      if (typeof t.seconds !== "number" || !Number.isFinite(t.seconds) || t.seconds < 1 || t.seconds > SHORT_TITLE_MAX_SEC) fail(`مدة عنوان الشورت من ثانية إلى ${SHORT_TITLE_MAX_SEC}.`);
+    }
     const src = exactKeys(c.source, ["job", "sha256"], ["job", "sha256"], "مصدر القص") as { job: unknown; sha256: unknown };
     if (typeof src.job !== "string" || !ID.test(src.job) || src.job.length > 120) fail("مهمة النسخة العمودية غير صالحة.");
     if (typeof src.sha256 !== "string" || !SHA256.test(src.sha256)) fail("بصمة النسخة العمودية غير صالحة.");
