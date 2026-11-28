@@ -141,8 +141,8 @@ const buildPeaks = (merc: GeoProjection, p3: P3, scale: number, seed: number, cl
         const off = (r() - 0.5) * 34 * scale;
         const x = a[0] + (b[0] - a[0]) * t + nx * off, y = a[1] + (b[1] - a[1]) * t + ny * off;
         if (!clip(x, y)) continue;
-        const h = ridge.h * scale * (0.45 + r() * 0.7);
-        const w = h * (0.95 + r() * 0.5);
+        const h = ridge.h * scale * (0.25 + r() * 0.4);
+        const w = h * (1.9 + r() * 0.9);
         const ax = x + (r() - 0.5) * w * 0.3, ay = y + (r() - 0.5) * w * 0.2;
         const P = (px: number, py: number, pz = 0): Pt => { const q = p3(px, py, pz); return [q[0], q[1]]; };
         const apex = P(ax, ay, h), Wb = P(x - w, y), Sb = P(x, y + w * 0.7), Eb = P(x + w, y), Nb = P(x, y - w * 0.7);
@@ -190,7 +190,7 @@ const MAP_VIEWS: Record<string, MapView> = {
   "1a": { center: [42, 27.5], scale: 4300, cam: { tilt: 52, dist: 1500, f: 1300, x0: 960, y0: 500 }, ext: [-900, -640, 900, 640], sheet: true, fog: true, reliefScale: 1 },
   "2a": { center: [41, 27], scale: 4600, cam: { tilt: 56, dist: 1350, f: 1250, x0: 1000, y0: 470, yaw: -6 }, ext: [-950, -700, 950, 700], sheet: true, tray: true, legend: true, stamp: true, reliefScale: 1.1 },
   "2b": { center: [42, 25.5], scale: 3000, cam: { tilt: 70, dist: 1400, f: 1350, x0: 960, y0: 640 }, ext: [-8000, -4600, 8000, 1180], sheet: false, legend: true, stamp: true, reliefScale: 0.85 },
-  "3a": { center: [42, 25], scale: 760, cam: { tilt: 40, dist: 1800, f: 1500, x0: 1330, y0: 470 }, ext: [-760, -560, 760, 560], sheet: true, wash: true, reliefScale: 0.42 },
+  "3a": { center: [42, 25], scale: 760, cam: { tilt: 40, dist: 1800, f: 1500, x0: 1330, y0: 470 }, ext: [-760, -560, 760, 560], sheet: true, wash: true, reliefScale: 0.3 },
 };
 
 const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view, id, seed }) => {
@@ -223,7 +223,7 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
       }
     }
     // حد ما نعرف: قطع ناقص حول المركز بوحدات المستوى
-    const known: Pt[] = Array.from({ length: 72 }, (_, i) => { const a = (i / 72) * Math.PI * 2; return P(Math.cos(a) * 430, Math.sin(a) * 300 + 40); });
+    const known: Pt[] = Array.from({ length: 72 }, (_, i) => { const a = (i / 72) * Math.PI * 2; return P(Math.cos(a) * 560, Math.sin(a) * 380 + 40); });
     // سطح المكتب: مستوى أكبر حول الورقة، وعروق خفيفة
     const deskPts: Pt[] = [P(-3000, -3000), P(3000, -3000), P(3000, 1200), P(-3000, 1200)];
     const r = rng(seed + 5);
@@ -255,7 +255,7 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
           <feComposite in2="SourceGraphic" operator="in" />
         </filter>
         <filter id={`${id}-soft`}><feGaussianBlur stdDeviation="6" /></filter>
-        <filter id={`${id}-fogblur`} x="-0.3" y="-0.3" width="1.6" height="1.6"><feGaussianBlur stdDeviation="70" /></filter>
+        <filter id={`${id}-fogblur`} x="-0.3" y="-0.3" width="1.6" height="1.6"><feGaussianBlur stdDeviation="32" /></filter>
         <filter id={`${id}-warmblur`} x="-0.5" y="-0.5" width="2" height="2"><feGaussianBlur stdDeviation="22" /></filter>
         <clipPath id={`${id}-sheet`}><path d={sheetD} /></clipPath>
         <clipPath id={`${id}-land`}><path d={g.land} /></clipPath>
@@ -325,7 +325,7 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
 
       {view.legend ? <Legend id={id} p3={g.p3} sheet={view.sheet} at={view.sheet ? [-560, 360] : [0, 0]} empty={!view.sheet} /> : null}
       {view.tray ? <PinTray id={id} p3={g.p3} at={[-80, 400]} /> : null}
-      {view.stamp ? <Stamp p3={g.p3} at={view.sheet ? [520, -380] : null} /> : null}
+      {view.stamp ? <Stamp p3={g.p3} at={view.sheet ? [430, -170] : null} /> : null}
     </svg>
   );
 };
@@ -334,8 +334,8 @@ const MapStill: React.FC<{ view: MapView; id: string; seed: number }> = ({ view,
 const Legend: React.FC<{ id: string; p3: P3; sheet: boolean; at: Pt; empty: boolean }> = ({ id, p3, sheet, at, empty }) => {
   const body = (
     <g>
-      <rect x={-250} y={-120} width={500} height={250} rx={10} fill="#FBF4E6" stroke={C.ink} strokeWidth={2.5} />
-      <rect x={-238} y={-108} width={476} height={226} rx={6} fill="none" stroke={C.ink} strokeWidth={1} opacity={0.5} />
+      <rect x={-310} y={-120} width={620} height={250} rx={10} fill="#FBF4E6" stroke={C.ink} strokeWidth={2.5} />
+      <rect x={-298} y={-108} width={596} height={226} rx={6} fill="none" stroke={C.ink} strokeWidth={1} opacity={0.5} />
       <text x={0} y={-62} direction="rtl" textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: 40, fill: C.inkText }}>مفتاح الخريطة</text>
       <circle cx={190} cy={8} r={15} fill={PM.ember} />
       <circle cx={190} cy={8} r={26} fill={PM.ember} opacity={0.25} />
@@ -344,13 +344,13 @@ const Legend: React.FC<{ id: string; p3: P3; sheet: boolean; at: Pt; empty: bool
       <text x={150} y={90} direction="rtl" textAnchor="start" style={{ fontFamily: TAJ, fontWeight: 500, fontSize: 30, fill: C.inkSoft }}>بلا ضوء = لا نعلم</text>
       {empty ? (
         <g>
-          <rect x={-232} y={-20} width={92} height={118} rx={8} fill="none" stroke={C.ribbon} strokeWidth={2.5} />
-          <text x={-186} y={58} textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: 70, fill: C.ribbon }}>٠</text>
+          <rect x={-292} y={-20} width={80} height={110} rx={8} fill="none" stroke={C.ribbon} strokeWidth={2.5} />
+          <text x={-252} y={56} textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: 70, fill: C.ribbon }}>٠</text>
         </g>
       ) : null}
     </g>
   );
-  if (sheet) return <g transform={planeMatrix(p3, at[0], at[1])}><g transform="rotate(-4)"><rect x={-244} y={-112} width={500} height={250} fill="#000" opacity={0.25} transform="translate(10 12)" filter={`url(#${id}-soft)`} />{body}</g></g>;
+  if (sheet) return <g transform={planeMatrix(p3, at[0], at[1])}><g transform="rotate(-4)"><rect x={-304} y={-112} width={620} height={250} fill="#000" opacity={0.25} transform="translate(10 12)" filter={`url(#${id}-soft)`} />{body}</g></g>;
   return <g transform="translate(330 250) scale(0.82)">{body}</g>;
 };
 
@@ -375,9 +375,9 @@ const PinTray: React.FC<{ id: string; p3: P3; at: Pt }> = ({ id, p3, at }) => (
 const Stamp: React.FC<{ p3: P3; at: Pt | null }> = ({ p3, at }) => {
   const s = (
     <g transform="rotate(-9)" opacity={0.9}>
-      <rect x={-170} y={-70} width={340} height={130} rx={12} fill="none" stroke={C.ribbon} strokeWidth={7} />
-      <rect x={-156} y={-56} width={312} height={102} rx={6} fill="none" stroke={C.ribbon} strokeWidth={2.5} />
-      <text x={0} y={26} direction="rtl" textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: 84, fill: C.ribbon }}>لا نعلم</text>
+      <rect x={-200} y={-62} width={400} height={118} rx={12} fill="none" stroke={C.ribbon} strokeWidth={7} />
+      <rect x={-186} y={-48} width={372} height={90} rx={6} fill="none" stroke={C.ribbon} strokeWidth={2.5} />
+      <text x={0} y={22} direction="rtl" textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: 64, fill: C.ribbon }}>لا نعلم</text>
     </g>
   );
   return at ? <g transform={planeMatrix(p3, at[0], at[1])}>{s}</g> : <g transform="translate(1540 210)">{s}</g>;
@@ -433,7 +433,7 @@ const GlobeStill: React.FC<{ id: string; seed: number; cx: number; cy: number; r
             {g.warm.map((w, i) => <circle key={i} cx={w.x} cy={w.y} r={w.r} fill={PM.ember} opacity={0.45} />)}
           </g>
         ) : null}
-        {fog ? <ellipse cx={cx - r * 0.1} cy={cy - r * 0.62} rx={r * 0.9} ry={r * 0.16} fill="#F4EAD6" opacity={0.85} filter={`url(#${id}-fogblur)`} transform={`rotate(-14 ${cx} ${cy})`} /> : null}
+        {fog ? <ellipse cx={cx - r * 0.1} cy={cy - r * 0.62} rx={r * 0.95} ry={r * 0.22} fill="#F4EAD6" opacity={0.95} filter={`url(#${id}-fogblur)`} transform={`rotate(-14 ${cx} ${cy})`} /> : null}
         <path d={g.sphere} fill={`url(#${id}-shade)`} />
       </g>
       <path d={g.sphere} fill="none" stroke={C.ink} strokeWidth={2} opacity={0.5} />
@@ -581,6 +581,7 @@ const PlaceStill: React.FC<{ id: string; scene: number; v: PmVariant; seed: numb
         <filter id={`${id}-motion`} x="-0.2" y="-0.2" width="1.4" height="1.4"><feGaussianBlur stdDeviation="14 2" /></filter>
         <filter id={`${id}-txtglow`} x="-0.2" y="-0.4" width="1.4" height="1.8"><feGaussianBlur stdDeviation="10" /></filter>
         <filter id={`${id}-mist`} x="-0.2" y="-1" width="1.4" height="3"><feGaussianBlur stdDeviation="26" /></filter>
+        <filter id={`${id}-mist2`} x="-0.5" y="-3" width="2" height="7"><feGaussianBlur stdDeviation="30" /></filter>
       </defs>
 
       <rect width={W} height={H} fill={`url(#${id}-sky)`} />
@@ -600,12 +601,11 @@ const PlaceStill: React.FC<{ id: string; scene: number; v: PmVariant; seed: numb
       {mountain ? <Waters id={id} hz={hz} crane={spec.crane} seed={seed} /> : null}
 
       {/* حجارة وشجيرات على الأرض بعمق */}
-      {!mountain ? Array.from({ length: 34 }, (_, i) => {
-        const rr = rng(seed + 300 + i);
+      {!mountain ? (() => { const rr = rng(seed + 300); return Array.from({ length: 34 }, (_, i) => {
         const depth = rr();
         const y = hz + 60 + depth * (H - hz - 40);
         return <Shrub key={i} x={rr() * W} y={y} s={0.25 + depth * 1.1} c={mixHex(layers[4]!.c, "#000000", 0.25)} />;
-      }) : null}
+      }); })() : null}
 
       {huts.map((h, i) => <Hut key={`h${i}`} x={h.x} y={h.y} s={h.s} warm={warm} dark={mixHex(layers[3]!.c, "#2A1E3F", 0.4)} />)}
       {[...hearths].sort((a, b) => a.y - b.y).map((h, i) => <Hearth key={i} id={id} x={h.x} y={h.y} s={h.s} smoke={h.s > 0.3 ? 1 : 0.5} />)}
@@ -639,9 +639,15 @@ const Mountain: React.FC<{ id: string; hz: number; crane: boolean; seed: number;
     pts.push([x, Math.min(base, y)]);
   }
   const d = `${line(pts)} L${pts[pts.length - 1]![0]} ${base + 40} L${pts[0]![0]} ${base + 40} Z`;
-  const contours = Array.from({ length: 7 }, (_, k) => {
-    const y = base - 30 - k * (crane ? 46 : 34);
-    return line(Array.from({ length: 50 }, (_, i) => [peakX - span + (i / 49) * span * 2, y + Math.sin(i * 0.7 + k) * 5] as Pt));
+  const contours = Array.from({ length: 3 }, (_, k) => {
+    const y = base - 40 - k * (crane ? 70 : 52);
+    return line(Array.from({ length: 60 }, (_, i) => [peakX - span + (i / 59) * span * 2, y + Math.sin(i * 0.45 + k * 2) * 7 + Math.sin(i * 1.7) * 3] as Pt));
+  });
+  const gullies = Array.from({ length: 11 }, (_, i) => {
+    const sx = peakX + (r() - 0.5) * span * 0.5, sy = peakY + 40 + r() * 120;
+    const ex = peakX + (i / 10 - 0.5) * span * 1.5 + (r() - 0.5) * 80;
+    const mx = (sx + ex) / 2 + (r() - 0.5) * 60, my = (sy + base) / 2 + (r() - 0.5) * 40;
+    return { d: `M${sx.toFixed(0)} ${sy.toFixed(0)} Q${mx.toFixed(0)} ${my.toFixed(0)} ${ex.toFixed(0)} ${base}`, lit: ex < peakX, w: 2 + r() * 5 };
   });
   const txt = crane ? { x: peakX - 40, y: peakY + 300, size: 210 } : { x: peakX - 20, y: peakY + 210, size: 150 };
   return (
@@ -649,17 +655,14 @@ const Mountain: React.FC<{ id: string; hz: number; crane: boolean; seed: number;
       <clipPath id={`${id}-mclip`}><path d={d} /></clipPath>
       <path d={d} fill={`url(#${id}-mount)`} />
       {/* سفوح وأخاديد */}
-      <g clipPath={`url(#${id}-mclip)`} opacity={0.5}>
-        {Array.from({ length: 16 }, (_, i) => {
-          const x = peakX - span * 0.8 + (i / 15) * span * 1.6;
-          return <path key={i} d={`M${peakX + (x - peakX) * 0.08} ${peakY + 20} Q${(x + peakX) / 2} ${(peakY + base) / 2} ${x} ${base}`} stroke={i < 7 ? "#E7B98A" : "#120D1C"} strokeWidth={3} fill="none" opacity={0.35} />;
-        })}
-        {contours.map((c, i) => <path key={`c${i}`} d={c} stroke="#D9C7B0" strokeWidth={2.2} fill="none" opacity={0.45 - i * 0.04} strokeDasharray="22 10" />)}
+      <g clipPath={`url(#${id}-mclip)`}>
+        {gullies.map((g, i) => <path key={i} d={g.d} stroke={g.lit ? "#E7B98A" : "#0D0A14"} strokeWidth={g.w} fill="none" opacity={g.lit ? 0.22 : 0.3} strokeLinecap="round" />)}
+        {contours.map((c, i) => <path key={`c${i}`} d={c} stroke="#D9C7B0" strokeWidth={1.6} fill="none" opacity={0.32 - i * 0.07} />)}
       </g>
       {/* الاسم مكتوبًا في المكان: ذهب بخط عربي على السفح، والضباب يمر أمام أسفله */}
       <text x={txt.x} y={txt.y} direction="rtl" textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: txt.size, fill: C.gold }} opacity={0.55} filter={`url(#${id}-txtglow)`}>الجودي</text>
       <text x={txt.x} y={txt.y} direction="rtl" textAnchor="middle" style={{ fontFamily: AMIRI, fontWeight: 700, fontSize: txt.size }} fill={`url(#${id}-gold)`} stroke="#5E4535" strokeWidth={1.2} strokeOpacity={0.4}>الجودي</text>
-      <rect x={txt.x - 420} y={txt.y - txt.size * 0.18} width={840} height={txt.size * 0.5} fill="#E9D8C4" opacity={0.42} filter={`url(#${id}-mist)`} />
+      <ellipse cx={txt.x} cy={txt.y + txt.size * 0.08} rx={460} ry={txt.size * 0.2} fill="#E9D8C4" opacity={0.36} filter={`url(#${id}-mist2)`} />
     </g>
   );
 };

@@ -32,7 +32,37 @@ export const PM_ELEMENTS = [
 ] as const;
 export type PmElement = (typeof PM_ELEMENTS)[number];
 /** ممنوع في القالبين بحكم المراجعة العلمية وقرار المالك (لا يُضاف إلى PM_ELEMENTS أبدًا) */
-export const FORBIDDEN_ELEMENTS = ["figure", "silhouette", "shadow-figure", "light-figure", "route-marker", "caravan", "rider", "sun-disc", "sun-rays"] as const;
+/**
+ * D253 (قواعد المالك ٢٨ نوفمبر): للأنبياء والملائكة والصحابة كلهم وآل البيت وأمهات المؤمنين لا شيء ينوب عنهم — لا شخصية ولا
+ * ظل ولا هالة أو وهج ولا يد تُنسب إلى أحدهم ولا صوت؛ ولا آثار أقدام تظهر خطوة خطوة مكان أحدهم. المعيار: إن فهم المشاهد أن
+ * العنصر هو النبي أو الصحابي حُذف (ويسري على الشورتس والصور المصغّرة). اليد العامة وحدها جائزة، ولا تُنسب إلى أحد منهم.
+ */
+export const FORBIDDEN_ELEMENTS = [
+  "figure", "silhouette", "shadow-figure", "light-figure", "halo", "glow-figure", "attributed-hand", "voice-figure", "footprints",
+  "route-marker", "caravan", "rider", "sun-disc", "sun-rays",
+] as const;
+
+/**
+ * D253 (٣): مسار على «الخريطة الحيّة». إن ثبت البدء والنهاية وحدهما تُعرض النقطتان وحدهما، ولا يُرسم الطريق التفصيلي؛
+ * و«مسار تقريبي» لا يُرسم إلا لطريق تقريبي موثَّق فعلًا (documented بمصدره). لا علامة تتحرك عليه أبدًا.
+ */
+export type PmRoute = {
+  from: { name: string; at: [number, number] };
+  to: { name: string; at: [number, number] };
+  /** محطات موثَّقة بين البدء والنهاية (تُرسم دبابيس) */
+  via?: { name: string; at: [number, number] }[];
+  /** الطريق نفسه موثَّق تقريبيًا بمصدره؛ بلاه لا خط بين الدبابيس */
+  documented?: { source: string };
+  /** يُطلب رسم الخط (مسار تقريبي) */
+  drawPath?: boolean;
+};
+export type PmRouteDrawing = { pins: { name: string; at: [number, number] }[]; path: boolean; label: "مسار تقريبي" | null };
+/** ما يُرسم لمسار: الدبابيس دائمًا، والخط وحده إن كان موثَّقًا؛ طلب خط بلا توثيق مرفوض */
+export const routeDrawing = (r: PmRoute): PmRouteDrawing => {
+  const documented = Boolean(r.documented?.source?.trim());
+  if (r.drawPath && !documented) throw new Error(`D253: لا يُرسم مسار بين «${r.from.name}» و«${r.to.name}» بلا توثيق (documented)؛ تُعرض النقطتان وحدهما.`);
+  return { pins: [r.from, ...(r.via ?? []), r.to], path: Boolean(r.drawPath && documented), label: r.drawPath && documented ? "مسار تقريبي" : null };
+};
 
 export type PmBoard = {
   /** رقم المشهد في الستوري بورد (١…٦) والحلقة ومعرّف المشهد في خطتها */

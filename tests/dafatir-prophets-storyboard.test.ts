@@ -9,7 +9,7 @@ import { describe, expect, it } from "vitest";
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import {
-  FORBIDDEN_ELEMENTS, NISA_1, NISA_1_KEY, PM_BOARDS, PM_DIRECTION_VARIANTS, PM_ELEMENTS, PM_FOLDER, pmVariantName,
+  FORBIDDEN_ELEMENTS, NISA_1, routeDrawing, NISA_1_KEY, PM_BOARDS, PM_DIRECTION_VARIANTS, PM_ELEMENTS, PM_FOLDER, pmVariantName,
 } from "../src/remotion/dafatir/prophets/boards";
 import { assertTemplatesApproved, loadApprovals, PROPOSED } from "../src/plan/templateApproval";
 import { registryTemplateKeys } from "../src/plan/templateRegistryKeys";
@@ -67,6 +67,24 @@ describe("D251: لوحات «الخريطة الحيّة» و«المكان وا
     }
     // نص اللوحات للمالك: لا عنصر يُقرأ شخصًا أو قافلة (إلا نفيًا صريحًا «بلا/لا»)
     for (const b of PM_BOARDS) expect(`${b.title} ${b.motion}`).not.toMatch(/(?<![\u0600-\u06FF])(?<!(?:بلا|لا|ولا) )(شخص|شخصية|رجل|امرأة|قافلة|راكب|جمل|إنسان|يمشي)(?![\u0600-\u06FF])/);
+  });
+
+  it("D253: لا آثار أقدام ولا هالة ولا يد منسوبة ولا صوت ينوب عن أحد في القالبين", () => {
+    for (const f of ["footprints", "halo", "glow-figure", "attributed-hand", "voice-figure"]) {
+      expect(FORBIDDEN_ELEMENTS as readonly string[]).toContain(f);
+      expect(PM_ELEMENTS as readonly string[]).not.toContain(f);
+    }
+    expect(code("src/remotion/dafatir/prophets/PlaceMapBoard.tsx")).not.toMatch(/\b(footprint|footstep|halo|nimbus|Hand|hand)\b|<Audio/);
+    for (const b of PM_BOARDS) expect(`${b.title} ${b.motion}`).not.toMatch(/آثار (الأقدام|أقدام)|خطوات|هالة|يد /);
+  });
+
+  it("D253: المسار لا يُرسم إلا موثَّقًا، وبلا توثيق النقطتان وحدهما، وطلب خط بلا توثيق مرفوض", () => {
+    const from = { name: "أ", at: [39.8, 21.4] as [number, number] }, to = { name: "ب", at: [39.6, 24.5] as [number, number] };
+    expect(routeDrawing({ from, to })).toEqual({ pins: [from, to], path: false, label: null });
+    expect(() => routeDrawing({ from, to, drawPath: true })).toThrow(/D253/);
+    expect(() => routeDrawing({ from, to, drawPath: true, documented: { source: " " } })).toThrow(/D253/);
+    expect(routeDrawing({ from, to, drawPath: true, documented: { source: "مصدر" } }).path).toBe(true);
+    expect(routeDrawing({ from, to, drawPath: true, documented: { source: "مصدر" } }).label).toBe("مسار تقريبي"); // owner-pin-ok: نص الوسم من الكود
   });
 
   it("مسجَّلة «مقترح» في approvals.json بالنماذج نفسها، ولا اعتماد قبل اختيار المالك", () => {
