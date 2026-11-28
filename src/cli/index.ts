@@ -233,19 +233,22 @@ program
 
 program
   .command("inline-quotes")
-  .description("دفاتر الزمن (D242): كل بطاقة آية/حديث صامتة في plan.json تُلحق بلقطة «خط الأفق» المجاورة كما في 001 (النص على الصفحة والراوي مستمر)، بلا تغيير كلمة ولا حقل للمالك. عرض فقط إلا بـ --write")
+  .description("دفاتر الزمن (D242، D246 «أ»): كل بطاقة آية/حديث تُلحق بلقطة «خط الأفق» المجاورة كما في 001، وتنزل بعد أول فكرة مرسومة على الصفحة المقابلة، ولا تستمر إلا في الموضوع نفسه (carryAllowed)، والجزء (D222) لما لا يتسع؛ بلا تغيير كلمة ولا حقل للمالك. يُعاد تطبيقه على خطة قائمة. عرض فقط إلا بـ --write")
   .argument("<episode>", "رقم الحلقة")
   .option("--write", "اكتب plan.json (نسخة احتياطية أولًا)")
   .action(async (episode: string, opts: { write?: boolean }) => {
     const { inlineQuotesFile } = await import("../plan/fromScenesFile");
     try {
       const r = await inlineQuotesFile(episode, { write: opts.write === true });
-      if (!r.attached.length && !r.unattached.length && !r.carries.length) { console.log("لا بطاقة آية أو حديث صامتة ولا بطاقة تحتاج استمرارًا؛ لا شيء يتغير."); return; }
+      if (!r.attached.length && !r.unattached.length && !r.placements.length) { console.log("لا بطاقة آية أو حديث في الخطة؛ لا شيء يتغير."); return; }
       for (const a of r.attached) console.log(`${a.card} (${a.kind === "verse" ? "آية" : "حديث"} ${a.ref}) ← ${a.to} (${a.side === "prev" ? "السابقة" : "التالية"}، ${a.words} كلمة)`);
       for (const u of r.unattached) console.log(`لم تُلحق: ${u.card} — ${u.reason}`);
       // D246: البطاقة تبقى زمن قراءتها وتستمر إلى ما بعد مشهدها
       console.log(`توقيت الاستمرار: ${r.voiced ? `صوت حقيقي لـ${r.voiced} مشهدًا (وتقدير لغيره)` : "تقديري (لا صوت على هذا الجهاز)"}`);
-      for (const c of r.carries) console.log(`استمرار ${c.host} (${c.kind === "verse" ? "آية" : "حديث"} ${c.ref}، قراءة ${c.read} ث): في مشهدها ${c.inHost} ث${c.carried.map((x) => ` ← ${x.id} ${x.seconds} ث`).join("")}${c.shortfall ? ` — نقص ${c.shortfall} ث (${c.stop}؛ D222: جزء معلَّم بقرار المتخصص)` : ""}`);
+      // D246 «أ»: كلمة كل بطاقة (بعد أول فكرة مرسومة) وصفحتها (المقابلة للرسم) وزمنها، وقرارات الاستمرار في الموضوع نفسه
+      for (const p of r.placements) console.log(`${p.host} (${p.kind === "verse" ? "آية" : "حديث"} ${p.ref}${p.partial ? ` (جزء${p.partial === "auto" ? " آلي، يحتاج موافقة المتخصص D222" : ""})` : ""}): ${p.pinned ? "مثبَّت" : `بعد «${p.idea ?? "—"}» من «${p.from}»`}، الصفحة ${p.side === "l" ? "اليسرى" : "اليمنى"} (${p.sideWhy})، تُعرض ${p.shown} من ${p.read} ث${p.carried.map((x) => ` ← ${x.id} ${x.seconds} ث`).join("")}${p.shortfall > 0.05 ? ` — نقص ${p.shortfall} ث (${p.stop ?? ""})` : ""}`);
+      for (const d of r.decisions) console.log(`  استمرار ${d.host} ← ${d.next}: ${d.allow ? "نعم" : "لا"} (${d.why}${d.source === "owner" ? "" : "، آلي"})`);
+      if (r.changedScenes.length) console.log(`مشاهد تغيّرت حقولها (تُعاد رندرتها): ${r.changedScenes.join("، ")}`);
       console.log(`المشاهد المحذوفة: ${r.removed.join("، ") || "—"}؛ نص كل مشهد باقٍ كما كان (لا صوت جديد).`);
       if (r.written) console.log(`كُتبت: ${path.relative(projectRoot, r.file)}${r.backup ? ` (نسخة احتياطية: ${path.basename(r.backup)})` : ""}`);
       else if (!opts.write) console.log("عرض فقط؛ للكتابة: --write");
@@ -1175,6 +1178,36 @@ program
   });
 
 program
+  .command("storyboard-stills")
+  .description("D247: صور ستوري بورد D228 الثابتة على جهاز الرندر (الماك لا يرندر): يرسل مهمة stills لمجموعة مسجَّلة بالـcommit الحالي")
+  .argument("<set>", "مجموعة الستوري بورد، مثل zubdat-desk")
+  .option("--share <path>", "المجلد المشترك على الماك", "/Volumes/bal-share")
+  .action(async (set: string, opts: { share: string }) => {
+    const S = await import("../render/worker/stillsProtocol");
+    const commit = await S.assertStillsCommit(projectRoot);
+    const r = await S.writeStillsJob(path.resolve(opts.share), S.buildStillsJob(set, commit));
+    console.log(`${r.already ? "المهمة مرسلة من قبل" : "أُرسلت المهمة"} ${r.id} (${S.STORYBOARD_SETS[set]!.boards.length} صورة @ ${commit.slice(0, 8)}). بعد انتهائها: bal storyboard-stills-collect ${set} --share ${opts.share}`);
+  });
+
+program
+  .command("storyboard-stills-collect")
+  .description("D247: يستلم صور الستوري بورد من جهاز الرندر بعد التحقق (البصمة وPNG والأبعاد، وحذف النص المضمَّن) إلى ~/Desktop/للمراجعة/ستوري-بورد/<المجلد>/ مع storyboard.json")
+  .argument("<set>", "مجموعة الستوري بورد، مثل zubdat-desk")
+  .option("--share <path>", "المجلد المشترك على الماك", "/Volumes/bal-share")
+  .option("--job <id>", "معرّف المهمة (الافتراضي أحدث نتيجة للمجموعة)")
+  .option("--out <dir>", "مجلد الستوري بورد (الافتراضي مجلد المجموعة في «للمراجعة»)")
+  .action(async (set: string, opts: { share: string; job?: string; out?: string }) => {
+    const S = await import("../render/worker/stillsProtocol");
+    const { storyboardsRoot } = await import("../studio/storyboards");
+    const def = S.STORYBOARD_SETS[set];
+    if (!def) throw new Error(`مجموعة ستوري بورد غير مسجَّلة: ${set}`);
+    const share = path.resolve(opts.share);
+    const id = opts.job ?? (await S.findStillsDone(share, set));
+    if (!id) throw new Error(`لا نتيجة منتهية للمجموعة ${set} بعد في done/ (bal worker-status --share ${opts.share}).`);
+    await S.collectStills(share, id, path.resolve(opts.out ?? path.join(storyboardsRoot(), def.folder)), { log: (m) => console.log(m) });
+  });
+
+program
   .command("place-master")
   .description("D240: ينسخ Master المعتمد إلى مكانه الدائم masters/<القناة>/<الحلقة>/<NNN>-episode.mp4 في المجلد المشترك ويتحقق من بصمته بالسجل الموقَّع")
   .argument("<episode>", "رقم الحلقة")
@@ -1197,21 +1230,74 @@ program
     const m = await import("../render/postPublishCleanup");
     const share = path.resolve(opts.share);
     const plan = await m.planCleanup(await m.macCleanupContext(episode, share), await m.macCleanupDeps(episode));
+    // D244 البند ٦: الحالة التي سيعرضها الاستوديو بعد الحذف؛ إن تغيّرت لا حذف
+    const { predictCleanup, archiveBeforeCleanup } = await import("../studio/ledgerArchiveOps");
+    const deleted = new Set(plan.delete.map((f) => path.resolve(f.path)));
+    const pred = await predictCleanup(episode, deleted, plan.approvedSha256).catch((e: Error) => ({ error: e.message }));
+    const predLine = "error" in pred ? `حالة الاستوديو بعد الحذف: تعذّر حسابها (${pred.error}) — لا حذف.`
+      : pred.same ? `حالة الاستوديو بعد الحذف: كما هي (${pred.after.approvedScenes}/${pred.after.scenes} مشهد معتمد، التجميع ${pred.after.assemblyApproved ? "معتمد" : "غير معتمد"}، Master ${pred.after.master ? "معتمد" : "—"}، ${pred.after.published ? "منشورة" : "غير منشورة"})؛ يُؤرشف ${pred.archived.length} مشهد قبل الحذف.`
+      : `حالة الاستوديو بعد الحذف ستتغيّر: من ${JSON.stringify(pred.before)} إلى ${JSON.stringify(pred.after)} — لا حذف.`;
+    const predOk = !("error" in pred) && pred.same;
     if (!opts.delete || opts.dryRun) {
       console.log(m.formatPlan(plan));
-      if (!plan.ok) process.exitCode = 1;
+      console.log(predLine);
+      if (!plan.ok || !predOk) process.exitCode = 1;
       return;
     }
-    if (!plan.ok) {
+    if (!plan.ok || !predOk) {
       console.error(m.formatPlan(plan));
+      console.error(predLine);
       console.error("توقف التنظيف: لم يُحذف شيء.");
       process.exitCode = 1;
       return;
     }
+    // D244 البند ٥: نسخة احتياطية للسجلات كلها على المجلد المشترك قبل أي حذف (بلا نسخة لا حذف)
+    const { backupLedgers } = await import("../studio/ledgerBackup");
+    const b = await backupLedgers(projectRoot, share, "cleanup");
+    console.log(`نسخة احتياطية للسجل: ${b.dir} (${b.count} سجل).`);
+    await archiveBeforeCleanup(episode, deleted, plan.approvedSha256!);
     const r = await m.executeCleanup(plan);
     const { queueWindowsCleanup } = await import("../render/worker/cleanupQueue");
     const queued = await queueWindowsCleanup(share, plan).then(() => true, () => false);
+    const after = await predictCleanup(episode, new Set(), plan.approvedSha256);
+    if (!after.same || JSON.stringify(after.after) !== JSON.stringify((pred as { before: unknown }).before)) {
+      console.error(`تحذير: تغيّرت حالة الاستوديو بعد الحذف (${JSON.stringify(after.after)}). النسخة الاحتياطية في ${b.dir}.`);
+      process.exitCode = 1;
+    }
     console.log(m.summaryLine(plan, r.freed, queued, r.skipped.length));
+  });
+
+program
+  .command("ledger-backup")
+  .description("D244: نسخة احتياطية للسجل الموقّع لكل الحلقات على المجلد المشترك (backups/ledger/)، وتبقى آخر ٣٠")
+  .option("--share <path>", "المجلد المشترك على الماك", "/Volumes/bal-share")
+  .action(async (opts: { share: string }) => {
+    const { backupLedgers } = await import("../studio/ledgerBackup");
+    const b = await backupLedgers(projectRoot, path.resolve(opts.share), "manual");
+    console.log(`نُسخ ${b.count} سجل إلى ${b.dir}${b.pruned.length ? `، وحُذفت ${b.pruned.length} نسخة أقدم من آخر ٣٠` : ""}.`);
+  });
+
+program
+  .command("ledger-restore")
+  .description("D244: يعيد حالة حلقة منشورة من أحداث سجلها الموقّعة نفسها (بعد تنظيف أسقطها)؛ عرض فقط بلا --write")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--share <path>", "المجلد المشترك على الماك", "/Volumes/bal-share")
+  .option("--write", "اكتب الحالة المسترجعة (بعد نسخة احتياطية)")
+  .action(async (episode: string, opts: { share: string; write?: boolean }) => {
+    const m = await import("../render/postPublishCleanup");
+    const share = path.resolve(opts.share);
+    const ctx = await m.macCleanupContext(episode, share);
+    const perm = m.permanentMasterPath(share, ctx.channel, ctx.episodeFolder);
+    const { byteSha256 } = await import("../studio/sceneLedgerStore");
+    const permSha = await byteSha256(perm);
+    if (opts.write) {
+      const { backupLedgers } = await import("../studio/ledgerBackup");
+      const b = await backupLedgers(projectRoot, share, "manual");
+      console.log(`نسخة احتياطية للسجل: ${b.dir}`);
+    }
+    const { restoreFromHistory } = await import("../studio/ledgerArchiveOps");
+    const r = await restoreFromHistory(episode, permSha, Boolean(opts.write));
+    console.log(`قبل: ${JSON.stringify(r.before)}\nبعد: ${JSON.stringify(r.after)}\n${r.written ? "كُتبت الحالة المسترجعة." : "عرض فقط (أضف --write للكتابة)."}`);
   });
 
 program

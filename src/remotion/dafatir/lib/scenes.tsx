@@ -5,6 +5,7 @@
  */
 import React from "react";
 import { at as atStrict, end as endStrict, type Timeline } from "../horizon/timeline";
+import { recordCue } from "../horizon/cueTrace";
 import { C, Ink, easeOut, mix, prog } from "../horizon/kit";
 import { Book, ChapterHead, NEUTRAL, SText, TafsirTab, WriteIn, camPath, fonts, type Cam, type CamKey, type Exit } from "../horizon/book";
 import { VerseRefPanel } from "../horizon/verseRef";
@@ -62,7 +63,9 @@ export const cues = (tl: Timeline, opts: { keepTop?: boolean } = {}) => {
     if (!anchor) return fallback;
     const { w, n } = parse(anchor);
     try {
-      return atStrict(tl, w, n);
+      const a = atStrict(tl, w, n);
+      recordCue(tl.words.findIndex((x) => x.s === a), 0.9);
+      return a;
     } catch {
       missing.push(anchor);
       return fallback;

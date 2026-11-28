@@ -72,7 +72,8 @@ describe("دفاتر الزمن 002: الخطة المتتبَّعة بلا مش
   const parsed = parseScript(readFileSync(path.join(dir, "script.md"), "utf8"));
   const quran = quranFromScript(parsed).texts;
   const HOSTS: Record<string, string> = {
-    "c1-s8": "5:27", "c1-s21": "5:28", "c1-s23": "5:29", "c1-s28": "5:30", "c1-s31": "صحيح مسلم ١٦٧٧", "c1-s40": "5:31", "c1-s51": "5:32",
+    // D246 «أ»: «المائدة ٣١» على c1-s38 (تستمر إلى c1-s40 في الموضوع نفسه، ولا إلى c1-s44)
+    "c1-s8": "5:27", "c1-s21": "5:28", "c1-s23": "5:29", "c1-s28": "5:30", "c1-s31": "صحيح مسلم ١٦٧٧", "c1-s38": "5:31", "c1-s51": "5:32",
     "c2-s10": "4:1", "c2-s14": "2:213", "c2-s27": "19:56-57", "c2-s31": "21:85", "c2-s36": "صحيح مسلم ١٦٢",
   };
 
@@ -80,7 +81,12 @@ describe("دفاتر الزمن 002: الخطة المتتبَّعة بلا مش
     expect(scenes.filter((s) => s.template === "verse-card" || s.template === "hadith-card")).toEqual([]);
     const hosts = Object.fromEntries(scenes.filter((s) => s.props.verseKey || s.props.hadithRef).map((s) => [s.id, s.props.verseKey ?? s.props.hadithRef]));
     expect(hosts).toEqual(HOSTS);
-    for (const s of scenes) if (s.props.verseKey) expect(s.props.verseText, s.id).toBe(quran[s.props.verseKey]);
+    // نص الآية من السكريبت كما هو، إلا الجزء الآلي (D246 «أ» + D222): مقطع من أولها حتى علامة وقف من نص السكريبت نفسه
+    for (const s of scenes) if (s.props.verseKey) {
+      const full = quran[s.props.verseKey]!;
+      if (s.props.versePartialAuto === "1") expect(full.startsWith(s.props.verseText!.replace(/ …$/, "")), s.id).toBe(true);
+      else expect(s.props.verseText, s.id).toBe(full);
+    }
     expect(scenes.find((s) => s.id === "c2-s14")!.props.versePartial).toBe("1");
     expect(silentQuoteScenes(plan)).toEqual([]);
   });
@@ -90,7 +96,7 @@ describe("دفاتر الزمن 002: الخطة المتتبَّعة بلا مش
     expect(again.attached).toEqual([]);
     // قيم الاستمرار (D246) قد تكون محسوبة بالصوت الحقيقي على جهاز الاستوديو، وهنا بالتقدير: تُقارن الخطة بدونها
     const { CARRY_KEYS } = await import("../src/plan/quoteCarry");
-    const strip = (p: typeof plan) => ({ ...p, chapters: p.chapters.map((c) => ({ ...c, scenes: c.scenes.map((x) => ({ ...x, props: Object.fromEntries(Object.entries(x.props).filter(([k]) => !(CARRY_KEYS as readonly string[]).includes(k))) })) })) });
+    const strip = (p: typeof plan) => ({ ...p, chapters: p.chapters.map((c) => ({ ...c, scenes: c.scenes.map((x) => ({ ...x, props: Object.fromEntries(Object.entries(x.props).filter(([k]) => !(CARRY_KEYS as readonly string[]).includes(k) && !["verseFrom", "hadithFrom", "carryAllowed", "carryAuto"].includes(k))) })) })) });
     expect(strip(again.plan)).toEqual(strip(plan));
     expect(scenes.filter((s) => s.tone === "calm").map((s) => s.id)).toEqual(["c1-s35", "c1-s37", "c1-s38", "c1-s40"]);
   });

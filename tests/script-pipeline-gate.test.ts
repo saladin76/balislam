@@ -90,7 +90,7 @@ describe("D234: حالة السكريبت بالترتيب الثابت", () => 
   });
 });
 
-describe("D234: الاستثناءات الصريحة (آلية بلا استثناء اليوم؛ D229 أُلغي بـ D235)", () => {
+describe("D234: الاستثناءات الصريحة (آلية بلا استثناء اليوم؛ D229 أُلغي بـ D235، وD235 رُفع بـ D252)", () => {
   const voiceOnly = [{ episode: "001", scenes: ["c1-s1", "c1-s2"], decision: "D229" }];
   const one = [{ channel: "balislam", episode: "001", decision: "D229" }];
   it("لا استثناء مسجّل: صوت أي مشهد يمر بالمحرر", () => {
@@ -105,11 +105,12 @@ describe("D234: الاستثناءات الصريحة (آلية بلا استث�
     expect(editorGateException({ channel: "zubdat-alkutub", episode: "001", voiceScenes: ["c1-s1"], voiceOnly }, one)).toBeNull();
     expect(editorGateException({ channel: "balislam", episode: "001", voiceScenes: ["c1-s1"], voiceOnly: [{ ...voiceOnly[0]!, decision: "D999" }] }, one)).toBeNull();
   });
-  it("في المستودع: «بالإسلام» مجمّدة كاملًا (D235) بلا استثناء صوت", () => {
+  it("في المستودع: «بالإسلام» رُفع تجميدها ببنيتها الجديدة (D252)، فلا استثناء صوت ولا إيقاف تحريري", () => {
     const stock = JSON.parse(read("channels/balislam/stock.json"));
-    expect(stock.frozen).toBeTruthy();
-    expect(stock.frozen.voiceOnly ?? []).toEqual([]);
-    expect(stock.frozen.editorialPause).toBe(true); // D235: إعادة الهيكلة توقف التحرير أيضًا، فلا تُرسل للمحرر
+    // D252: انتهى تجميد D235 (وD211 عنها)؛ تدخل دفعات المحرر، والصوت والرندر خلف بوابة المحرر (D234) كغيرها
+    expect(stock.frozen).toBeUndefined();
+    expect(stock.frozen?.voiceOnly ?? []).toEqual([]);
+    expect(stock.frozen?.editorialPause).toBeFalsy();
     // «زبدة الكتب» مجمّدة إنتاجًا وحده (D211): الكتابة والتحرير مستمران، فتبقى في دفعات المحرر (D234)
     expect(JSON.parse(read("channels/zubdat-alkutub/stock.json")).frozen?.editorialPause).toBeFalsy();
   });
