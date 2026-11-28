@@ -189,9 +189,10 @@ export const buildVerticalJob = async (ep: string, inputs: Awaited<ReturnType<ty
 };
 
 /** D243: شورت مقصوص من النسخة العمودية: مدخلاتها نفسها، وبصمة ملفها، ومقاطعه بالإطارات (verticalShorts.ts). */
-export const buildCutJob = (vertical: WorkerJobV2, verticalSha256: string, n: number, sceneIds: string[], ranges: CutSpec["ranges"], b: Base): WorkerJobV2 => {
+export const buildCutJob = (vertical: WorkerJobV2, verticalSha256: string, n: number, sceneIds: string[], ranges: CutSpec["ranges"], b: Base,
+  title?: CutSpec["title"]): WorkerJobV2 => {
   if (vertical.kind !== "vertical") throw new Error("القص من النسخة العمودية وحدها.");
-  const cut: CutSpec = { source: { job: vertical.id, sha256: verticalSha256 }, sceneIds: [...sceneIds], ranges, fps };
+  const cut: CutSpec = { source: { job: vertical.id, sha256: verticalSha256 }, sceneIds: [...sceneIds], ranges, fps, ...(title ? { title } : {}) };
   return validateJobV2({
     ...baseFields(b), id: idFor(b, "cut", String(n), { c: b.commit, cut }), kind: "cut", n, media: vertical.media, cut,
     expected: { durationSec: cutSeconds(ranges, fps), ...sizeFor("vertical", "portrait") },

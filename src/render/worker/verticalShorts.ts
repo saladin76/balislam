@@ -87,3 +87,14 @@ export const sceneStartsInCut = (spans: SceneSpan[], seg: Pick<ShortSegment, "sc
   });
   return out;
 };
+
+/**
+ * D243 (قرار المالك): مدة عنوان الشورت: ثلاث ثوانٍ، أو حتى أول نافذة سكون مقصود (آية، ذكر الله، دعاء) قبلها، مطروحًا منها
+ * تلاشي الغياب فلا يُرى منه شيء داخلها (كـ ShortTitle). أقل من ثانية = لا عنوان (السكون في أول الشورت).
+ */
+export const shortTitleSeconds = (quiet: { from: number; to: number }[], max = 3, fade = 0.3): number | null => {
+  const first = quiet.filter((q) => q.to > 0).map((q) => q.from).sort((a, b) => a - b)[0];
+  const until = first === undefined ? max : Math.min(max, first - fade);
+  return until >= 1 ? Math.round(until * 1000) / 1000 : null;
+};
+
