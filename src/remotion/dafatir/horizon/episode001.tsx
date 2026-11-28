@@ -5,8 +5,8 @@
  */
 import React from "react";
 import { at, end, type Timeline } from "./timeline";
-import { C, CoverLeaf, Dusk, FlipLeaf, Ink, W, Words, easeOut, mix, prog, rng } from "./kit";
-import { BlankBookOver, Book, ChapterHead, DateRibbon, EXIT_BEAT, NEUTRAL, SceneCloseContext, Pin, QuranSeal, SText, WriteIn, camPath, fonts, type Cam, type Exit } from "./book";
+import { C, CoverLeaf, Dusk, FlipLeaf, Ink, W, Words, VerseWindowContext, easeOut, mix, prog, rng } from "./kit";
+import { BlankBookOver, Book, ChapterHead, DateRibbon, NEUTRAL, exitSpan, SceneCloseContext, Pin, QuranSeal, SText, WriteIn, camPath, fonts, type Cam, type Exit } from "./book";
 import { SHOT4_KEEP, Shot2, Shot4, Shot5, Shot6 } from "./shots";
 import { GATE, GLYPHS, Hatch, RUINS, Sunset } from "../lib/drawings";
 import { HZ_META } from "./meta";
@@ -602,12 +602,14 @@ const legacy = (Comp: React.FC<{ t: number; tl: Timeline; refText?: string }>, e
   Object.assign(function Legacy({ t, tl, dur, exit, p }: HzProps) {
     // الخفوت يبدأ حين يُغلق الراوي الفكرة (كالدفتر)، لا بعد ذيل ساكن
     const close = React.useContext(SceneCloseContext);
-    const f0 = close !== undefined ? Math.min(dur - 0.75, close + EXIT_BEAT) : dur - 0.75;
+    // تصحيح D246 «أ»: لا خفوت قبل نهاية نافذة البطاقة (exitSpan)
+    const fs = exitSpan("fade", dur, close, React.useContext(VerseWindowContext));
+    const fading = exit === "fade" && fs;
     return (
       // خفوت الحبر: الدفتر الفارغ بالكادر نفسه تحت اللقطة، واللقطة تخفت فوقه
       <>
-        {exit === "fade" && t > f0 - 0.05 ? <BlankBookOver id="lg" cam={endCam} o={1} keep={keep} /> : null}
-        <div style={{ position: "absolute", inset: 0, opacity: exit === "fade" ? 1 - prog(t, f0, dur - 0.15) : 1 }}>
+        {fading && t > fs[0] - 0.05 ? <BlankBookOver id="lg" cam={endCam} o={1} keep={keep} /> : null}
+        <div style={{ position: "absolute", inset: 0, opacity: fading ? 1 - prog(t, fs[0], fs[1]) : 1 }}>
           <Comp t={t} tl={tl} refText={p.ref} />
         </div>
       </>
