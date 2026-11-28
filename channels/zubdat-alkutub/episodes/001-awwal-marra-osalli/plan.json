@@ -7,6 +7,29 @@
   "channel": "zubdat-alkutub",
   "lang": "ar",
   "updatedAt": "2026-11-15T09:45:28.845Z",
+  "shorts": [
+    {
+      "from": "c1-s1",
+      "to": "c1-s2",
+      "title": "ماذا بقي في قلبك من صلاتك؟",
+      "hook": "line",
+      "hookKind": "striking"
+    },
+    {
+      "from": "c1-s5",
+      "to": "c1-s6",
+      "title": "هل تدخل صلاتك وكأنك تسابق الوقت؟",
+      "hook": "line",
+      "hookKind": "fact"
+    },
+    {
+      "from": "c1-s20",
+      "to": "c1-s21",
+      "title": "حركتان تجتمعان عند استقبال القبلة",
+      "hook": "line",
+      "hookKind": "number"
+    }
+  ],
   "chapters": [
     {
       "number": 1,
