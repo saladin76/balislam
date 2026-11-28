@@ -10,6 +10,7 @@ import { buildTimeline, timelineFromWords, type Timeline } from "../dafatir/hori
 import { VERSE_PLACEHOLDER } from "../../plan/quranText";
 import { pageLetterBudget, pageOpacity, pageWindows, versePages } from "../../quran/versePages";
 import { horizonShotWordIssue } from "../../plan/shotWords";
+import { firstIdeaOf, traceableShot } from "../dafatir/horizon/firstIdea";
 import { verseRef } from "../dafatir/horizon/kit";
 import { PortraitQuoteCard } from "../dafatir/horizon/portraitQuote";
 import type { SceneBase, StringFields } from "./types";
@@ -74,13 +75,35 @@ export const settlePose = <P extends { s: number; x: number; y: number; bg: numb
   return { ...pose, s: pose.s + (1 - pose.s) * k, x: pose.x * (1 - k), y: pose.y * (1 - k), bg: pose.bg * (1 - k) };
 };
 
-export const visualClock = (tl: Timeline, dur: number, close: number | undefined, wins: [number, number][]) => {
+/**
+ * تصحيح D246 «أ»: hold = نافذة البطاقة التي يقف فيها الرسم (بزمن المشهد). الكلمة التي يبدأ نطقها داخلها كانت تنطبق على لحظة
+ * الوقوف نفسها، فيبدأ عنصرها (الذي يسبق كلمته بـ٠٫٠٥ ث) ويقف نصف ظاهر طوال البطاقة (002 c1-s40: «الندم» نصف مكتوب، والختم
+ * ٨٦٪). الآن تُنقل بداية كل كلمة كهذه بعد لحظة الوقوف بـ HOLD_GAP، فلا يبدأ عنصرها إلا بعد اختفاء البطاقة (كأحداث نوافذ الذكر، safe).
+ */
+export const HOLD_GAP = 0.06;
+export const visualClock = (tl: Timeline, dur: number, close: number | undefined, wins: [number, number][], hold?: readonly [number, number] | null) => {
   const v = (x: number) => activeTime(x, wins);
+  const held = (x: number) => Boolean(hold && x >= hold[0] && x < hold[1]);
+  const vs = (x: number) => v(x) + (held(x) ? HOLD_GAP : 0);
   return {
-    tl: { words: tl.words.map((w) => ({ ...w, s: v(w.s), e: v(w.e) })), sentences: tl.sentences.map((x) => ({ ...x, s: v(x.s), e: v(x.e) })), end: v(tl.end) } as Timeline,
+    tl: { words: tl.words.map((w) => ({ ...w, s: vs(w.s), e: Math.max(v(w.e), vs(w.s)) })), sentences: tl.sentences.map((x) => ({ ...x, s: vs(x.s), e: Math.max(v(x.e), vs(x.s)) })), end: v(tl.end) } as Timeline,
     dur: v(dur),
     close: close === undefined ? undefined : v(close),
   };
+};
+
+/**
+ * تصحيح D246 «أ»: زمن «حال الراحة» في مشهد تستمر إليه بطاقة من مشهد قبله وهي على الشاشة من أول إطار (نافذتها [0، …]):
+ * نهاية أول فكرة مرسومة في المشهد نفسه (firstIdeaOf، من مراسي لقطته)، لا تتجاوز نهاية البطاقة. فيُرسم المشهد ساكنًا على
+ * هذه الحال طوال البطاقة بدل حال أول إطار (الدفتر الفارغ، أو الحبر قبل أول كلمة)، والصفحة المقابلة للبطاقة ليست فارغة.
+ * null: ليس مشهدًا مستمرًا إليه، أو لا فكرة مرسومة معروفة (تمهيد ساكن، لقطة 001 لا تُتتبع)، فيبقى السكون من أول إطار كما كان.
+ */
+export const carriedRest = (shot: string, Comp: unknown, tl: Timeline, props: Record<string, string | undefined>, still: boolean, vw: [number, number] | null): number | null => {
+  if (!vw || vw[0] > 1e-6 || !hzQuote(props)?.carried || !traceableShot(shot)) return null;
+  const idea = firstIdeaOf(Comp as Parameters<typeof firstIdeaOf>[0], tl, props, still);
+  if (!idea) return null;
+  const rest = Math.min(idea.done, vw[1]);
+  return rest > 1e-6 ? rest : null;
 };
 
 export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
@@ -134,7 +157,18 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const liveFrame = props.orientation === "portrait" ? null : { s: cam.s, y: cam.y - lift };
   // D214: رسم المشهد نفسه (الحبر والخيط والعناصر) يسكن أيضًا في نوافذ الذكر: يأخذ «الزمن المرئي» (activeTime) بدل الزمن،
   // وتُنقل أزمنة الكلمات والخروج إليه، فيبقى كل حدث عند كلمته خارج السكون، ولا يتقدم شيء داخله، ولا قفزة بعده.
-  const vis = React.useMemo(() => visualClock(tl, dur, close, breath.wins), [tl, dur, close, breath.wins]);
+  // تصحيح D246 «أ» (D218: لا صفحة فارغة والراوي يتكلم): في المشهد الذي تستمر إليه بطاقة من أوله لا يقف الرسم على أول إطار
+  // (دفتر فارغ خلف البطاقة) بل على حال اكتمال فكرته الأولى (carriedRest)، ساكنًا طوال البطاقة، ثم يكمل بعدها من حيث وقف
+  const draw = React.useMemo(() => {
+    const rest = carriedRest(shot, Comp, tl, pr, Boolean(meta.still), vw);
+    if (rest === null) return { wins: breath.wins, floor: 0, hold: vw };
+    const wins = breath.wins.map(([a, b]) => (a <= 1e-6 && Math.abs(b - vw![1]) < 1e-6 ? [rest, b] as [number, number] : [a, b] as [number, number])).filter(([a, b]) => b > a);
+    return { wins, floor: activeTime(rest, wins), hold: [rest, vw![1]] as [number, number] };
+  },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [shot, props.narration, props.narrationTimings, breath.wins, vw?.[0], vw?.[1], meta.still]);
+  const vt = Math.max(activeTime(t, draw.wins), draw.floor);
+  const vis = React.useMemo(() => visualClock(tl, dur, close, draw.wins, draw.hold), [tl, dur, close, draw.wins, draw.hold]);
   // البطاقة: الآية أو الحديث من حقول المشهد، أو المستمرة من المشهد السابق (carry*) بالمرجع والموضع نفسيهما
   const c = quote?.carried;
   const side = (c ? pr.carrySide : quote?.kind === "hadith" ? (pr.hadithSide ?? pr.verseSide) : pr.verseSide) === "l" ? "l" as const : "r" as const;
@@ -153,16 +187,16 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
       <AbsoluteFill style={{ overflow: "hidden" }}>
         <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
         <SceneCloseContext.Provider value={vis.close}>
-          <VerseWindowContext.Provider value={vw ? [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)] : null}>
+          <VerseWindowContext.Provider value={vw ? [Math.max(activeTime(vw[0], draw.wins), draw.floor), Math.max(activeTime(vw[1], draw.wins), draw.floor)] : null}>
           {/* D243: في العمودي البطاقة في الشاشة داخل المنطقة الآمنة (PortraitQuoteCard أدناه)، لا على صفحة الدفتر التي يقع نصفها خارج الإطار */}
           {/* D246: والبطاقة المستمرة بين مشهدين في مساحة الشاشة أيضًا (أدناه) */}
           <VersePageContext.Provider value={vw && verseShow > 0 && !screenCard && !portrait ? card : null}>
             <LiveFrameContext.Provider value={liveFrame}>
             <PageHeadContext.Provider value={pageHead}>
             <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y - lift}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>
-            {stale ? <HorizonWordsOnly t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} /> : (
-              <ShotGuard resetKey={`${shot}|${props.narration ?? ""}`} fallback={<HorizonWordsOnly t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} />}>
-                <Comp t={activeTime(t, breath.wins)} tl={vis.tl} dur={vis.dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
+            {stale ? <HorizonWordsOnly t={vt} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} /> : (
+              <ShotGuard resetKey={`${shot}|${props.narration ?? ""}`} fallback={<HorizonWordsOnly t={vt} tl={vis.tl} dur={vis.dur} exit={exit} head={props.head} />}>
+                <Comp t={vt} tl={vis.tl} dur={vis.dur} exit={exit} from={parseCam(props.from)} p={props as unknown as Record<string, string | undefined>} />
               </ShotGuard>
             )}
             </AbsoluteFill>

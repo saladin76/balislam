@@ -82,6 +82,32 @@ export const SceneCloseContext = React.createContext<number | undefined>(undefin
 export const EXIT_BEAT = 0.3;
 /** ثوانٍ يعود فيها الكادر إلى الدفتر كله قبل ظهور بطاقة آية */
 export const VERSE_SETTLE = 0.9;
+/** أقصر خروج يُقبل بعد نافذة البطاقة (ث): قلب الصفحة، وخفوت الحبر؛ وما لا يتسع له الباقي من المشهد قطعٌ بلا خروج */
+export const EXIT_AFTER_CARD = { turn: 0.5, fade: 0.3 } as const;
+
+/**
+ * نافذة الخروج [بداية، نهاية] بزمن المشهد المرئي، أو null (لا خروج: قطع على الحال كما هي).
+ * - بلا بطاقة كما كانت: القلب من min(dur − 0.95، close + EXIT_BEAT) بطول ٠٫٨ على الأقل، والخفوت من min(dur − 0.75، close + EXIT_BEAT) إلى dur − 0.15.
+ * - تصحيح D246 «أ» (٢٨ نوفمبر، رندر 002 على الويندوز): نافذة البطاقة ساكنة (breathStill) فتنطبق في الزمن المرئي إلى نقطة،
+ *   فإن امتدت إلى آخر المشهد (البطاقة المستمرة quoteCarried، أو quoteHold إلى نهايته) صار dur المرئي عند ظهورها، فكان
+ *   dur − 0.75 قبلها: يخفت الحبر (أو تُقلب الصفحة) لحظة نزول البطاقة ويقف كذلك طوال ظهورها، فتبقى البطاقة على دفتر فارغ
+ *   (c1-s38 وc1-s8 وc1-s51 وc2-s36). الآن لا يبدأ الخروج قبل نهاية نافذة البطاقة vwin[1] أبدًا: يُضغط في الباقي بعدها،
+ *   وإن قصر الباقي عن EXIT_AFTER_CARD فلا خروج، والرسم باقٍ كاملًا إلى القطع (والبطاقة المستمرة تكمل في المشهد التالي).
+ */
+export const exitSpan = (kind: "turn" | "fade", dur: number, close: number | undefined, vwin: readonly [number, number] | null | undefined, turnAt?: number): [number, number] | null => {
+  let a: number, b: number;
+  if (kind === "turn") {
+    a = turnAt ?? (close !== undefined ? Math.min(dur - 0.95, close + EXIT_BEAT) : dur - 0.95);
+    b = a + (turnAt === undefined && close !== undefined ? Math.max(0.8, dur - 0.15 - a) : 0.8);
+  } else {
+    a = close !== undefined ? Math.min(dur - 0.75, close + EXIT_BEAT) : dur - 0.75;
+    b = dur - 0.15;
+  }
+  if (!vwin || a >= vwin[1]) return [a, b];
+  a = vwin[1];
+  b = dur - 0.15;
+  return b - a >= EXIT_AFTER_CARD[kind] - 1e-9 ? [a, b] : null;
+};
 
 /**
  * الدفتر: from = كاميرا المشهد السابق (يبدأ منها ثم ينتقل في أول ثانية)، exit = خروج المشهد.
@@ -119,18 +145,20 @@ export const Book: React.FC<Leaf & { id: string; t: number; dur: number; exit?: 
   const live = React.useContext(LiveFrameContext);
   const head = React.useContext(PageHeadContext);
   // الخروج يبدأ حين يُغلق الراوي الفكرة (بعد آخر كلمة بنَفَس قصير) لا بعد ذيل ساكن، ولا يقصر عن مدته الأصلية
-  const turnStart = turnAt ?? (close !== undefined ? Math.min(dur - 0.95, close + EXIT_BEAT) : dur - 0.95);
-  const turnLen = turnAt === undefined && close !== undefined ? Math.max(0.8, dur - 0.15 - turnStart) : 0.8;
-  const p = exit === "turn" ? prog(t, turnStart, turnStart + turnLen, easeIO) : 0;
-  const fadeStart = close !== undefined ? Math.min(dur - 0.75, close + EXIT_BEAT) : dur - 0.75;
-  const fade = exit === "fade" ? prog(t, fadeStart, dur - 0.15) : 0;
+  // تصحيح D246 «أ»: ولا يبدأ قبل نهاية نافذة البطاقة (exitSpan)، فالرسم باقٍ بجوارها طوال ظهورها
+  const ts = exitSpan("turn", dur, close, vwin, turnAt);
+  const fs = exitSpan("fade", dur, close, vwin);
+  const turnStart = ts ? ts[0] : Infinity;
+  const p = exit === "turn" && ts ? prog(t, ts[0], ts[1], easeIO) : 0;
+  const fadeStart = fs ? fs[0] : Infinity;
+  const fade = exit === "fade" && fs ? prog(t, fs[0], fs[1]) : 0;
   let cam = leaf.cam;
   if (from) cam = blend(from, cam, prog(t, 0, 1.0));
   // رجوع الكادر قبل القلب: لا يبدأ قبل انتهاء آخر كلمة (فلا يتحرك على كلمة الختام، ومنها ذكر الله)
   const backStart = close !== undefined && turnAt === undefined ? Math.max(turnStart - 0.7, Math.min(close + 0.05, turnStart - 0.2)) : turnStart - 0.7;
-  if (exit === "turn") cam = blend(cam, NEUTRAL, prog(t, backStart, turnStart));
+  if (exit === "turn" && ts) cam = blend(cam, NEUTRAL, prog(t, backStart, turnStart));
   // خفوت الحبر بعد إغلاق الفكرة: يتراجع الكادر معه إلى الصفحتين كاملتين، فيبدأ المشهد التالي من الدفتر كله لا من قطع
-  if (exit === "fade" && close !== undefined) cam = blend(cam, NEUTRAL, prog(t, fadeStart, dur - 0.15));
+  if (exit === "fade" && close !== undefined && fs) cam = blend(cam, NEUTRAL, prog(t, fs[0], fs[1]));
   // D217: بطاقة الآية لا تظهر ناقصة أبدًا — الكادر يعود إلى الدفتر كله في الثانية التي قبلها ويثبت عليه طوال ظهورها
   if (vwin) cam = verseSettle(cam, t, vwin);
   // D217: منطقة الترجمة الآمنة — لا ينزل نص الصفحة تحت أعلى الترجمة مهما كان تأطير المشهد أو الكاميرا الحية

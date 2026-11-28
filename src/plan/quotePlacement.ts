@@ -27,7 +27,7 @@ import { emptyMedia } from "./media";
 import { HZ_SCENES } from "../remotion/dafatir/horizon/episode001";
 import { HZ_META, hzQuote, verseReadSeconds } from "../remotion/dafatir/horizon/meta";
 import type { Timeline } from "../remotion/dafatir/horizon/timeline";
-import { traceCues, type CueEvent } from "../remotion/dafatir/horizon/cueTrace";
+import { bareProps, firstIdeaOf, type FirstIdea } from "../remotion/dafatir/horizon/firstIdea";
 import { StillViewContext, rawSacred } from "../remotion/dafatir/bidayat/kit";
 import { Book, NEUTRAL } from "../remotion/dafatir/horizon/book";
 import { LIB_SACRED } from "../remotion/dafatir/lib/meta";
@@ -38,25 +38,11 @@ import { computeQuoteCarries, sceneTimeline, type QuoteCarry } from "./quoteCarr
 
 type Shot = (q: { t: number; tl: Timeline; dur: number; exit: string; p: Record<string, string | undefined> }) => unknown;
 const shotOf = (s: PlanScene) => HZ_SCENES[s.props.shot ?? ""] as unknown as Shot | undefined;
-/** حقول الاقتباس لا تدخل رسم اللقطة عند التتبع */
-const bareProps = (p: Record<string, string>) => Object.fromEntries(Object.entries(p).filter(([k]) => !/^(verse|hadith|carry|quote)/.test(k)));
 
-export type FirstIdea = { idx: number; len: number; word: string; s: number; done: number };
-/** أول عنصر مرسوم على كلمته في المشهد (null: لا حدث على كلمة، كتمهيد الآية الساكن أو مشهد بالكلمات وحدها) */
-export const firstDrawnIdea = (scene: PlanScene, tl: Timeline): FirstIdea | null => {
-  const fn = shotOf(scene);
-  if (!fn || !tl.words.length || HZ_META[scene.props.shot ?? ""]?.still) return null;
-  const dur = tl.end + 1.2;
-  const p = bareProps(scene.props);
-  const ev: CueEvent[] = [];
-  for (const t of [0.05, tl.end / 2, tl.end]) ev.push(...traceCues(() => fn({ t, tl, dur, exit: "none", p })));
-  const ok = ev.filter((e) => e.idx >= 0 && e.idx < tl.words.length);
-  if (!ok.length) return null;
-  const idx = Math.min(...ok.map((e) => e.idx));
-  const len = Math.max(...ok.filter((e) => e.idx === idx).map((e) => e.len));
-  const w = tl.words[idx]!;
-  return { idx, len, word: w.w, s: w.s, done: w.s + len };
-};
+export type { FirstIdea };
+/** أول عنصر مرسوم على كلمته في المشهد (null: لا حدث على كلمة، كتمهيد الآية الساكن أو مشهد بالكلمات وحدها) — firstIdeaOf */
+export const firstDrawnIdea = (scene: PlanScene, tl: Timeline): FirstIdea | null =>
+  firstIdeaOf(shotOf(scene), tl, scene.props, Boolean(HZ_META[scene.props.shot ?? ""]?.still));
 
 const strip = (x: string) => x.replace(/[ً-ْٰـ]/g, "");
 /** الكلمة بصيغة quoteStart: «كلمة» أو «كلمة#n» إن سبقتها كلمة تبدأ بها */
