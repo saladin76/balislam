@@ -3,6 +3,7 @@ import { readFileSync, readdirSync } from "node:fs";
 import path from "node:path";
 import { parseScript } from "../src/script/parse";
 import { planFromScenes, parseScenesTable, rowFields } from "../src/plan/fromScenes";
+import { CARRY_KEYS } from "../src/plan/quoteCarry";
 import { generatePlan } from "../src/plan/generate";
 import { scriptPlanDivergence, isDesignedPlan } from "../src/plan/designed";
 import { unapprovedScenes, loadApprovals } from "../src/plan/templateApproval";
@@ -40,7 +41,8 @@ describe.each(EPS)("الخطة المصمَّمة من scenes.md — %s", (ep) =
 
   it("الخطة المتتبَّعة هي ما يبنيه الأمر الآن (بلا نصوص الآيات، كما تُكتب)", () => {
     // اختيارات المالك فوق الخطة المبنية (نبرة الحلقة ونبرة المشهد وعلم «عُدّل») لا تُعدّ خروجًا عن scenes.md
-    const OWNER = new Set(["tone", "edited"]);
+    // D246: استمرار البطاقات محسوب من توقيت الصوت حيث وُجد (على جهاز الاستوديو)، فلا يُقارن هنا بالتقدير
+    const OWNER = new Set(["tone", "edited", ...CARRY_KEYS]);
     const strip = (p: Plan) => JSON.parse(JSON.stringify({ ...p, updatedAt: "" }, (k, v) => (OWNER.has(k) ? undefined : k === "text" && typeof v === "string" ? "" : v)));
     const scrub = (p: Plan) => { const x = strip(p); for (const s of x.chapters.flatMap((c: Plan["chapters"][number]) => c.scenes)) if (s.template === "hadith-card") delete s.props.text; return x; };
     expect(scrub(tracked)).toEqual(scrub(plan));

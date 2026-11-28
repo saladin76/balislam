@@ -1637,3 +1637,5 @@
 - **كما بُني (`src/render/worker/verticalCut.ts` و`src/render/worker/studioJobs.ts` و`src/render/worker/verticalShorts.ts` و`src/remotion/scenes/ShortTitle.tsx`):** الماك يأخذ عنوان الشورت من حزمة النشر (`shortTitleFor`) ويفحص أثره (`assertNoTraces`)، ومدته ثلاث ثوانٍ أو حتى أول نافذة سكون مقصود في الشورت مطروحًا منها التلاشي (`shortTitleSeconds`؛ أقل من ثانية = بلا عنوان)، ويكتبه في مهمة `cut`. العامل يفحص أثره ثانية ثم يرسمه بأسلوب القناة صورة شفافة 1080×1920 (`ShortTitleStill`، تكوين `short-title`) ويركّبه أول ثوانيه في إعادة ترميز القص نفسها بتلاشٍ ٠٫٣ ث عند الظهور والغياب (`renderShortTitlePng` و`cutFilter`). الاستلام يرفض إن تغيّر العنوان أو مدته بعد الإرسال.
 - **الاختبار:** `tests/vertical-version-d243.test.ts`.
 
+## 2026-11-28 — مشترك: نافذة البطاقة المستمرة في فحص الشاشة الواقفة (التعريف في سجل «دفاتر الزمن»)
+- `pauses.ts`: نافذة آية أو حديث مستمرة من مشهد سابق (`carryRef`) تُعفى كنافذة الآية في مشهدها. لا تغيير في قوالب «زبدة الكتب».
