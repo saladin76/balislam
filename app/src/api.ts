@@ -197,6 +197,8 @@ export type SceneProductionRead = {
     newerTake?: { state: "produce" | "blocked"; sentences: number[]; missing: number[] };
     /** D148: a conversation's change reached this machine after the scene's video was made (src/studio/remoteChanges.ts). */
     remoteChange?: RemoteSceneChangeView;
+    /** D242: the render worker's last cut of this scene was refused for motion below the channel minimum («يحتاج إصلاح»). */
+    motionFix?: { percent: number; min: number; at: string };
     /** The owner's latest «الحركة/النبرة غير مناسبة» note while the scene awaits its fix. */
     correction?: { note: string; at: string;
       /** صندوق الملاحظات (docs/studio/notes-inbox.md): أُرسلت إلى Claude أو بانتظار الإرسال، ورده بعد git pull. */
@@ -229,6 +231,8 @@ export type OwnRecitationsRead = {
   pending: Record<string, OwnRecitationCandidate>;
   approved: Record<string, { reciter: string; approvedAt: string; file: string; duration: number;
     variant: "processed" | "original" | null; variants: Record<"processed" | "original", RecitationVariant> | null; polish: RecitationPolish | null }>;
+  /** D239: the owner's one approved basmala clip on this machine (only when the episode has no approved recording of its own). */
+  basmalaClip?: { installed: boolean; reason?: string };
 };
 export type ScenePrepareJob = {
   status: "running" | "done" | "error" | "stopped"; stopRequested?: boolean; startedAt: number; finishedAt?: number;

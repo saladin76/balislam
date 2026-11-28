@@ -7,9 +7,16 @@ import config from "../../config.json";
  * جودة الرندر (القاعدة الرابعة في CLAUDE.md):
  * - master: كل ما يُنشر (الحلقة والشورتس/الريلز): 4K (ضعف المقاس)، ترميز بطيء عالي الجودة، وصوت 320k.
  *   يوتيوب يعطي رفع 4K ترميزًا أعلى جودة حتى لمن يشاهد بدقة أقل.
+ * - vertical: النسخة العمودية الكاملة 1080×1920 (D243) بإعدادات master نفسها بلا تكبير؛ منها تُقص الشورتس.
  * - preview: المعاينات السريعة فقط (بلا صوت، فصل للتأكد، الاستوديو)، ولا تُنشر.
  */
-export type Quality = "master" | "preview";
+export type Quality = "master" | "vertical" | "preview";
+/**
+ * D243 (النسخة العمودية الكاملة): «vertical» 1080×1920 بإعدادات Master نفسها (crf 14، x264 slow، bt709، AAC 320k) لكن
+ * بمقياس 1 لا 4K؛ تُرندر الحلقة كلها عمودية على الويندوز، ومنها وحدها تُقص الشورتس. ما يُنشر منه (الشورتس) يُضبط علوه
+ * كـMaster (−14 LUFS).
+ */
+export const isPublishQuality = (q: Quality) => q === "master" || q === "vertical";
 export type QualitySpec = {
   label: string; scale: number; crf: number; x264Preset: "slow" | "veryfast" | "medium" | "slower"; audioBitrate: `${number}k`;
   /** Browser tabs rendering at once. Master is 4K: on the owner's 8 GB Mac several 4K tabs swap the machine until

@@ -9,6 +9,8 @@ import type { StockEpisodeView } from "../../../src/studio/stock";
  * المسودات مجمّعة بدفعاتها (كل دفعة PR أسبوعي)، ولكل حلقة: العنوان والقناة والسلسلة وموضعها في ترتيب النشر
  * (أسبوع ويوم، ترتيب لا موعد: النشر يبدأ بعد اعتماد الشكل و«دفاتر الزمن 001» ومراجعة المتخصص)، وبنود المتخصص،
  * وفتح السكريبت والبحث ووصف المشاهد، و«اعتمدت السكريبت» (اعتماد النص وحده: لا صوت ولا رندر).
+ * D234: لكل سكريبت حالته بالترتيب الثابت («بانتظار المحرر» / «بانتظار المراجعة العلمية» / «بانتظار اعتمادك» / «جاهز للإنتاج»)،
+ * و«اعتمدت السكريبت» لا يظهر قبل أن يمرّ بالمحرر والمراجعة العلمية (والخادم يرفضه قبلهما).
  */
 const CHANNEL_NAME: Record<string, string> = { balislam: "بالإسلام", "dafatir-alzaman": "دفاتر الزمن", "zubdat-alkutub": "زبدة الكتب" };
 const FILES: { name: string; label: string; key: keyof StockEpisodeView["files"] }[] = [
@@ -28,18 +30,24 @@ const Row: React.FC<{ v: StockEpisodeView; onChanged: () => void }> = ({ v, onCh
     try { setOpen(await api.stockFile(v.channel, v.episode!, name)); } catch (e) { setMsg((e as Error).message); }
   };
   const approve = async () => {
-    if (!window.confirm(`تعتمد سكريبت «${v.title}» كما هو الآن؟ اعتماد النص وحده: لا صوت ولا رندر، وتبقى الحلقة «مسودة» حتى مراجعة المتخصص وتغيير حالتها.`)) return;
+    if (!window.confirm(`تعتمد سكريبت «${v.title}» كما هو الآن؟ مرّ بالمحرر والمراجعة العلمية. اعتماد النص وحده: لا صوت ولا رندر، وتبقى الحلقة «مسودة» حتى تغيير حالتها.`)) return;
     try { await api.approveDraftScript(v.channel, v.episode!); setMsg("اعتُمد السكريبت"); onChanged(); } catch (e) { setMsg((e as Error).message); }
   };
-  const state = v.approval.stale ? "تغيّر بعد اعتمادك" : v.approval.approved ? "اعتمدت السكريبت" : "بانتظار مراجعتك";
+  const p = v.pipeline;
+  const state = v.approval.stale ? "تغيّر بعد اعتمادك" : v.approval.approved ? "اعتمدت السكريبت" : "";
+  const editorNote = p.status === "بانتظار المحرر"
+    ? (p.editor.partial ? `${ar(p.editor.pending)} جملة تغيّرت بعد مراجعة المحرر تنتظره وحدها.` : "لم يراجعه محرر المحتوى بعد.")
+    : p.editor.grandfathered ? `المحرر: ${p.editor.grandfathered}` : "";
   return (
     <article className={`group awaiting-row${v.approval.approved && !v.approval.stale ? " is-approved" : ""}`} data-channel={v.channel} data-episode={v.episode}>
       <h4>
         <span className="pill warn">مسودة</span> {v.title} <small>{CHANNEL_NAME[v.channel] ?? v.channel} {v.episode}</small>
+        {" "}<span className={`s45-pill pipeline-status${p.status === "جاهز للإنتاج" ? " is-on" : ""}`} data-status={p.status}>{p.status}</span>
       </h4>
       <p className="help">
-        {v.series ? `السلسلة: ${v.seriesName ?? v.series} | ` : ""}{v.week !== null ? `ترتيب النشر: الأسبوع ${ar(v.week)}، ${v.day}` : "خارج ترتيب النشر"} | <strong>{state}</strong>
+        {v.series ? `السلسلة: ${v.seriesName ?? v.series} | ` : ""}{v.week !== null ? `ترتيب النشر: الأسبوع ${ar(v.week)}، ${v.day}` : "خارج ترتيب النشر"}{state ? <> | <strong>{state}</strong></> : null}
       </p>
+      {editorNote && <p className="help">{editorNote}</p>}
       {v.specialist.length > 0
         ? <p className="warn"><strong>يحتاج المتخصص قبل الصوت:</strong> {v.specialist.join("؛ ")}</p>
         : <p className="help">لا بنود للمتخصص مسجّلة لهذه الحلقة.</p>}
@@ -47,7 +55,8 @@ const Row: React.FC<{ v: StockEpisodeView; onChanged: () => void }> = ({ v, onCh
         {FILES.filter((f) => v.files[f.key]).map((f) => (
           <button key={f.name} type="button" className={`btn small${open?.name === f.name ? " primary" : ""}`} onClick={() => void show(f.name)}>{f.label}</button>
         ))}
-        {(!v.approval.approved || v.approval.stale) && <button type="button" className="btn primary small" onClick={() => void approve()}>اعتمدت السكريبت</button>}
+        {/* D234: الزر بعد المحرر والمراجعة العلمية وحدهما */}
+        {p.status === "بانتظار اعتمادك" && <button type="button" className="btn primary small" onClick={() => void approve()}>اعتمدت السكريبت</button>}
       </div>
       {open && <pre className="awaiting-file" dir="rtl" style={{ maxHeight: 420, overflow: "auto", whiteSpace: "pre-wrap" }}>{open.text ?? "الملف غير موجود بعد."}</pre>}
       {msg && <small role="status"><OwnerText text={msg} /></small>}
@@ -63,13 +72,14 @@ export const Awaiting: React.FC = () => {
   if (err) return <p className="warn" role="alert"><OwnerText text={err} /></p>;
   if (!data) return <p className="help">جارٍ التحميل…</p>;
   const drafts = data.flatMap((c) => c.views.filter((v) => v.exists && v.draft));
-  const waiting = drafts.filter((v) => !v.approval.approved || v.approval.stale).length;
+  const waiting = drafts.filter((v) => v.pipeline.status === "بانتظار اعتمادك").length;
+  const count = (st: string) => drafts.filter((v) => v.pipeline.status === st).length;
   const batches = [...new Set(drafts.map((v) => v.batch))].sort((a, b) => (a ?? 999) - (b ?? 999));
   return (
     <div className="awaiting">
       <TemplateStoryboards />
       <p className="help">
-        المسودات لا تدخل الإنتاج: لا صوت ولا رندر قبل اعتماد السكريبت ومراجعة المتخصص وتغيير حالتها. ترتيب النشر أسابيع لا مواعيد:
+        الترتيب ثابت (D234): مسودة ← محرر المحتوى ← المراجعة العلمية ← اعتمادك ← صوت ← رندر. {`بانتظار المحرر ${ar(count("بانتظار المحرر"))}، والمراجعة العلمية ${ar(count("بانتظار المراجعة العلمية"))}، واعتمادك ${ar(count("بانتظار اعتمادك"))}، وجاهز للإنتاج ${ar(count("جاهز للإنتاج"))}.`} ترتيب النشر أسابيع لا مواعيد:
         يبدأ النشر بعد اعتمادك الشكل و«دفاتر الزمن 001» ومراجعة المتخصص. {waiting ? `بانتظارك ${ar(waiting)} من ${ar(drafts.length)}.` : drafts.length ? "لا شيء بانتظارك الآن." : "لا مسودات بعد."}
       </p>
       {data.filter((c) => c.frozen).map((c) => (

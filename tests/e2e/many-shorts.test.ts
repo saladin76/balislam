@@ -5,20 +5,19 @@
  *
  * حلقة الرحلة الثابتة لكل قناة (tests/fixtures/e2e/<channel>/) ومعها خمسة مشاهد متكلَّمة أخرى، فتصير ثمانية مشاهد
  * تكفي لخمسة وعشرين مقطعًا مختلفًا (المكرر مرفوض كما كان). الترتيب كما هو: كل المشاهد ← التجميع ← Master ←
- * اعتماده ← اختيار ٢٥ مقطعًا ← «اصنع الشورتس والريلز» (مهمة واحدة، بالترتيب) ← إذن النشر ← نسخة Drive.
- * ويتحقق: ٢٥ ملف 9:16 بأسمائها `001-short-1…25.mp4` وترجماتها، وقائمة «النشر» بترتيبها العددي، وعدّاد الحلقة،
- * وأن شورتًا قديمًا رقمه أكبر من المقاطع المحفوظة يُحذف، وأن Drive يستلم الخمسة والعشرين بايتًا ببايت.
+ * اعتماده ← اختيار ٢٥ مقطعًا ← «اصنع الشورتس والريلز».
+ * D243 (٢٨ نوفمبر): الشورتس كلها قصّ من النسخة العمودية الكاملة على جهاز الرندر، فـ«اصنع الشورتس والريلز» يُرفض برسالة
+ * D243 ولا يكتب شورتًا، وتبقى المقاطع الخمسة والعشرون محفوظة في الخطة للقص (القص ومهامه في tests/vertical-version-d243.test.ts).
  *
  * Run: `npm run e2e` (BAL_E2E_CHANNELS=all for the three channels).
  */
-import { existsSync } from "node:fs";
 import { readFile, readdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { browserPlanRevision } from "../../src/plan/revision";
-import { findTraces } from "../../src/package/traces";
+import { checkPlanShort } from "../../src/package/shortIdeaPlan";
 import { CASES, selectedChannels, type ChannelCase } from "./channels";
-import { ffmpeg, fixturesDir, generateVoiceConfirmed, probe, sha256File, startStudio, tree, waitFor, type Studio } from "./harness";
+import { ffmpeg, fixturesDir, generateVoiceConfirmed, sha256File, startStudio, waitFor, type Studio, passEditor } from "./harness";
 
 const EP = "001";
 const COUNT = 25;
@@ -120,6 +119,7 @@ for (const channel of selectedChannels()) {
       ok("create", await st.call("POST", "episodes", { episode: EP, slug: c.slug, domain: c.domain, title: c.title }));
       const script = await st.call("PUT", `episodes/${EP}/script`, { text: withExtra(channel, await fx("script.md"), "script") });
       ok("script", script);
+      await passEditor(st, EP); // D234
       expect(script.body.check.issues.filter((i: any) => i.level === "error"), "script errors").toEqual([]);
       ok("research", await st.call("PUT", `episodes/${EP}/research`, { text: await fx("research.md") }));
       await writeFile(path.join(epDir, "tashkeel.md"), withExtra(channel, await fx("tashkeel.md"), "tashkeel"));
@@ -146,13 +146,28 @@ for (const channel of selectedChannels()) {
       // has no counted second and fails rule two (motion ≥ 80% per short) — the per-short rule stays; such a
       // passage is simply not chosen here.
       const still = new Set([c.verse?.sceneId, ...(channel === "zubdat-alkutub" ? ["c1-s1"] : [])].filter(Boolean));
-      const ranges: [number, number][] = [];
-      for (const w of [0, 1, 2, 3, 4]) for (let a = 0; a + w < spoken.length; a++) {
-        if (spoken.slice(a, a + w + 1).every((id) => still.has(id))) continue;
-        if (ranges.length < COUNT) ranges.push([a, a + w]);
+      // D241 (٢٧ نوفمبر): كل شورت فكرة كاملة وحده — يبدأ بخطاف معلَّم وجمل كاملة، بلا إشارة إلى خارجه. تُختار المقاطع
+      // من مشاهد الحلقة نفسها (أجزاء غير متتالية مسموحة) بالفحص النقي نفسه الذي تمر به البوابة، أصغرها أولًا.
+      const pick: string[][][] = [];
+      // أجزاء الشورت: كل مشاهد متتالية في الحلقة جزء واحد
+      const partsOf = (c: number[]) => c.reduce<number[][]>((acc, v) => { const last = acc.at(-1); if (last && last.at(-1)! + 1 === v) last.push(v); else acc.push([v]); return acc; }, []).map((r) => r.map((i) => spoken[i]!));
+      const idx = spoken.map((_, i) => i);
+      const combos = (k: number, from = 0): number[][] => (k === 0 ? [[]] : idx.slice(from).flatMap((i) => combos(k - 1, i + 1).map((r) => [i, ...r])));
+      // المقاطع المتصلة أولًا (كما كانت قبل D241، وكلها تعبر قاعدة الحركة ٨٠٪)، ثم الأجزاء غير المتصلة إن لم تكفِ.
+      const runs = [0, 1, 2, 3, 4].flatMap((w) => idx.filter((a) => a + w < spoken.length).map((a) => idx.slice(a, a + w + 1)));
+      const candidates = [...runs, ...[2, 3, 4, 5].flatMap((k) => combos(k)).filter((c) => c.some((v, j) => j > 0 && v !== c[j - 1]! + 1))];
+      for (const c of candidates) {
+        if (pick.length >= COUNT) break;
+        const ids = c.map((i) => spoken[i]!);
+        if (ids.every((id) => still.has(id))) continue;
+        const parts = partsOf(c);
+        if (checkPlanShort(plan, { sceneIds: ids, parts, hook: "line" }).ok) pick.push(parts);
       }
-      expect(ranges).toHaveLength(COUNT);
-      const shorts = ranges.map(([a, b], k) => ({ from: spoken[a]!, to: spoken[b]!, title: `الشورت ${k + 1}: من المشهد ${a + 1} إلى ${b + 1}` }));
+      expect(pick, "enough whole-idea shorts in the fixture (D241)").toHaveLength(COUNT);
+      const shorts = pick.map((parts, k) => ({
+        from: parts[0]![0]!, to: parts.at(-1)!.at(-1)!, ...(parts.length > 1 ? { segments: parts.map((r) => ({ from: r[0]!, to: r.at(-1)! })) } : {}),
+        hook: "line" as const, hookKind: "striking" as const, title: `الشورت ${k + 1}: ${parts.flat().length} من المشاهد`,
+      }));
       const saved = await st.call("PUT", `episodes/${EP}/shorts`, { shorts });
       ok(`save ${COUNT} shorts`, saved);
       expect(saved.body.saved, "all of them, in order").toEqual(shorts);
@@ -194,59 +209,17 @@ for (const channel of selectedChannels()) {
       expect(masterSha).toBe(await sha256File(masterFile));
       ok("approve Master", await decide({ action: "approve-master", expectedSha256: masterSha, confirmedWatched: true }));
 
-      // ── «اصنع الشورتس والريلز»: all 25 in one job, one after another ────────────────────────────────────
-      // A short left from an earlier, longer selection (number above the saved count) is removed with its subtitles.
-      await writeFile(path.join(pkgDir, `${EP}-short-${COUNT + 1}.mp4`), "stale");
-      await writeFile(path.join(pkgDir, `${EP}-short-${COUNT + 1}.ar.srt`), "stale");
-      const sj = await job(`make ${COUNT} shorts`, "shorts");
-      const log = (sj.log ?? []).join("\n");
-      expect(log, "each short says its place").toContain(`الشورت ${COUNT} من ${COUNT}`);
-      expect(sj.pct, "the progress reached the end").toBeGreaterThanOrEqual(80);
-      const names = await readdir(pkgDir);
-      const made = names.filter((n) => /-short-\d+\.mp4$/.test(n));
-      expect(made.sort((a, b) => a.localeCompare(b, "en", { numeric: true })), "exactly 1…25").toEqual(Array.from({ length: COUNT }, (_, i) => `${EP}-short-${i + 1}.mp4`));
-      expect(names, "the stale short is gone").not.toContain(`${EP}-short-${COUNT + 1}.mp4`);
-      expect(names, "…with its subtitles").not.toContain(`${EP}-short-${COUNT + 1}.ar.srt`);
-      for (let n = 1; n <= COUNT; n++) {
-        expect(names, `short ${n}: subtitles`).toContain(`${EP}-short-${n}.ar.srt`);
-        const v = probe(path.join(pkgDir, `${EP}-short-${n}.mp4`)).streams.find((x) => x.codec_type === "video")!;
-        expect(v.height! > v.width!, `short ${n}: 9:16 (${v.width}×${v.height})`).toBe(true);
-      }
-      // Every short is a passage of the approved Master: the first is one scene, the last spans four or five.
-      const dur = (n: number) => Number(probe(path.join(pkgDir, `${EP}-short-${n}.mp4`)).format.duration);
-      expect(dur(COUNT), "the last (four or five scenes) is longer than the first (one scene)").toBeGreaterThan(dur(1));
-      expect(dur(COUNT), "…and shorter than the Master").toBeLessThan(Number(probe(masterFile).format.duration));
-      const motion = await readFile(path.join(pkgDir, "motion-report.md"), "utf8");
-      expect(motion, "every short measured").toContain(`الشورت ${COUNT}:`);
-
-      // «النشر»: every file listed (two digits too), downloadable at its own bytes; the episode counter says 25.
-      const pkg = await st.call("GET", `episodes/${EP}/package`);
-      ok("package files", pkg);
-      const listed = pkg.body.files.filter((f: any) => /-short-\d+\.mp4$/.test(f.name)).map((f: any) => f.name);
-      expect(listed, "listed").toHaveLength(COUNT);
-      const last = await st.call("GET", `episodes/${EP}/package/${EP}-short-${COUNT}.mp4?download=1`);
-      expect(last.status, "the 25th downloads").toBe(200);
-      const overview = await st.call("GET", "overview");
-      ok("overview", overview);
-      const ep = (Array.isArray(overview.body) ? overview.body : overview.body.episodes).find((e: any) => e.id === EP);
-      expect(ep.package, "the episode counts every short").toMatchObject({ shorts: COUNT, planned: COUNT });
-
-      // ── Publish permission → Drive: the Master and all 25 shorts, byte for byte ──────────────────────────
-      ok("grant publish", await decide({ action: "grant-publish", expectedSha256: masterSha, confirmedWatched: true }));
-      const handoff = await waitFor("Drive copy", () => st.call("GET", `episodes/${EP}/publish-drive`), (x) => x.body.job?.status && x.body.job.status !== "running", 600_000, 500);
-      expect(handoff.body.job.status, `Drive: ${JSON.stringify(handoff.body).slice(0, 1500)}`).toBe("done");
-      const folder = handoff.body.drive.folder as string;
-      const manifest = JSON.parse(await readFile(path.join(folder, "manifest.json"), "utf8"));
-      const sent = manifest.files.filter((f: any) => f.kind === "short").map((f: any) => f.name);
-      expect(sent.sort((a: string, b: string) => a.localeCompare(b, "en", { numeric: true })), "all 25 on Drive").toEqual(Array.from({ length: COUNT }, (_, i) => `${EP}-short-${i + 1}.mp4`));
-      const copied = await tree(folder);
-      for (const f of manifest.files) {
-        expect(copied[f.name], `${f.name}: hash in manifest`).toBe(f.sha256);
-        if (f.kind === "short") expect(copied[f.name], `${f.name}: byte for byte`).toBe(await sha256File(path.join(pkgDir, f.name)));
-      }
-      for (const name of Object.keys(copied).filter((n) => /\.(txt|json|srt)$/.test(n)))
-        expect(findTraces(await readFile(path.join(folder, name), "utf8")), `${name}: traces`).toEqual([]);
-      expect(existsSync(path.join(folder, `${EP}-short-${COUNT + 1}.mp4`)), "no stale short on Drive").toBe(false);
+      // ── D243 (٢٨ نوفمبر): الشورتس لا تُرندر في الاستوديو؛ كلها قصّ من النسخة العمودية الكاملة على جهاز الرندر ──────
+      // «اصنع الشورتس والريلز» بعد Master المعتمد يُرفض برسالة D243 ولا يكتب شورتًا (القص وحده في tests/vertical-version-d243.test.ts).
+      const start = await st.call("POST", "jobs", { kind: "shorts", episode: EP });
+      ok("shorts job after the Master", start);
+      const done = await waitFor("shorts refused", () => st.call("GET", "jobs"), (x) => x.body.find((j: any) => j.id === start.body.id)?.status !== "running", 600_000, 1000);
+      const sj = done.body.find((x: any) => x.id === start.body.id);
+      expect(sj.status, "shorts are cut from the vertical version, not rendered here (D243)").toBe("error");
+      expect((sj.log ?? []).join("\n")).toContain("D243");
+      expect((await readdir(pkgDir)).filter((n) => /-short-\d+\.mp4$/.test(n)), "no short rendered on its own").toEqual([]);
+      // the 25 saved shorts stay the plan's selection for the cuts (D152: no limit)
+      expect((await st.call("GET", `episodes/${EP}`)).body.plan.shorts).toHaveLength(COUNT);
     }, 3_600_000);
   });
 }

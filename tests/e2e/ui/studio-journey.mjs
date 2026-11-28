@@ -53,6 +53,13 @@ for (const ch of new Set([CH, ...DOCK_CHANNELS])) {
   await mkdir(path.join(root, ch, "episodes"), { recursive: true });
   for (const f of await readdir(path.join(repo, "channels", ch))) if (f.endsWith(".json") && f !== "stock.json") await cp(path.join(repo, "channels", ch, f), path.join(root, ch, f));
 }
+// D234: the coordinator records the content editor's pass (`bal editor-pass`), so the journey can go on to voice and render
+const passEditor = async (ch, ep) => {
+  const eps = path.join(root, ch, "episodes");
+  const dir = (await readdir(eps)).find((d) => d.startsWith(`${ep}-`));
+  const { recordEditorPass } = await import("../../../src/studio/scriptPipelineStore.ts");
+  return recordEditorPass(path.join(eps, dir, "script.md"), { by: "محرر الاختبار", recordedBy: "e2e-ui" });
+};
 Object.assign(process.env, {
   BAL_CHANNELS_DIR: root, BAL_ENV_FILE: path.join(root, ".env"), BAL_CONTENT_SYNC: "off", BAL_DRIVE_PUBLISH_DIR: drive,
   BAL_VOICE_PROVIDER: "fake", BAL_E2E: "1", BAL_E2E_RENDER: "tiny",
@@ -102,6 +109,7 @@ try {
   const domain = (await fx("script.md")).match(/^domain: (\S+)$/m)[1];
   await api("POST", "episodes", { episode: EP, slug: SLUG, domain, title });
   await api("PUT", `episodes/${EP}/script`, { text: await fx("script.md") });
+  await passEditor(CH, EP);
   await api("PUT", `episodes/${EP}/research`, { text: await fx("research.md") });
 
   browser = await chromium.launch({ args: ["--autoplay-policy=no-user-gesture-required"] });
@@ -346,6 +354,7 @@ try {
     const s2 = await fxd("script.md");
     await api("POST", "episodes", { episode: EP2, slug: "e2e-ui-dock", domain: s2.match(/^domain: (\S+)$/m)[1], title: s2.match(/^title: "(.*)"$/m)[1] }, ch);
     await api("PUT", `episodes/${EP2}/script`, { text: s2 }, ch);
+    await passEditor(ch, EP2);
     await api("PUT", `episodes/${EP2}/research`, { text: await fxd("research.md") }, ch);
     const { writeFile } = await import("node:fs/promises");
     await writeFile(path.join(root, ch, "episodes", `${EP2}-e2e-ui-dock`, "tashkeel.md"), await fxd("tashkeel.md"));

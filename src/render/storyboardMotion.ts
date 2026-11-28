@@ -40,6 +40,11 @@ export const loadStoryboardMotion = async (episode: string): Promise<StoryboardM
 export const measureStoryboardMotion = async (episode: string, opts: { orientation?: "landscape" | "portrait"; onProgress?: (pct: number, msg: string) => void } = {}) => {
   const log = opts.onProgress ?? (() => {});
   const orientation = opts.orientation ?? "landscape";
+  // D234: المعاينة الصامتة رندر أيضًا: لا تُصنع لسكريبت فيه جملة لم تمرّ بمحرر المحتوى
+  const { assertEditorPassed } = await import("../studio/scriptPipelineStore");
+  await assertEditorPassed(await resolveScriptPath(episode));
+  // D232: والماك لا يرندرها إلا بإذن المالك لهذه المرة
+  await (await import("./macRenderPermit")).consumeMacRenderPermit("معاينة صامتة لقياس الحركة", { episode: path.basename(path.dirname(await resolveScriptPath(episode))) });
   const plan = (await loadPlan(episode)) ?? (await regeneratePlan(episode));
   log(0, "تجهيز الوسائط…");
   const media = await prepareRenderMedia(episode, plan);

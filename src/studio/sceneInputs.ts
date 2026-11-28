@@ -1,5 +1,6 @@
 import path from "node:path";
-import { BASMALA_KEY, hasBasmala } from "../voice/basmala";
+import { APPROVED_BASMALA_CLIP, BASMALA_KEY, hasBasmala } from "../voice/basmala";
+import { installedBasmalaClip } from "../voice/basmalaClip";
 import { quranOnScreenSignature } from "../quran/onScreen";
 import { resolveScriptPath } from "../script/episodes";
 import { readPlanFile } from "../plan/io";
@@ -12,6 +13,16 @@ import { versesAreCitations } from "../quran/citation";
 import { NO_BLOCKS } from "./afterPreparation";
 import { remoteEngineTokens } from "./remoteChanges";
 import { type CurrentInput, sha, fileGeneration, optionalFileGeneration, safeSceneId } from "./sceneLedgerStore";
+
+type RecitationRecord = Awaited<ReturnType<typeof verifiedOwnRecitations>>[string];
+/** D239: the installed approved basmala clip as an approved recitation record (only while its bytes match). */
+const basmalaClipRecord = async (): Promise<RecitationRecord | undefined> => {
+  const clip = await installedBasmalaClip();
+  if (!clip) return undefined;
+  return { provider: "manual", reciter: "صوت صاحب القناة (النسخة المعتمدة)", rightsEvidence: APPROVED_BASMALA_CLIP.rightsEvidence,
+    parts: [{ file: clip.file, duration: 0 }], approvedAt: APPROVED_BASMALA_CLIP.approvedAt, approvedBy: APPROVED_BASMALA_CLIP.approvedBy,
+    reviewNote: APPROVED_BASMALA_CLIP.decision, sha256: clip.sha256 } as RecitationRecord;
+};
 
 /** The episode's current inputs as the ledger fingerprints them (script, boards, voice, recitations), read from disk. */
 export const sourceNow = async (episode: string): Promise<CurrentInput> => {
@@ -37,6 +48,8 @@ export const sourceNow = async (episode: string): Promise<CurrentInput> => {
   const ready: Record<string, boolean> = {};
   const voiceReadyBy: Record<string, boolean> = {};
   const recitationPending: Record<string, boolean> = {};
+  let clipRecord: Promise<RecitationRecord | undefined> | undefined;
+  const approvedBasmalaClipRecord = () => (clipRecord ??= basmalaClipRecord());
   const refs = [];
   const textChanged: Record<string, boolean> = {};
   const onScreen: Record<string, string | null> = {};
@@ -64,8 +77,9 @@ export const sourceNow = async (episode: string): Promise<CurrentInput> => {
     // The basmala is treated like a verse (owner decision 10 Nov): a scene holding it waits for the owner's
     // approved recording exactly as a verse card waits for its recitation (D35: conditional approval only).
     const basmala = scene.template !== "verse-card" && hasBasmala(narration);
+    // D239: without the episode's own approved recording, the owner's one approved clip satisfies it (hash-pinned).
     const rec = scene.template === "verse-card" && scene.ayahKey && !citations
-      ? manual[scene.ayahKey] : basmala ? manual[BASMALA_KEY] : undefined;
+      ? manual[scene.ayahKey] : basmala ? manual[BASMALA_KEY] ?? await approvedBasmalaClipRecord() : undefined;
     const recOk = Boolean(rec && rec.provider === "manual" && rec.sha256 && rec.approvedBy && rec.rightsEvidence);
     const verseReady = (scene.template !== "verse-card" && !basmala) || (scene.template === "verse-card" && citations) ||
       (recOk && (!basmala || (clip?.basmala?.pending === false && clip.basmala.sha256 === rec!.sha256)));

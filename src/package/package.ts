@@ -44,6 +44,12 @@ export type PackageOptions = {
   stage?: "episode" | "shorts";
   /** جودة الرندر: master لما يُنشر (الافتراضي)، preview للمعاينة بلا صوت */
   quality?: Quality;
+  /**
+   * D232 (phase 2): the Master file comes from the Windows worker, already verified on the Mac (worker-import). It
+   * replaces the render alone: it places the verified bytes at the given path and returns it; every other step of this
+   * package (texts, kit and trace checks, thumbnails, motion meter, render-info, handoff set) is exactly the Mac's.
+   */
+  masterFrom?: (episodePath: string) => Promise<string>;
   onProgress?: (msg: string) => void;
 };
 
@@ -76,6 +82,10 @@ export const packageEpisode = async (opts: PackageOptions) => {
     const info = existsSync(renderInfoFile(dir)) ? (JSON.parse(await readFile(renderInfoFile(dir), "utf8")) as RenderInfo) : null;
     if (!info || info.quality !== "master" || !info.voiced) throw new Error("الشورتس تُصنع من النسخة النهائية بأعلى جودة وبصوت كامل. اصنع النسخة النهائية أولًا.");
     if (!shorts.length || shortPick.issues.length) throw new Error(shortPick.issues.join(" ") || "لا مقاطع شورتس في الخطة.");
+    // D241: كل شورت فكرة كاملة وحده (خطاف، وفكرة تامة، وختام واضح، ولا إشارة إلى خارجه) قبل أي رندر
+    (await import("./shortIdeaPlan")).assertShortsIdea(plan, shorts);
+    // D243: لا رندر عمودي لكل شورت؛ الفيديو قصّ من النسخة العمودية على جهاز الرندر (النصوص والترجمة بلا فيديو تبقى)
+    if (!opts.skipVideo) throw new Error(SHORTS_FROM_VERTICAL);
   }
 
   log("تجهيز الوسائط…");
@@ -174,7 +184,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
         await writeFile(statusFile, JSON.stringify(st, null, 2) + "\n");
       }
       log(`الحلقة بجودة: ${q.label}`);
-      const episodeFile = await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, outFile: episodePath, onProgress: progress("الحلقة") });
+      const episodeFile = opts.masterFrom && quality === "master" ? await opts.masterFrom(episodePath)
+        : await renderEpisode({ episode: ep, orientation: "landscape", quality, plan, media, outFile: episodePath, onProgress: progress("الحلقة") });
       files.push(path.basename(episodeFile));
       motion.push({ label: "الحلقة", report: await measureMotion(episodeFile, "landscape", await exemptForRender(plan, media)) });
       log(motionSummary(motion[0]!.report, "الحلقة"));
@@ -182,21 +193,8 @@ export const packageEpisode = async (opts: PackageOptions) => {
       await writeFile(renderInfoFile(dir), JSON.stringify(info, null, 2) + "\n");
       await writeFile(reportFile, `# مقياس الحركة · ${plan.title}\n\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
     } else {
-      // بلا حد لعدد الشورتس (D152): تُصنع بالترتيب واحدًا بعد واحد في هذه المهمة.
-      for (const seg of shorts) {
-        last = -1;
-        const n = seg.n;
-        const sp = segmentPlan(plan, seg);
-        log(`الشورت ${n} من ${shorts.length} بجودة: ${q.label}`);
-        // الشورت القديم: قسمه من الخطة كما كان؛ والمقطع المختار: مشاهده وحدها، والبوابات على الخطة كاملة
-        // تكملة D207: لا خطاف؛ سؤال الشورت (عنوانه في حزمة النشر) عنوانًا هادئًا على الشاشة
-        const shortTitle = await shortTitleFor(scriptPath, seg);
-        const f = await renderEpisode({ episode: ep, orientation: "portrait", ...(seg.chapter !== undefined ? { chapter: seg.chapter } : { segment: { sceneIds: seg.sceneIds } }), ...(shortTitle ? { shortTitle } : {}), quality, plan, media, outFile: path.join(dir, `${id}-short-${n}.mp4`), onProgress: progress(`الشورت ${n} من ${shorts.length}`) });
-        files.push(path.basename(f));
-        motion.push({ label: `الشورت ${n}`, report: await measureMotion(f, "portrait", await exemptForRender(sp.plan, media, sp.chapter)) });
-      }
-      const prev = existsSync(reportFile) ? (await readFile(reportFile, "utf8")).trimEnd() : `# مقياس الحركة · ${plan.title}\n`;
-      await writeFile(reportFile, `${prev}\n${motion.map((m) => `- ${motionSummary(m.report, m.label)}`).join("\n")}\n`);
+      // D243: لا يصل هنا شورت (البوابة أعلى الدالة قبل الوسائط)؛ كل الشورتس قصّ من النسخة العمودية الكاملة
+      throw new Error(SHORTS_FROM_VERTICAL);
     }
     files.push("motion-report.md");
     const weak = motion.filter((m) => m.report.percent < MOTION_MIN);
@@ -216,6 +214,9 @@ export const packageEpisode = async (opts: PackageOptions) => {
   }
   return { dir, files, hasVoice };
 };
+
+/** D243: رسالة رفض رندر الشورتس على الماك */
+export const SHORTS_FROM_VERTICAL = "D243: الشورتس تُقص من النسخة العمودية الكاملة على جهاز الرندر (npx bal worker-submit-vertical، ثم worker-import، ثم worker-submit <الحلقة> --shorts وworker-collect)، لا رندر لكل شورت.";
 
 /** `<id>-handoff-set.json`: the Master's sha256 and the subtitle/thumbnail files made with it (sha256 each). */
 export const handoffSetFileFor = (dir: string, id: string) => path.join(dir, `${id}-handoff-set.json`);

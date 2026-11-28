@@ -8,7 +8,7 @@ import React from "react";
 import { Lens } from "../lib/drawings";
 import { DateRibbon } from "../horizon/book";
 import {
-  Arrow, BlankLine, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Seal, Stone, Sun, Tab, Thread, Txt, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
+  Arrow, C, CLAY, Cloth, Crow, DotFrame, Dot, EMBER, Feather, Field, GOLD_D, Globe, Grass, Horizon, Ink, Leaf, NEUTRAL, Q, Ring, Seal, Stone, Sun, Tab, Thread, Txt, Write, bounce, crackPath, cueKit, mix, prog, reverent, rng, type BdProps,
 } from "./kit";
 
 const GROUND = 640;
@@ -29,20 +29,23 @@ const Smudge: React.FC<{ x: number; y: number; q: number; s?: number }> = ({ x, 
 
 // ─── c1-s1 / c1-s52: الريشة على التراب ───
 const FeatherShot = reverent((q) => {
-  const k = cueKit(q, ["الكتابة", "الصامت"]);
+  // التحرير النهائي للمحرر (٢٧ نوفمبر): الافتتاح «في قصة ابني آدم عليه السلام، حفر طائرٌ في التراب. ماذا رأى فيه الرجل الذي قتل أخاه؟»
+  // بدل «قبل أن يعرف الإنسان الكتابة، وقبل أن يبني أول بيت، تعلّم درسًا من طائر.» (حُذف الجزم بسبق الكتابة والبيت لغياب مستنده):
+  // حُذف السطر الفارغ (كان على «الكتابة») والكوخ المنقّط (كان على «بيت»)؛ الريشة على «طائر» كما كانت، وخطوط النبش في التراب على «التراب»،
+  // والكاميرا تقترب من التراب على «رأى»
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): الافتتاح «كيف دلّ غرابٌ ابنَ آدمَ على ما يفعل بجثمان أخيه؟ من هنا نبدأ قصة ابني آدم.» (البندان ٣٢٤ و٣٩١):
+  // الريشة على «غراب»، وخطوط النبش على «يفعل»، والكاميرا إلى التراب على «نبدأ»
+  const k = cueKit(q, ["قصة", "الصامت"]);
   const { t, S } = k;
-  const line = S === 0 ? k.draw(0, "الكتابة") : 0;
-  const hut = S === 0 ? k.draw(0, "بيت", 1.0) : 0;
-  const fall = S === 0 ? prog(t, k.at("طائر", 1.6) - 0.05, k.at("طائر", 1.6) + 1.6) : 1;
-  const crow = S === 0 ? k.draw(0, "غراب", 0.8) : 0;
-  const qm = S === 0 ? k.on(0, "غراب", 0.5) * prog(t, k.at("غراب") + 0.6, k.at("غراب") + 1.0) : 0;
+  const dig = S === 0 ? k.draw(0, "يفعل", 1.0) : 1;
+  const fall = S === 0 ? prog(t, k.at("غراب", 1.6) - 0.05, k.at("غراب", 1.6) + 1.6) : 1;
   const lens = S === 1 ? prog(t, k.at("وأبصر", 1.4) - 0.1, k.at("وأبصر", 1.4) + 1.4) : 0;
   const fx = 470 + Math.sin(fall * Math.PI * 2.2) * 50 * (1 - fall);
   const fy = mix(330, 712, fall);
   const close = { cx: 500, cy: 640, s: 2.3 };
   const cam =
     S === 0
-      ? k.cam(close, [[0, "فما", { cx: 520, cy: 610, s: 1.8 }, 1.4]])
+      ? k.cam(close, [[0, "غراب", { cx: 520, cy: 610, s: 1.8 }, 1.4], [0, "نبدأ", { cx: 490, cy: 700, s: 2.25 }, 1.3]])
       : k.cam({ cx: 480, cy: 690, s: 2.2 }, [
           [1, "أضعف", NEUTRAL, 1.4],
           [1, "تواضع", { cx: 480, cy: 700, s: 1.9 }, 1.2],
@@ -51,11 +54,9 @@ const FeatherShot = reverent((q) => {
     <g>
       <Horizon y={GROUND + 120} p={1} sky="plain" texture={0.6} />
       <Smudge x={480} y={735} q={1} />
-      <Ink d="M820 520 H560" p={line} w={3} c={C.inkSoft} />
-      <path d="M760 640 V590 L800 560 L840 590 V640 Z" fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="8 8" opacity={hut} />
-      <Feather x={fx} y={fy} s={0.5} q={S === 0 ? k.on(0, "طائر", 0.3) : 1} rot={mix(-60, -78, fall) + Math.sin(fall * 9) * 12 * (1 - fall)} />
-      <Write id="b2f-crow" x={330} y={600} size={54} p={crow} label="غراب" />
-      <Q x={210} y={608} size={70} q={qm} />
+      {/* خطوط نبش قصيرة في لطخة التراب (حفر الطائر)، بلا حفرة ولا دفن مرسوم */}
+      {["M430 730 q14 -10 30 -2", "M470 742 q16 -12 34 -3", "M512 728 q12 -9 26 -1"].map((d, i) => <Ink key={i} d={d} p={prog(dig, i * 0.25, i * 0.25 + 0.5)} w={3} c={C.ink} />)}
+      <Feather x={fx} y={fy} s={0.5} q={S === 0 ? k.on(0, "غراب", 0.3) : 1} rot={mix(-60, -78, fall) + Math.sin(fall * 9) * 12 * (1 - fall)} />
       {lens > 0 ? (
         <g opacity={Math.min(1, lens * 4) * (1 - prog(lens, 0.85, 1))} transform={`translate(${mix(700, 300, lens)} ${700 - 20 * Math.sin(lens * Math.PI)}) scale(0.42)`}>
           <Lens />
@@ -105,24 +106,28 @@ const ThreadGround = reverent((q) => {
 
 // ─── c1-s4..s6: في الزمن نفسه، عالم بلا أضواء ───
 const WorldDark = reverent((q) => {
-  const k = cueKit(q, ["العالم", "مدن", "ضوءا"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): c1-s5 صارت «يخبرنا القرآن أن البشر يرجعون إلى أصل واحد…» (البند ٣٢٥): حُذف سطرا «مدن» و«ممالك»،
+  // والغسل على «البشر»، والدائرة الواحدة على «أصل»، وشريط السنة الفارغ على «سنة»
+  // التحرير النهائي للمحرر (٢٧ نوفمبر): حُذفت من c1-s6 «عدّاد هذه الحلقة يقول بصدق: لا نعلم.»، فبقي العدّاد وختم «لا نعلم» عليه (مسموح على الشاشة) بلا عنصر جديد:
+  // نص العدّاد «في هذه الحلقة:» على «الخريطة» (كان «عداد»)، والختم والكاميرا إلى العدّاد على «دليلا» (كانا «نعلم» و«عداد») بعد رجوع نقطة الضوء
+  const k = cueKit(q, ["العالم", "البشر", "ضوءا"]);
   const { t, S } = k;
   const globe = k.draw(0, "العالم", 1.4);
   const counter = k.on(0, "الأيام");
   const bound = k.draw(0, "حدود", 1.4);
-  const cities = k.on(1, "مدن"), kings = k.on(1, "ممالك"), year = k.on(1, "سنة");
-  const wash = k.draw(1, "الأرض", 1.2);
-  const fam = k.draw(1, "أسرة", 0.8);
+  const year = k.on(1, "سنة");
+  const wash = k.draw(1, "البشر", 1.2);
+  const fam = k.draw(1, "أصل", 0.8);
   const light = S === 2 ? bounce(t, k.at("ضوءا"), k.at("دليلا") + 0.2) : 0;
-  const ctext = k.draw(2, "عداد", 0.9);
-  const seal = k.on(2, "نعلم", 0.5);
+  const ctext = k.draw(2, "الخريطة", 0.9);
+  const seal = k.on(2, "دليلا", 0.5);
   const cam = k.cam(NEUTRAL, [
     [0, "العالم", { cx: 620, cy: 520, s: 1.25 }, 1.4],
     [0, "حدود", { cx: 560, cy: 560, s: 1.15 }, 1.2],
-    [1, "مدن", { cx: 1360, cy: 420, s: 1.3 }, 1.0],
-    [1, "الأرض", { cx: 600, cy: 520, s: 1.2 }, 1.1],
+    [1, "البشر", { cx: 600, cy: 520, s: 1.2 }, 1.1],
+    [1, "سنة", { cx: 1320, cy: 520, s: 1.3 }, 1.0],
     [2, "ضوءا", { cx: 620, cy: 480, s: 1.2 }, 1.0],
-    [2, "عداد", { cx: 600, cy: 760, s: 1.35 }, 1.0],
+    [2, "دليلا", { cx: 600, cy: 760, s: 1.35 }, 1.0],
   ]);
   const L = (
     <g>
@@ -139,8 +144,6 @@ const WorldDark = reverent((q) => {
   );
   const R = (
     <g>
-      <Field x={1640} y={300} label="مدن:" q={cities} w={220} />
-      <Field x={1640} y={390} label="ممالك:" q={kings} w={220} />
       <DateRibbon x={1300} y={470} s={1.1} o={year} />
       <Txt x={1300} y={720} size={30} q={year} color={C.inkSoft}>سنة: —</Txt>
     </g>
@@ -225,21 +228,23 @@ const GoldSealSmall: React.FC<{ x: number; y: number; q: number; label?: string 
     </g>
   );
 
-// ─── c1-s17..s19: القماش في الريح، والشق الذي وقف (نص المراجعة العلمية، الدفعة ٥) ───
+// ─── c1-s17 / c1-s19: القماش في الريح، والشق الذي وقف (نص المراجعة العلمية، الدفعة ٥) ───
+// الدفعة ١٨ البند ٣٩٦: c1-s19 «وجاء جواب أخيه واضحًا: قبول القربان مرتبط بالتقوى.» بدل «فالمشكلة إذن… في قلبه هو»: الشق يتراجع على «وجاء»، والدائرة عند حجر الأخ على «أخيه»، والكاميرا إلى «التقوى» على «بالتقوى»؛ وحُذفت حلقة «قلبه» (لا تعيين لحال باطنة)
+// دفعة المحرر ٥ (رد المحرر ٢٧ نوفمبر): حُذفت c1-s18 «فأجابه أخوه بأن الله لا يقبل إلا من أهل التقوى.»، فانتقلت عناصر مرحلتها إلى c1-s19 بلا عنصر جديد:
+// الريح تهدأ على «وجاء» (كانت «فأجابه»)، والظل الأعمق والكاميرا على «أخيه» (كانا «أخوه»)، و«التقوى» تُكتب على «بالتقوى» (كانت «التقوى»)
 const WindCloth = reverent((q) => {
-  const k = cueKit(q, ["فهدد", "فأجابه", "فالمشكلة"]);
+  const k = cueKit(q, ["فهدد", "وجاء"]);
   const { t, S } = k;
-  const wind = S === 0 ? k.on(0, "يتقبل", 0.8) : S === 1 ? 1 - k.on(1, "فأجابه", 1.0) : 0;
-  const crack = S === 2 ? 1 - prog(t, k.at("فالمشكلة", 1.2) - 0.05, k.at("فالمشكلة", 1.2) + 1.2) : k.draw(0, "بالقتل", 1.2);
-  const shade = 0.25 + 0.25 * k.on(1, "أخوه", 0.8);
-  const taqwa = k.draw(1, "التقوى", 1.0);
-  const notHere = S === 2 ? bounce(t, k.at("أخيه"), k.at("أخيه") + 1.1) : 0;
-  const heart = k.draw(2, "قلبه", 0.8);
+  const wind = S === 0 ? k.on(0, "يتقبل", 0.8) : 1 - k.on(1, "وجاء", 1.0);
+  const crack = S === 1 ? 1 - prog(t, k.at("وجاء", 1.2) - 0.05, k.at("وجاء", 1.2) + 1.2) : k.draw(0, "بالقتل", 1.2);
+  const shade = 0.25 + 0.25 * k.on(1, "أخيه", 0.8);
+  const taqwa = k.draw(1, "بالتقوى", 1.0);
+  const notHere = S === 1 ? bounce(t, k.at("أخيه"), k.at("أخيه") + 1.1) : 0;
   const cam = k.cam(NEUTRAL, [
     [0, "يتقبل", { cx: 620, cy: 650, s: 1.3 }, 1.0],
     [0, "بالقتل", { cx: 800, cy: 700, s: 1.15 }, 1.0],
-    [1, "أخوه", { cx: 1320, cy: 640, s: 1.3 }, 1.0],
-    [2, "قلبه", { cx: 640, cy: 680, s: 1.35 }, 1.0],
+    [1, "أخيه", { cx: 1320, cy: 640, s: 1.3 }, 1.0],
+    [1, "بالتقوى", { cx: 1320, cy: 600, s: 1.3 }, 1.0],
   ]);
   const cr = crackPath(STONE_L + 110, 780, 960, 790, 31, 10, 12);
   const both = (
@@ -248,7 +253,6 @@ const WindCloth = reverent((q) => {
       <Offerings stones={1} cloths={1} windL={wind} t={t} shadeR={shade} />
       <Ink d={cr} p={crack} w={5} c={C.ink} />
       <Ring x={STONE_R} y={790} r={70} p={notHere} dash c={C.inkSoft} />
-      <Ring x={STONE_L + 110} y={780} r={26} p={heart} w={4} c={EMBER} />
     </g>
   );
   return <Leaf q={q} id="b2wc" cam={cam} L={both} R={<g>{both}<Write id="b2wc-t" x={STONE_R} y={560} size={54} p={taqwa} label="التقوى" /></g>} />;
@@ -302,23 +306,22 @@ const Load: React.FC<{ x: number; y: number; q: number }> = ({ x, y, q }) =>
 
 // ─── c1-s23: حِملان على ظهر واحد ───
 const TwoLoads = reverent((q) => {
-  const k = cueKit(q, ["إثمه"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): «…يحذّر أخاه من عاقبة العدوان، ومن الإثم الذي يحمله إن أقدم على قتله.» (البند ٣٢٦):
+  // حِمل واحد على «الإثم» يثقل الخط على «يحمله»؛ حُذف الحِمل الثاني والحبل وكلمة «النار» حتى لا يُفهم انتقال ذنوب المقتول
+  const k = cueKit(q, ["العدوان"]);
   const ref = k.on(0, "الآية");
-  const l1 = k.on(0, "إثمه", 0.6), l2 = k.on(0, "وإثم", 0.6);
-  const tie = k.draw(0, "معا", 0.8);
+  const l1 = k.on(0, "الإثم", 0.6), l2 = 0;
+  const tie = k.draw(0, "يحمله", 0.8);
   const sag = 26 * tie;
-  const nar = k.on(0, "النار");
-  const cam = k.cam(NEUTRAL, [[0, "إثمه", { cx: 1370, cy: 560, s: 1.3 }, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "الإثم", { cx: 1370, cy: 560, s: 1.3 }, 1.2]]);
   const R = (
     <g>
       <GoldSealSmall x={1640} y={250} q={ref} label="المائدة ٢٩" />
       <g transform={`translate(0 ${sag})`}>
         <Load x={1430} y={600} q={l1} />
         <Load x={1300} y={600} q={l2} />
-        <Ink d="M1490 560 C1420 590 1310 590 1240 560" p={tie} w={5} c={CLAY} />
       </g>
       <path d={`M1600 ${620} Q1365 ${620 + 2 * sag} 1130 620`} fill="none" stroke={C.ink} strokeWidth={6} />
-      <Txt x={1365} y={780} size={44} q={nar} color={C.inkSoft}>النار</Txt>
     </g>
   );
   return <Leaf q={q} id="b2l" cam={cam} R={R} />;
@@ -331,11 +334,11 @@ const DuskPlain = reverent((q) => {
   const ghost = S === 0 ? bounce(t, k.at("الكلام"), k.at("الكلام") + 1.8) : 0;
   const wind = S === 0 ? k.on(0, "النفس", 0.8) : 1;
   const short = S === 1 ? bounce(t, k.at("تهون"), k.at("تهون") + 1.2) : 0;
-  const steps = ["خطوة", "بعد", "خطوة#2", "حتى", "استجاب", "لها"].map((w) => (S === 1 ? k.on(1, w, 0.3) : 0));
+  // قرار المالك (٢٧ نوفمبر): حُذفت «خطوة بعد خطوة» من الجملة، فحُذفت شَرطات الحبر التي رُسمت عليها (لا عنصر بلا كلمته)
   const set = S === 1 ? prog(t, k.at("استجاب", 1.4) - 0.05, k.at("استجاب", 1.4) + 1.4) : 0;
   const cam = k.cam(NEUTRAL, [
     [0, "النفس", { cx: 700, cy: 600, s: 1.15 }, 1.2],
-    [1, "خطوة", { cx: 1100, cy: 640, s: 1.1 }, 1.6],
+    [1, "الجريمة", { cx: 1100, cy: 640, s: 1.1 }, 1.6],
     [1, "استجاب", { cx: 1500, cy: 560, s: 1.2 }, 1.2],
   ]);
   const shadowL = 220 * (1 - 0.6 * short);
@@ -348,9 +351,6 @@ const DuskPlain = reverent((q) => {
       <Grass x={360} y={640} q={1} t={t} wind={wind} seed={4} />
       <Grass x={1120} y={700} q={1} t={t} wind={wind} seed={6} n={7} />
       <Grass x={1650} y={660} q={1} t={t} wind={wind} seed={9} n={6} />
-      {steps.map((s, i) => (
-        <path key={i} d={`M${1560 - i * 150} 720 h-60`} stroke={C.ink} strokeWidth={6} strokeLinecap="round" opacity={s} />
-      ))}
     </g>
   );
   return <Leaf q={q} id="b2d" cam={cam} L={both} R={<g>{both}<Txt x={1620} y={230} size={40} q={ghost} color={C.inkSoft} font="amiri">التقوى</Txt></g>} />;
@@ -426,18 +426,20 @@ const HadithLead = reverent((q) => {
 // ─── c1-s34: العلامة الأولى (جملة «أول نفس تُقتل ظلمًا» حُذفت في المراجعة العلمية، الدفعة ٥؛ c1-s33 «الكِفل» بالكلمة) ───
 const MARKS = [1250, 1100, 940, 800, 660, 520, 380, 250];
 const FirstMark = reverent((q) => {
-  const k = cueKit(q, ["اللحظة"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): صار المشهد على «فأول من سنّ القتل يحمل نصيبًا من إثم القتل ظلمًا الذي وقع بعده، ويظل كل قاتل مسؤولًا عن فعله.» (البند ٣٢٩):
+  // العلامة الأولى على «فأول»، و«أول من سنّ» على «سن»، ونبضها على «نصيبا»، و«ظلمًا» على «ظلما»، والعلامات بعدها على «وقع… بعده»، وخيوطها ترجع إليها على «ويظل»
+  const k = cueKit(q, ["فأول"]);
   const { t } = k;
-  const mark = k.on(0, "اللحظة", 0.6);
-  const pulse = bounce(t, k.at("أول"), k.at("أول") + 0.9);
-  const many = prog(t, k.at("كل") - 0.05, k.end("يسفك") + 0.3);
+  const mark = k.on(0, "فأول", 0.6);
+  const pulse = bounce(t, k.at("نصيبا"), k.at("نصيبا") + 0.9);
+  const many = prog(t, k.at("وقع") - 0.05, k.end("بعده") + 0.3);
   const zulm = k.draw(0, "ظلما", 0.8);
-  const back = prog(t, k.at("يعود") - 0.05, k.end("نصيب"));
+  const back = prog(t, k.at("ويظل") - 0.05, k.end("مسؤولا") + 0.4);
   const sann = k.draw(0, "سن", 0.8);
   const ground = k.open(0, 1.0);
   const cam = k.cam({ cx: 1300, cy: 600, s: 1.3 }, [
-    [0, "كل", { cx: 860, cy: 600, s: 1.05 }, 1.6],
-    [0, "نصيب", { cx: 1260, cy: 600, s: 1.2 }, 1.0],
+    [0, "وقع", { cx: 860, cy: 600, s: 1.05 }, 1.6],
+    [0, "ويظل", { cx: 1260, cy: 600, s: 1.2 }, 1.0],
   ]);
   const both = (
     <g>
@@ -536,77 +538,80 @@ const CrowShot = reverent((q) => {
 
 // ─── c1-s46: ثلاثة أختام في صف ───
 const ThreeSeals = reverent((q) => {
-  const k = cueKit(q, ["الدفاتر"]);
-  const head = k.draw(0, "الدفاتر", 0.9);
-  const s = [k.on(0, "ثبت", 0.5), k.on(0, "روي", 0.5), k.on(0, "يصح", 0.5)];
-  const cam = k.cam(NEUTRAL, [[0, "ثبت", { cx: 1200, cy: 520, s: 1.1 }, 1.2]]);
-  const ROW = [[1560, "ثابت", "ما ثبت"], [1200, "رواية", "ما رُوي"], [820, "لا يصح", "ما لم يصح"]] as const;
+  const k = cueKit(q, ["الفرق"]);
+  const head = k.draw(0, "الفرق", 0.9);
+  const s = [k.on(0, "يثبت", 0.5), k.on(0, "يروى", 0.5), k.on(0, "نسبته", 0.5)];
+  // D242 (الحركة ٨٩٪ في رندر الويندوز، الحد ٩٥٪): أحداث على كلماتها في فجوات الجملة — «يظهر»: ثلاث خانات فارغة متقطعة تنتظر
+  // أختامها، «بين»: فاصلان بالحبر بين الخانات، وكل «خبر» يكتب سطر خانته قبل أن يُختم بكلمته (يثبت / يُروى / نسبته)
+  const slots = k.on(0, "يظهر", 0.6);
+  const split = k.draw(0, "بين", 0.7);
+  const lab = [k.on(0, "خبر", 0.45), k.on(0, "وخبر#1", 0.45), k.on(0, "وخبر#2", 0.45)];
+  const cam = k.cam(NEUTRAL, [[0, "يثبت", { cx: 1200, cy: 520, s: 1.1 }, 1.2]]);
+  const ROW = [[1560, "ثابت", "خبر يثبت"], [1200, "رواية", "خبر يُروى"], [820, "لا يصح", "لا تصح نسبته"]] as const;
   const row = (
     <g>
-      {ROW.map(([x, kind, lab], i) => (
+      {ROW.map(([x, kind, label], i) => (
         <g key={i}>
+          <rect x={x - 95} y={470} width={190} height={100} rx={14} fill="none" stroke={C.inkSoft} strokeWidth={3} strokeDasharray="10 9" opacity={slots * (1 - s[i]!)} />
           <Seal x={x} y={520} q={s[i]!} kind={kind} s={0.7} />
-          <Txt x={x} y={640} size={38} q={s[i]!} color={C.inkSoft}>{lab}</Txt>
+          <Txt x={x} y={640} size={38} q={Math.max(lab[i]!, s[i]!)} color={C.inkSoft}>{label}</Txt>
         </g>
       ))}
+      <Ink d="M1380 450 V600" w={3} p={split} c={C.inkSoft} />
+      <Ink d="M1010 450 V600" w={3} p={split} c={C.inkSoft} />
     </g>
   );
-  return <Leaf q={q} id="b2ts" cam={cam} L={row} R={<g>{row}<Write id="b2ts-h" x={1365} y={220} size={54} p={head} label="دفاتر الزمن" color={C.inkSoft} /></g>} />;
+  return <Leaf q={q} id="b2ts" cam={cam} L={row} R={<g>{row}<Write id="b2ts-h" x={1365} y={220} size={54} p={head} label="الفرق" color={C.inkSoft} /></g>} />;
 });
 
-// ─── c1-s47 / c1-s53..s55: العقدة الثانية تُشد، ثم الثالثة ───
+// ─── c1-s47 / c1-s53 / c1-s54 (جملة الوصل، دفعة المحرر ١، ٢٧ نوفمبر): العقدة الثانية تُشد، ثم حلقة الثالثة فارغة (تظهر معقودة في الجزء الثاني من c2-s17؛ حُذفت bd03-thread-night مع جملتها c2-s4 في التحرير النهائي للمحرر) ───
 const ThreadKnot = reverent((q) => {
-  const k = cueKit(q, ["بقي", "ومضت", "الأجيال", "نعقده"]);
+  const k = cueKit(q, ["بقي", "ومضت", "الأجيال"]);
   const { t, S } = k;
   const tie2 = k.on(0, "بقي", 0.8);
   const name2 = k.draw(0, "بقي", 1.0);
   const ext = S === 1 ? prog(t, k.at("ومضت") - 0.05, k.end("الأيام") + 0.6) : S > 1 ? 1 : 0;
   const many = S === 1 ? prog(t, k.at("وكثر") - 0.05, k.end("وأحفاده") + 0.3) : S > 1 ? 1 : 0;
+  // دفعة المحرر ١، ٢٧ نوفمبر: صارت المرحلة الثالثة جملة الوصل «ومن قصة الأخوين ننتقل إلى خبر الأجيال الأولى…» بدل «فكيف عاشت تلك الأجيال الأولى؟…»؛
+  // حلقة العقدة الثالثة على «الأجيال» كما كانت، وحُذفت خانتا «ثابت» و«رواية» (كانتا على «نعلمه» و«رواية» المحذوفتين)
   const ring3 = k.on(2, "الأجيال", 0.7);
-  const know = k.on(2, "نعلمه"), riw = k.on(2, "رواية");
-  const tie3 = k.on(3, "نعقده", 0.8);
-  const name3 = S === 3 ? k.draw(3, "الأجيال", 0.9) : 0;
   const r = rng(52);
   // النقاط بعيدة عن الخيط وعن أسماء العقد تحته
   const dots = Array.from({ length: 26 }, () => [mix(1100, 220, r()), 560 + (r() > 0.35 ? -1 : 1) * (110 + r() * 150)] as const).map(([x, y]) => [x, y > 560 ? y + 60 : y] as const);
   const cam = k.cam({ cx: 1300, cy: 560, s: 1.35 }, [
     [1, "ومضت", { cx: 860, cy: 560, s: 1.05 }, 1.4],
     [2, "الأجيال", { cx: 560, cy: 520, s: 1.3 }, 1.0],
-    [2, "نعلمه", { cx: 1300, cy: 640, s: 1.15 }, 1.0],
-    [3, "نعقده", { cx: 560, cy: 560, s: 1.35 }, 1.0],
   ]);
   const both = (
     <g>
       <Thread x1={1760} x2={160} y={560} p={mix(0.42, 1, ext)} knots={[
         { x: 1620, kind: "tied", q: 1, label: "خلق آدم", lq: 1 },
         { x: 1240, kind: "ring", q: 1, tie: tie2, label: "ابنا آدم", lq: name2 },
-        { x: 520, kind: "ring", q: ring3, tie: tie3, mark: ring3 * (1 - tie3), label: S === 3 ? "الأجيال الأولى" : undefined, lq: name3 },
+        { x: 520, kind: "ring", q: ring3, tie: 0, mark: ring3 },
       ]} />
       {dots.map(([x, y], i) => <Dot key={i} x={x} y={y} r={6} q={prog(many, i / dots.length, i / dots.length + 0.15)} />)}
     </g>
   );
   return (
-    <Leaf q={q} id="b2k" cam={cam} L={both}
-      R={<g>{both}
-        <g opacity={know}><rect x={1400} y={700} width={240} height={120} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} /><Seal x={1520} y={760} q={know} kind="ثابت" s={0.5} dim={0.45} /></g>
-        <g opacity={riw}><rect x={1110} y={700} width={240} height={120} rx={8} fill="none" stroke={C.inkSoft} strokeWidth={3} /><Seal x={1230} y={760} q={riw} kind="رواية" s={0.5} dim={0.45} /></g>
-      </g>} />
+    <Leaf q={q} id="b2k" cam={cam} L={both} R={both} />
   );
 });
 
 // ─── c1-s48 / c1-s49: الشق الذي يكبر، والطريق المفتوح ───
 const CrackGrows = reverent((q) => {
-  const k = cueKit(q, ["الحسد", "الطريق"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): c1-s48 صارت «بقي أولًا أن قربان أحد الأخوين لم يُقبَل، فهدّد أخاه، ثم وقع ما هدّده به…» بلا تعيين الحسد (البند ٣٢٧):
+  // النقطة على «أولا»، والقربان على «قربان»، والشق يكبر من «فهدد» إلى «قتل»
+  const k = cueKit(q, ["بقي", "الطريق"]);
   const { t, S } = k;
-  const dot = k.on(0, "صغير");
+  const dot = k.on(0, "أولا");
   const off = k.on(0, "قربان");
-  const grow = S === 0 ? prog(t, k.at("يكبر") - 0.05, k.end("قتلا") + 0.2) : 1;
-  const widen = S === 0 ? prog(t, k.at("يكبر"), k.last + 2) * 0.6 : 0.6 + 0.4 * (S === 1 ? prog(t, 0, k.at("ليصلح")) : 1);
+  const grow = S === 0 ? prog(t, k.at("فهدد") - 0.05, k.end("قتل") + 0.2) : 1;
+  const widen = S === 0 ? prog(t, k.at("فهدد"), k.last + 2) * 0.6 : 0.6 + 0.4 * (S === 1 ? prog(t, 0, k.at("ليصلح")) : 1);
   const road = k.draw(1, "الطريق", 1.0);
   const open = k.draw(1, "مفتوحا", 1.2);
   const taqwa = k.on(1, "التقوى", 0.7);
   const cam = k.cam({ cx: 700, cy: 560, s: 1.4 }, [
-    [0, "يكبر", { cx: 520, cy: 560, s: 1.05 }, 1.6],
+    [0, "فهدد", { cx: 520, cy: 560, s: 1.05 }, 1.6],
     [1, "الطريق", NEUTRAL, 1.0],
     [1, "التقوى", { cx: 1300, cy: 460, s: 1.25 }, 1.0],
   ]);
@@ -662,30 +667,6 @@ const OneAndAll = reverent((q) => {
   );
 });
 
-// ─── c1-s56: السطر الفارغ ───
-const BlankLineShot = reverent((q) => {
-  const k = cueKit(q, ["الصالح"]);
-  const stone = k.on(0, "الصالح");
-  const line = k.draw(0, "الكلمة", 0.9);
-  const pen = k.on(0, "الكلمة", 0.7);
-  const halt = k.draw(0, "يمد", 0.9);
-  const touch = k.on(0, "اكتبها", 0.4);
-  const cam = k.cam(NEUTRAL, [[0, "الكلمة", { cx: 1365, cy: 520, s: 1.2 }, 1.0], [0, "اكتبها", { cx: 1330, cy: 540, s: 1.35 }, 0.9]]);
-  return (
-    <Leaf q={q} id="b2bl" cam={cam}
-      L={<g>
-        <Dot x={720} y={760} q={halt} r={9} />
-        <Ink d="M700 760 H600" p={halt} w={4} />
-        <path d="M594 738 V782" stroke={C.ink} strokeWidth={5} strokeLinecap="round" opacity={prog(halt, 0.8, 1)} />
-        <Dot x={420} y={760} q={halt} r={9} />
-      </g>}
-      R={<g>
-        <g transform="translate(1640 800) scale(0.5)"><Stone x={0} y={0} w={230} h={64} q={stone} /></g>
-        <BlankLine x={1340} y={560} w={560} p={line} pen={pen} touch={touch} />
-      </g>} />
-  );
-});
-
 export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-feather": FeatherShot,
   "bd02-thread-ground": ThreadGround,
@@ -705,7 +686,6 @@ export const BD02_SCENES: Record<string, React.FC<BdProps>> = {
   "bd02-thread-knot": ThreadKnot,
   "bd02-crack-grows": CrackGrows,
   "bd02-one-and-all": OneAndAll,
-  "bd02-blank-line": BlankLineShot,
 };
 
 /** مشهد الصورة الثابتة للمراجعة لكل لقطة (المعرّف في الخطة)؛ الغائب = آخر مشهد يستعمل اللقطة، عند نهاية آخر كلمة */

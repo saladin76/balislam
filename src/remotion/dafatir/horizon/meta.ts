@@ -18,6 +18,11 @@ export type HzMeta = {
   seconds?: number;
   /** أقل مدة يحتاجها المشهد من بدايته بحسب حقوله وتوقيت كلماته (مثل إمساك مصطلح متأخر) — اختياري */
   minEnd?: (p: Record<string, string | undefined>, tl: import("./timeline").Timeline) => number;
+  /**
+   * D242: صفحة بطاقة الآية/الحديث على هذه اللقطة إن رسمت اللقطة على صفحة واحدة فقط (الأخرى فارغة): «l» لما يرسم على اليمنى
+   * وحدها. يقرؤه attachQuoteCards فيضع verseSide/hadithSide؛ وبلا قيمة الافتراضي كما في 001 (اليمنى).
+   */
+  quoteSide?: "l" | "r";
 };
 
 export const HZ_LEAD = 0.3;
@@ -78,19 +83,31 @@ export const HZ_META: Record<string, HzMeta> = { ...LIB_META, ...EP001_META, ...
 /** جمل النص كما في السكريبت (الجملة تنتهي بنقطة أو علامة استفهام) */
 export const hzSentences = (narration: string) => (narration.match(/[^.؟!]+[.؟!]?/g) ?? []).map((s) => s.trim()).filter(Boolean);
 
-/** مدة المشهد قبل وجود صوت الراوي: توقيت الكلمات التقديري + الذيل */
 /**
  * الاستشهاد البصري (V9، قرار المالك ١١ نوفمبر): نص الآية ومرجعها يظهران على صفحة الدفتر من كلمة verseFrom والراوي مستمر.
- * تبقى البطاقة زمن القراءة على الأقل (1.5 ث + الكلمات ÷ 2.2، ولا يقل عن 4 ث)؛ إن كان الكلام أقصر أمسك المشهد للقراءة.
+ * ونص الحديث كذلك (قرار المالك ٢٨ نوفمبر، D242: «الآيات والأحاديث في دفاتر الزمن كما في 001»): hadithText بمرجعه hadithRef
+ * من كلمة hadithFrom، بالنافذة نفسها وزمن القراءة نفسه، ولا يُرسل نصه إلى الصوت أبدًا ولا يُقابل بنص المصحف.
+ * تبقى البطاقة زمن القراءة على الأقل (verseReadSeconds)؛ إن كان الكلام أقصر أمسك المشهد للقراءة.
  * يعيد [ظهور البطاقة، نهاية زمن قراءتها] أو null.
  */
+export type HzQuote = { kind: "verse" | "hadith"; text: string; from: string };
+/** الاقتباس المعروض في اللقطة: الآية (verseText + verseKey) أولًا، وإلا الحديث (hadithText + hadithRef)، وإلا null */
+export const hzQuote = (props: Record<string, string | undefined>): HzQuote | null => {
+  if (props.verseText?.trim() && props.verseKey?.trim()) return { kind: "verse", text: props.verseText, from: props.verseFrom ?? "" };
+  if (props.hadithText?.trim() && props.hadithRef?.trim()) return { kind: "hadith", text: props.hadithText, from: props.hadithFrom ?? "" };
+  return null;
+};
+/** في اللقطة اقتباس معروض (آية أو حديث) تُحسب نافذته */
+export const hasHzQuote = (props: Record<string, unknown> | undefined): boolean => Boolean(props && hzQuote(props as Record<string, string | undefined>));
+
 export const verseWindow = (props: Record<string, string | undefined>, tl: Timeline): [number, number] | null => {
-  if (!props.verseText || !props.verseKey) return null;
-  const w = (props.verseFrom ?? "").trim();
+  const q = hzQuote(props);
+  if (!q) return null;
+  const w = q.from.trim();
   const p = w.replace(/[\u064B-\u0652\u0670\u0640]/g, "");
   const hit = p ? tl.words.find((x) => x.w.replace(/[\u064B-\u0652\u0670\u0640]/g, "").startsWith(p)) : tl.words[0];
   const a = hit ? hit.s : 0.4;
-  const read = verseReadSeconds(props.verseText);
+  const read = verseReadSeconds(q.text);
   // D219 (قرار المالك ٢٤ نوفمبر: «الراوي يكمل بلا سكوت، ومدة البطاقة قدر قراءتها فقط»): النافذة داخل الكلام؛ إن جاوزت آخر كلمة
   // تتقدم بدايتها (لا قبل أول كلمة) فتنتهي معه، فلا يطول المشهد بسكوت للقراءة
   // ولا تبدأ قبل نهاية نافذة ذكر سابقة (لا تظهر البطاقة مع لفظ الجلالة)؛ وإن قصر الكلام عن القراءة تمتد بعد آخر كلمة VERSE_AFTER_SPEECH على الأكثر (كانت ٠٫٨ ث، تصحيح D217 v17)
@@ -100,6 +117,8 @@ export const verseWindow = (props: Record<string, string | undefined>, tl: Timel
   const s = a + read <= last ? a : Math.max(floor, Math.min(a, last - read));
   return [s, Math.min(s + read, last + VERSE_AFTER_SPEECH)];
 };
+/** الاسم العام للنافذة نفسها (آية أو حديث) */
+export const quoteWindow = verseWindow;
 
 /**
  * أطول بقاء لبطاقة الآية بعد آخر كلمة للراوي (ث). كان ٠٫٨ (D219)، فكانت نهاية المشهد بعد آخر كلمة نافذة سكون ساكنة صامتة

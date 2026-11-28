@@ -80,7 +80,7 @@ const CLICKBAIT = ["لن تصدق", "صادم", "صدمه", "كارثه", "فض�
 
 /** مشهد لا يصلح غلافًا: الآية والبسملة والدعاء والحديث وشاشة النهاية (توقير، ولا كلام على صورة آية). */
 export const isSacredScene = (s: { template: string; ayahKey?: string; props?: Record<string, string> }): boolean =>
-  Boolean(s.ayahKey || s.props?.verseKey || s.props?.verseText || s.props?.basmala) ||
+  Boolean(s.ayahKey || s.props?.verseKey || s.props?.verseText || s.props?.hadithText || s.props?.basmala) ||
   ["verse-card", "dua-board", "hadith-card", "end-screen"].includes(s.template) || /basmala|بسمل/i.test(s.props?.shot ?? "");
 
 /** حول كل ذكر لله (كالسكون المقصود في stillnessSpans) */

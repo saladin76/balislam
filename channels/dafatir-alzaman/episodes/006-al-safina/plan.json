@@ -1,0 +1,826 @@
+{
+  "version": 1,
+  "episode": "006",
+  "title": "سفينة نوح عليه السلام والطوفان",
+  "domain": "islamic",
+  "themeId": "warm",
+  "channel": "dafatir-alzaman",
+  "lang": "ar",
+  "overlays": {
+    "captions": true,
+    "motif": true,
+    "watermark": true,
+    "chapterLabel": false
+  },
+  "updatedAt": "2026-11-27T21:17:59.898Z",
+  "intro": false,
+  "chapters": [
+    {
+      "number": 1,
+      "title": "",
+      "scenes": [
+        {
+          "id": "c1-s1",
+          "template": "horizon-shot",
+          "narration": "حين مرّ كبار قوم نوحٍ عليه السلام به وهو يصنع السفينة، سخروا منه. فكيف ردّ عليهم؟",
+          "line": 36,
+          "props": {
+            "shot": "bd06-plank"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s3",
+          "template": "horizon-shot",
+          "narration": "في الحلقة الماضية رأينا نوحًا عليه السلام يدعو قومه زمنًا طويلًا، وقلّة قليلة تستجيب.",
+          "line": 38,
+          "props": {
+            "shot": "bd06-thread-wood"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s4",
+          "template": "horizon-shot",
+          "narration": "واليوم نعقد على خيط الزمن عقدة من خشب: السفينة.",
+          "line": 40,
+          "props": {
+            "shot": "bd06-thread-wood"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s5",
+          "template": "horizon-shot",
+          "narration": "وفي هذه الحلقة نحتاج إلى أختامنا الثلاثة أكثر من أي حلقة قبلها: ما ثبت، وما رُوي، وما لا نعلم.",
+          "line": 42,
+          "props": {
+            "shot": "bd06-seals-tray"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s6",
+          "template": "horizon-shot",
+          "narration": "لأن السفينة من أكثر ما كتب الناس عنه، ومن أقل ما نعرفه بيقين.",
+          "line": 44,
+          "props": {
+            "shot": "bd06-pile"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s7",
+          "template": "horizon-shot",
+          "narration": "فلنبدأ بما ثبت.",
+          "line": 46,
+          "props": {
+            "shot": "bd06-seals-tray"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s8",
+          "template": "horizon-shot",
+          "narration": "الأمر بالبناء جاء من الله تعالى. وفي سورة هود ثلاث آيات متتابعة تحكي البداية:",
+          "line": 48,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "هود · ٣٧–٣٩",
+            "tagWord": "هود"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s11",
+          "template": "horizon-shot",
+          "narration": "أمر الله نوحًا عليه السلام أن يصنع السفينة، فصنعها بوحيٍ من ربّه، وفي حفظه وعنايته.",
+          "line": 52,
+          "props": {
+            "shot": "bd06-three-marks",
+            "verseKey": "11:37-39",
+            "verseText": "وَٱصْنَعِ ٱلْفُلْكَ بِأَعْيُنِنَا وَوَحْيِنَا وَلَا تُخَـٰطِبْنِى فِى ٱلَّذِينَ ظَلَمُوٓا۟ ۚ إِنَّهُم مُّغْرَقُونَ وَيَصْنَعُ ٱلْفُلْكَ وَكُلَّمَا مَرَّ عَلَيْهِ مَلَأٌ مِّن قَوْمِهِۦ سَخِرُوا۟ مِنْهُ ۚ قَالَ إِن تَسْخَرُوا۟ مِنَّا فَإِنَّا نَسْخَرُ مِنكُمْ كَمَا تَسْخَرُونَ فَسَوْفَ تَعْلَمُونَ مَن يَأْتِيهِ عَذَابٌ يُخْزِيهِ وَيَحِلُّ عَلَيْهِ عَذَابٌ مُّقِيمٌ",
+            "verseFrom": "أمر"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s14",
+          "template": "horizon-shot",
+          "narration": "كان نوح عليه السلام يصنع السفينة، وكان الملأ من قومه يمرّون به فيسخرون.",
+          "line": 54,
+          "props": {
+            "shot": "bd06-planks-rise"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s13",
+          "template": "horizon-shot",
+          "narration": "فأجابهم نوحٌ عليه السلام، وأنذرهم بأنهم سيعلمون على من ينزل العذاب.",
+          "line": 56,
+          "props": {
+            "shot": "bd06-three-marks"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s15",
+          "template": "horizon-shot",
+          "narration": "وماذا قال القرآن عن السفينة نفسها؟",
+          "line": 59,
+          "props": {
+            "shot": "lib-term",
+            "kind": "quran",
+            "source": "القرآن الكريم",
+            "sourceWord": "القرآن",
+            "term": "السفينة",
+            "termWord": "السفينة"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s16",
+          "template": "horizon-shot",
+          "narration": "قال إنها من ألواح ودُسُر:",
+          "line": 61,
+          "props": {
+            "shot": "verse-intro"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s18",
+          "template": "horizon-shot",
+          "narration": "الألواح هي الخشب المسطّح. وفسّر الطبري الدُّسُر بالمسامير.",
+          "line": 65,
+          "props": {
+            "shot": "bd06-dusur",
+            "verseKey": "54:13",
+            "verseText": "وَحَمَلْنَـٰهُ عَلَىٰ ذَاتِ أَلْوَٰحٍ وَدُسُرٍ",
+            "verseFrom": "الألواح"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s19",
+          "template": "horizon-shot",
+          "narration": "وهذا كل ما وصفه القرآن من صنعتها: ألواح، وما يشدّها.",
+          "line": 67,
+          "props": {
+            "shot": "bd06-dusur"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s20",
+          "template": "horizon-shot",
+          "narration": "أما الطول والعرض والارتفاع، فلم يذكرها القرآن.",
+          "line": 69,
+          "props": {
+            "shot": "bd06-blank-ruler"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s21",
+          "template": "horizon-shot",
+          "narration": "ولا نوع الخشب، ولا عدد الطوابق، ولا المكان الذي بُنيت فيه، ولا المدة التي استغرقها البناء.",
+          "line": 71,
+          "props": {
+            "shot": "bd06-four-boxes"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s22",
+          "template": "horizon-shot",
+          "narration": "ولا نعلم حديثًا صحيحًا يحدّد مقاسها أو نوع خشبها أو عدد طبقاتها.",
+          "line": 73,
+          "props": {
+            "shot": "bd06-four-boxes"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s23",
+          "template": "horizon-shot",
+          "narration": "ومع ذلك، ستجد في كتب كثيرة أرقامًا دقيقة: كذا ذراعًا طولًا، وكذا عرضًا، وثلاث طبقات، وخشبًا من نوع بعينه.",
+          "line": 75,
+          "props": {
+            "shot": "bd06-smudged"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s24",
+          "template": "horizon-shot",
+          "narration": "من أين جاءت هذه الأرقام؟ منها ما يُروى عن أهل الكتاب، ونقله بعض المفسرين في كتبهم.",
+          "line": 77,
+          "props": {
+            "shot": "lib-gloss",
+            "tafsirWord": "الأرقام",
+            "tafsirLabel": "نقله بعض المفسرين"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s25",
+          "template": "horizon-shot",
+          "narration": "وهنا نضع ختمنا الثاني: رواية.",
+          "line": 81,
+          "props": {
+            "shot": "bd06-smudged"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s26",
+          "template": "horizon-shot",
+          "narration": "فكيف نتعامل مع هذه الروايات؟ وقد أرشد النبي صلى الله عليه وسلم إلى التوقف في أخبار أهل الكتاب التي لا نعلم صدقها ولا كذبها، فقال:",
+          "line": 83,
+          "props": {
+            "shot": "lib-term",
+            "noteWord": "نتعامل",
+            "term": "التوقف",
+            "subWord": "صدقها",
+            "hadithText": "لَا تُصَدِّقُوا أَهْلَ الكِتَابِ وَلَا تُكَذِّبُوهُمْ",
+            "hadithRef": "صحيح البخاري ٤٤٨٥",
+            "hadithNarrator": "أبو هريرة",
+            "hadithFrom": "فكيف"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s28",
+          "template": "horizon-shot",
+          "narration": "ولهذا نقتصر في وصف السفينة على ما ثبت. لا نصدّق تلك الأرقام فنبني عليها، ولا نكذّبها فننفيها. نتركها حيث هي: رواية.",
+          "line": 89,
+          "props": {
+            "shot": "lib-compare",
+            "title": "ما ثبت",
+            "titleWord": "ثبت",
+            "aWord": "نصدّق",
+            "bWord": "نكذّبها",
+            "verdict": "both",
+            "verdictText": "رواية",
+            "verdictWord": "رواية"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s29",
+          "template": "horizon-shot",
+          "narration": "ولذلك لن ترى في دفترنا اليوم رقمًا لطول السفينة. ولا رسمًا يدّعي أنه شكلها كما كانت.",
+          "line": 91,
+          "props": {
+            "shot": "bd06-no-sketch"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s30",
+          "template": "horizon-shot",
+          "narration": "وصف القرآن السفينة بالألواح والدُّسُر، وهذا ما نعرفه.",
+          "line": 93,
+          "props": {
+            "shot": "bd06-dusur"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s31",
+          "template": "horizon-shot",
+          "narration": "وأما الختم الثالث: لا نعلم.",
+          "line": 95,
+          "props": {
+            "shot": "bd06-unknown-sheet"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s32",
+          "template": "horizon-shot",
+          "narration": "أين بُنيت السفينة؟ لا نعلم. كم استغرق بناؤها؟ لا نعلم.",
+          "line": 97,
+          "props": {
+            "shot": "bd06-unknown-sheet"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s33",
+          "template": "horizon-shot",
+          "narration": "وكل ما يُقال عن بقاياها اليوم في هذا الجبل أو ذاك، لم يثبت منه شيء بدليل نعتمد عليه.",
+          "line": 101,
+          "props": {
+            "shot": "bd06-two-peaks"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s34",
+          "template": "horizon-shot",
+          "narration": "وقد ذكر القرآن في موضع آخر أنها بقيت عبرة:",
+          "line": 103,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "العنكبوت · ١٥"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s36",
+          "template": "horizon-shot",
+          "narration": "علامة باقية للناس. يكفينا من السفينة ما أراد الله أن نعرفه منها، ولا نحتاج إلى مقاساتها لنفهم معناها.",
+          "line": 107,
+          "props": {
+            "shot": "bd06-meaning",
+            "verseKey": "29:15",
+            "verseText": "فَأَنجَيْنَـٰهُ وَأَصْحَـٰبَ ٱلسَّفِينَةِ وَجَعَلْنَـٰهَآ ءَايَةً لِّلْعَـٰلَمِينَ",
+            "verseFrom": "علامة"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s37",
+          "template": "horizon-shot",
+          "narration": "فماذا نعقد على الخيط اليوم؟",
+          "line": 109,
+          "props": {
+            "shot": "bd06-knot-seals"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s38",
+          "template": "horizon-shot",
+          "narration": "عقدة من خشب، عليها ختم «ثابت»: سفينة بُنيت بأمر الله، من ألواح وما يشدّها، وقومٌ يسخرون.",
+          "line": 111,
+          "props": {
+            "shot": "bd06-knot-seals"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s39",
+          "template": "horizon-shot",
+          "narration": "وبجوارها ختم «رواية» للأرقام والأوصاف، وختم «لا نعلم» للمكان والزمن.",
+          "line": 113,
+          "props": {
+            "shot": "bd06-knot-seals"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s40",
+          "template": "horizon-shot",
+          "narration": "وبقي لنا منها درس لا يحتاج إلى أرقام. أن العمل الصحيح قد يبدو للناس غريبًا، بل مضحكًا، قبل أن يأتي وقته.",
+          "line": 115,
+          "props": {
+            "shot": "bd06-keep-building"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s41",
+          "template": "horizon-shot",
+          "narration": "وأن صاحبه لا يتوقف عن البناء لأن الناس يضحكون.",
+          "line": 119,
+          "props": {
+            "shot": "bd06-keep-building"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s42",
+          "template": "horizon-shot",
+          "narration": "ثم اكتملت السفينة، وجاء الأمر.",
+          "line": 121,
+          "props": {
+            "shot": "bd06-cloud"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s43",
+          "template": "horizon-shot",
+          "narration": "فماذا حدث حين بدأ الطوفان؟",
+          "line": 123,
+          "props": {
+            "shot": "bd06-next-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s1",
+          "template": "horizon-shot",
+          "narration": "نزل الماء من السماء، وتفجّرت من الأرض عيون، كما جاء في سورة القمر.",
+          "line": 136,
+          "props": {
+            "shot": "bd07-two-waters",
+            "verseKey": "54:11-12",
+            "verseText": "فَفَتَحْنَآ أَبْوَٰبَ ٱلسَّمَآءِ بِمَآءٍ مُّنْهَمِرٍ وَفَجَّرْنَا ٱلْأَرْضَ عُيُونًا فَٱلْتَقَى ٱلْمَآءُ عَلَىٰٓ أَمْرٍ قَدْ قُدِرَ",
+            "verseFrom": "نزل"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s8",
+          "template": "horizon-shot",
+          "narration": "فاجتمع الماء على ما قدّره الله.",
+          "line": 144,
+          "props": {
+            "shot": "bd07-meet"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s9",
+          "template": "horizon-shot",
+          "narration": "وقبل أن يبدأ، جاء الأمر لنوح عليه السلام: من يركب السفينة.",
+          "line": 148,
+          "props": {
+            "shot": "bd07-manifest"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s10",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة هود:",
+          "line": 150,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "هود · ٤٠",
+            "tagWord": "هود"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s12",
+          "template": "horizon-shot",
+          "narration": "وحين فار التنور، أمر الله نوحًا عليه السلام أن يحمل الأزواج التي أمره بها، وأهلَه إلا من سبق عليه الحكم، ومن آمن معه، وكانوا قليلًا.",
+          "line": 154,
+          "props": {
+            "shot": "bd07-manifest",
+            "verseKey": "11:40",
+            "verseText": "حَتَّىٰٓ إِذَا جَآءَ أَمْرُنَا وَفَارَ ٱلتَّنُّورُ قُلْنَا ٱحْمِلْ فِيهَا مِن كُلٍّ زَوْجَيْنِ ٱثْنَيْنِ وَأَهْلَكَ إِلَّا مَن سَبَقَ عَلَيْهِ ٱلْقَوْلُ وَمَنْ ءَامَنَ ۚ وَمَآ ءَامَنَ مَعَهُۥٓ إِلَّا قَلِيلٌ",
+            "verseFrom": "وحين"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s13",
+          "template": "horizon-shot",
+          "narration": "وكم كان عددهم؟ يذكر المفسرون أرقامًا مختلفة، وأكثرها روايات لا نعرف لها سندًا صحيحًا. فنكتفي بما قاله القرآن: قليل. ونضع على الأرقام ختمها: رواية.",
+          "line": 158,
+          "props": {
+            "shot": "bd07-numbers"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s15",
+          "template": "horizon-shot",
+          "narration": "ثم ركبوا، باسم الله.",
+          "line": 162,
+          "props": {
+            "shot": "bd07-embark"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s16",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة هود:",
+          "line": 164,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "هود · ٤١",
+            "tagWord": "هود"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s18",
+          "template": "horizon-shot",
+          "narration": "يبدأ سيرها ورسوّها بذكر الله. لا ثقة بخشب ولا بحبال، بل بالله وحده.",
+          "line": 168,
+          "props": {
+            "shot": "bd07-not-wood",
+            "verseKey": "11:41",
+            "verseText": "وَقَالَ ٱرْكَبُوا۟ فِيهَا بِسْمِ ٱللَّهِ مَجْر۪ىٰهَا وَمُرْسَىٰهَآ ۚ إِنَّ رَبِّى لَغَفُورٌ رَّحِيمٌ",
+            "verseFrom": "يبدأ"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s19",
+          "template": "horizon-shot",
+          "narration": "وجرت السفينة في موج يشبه الجبال.",
+          "line": 172,
+          "props": {
+            "shot": "bd07-waves"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s20",
+          "template": "horizon-shot",
+          "narration": "وفي هذه اللحظة، يحكي القرآن مشهدًا من أصعب ما يمرّ به أب.",
+          "line": 174,
+          "props": {
+            "shot": "lib-term",
+            "term": "يحكي القرآن",
+            "note": "أصعب ما يمرّ به أب"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s21",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة هود:",
+          "line": 176,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "هود · ٤٢–٤٣",
+            "tagWord": "هود"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s23",
+          "template": "horizon-shot",
+          "narration": "نادى نوحٌ عليه السلام ابنه أن يركب معهم. وظنّ الابن أن جبلًا يحميه من الماء.",
+          "line": 180,
+          "props": {
+            "shot": "bd07-far",
+            "verseKey": "11:42-43",
+            "verseText": "وَهِىَ تَجْرِى بِهِمْ فِى مَوْجٍ كَٱلْجِبَالِ وَنَادَىٰ نُوحٌ ٱبْنَهُۥ وَكَانَ فِى مَعْزِلٍ يَـٰبُنَىَّ ٱرْكَب مَّعَنَا وَلَا تَكُن مَّعَ ٱلْكَـٰفِرِينَ قَالَ سَـَٔاوِىٓ إِلَىٰ جَبَلٍ يَعْصِمُنِى مِنَ ٱلْمَآءِ ۚ قَالَ لَا عَاصِمَ ٱلْيَوْمَ مِنْ أَمْرِ ٱللَّهِ إِلَّا مَن رَّحِمَ ۚ وَحَالَ بَيْنَهُمَا ٱلْمَوْجُ فَكَانَ مِنَ ٱلْمُغْرَقِينَ",
+            "verseFrom": "نادى"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s24",
+          "template": "horizon-shot",
+          "narration": "فأجابه نوح عليه السلام بأن النجاة في ذلك اليوم لمن رحمه الله.",
+          "line": 182,
+          "props": {
+            "shot": "bd07-far"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s25",
+          "template": "horizon-shot",
+          "narration": "وحال الموج بينهما.",
+          "line": 184,
+          "props": {
+            "shot": "bd07-wave-between"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s26",
+          "template": "horizon-shot",
+          "narration": "ويذكر القرآن في هذه القصة ابنَ نوح عليه السلام، من غير أن يسمّيه.",
+          "line": 188,
+          "props": {
+            "shot": "bd07-blank-name"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s27",
+          "template": "horizon-shot",
+          "narration": "ثم يذكر القرآن نداء نوح ربَّه والجواب الذي جاءه.",
+          "line": 192,
+          "props": {
+            "shot": "lib-term",
+            "term": "النداء والجواب",
+            "kind": "quran",
+            "source": "القرآن الكريم",
+            "sourceWord": "القرآن",
+            "termWord": "نداء",
+            "subWord": "والجواب"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s28",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة هود:",
+          "line": 194,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "هود · ٤٥–٤٦",
+            "tagWord": "هود"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s30",
+          "template": "horizon-shot",
+          "narration": "وذكر نوح عليه السلام ابنه لربّه، فبيّن الله له أن ابنه لم يكن من أهله الذين شملهم وعد النجاة، وأرشده ألّا يسأل ربه أمرًا لا يعلم حقيقته.",
+          "line": 198,
+          "props": {
+            "shot": "lib-gloss",
+            "ref": "هود · ٤٥–٤٦",
+            "tafsirLabel": "تفسير الطبري، هود ٤٦",
+            "verseKey": "11:45-46",
+            "verseText": "وَنَادَىٰ نُوحٌ رَّبَّهُۥ فَقَالَ رَبِّ إِنَّ ٱبْنِى مِنْ أَهْلِى وَإِنَّ وَعْدَكَ ٱلْحَقُّ وَأَنتَ أَحْكَمُ ٱلْحَـٰكِمِينَ قَالَ يَـٰنُوحُ إِنَّهُۥ لَيْسَ مِنْ أَهْلِكَ ۖ إِنَّهُۥ عَمَلٌ غَيْرُ صَـٰلِحٍ ۖ فَلَا تَسْـَٔلْنِ مَا لَيْسَ لَكَ بِهِۦ عِلْمٌ ۖ إِنِّىٓ أَعِظُكَ أَن تَكُونَ مِنَ ٱلْجَـٰهِلِينَ",
+            "verseFrom": "وذكر"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s31",
+          "template": "horizon-shot",
+          "narration": "فالرابطة التي تنجي يومئذ ليست رابطة الدم وحدها، بل الإيمان والعمل الصالح.",
+          "line": 200,
+          "props": {
+            "shot": "bd07-two-ropes"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s32",
+          "template": "horizon-shot",
+          "narration": "وهل عمّ الطوفان الأرض كلها، أم أرض قوم نوح وحدهم؟",
+          "line": 204,
+          "props": {
+            "shot": "bd07-edge"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s33",
+          "template": "horizon-shot",
+          "narration": "هذه مسألة اختلف فيها أهل العلم. فمنهم من قال إنه عمّ الأرض، ومنهم من قال إنه كان في الأرض التي سكنها قومه.",
+          "line": 206,
+          "props": {
+            "shot": "lib-compare",
+            "title": "مسألة خلاف",
+            "titleWord": "اختلف",
+            "aLabel": "قول",
+            "aText": "عمّ الأرض",
+            "aWord": "عمّ",
+            "bLabel": "قول",
+            "bText": "أرض قومه",
+            "bWord": "سكنها"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s34",
+          "template": "horizon-shot",
+          "narration": "أخبرنا القرآن بالطوفان، وبنجاة نوح عليه السلام ومن معه في السفينة. ولا نجزم بحدود امتداد مياه الطوفان، فنضع عليها ختم: لا نعلم.",
+          "line": 208,
+          "props": {
+            "shot": "bd07-edge"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s35",
+          "template": "horizon-shot",
+          "narration": "وفي كتب أهل الكتاب أرقام لمدة المطر وارتفاع الماء وأيام الطوفان.",
+          "line": 212,
+          "props": {
+            "shot": "bd07-ahl-kitab"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s36",
+          "template": "horizon-shot",
+          "narration": "وقد عرفنا في حلقة الأجيال الأولى قاعدة النبي صلى الله عليه وسلم في ذلك. وفيما يُنقل عن أهل الكتاب ولم يتبيّن لنا صدقه أو كذبه، نتوقف ولا نجزم به. فنضع على هذه الأرقام ختمها: رواية.",
+          "line": 212,
+          "props": {
+            "shot": "bd07-ahl-kitab"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s37",
+          "template": "horizon-shot",
+          "narration": "ثم جاء الأمر للأرض والسماء.",
+          "line": 216,
+          "props": {
+            "shot": "bd07-calm"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s38",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة هود:",
+          "line": 218,
+          "props": {
+            "shot": "verse-tag",
+            "ref": "هود · ٤٤",
+            "tagWord": "هود"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s40",
+          "template": "horizon-shot",
+          "narration": "ثم انحسر الماء، وانتهى الطوفان، واستقرت السفينة على الجودي.",
+          "line": 222,
+          "props": {
+            "shot": "bd07-calm",
+            "verseKey": "11:44",
+            "verseText": "وَقِيلَ يَـٰٓأَرْضُ ٱبْلَعِى مَآءَكِ وَيَـٰسَمَآءُ أَقْلِعِى وَغِيضَ ٱلْمَآءُ وَقُضِىَ ٱلْأَمْرُ وَٱسْتَوَتْ عَلَى ٱلْجُودِىِّ ۖ وَقِيلَ بُعْدًا لِّلْقَوْمِ ٱلظَّـٰلِمِينَ",
+            "verseFrom": "ثم"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s41",
+          "template": "horizon-shot",
+          "narration": "وماذا بعد النزول؟ تلك عقدتنا في الحلقة القادمة.",
+          "line": 224,
+          "props": {
+            "shot": "bd07-next-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s42",
+          "template": "horizon-shot",
+          "narration": "فما الذي بقي من القصة؟ أن النجاة لم تكن في الجبل العالي، بل في السفينة التي صُنعت بأمر الله وسخر منها الناس.",
+          "line": 228,
+          "props": {
+            "shot": "bd07-wet-earth"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s43",
+          "template": "horizon-shot",
+          "narration": "وأن القرب من الصالحين لا يغني عن الإيمان والعمل.",
+          "line": 232,
+          "props": {
+            "shot": "bd07-wet-earth"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s44",
+          "template": "horizon-shot",
+          "narration": "وأنت، ما السفينة التي تحتمي بها حين تعلو الأمواج في حياتك؟ اكتب لنا في التعليقات.",
+          "line": 234,
+          "props": {
+            "shot": "bd07-question"
+          },
+          "sfx": []
+        }
+      ]
+    }
+  ],
+  "series": {
+    "id": "bidayat",
+    "name": "البدايات",
+    "kind": "series",
+    "number": 4,
+    "identity": {
+      "channel": "dafatir-alzaman",
+      "accent": "#E07A3F",
+      "accentBase": "#E07A3F",
+      "onAccent": "#2A1E3F",
+      "paper": "#F1E4CB",
+      "ink": "#2A1E3F",
+      "card": {
+        "bg": "#2A1E3F",
+        "ink": "#F1E4CB"
+      },
+      "motif": "stars",
+      "fonts": {
+        "heading": "Amiri",
+        "body": "Tajawal",
+        "wordmark": "Amiri"
+      },
+      "title": {
+        "weight": "bold",
+        "size": "m",
+        "ornament": "rule"
+      },
+      "intro": "sting",
+      "thumbnail": {
+        "badge": "band"
+      },
+      "emblem": {
+        "base": "horizon-book",
+        "parts": [
+          "book"
+        ]
+      },
+      "clamped": []
+    },
+    "template": {},
+    "stampedAt": "2026-11-27T19:59:20.344Z"
+  }
+}

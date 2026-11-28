@@ -1,5 +1,8 @@
 import { planOrder, sceneNames } from "../i18n/sceneNames";
 import { assertTemplatesApproved } from "../plan/templateApproval";
+import { assertNoSilentQuoteScenes } from "../plan/silentQuotes";
+import { assertEditorPassed, scriptPathFromRenderMedia } from "../studio/scriptPipelineStore";
+import { consumeMacRenderPermit } from "./macRenderPermit";
 import type { ChannelConfig } from "../channel/types";
 import { versesAreCitations } from "../quran/citation";
 import path from "node:path";
@@ -20,7 +23,7 @@ import type { Orientation } from "../remotion/scenes/types";
 import { browserExecutable, createIsolatedRenderBundle } from "./bundle";
 import { assertEpisodeOutputConfined, assertNoLinkedPath, publishOutputWithoutOverwrite } from "./fsIsolation";
 import { channelInfo, loadChannel, loadChannelIdentity } from "../channel";
-import { qualitySpec, type Quality } from "./quality";
+import { isPublishQuality, qualitySpec, type Quality } from "./quality";
 
 export type RenderEpisodeOptions = {
   episode: string;
@@ -89,9 +92,9 @@ export const assertMasterReady = async (o: { scriptPath: string; plan: Plan; med
     return !clip || clip.text !== s.narration.trim() || !existsSync(path.join(path.dirname(scriptPath), "voice", clip.file));
   }).map((s) => s.id);
   if (missing.length) throw new Error(`لا يمكن رندر نسخة نهائية بلا تعليق صوتي مطابق في: ${sceneNames(planOrder(plan), missing, 10)}`);
-  // The basmala is the owner's own recording (owner decision 10 Nov): never a Master with its placeholder.
+  // The basmala is the owner's approved audio (10 Nov; D239: the episode's recording or the one approved clip): never a Master with its placeholder.
   const basmalaPending = required.filter((s) => media.voice[s.id]?.basmala?.pending).map((s) => s.id);
-  if (basmalaPending.length) throw new Error(`لا يمكن رندر نسخة نهائية والبسملة بلا تسجيلك المعتمد في: ${sceneNames(planOrder(plan), basmalaPending, 10)}. ارفع تسجيل البسملة واعتمده (الخطوة ٣ ← التلاوات).`);
+  if (basmalaPending.length) throw new Error(`لا يمكن رندر نسخة نهائية والبسملة بلا تسجيلك المعتمد في: ${sceneNames(planOrder(plan), basmalaPending, 10)}. ثبّت نسخة البسملة المعتمدة (npx bal basmala install <الملف> ثم npx bal basmala apply) أو ارفع تسجيل الحلقة واعتمده.`);
   // القناة التي اختارت قارئًا: لا آية في النسخة النهائية بلا تلاوتها (مرخّصة أو من القارئ المختار)
   // D68: a channel whose verses are written citations has no recitation to wait for (the card is silent text).
   const cited = versesAreCitations(o.channel);
@@ -138,7 +141,45 @@ export const assertRenderChannelOwnership = (scriptPath: string, activeChannelId
     throw new Error("مسار السكريبت لا يخص القناة النشطة.");
 };
 
+/**
+ * The Master gates of every Master path (D232 phase 2: the Mac render and the Windows Master, before it is sent and again
+ * before its file is imported): the approved assembly (requireScenesReadyForMaster), the exact reviewed recitations in the
+ * media snapshot, the motion start authorization, assertMasterReady and a current storyboard motion check.
+ */
+export const assertMasterRenderGates = async (o: { episode: string; plan: Plan; media: EpisodeMedia; chapter?: number; allowUnreviewed?: boolean }) => {
+  const { requireScenesReadyForMaster } = await import("../studio/sceneService");
+  await requireScenesReadyForMaster(o.episode);
+  const scriptPath = await resolveScriptPath(o.episode);
+  const { plan, media } = o;
+  // Every direct Master path (Studio queue, CLI, package/shorts, the Windows worker) must enforce
+  // distinct explicit script, visual and complete-audio human signoffs BEFORE
+  // assembling the expensive animated Master. Preview remains estimated.
+  // The stage snapshot must carry the exact human-reviewed Quran MP3 bytes.
+  // Reject fake/old/cloud recordings and any untrusted caller-supplied media.
+  const { assertRenderedRecitationsMatchApprovals } = await import("../quran/renderContract");
+  await assertRenderedRecitationsMatchApprovals(
+    scriptPath, undefined, media, defaultRenderMediaRoot(),
+  );
+  const { assertMotionStartAuthorized } = await import("../voice/motionGate");
+  await assertMotionStartAuthorized(o.episode, scriptPath, plan, media.voice);
+  const sbRecord = await loadStoryboard(scriptPath);
+  await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: o.chapter, allowUnreviewed: o.allowUnreviewed });
+  const { loadStoryboardMotion } = await import("./storyboardMotion");
+  const { currentMotionFingerprint } = await import("./motionFingerprint");
+  const measured = await loadStoryboardMotion(o.episode);
+  if (measured) {
+    const { staleMotionScenes, auditNeedsJustification } = await import("./motionValidity");
+    const currentHash = await currentMotionFingerprint(o.episode, plan, measured.orientation);
+    if (staleMotionScenes(plan, measured, currentHash).length)
+      throw new Error("نتيجة فحص الحركة والمنطق قديمة أو ناقصة المشاهد؛ أعد الفحص قبل الرندر النهائي.");
+    if (auditNeedsJustification(measured, sbRecord.audit))
+      throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
+  }
+};
+
 export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string> => {
+  // D243: النسخة العمودية الكاملة تُرندر على جهاز الرندر وحده بمهمتها المبوَّبة كـMaster (worker-submit-vertical)
+  if (opts.quality === "vertical") throw Error("النسخة العمودية الكاملة (D243) على جهاز الرندر وحده: npx bal worker-submit-vertical.");
   if (opts.scenePreview && opts.quality === "master")
     throw Error("A scene review preview cannot be used as a Master approval.");
   if (opts.draftMarks && (opts.quality === "master" || !opts.scenePreview))
@@ -147,6 +188,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   const scriptPath = await resolveScriptPath(opts.episode);
   await assertNoLinkedPath(scriptPath, true);
   assertRenderChannelOwnership(scriptPath, loadChannel().id);
+  // D234: لا رندر (معاينة مشهد أو تجميع أو نسخة نهائية) لسكريبت فيه جملة لم تمرّ بمحرر المحتوى، قبل تجهيز الوسائط
+  await assertEditorPassed(scriptPath);
   const plan = opts.plan ?? (await loadPlan(opts.episode)) ?? (await regeneratePlan(opts.episode));
   const requestedOutput = opts.outFile ?? path.join(await outDirFor(opts.episode),
     `${plan.episode || opts.episode}-${opts.chapter ? `ch${opts.chapter}-` : ""}${opts.orientation}.mp4`);
@@ -154,6 +197,12 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   if (opts.quality === "master") {
     const { requireScenesReadyForMaster } = await import("../studio/sceneService");
     await requireScenesReadyForMaster(opts.episode);
+    // D233: the whole episode on one machine. Master renders here, on the Mac, so its scene cuts must be the Mac's too.
+    const { assertOneMachine, episodeSceneMachines, MAC_MACHINE } = await import("./worker/provenance");
+    const machine = assertOneMachine(await episodeSceneMachines(path.join(path.dirname(scriptPath), "previews"),
+      plan.chapters.flatMap((c) => c.scenes.map((s) => s.id))), "Master");
+    if (machine && machine !== MAC_MACHINE)
+      throw new Error(`لا Master على الماك: مشاهد الحلقة رُندرت على جهاز الرندر «${machine}» (D233: كل حلقة تُرندر كاملة على جهاز واحد). اصنع Master على الجهاز نفسه.`);
   }
   log(0, "تجهيز الوسائط…");
   // الوسائط تُنسخ قبل التجميع، لأن Remotion يضمّ مجلد public وقت التجميع
@@ -162,33 +211,8 @@ export const renderEpisode = async (opts: RenderEpisodeOptions): Promise<string>
   }));
   assertRenderMediaOwnership(scriptPath, media);
   // لا يُسمح بخروج ملف Master يبدو مكتملًا مع نقص صوت أو مراجعات.
-  if (opts.quality === "master") {
-    const scriptPath = await resolveScriptPath(opts.episode);
-    // Every direct Master path (Studio queue, CLI, package/shorts) must enforce
-    // distinct explicit script, visual and complete-audio human signoffs BEFORE
-    // assembling the expensive animated Master. Preview remains estimated.
-    // The stage snapshot must carry the exact human-reviewed Quran MP3 bytes.
-    // Reject fake/old/cloud recordings and any untrusted caller-supplied media.
-    const { assertRenderedRecitationsMatchApprovals } = await import("../quran/renderContract");
-    await assertRenderedRecitationsMatchApprovals(
-      scriptPath, undefined, media, defaultRenderMediaRoot(),
-    );
-    const { assertMotionStartAuthorized } = await import("../voice/motionGate");
-    await assertMotionStartAuthorized(opts.episode, scriptPath, plan, media.voice);
-    const sbRecord = await loadStoryboard(scriptPath);
-    await assertMasterReady({ scriptPath, plan, media, channel: loadChannel(), chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
-    const { loadStoryboardMotion } = await import("./storyboardMotion");
-    const { currentMotionFingerprint } = await import("./motionFingerprint");
-    const measured = await loadStoryboardMotion(opts.episode);
-    if (measured) {
-      const { staleMotionScenes, auditNeedsJustification } = await import("./motionValidity");
-      const currentHash = await currentMotionFingerprint(opts.episode, plan, measured.orientation);
-      if (staleMotionScenes(plan, measured, currentHash).length)
-        throw new Error("نتيجة فحص الحركة والمنطق قديمة أو ناقصة المشاهد؛ أعد الفحص قبل الرندر النهائي.");
-      if (auditNeedsJustification(measured, sbRecord.audit))
-        throw new Error("يوجد تحذير حركة حديث لم يراجعه صاحب الحلقة؛ افتح الستوري بورد وسجّل سبب الاعتماد قبل Master.");
-    }
-  }
+  if (opts.quality === "master")
+    await assertMasterRenderGates({ episode: opts.episode, plan, media, chapter: opts.chapter, allowUnreviewed: opts.allowUnreviewed });
   const timingMode = opts.scenePreview ? "scene-preview" as const
     : await voiceTimingMode(await resolveScriptPath(opts.episode), plan, media);
   // One narration bed (owner, 16 Nov): every narrated scene at the episode's own median loudness, in the Master exactly as
@@ -223,6 +247,15 @@ export type RenderCompositionOptions = {
   /** Re-checked after the expensive render, before the file is published (the Master ledger gate). */
   afterRender?: () => Promise<void>;
   onProgress?: (pct: number, msg: string) => void;
+  /** D232 trials only (the worker refuses it on a studio job): browser tabs, to measure; production follows config.json. */
+  concurrency?: number;
+  /** D232 speed trials only (the worker refuses them on a studio job), each measured alone; production follows config.json:
+   *  the x264 preset of a Master at the same crf, */
+  x264Preset?: "medium" | "slow";
+  /** one Remotion bundle reused by every scene of the episode (key: commit + media snapshot; src/render/bundle.ts), */
+  bundleCacheKey?: string;
+  /** and a Master rendered in resumable chunks, joined without re-encoding the picture (src/render/chunkedMaster.ts). */
+  chunks?: { frames: number; dir: string; key: string };
 };
 
 /**
@@ -237,10 +270,21 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   const { plan, media } = o;
   // D228: لا يُرندر مشهد بقالب أو لقطة غير معتمدة من المالك (ستوري بورد ← اختيار النموذج ← اعتماده)
   assertTemplatesApproved(plan);
+  // D242: ولا مشهد آية أو حديث صامت في «دفاتر الزمن»
+  assertNoSilentQuoteScenes(plan);
+  // D234: ولا رندر لسكريبت فيه جملة لم تمرّ بمحرر المحتوى (الحلقة من وصف وسائطها؛ على الماك وعلى العامل بالـcommit نفسه)
+  const editorScript = scriptPathFromRenderMedia(media.base);
+  if (!editorScript) throw new Error("وسائط الرندر لا تسمّي حلقتها؛ لا يُعرف سكريبتها لفحص المحرر (D234).");
+  await assertEditorPassed(editorScript);
+  // D241: كل رندر عمودي لمقطع أو قسم شورت؛ لا يُرندر شورت ليس فكرة كاملة وحده (على الماك وعلى العامل)
+  if (o.orientation === "portrait" && (o.segment || o.chapter !== undefined))
+    (await import("../package/shortIdeaPlan")).assertShortRenderIdea(plan, o.segment ? { sceneIds: o.segment.sceneIds } : { chapter: o.chapter });
+  // D232: الماك لا يرندر إلا بإذن المالك الصريح لهذه المرة (العامل على ويندوز لا يحتاجه)
+  await consumeMacRenderPermit(`رندر ${o.quality}${o.scenePreview ? " (قطعة مشهد)" : ""}`, { episode: path.basename(path.dirname(editorScript)) });
   log(0, "تجميع المشروع…");
   // Include this episode's immutable media snapshot and shared public assets,
   // never other channels' staged voice/recitation in the Remotion bundle.
-  const bundleScope = await createIsolatedRenderBundle(media);
+  const bundleScope = await createIsolatedRenderBundle(media, o.bundleCacheKey ? { cacheKey: o.bundleCacheKey } : {});
   try {
   const serveUrl = bundleScope.serveUrl;
   const channel = loadChannel();
@@ -260,31 +304,52 @@ export const renderComposition = async (o: RenderCompositionOptions): Promise<st
   // or remove one another's partial file. Rename is only performed after success.
   const tempOutput = output.replace(/\.mp4$/i, "") + `.${randomUUID()}.rendering.mp4`;
   try {
-    await renderMedia({
+    const common = {
       serveUrl,
       composition,
       inputProps,
-      codec: "h264",
+      codec: "h264" as const,
       scale: q.scale,
       crf: q.crf,
-      x264Preset: q.x264Preset,
-      audioCodec: "aac",
+      x264Preset: o.x264Preset ?? q.x264Preset,
+      audioCodec: "aac" as const,
       audioBitrate: q.audioBitrate,
       // A scene with no narration (closing card) still needs a (silent) audio track: AV review,
       // assembly and Master all require one, and concat needs the same track layout in every cut.
       enforceAudioTrack: true,
-      colorSpace: "bt709",
-      // A silent placeholder verse draft still carries an (empty) audio track, so every scene cut can be
-      // reviewed with sound and concatenated with the others.
-      ...(o.scenePreview ? { enforceAudioTrack: true } : {}),
-      outputLocation: tempOutput,
+      colorSpace: "bt709" as const,
       browserExecutable: browserExecutable(),
-      ...(q.concurrency ? { concurrency: q.concurrency } : {}),
+      ...(o.concurrency ? { concurrency: o.concurrency } : q.concurrency ? { concurrency: q.concurrency } : {}),
       ...(q.timeoutMs ? { timeoutInMilliseconds: q.timeoutMs } : {}),
-      onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
-    });
+    };
+    if (o.chunks) {
+      // D232 trial: chunks kept on the worker (resume after an interruption), then Remotion's own seamless join
+      const { renderChunked } = await import("./chunkedMaster");
+      const { combineChunks } = await import("@remotion/renderer");
+      const r = await renderChunked({
+        dir: o.chunks.dir, key: o.chunks.key, totalFrames: composition.durationInFrames, chunkFrames: o.chunks.frames, output: tempOutput, log,
+        renderChunk: async ({ range, videoOut, audioOut, onProgress }) => {
+          await renderMedia({ ...common, frameRange: range, outputLocation: videoOut, separateAudioTo: audioOut,
+            forSeamlessAacConcatenation: true, compositionStart: 0, onProgress: ({ progress }) => onProgress(progress) });
+        },
+        combine: ({ videoFiles, audioFiles, outputLocation, framesPerChunk, totalFrames }) => combineChunks({
+          outputLocation, videoFiles, audioFiles, codec: "h264", fps: composition.fps, framesPerChunk, preferLossless: false,
+          compositionDurationInFrames: totalFrames, audioCodec: "aac", audioBitrate: q.audioBitrate }),
+      });
+      log(100, `رندر: ${r.chunks} قطعة (${r.reused} محفوظة من قبل، ${r.rendered} رُندرت الآن)`);
+    } else {
+      await renderMedia({
+        ...common,
+        // A silent placeholder verse draft still carries an (empty) audio track, so every scene cut can be
+        // reviewed with sound and concatenated with the others.
+        ...(o.scenePreview ? { enforceAudioTrack: true } : {}),
+        outputLocation: tempOutput,
+        onProgress: ({ progress }) => log(Math.round(progress * 100), "رندر"),
+      });
+    }
     // المرحلة A (المهمة ٣): ما يُنشر (الحلقة والشورتس) بعلو −14 LUFS بقياسين وكسب خطي (src/studio/quality/normalize.ts)
-    if (o.quality === "master" && !o.scenePreview) {
+    // D243: والنسخة العمودية الكاملة (ومنها تُقص الشورتس المنشورة) بالعلو نفسه
+    if (isPublishQuality(o.quality) && !o.scenePreview) {
       const { normalizeProgramLoudness } = await import("../studio/quality/normalize");
       const r = await normalizeProgramLoudness(tempOutput, q.audioBitrate);
       if (r.type !== "silent") log(100, `علو الصوت: ${r.before.toFixed(1)} ← ${r.after?.toFixed(1)} LUFS`);

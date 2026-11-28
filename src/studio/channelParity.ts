@@ -73,7 +73,7 @@ export type ChannelException = {
 
 export const CHANNEL_EXCEPTIONS: ChannelException[] = [
   {
-    id: "verse-citation", rule: "D68/D100 (الآية استشهاد مكتوب، `verse.recitation: \"none\"`) مقابل D35 (تلاوة بشرية)", kind: "absent",
+    id: "verse-citation", rule: "D68/D100 (الآية استشهاد مكتوب، `verse.recitation: \"none\"`)، وللقنوات الثلاث منذ D237 الذي ألغى تلاوة D35", kind: "absent",
     controls: ["recitation-upload", "recitations-panel", "recitation-gate"], applies: (c) => versesAreCitations(c), why: VERSE_CITATION_WHY,
   },
   {

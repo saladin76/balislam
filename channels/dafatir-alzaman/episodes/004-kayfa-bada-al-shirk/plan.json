@@ -1,0 +1,596 @@
+{
+  "version": 1,
+  "episode": "004",
+  "title": "بداية الشرك ودعوة نوح عليه السلام",
+  "domain": "islamic",
+  "themeId": "warm",
+  "channel": "dafatir-alzaman",
+  "lang": "ar",
+  "overlays": {
+    "captions": true,
+    "motif": true,
+    "watermark": true,
+    "chapterLabel": false
+  },
+  "updatedAt": "2026-11-27T21:17:58.619Z",
+  "intro": false,
+  "chapters": [
+    {
+      "number": 1,
+      "title": "",
+      "scenes": [
+        {
+          "id": "c1-s3",
+          "template": "horizon-shot",
+          "narration": "تحدثنا في الحلقة السابقة عن الأجيال الأولى من أبناء آدم عليه السلام.",
+          "line": 35,
+          "props": {
+            "shot": "bd04-thread-noon"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s4",
+          "template": "horizon-shot",
+          "narration": "واليوم نتابع خيط الزمن إلى بداية الانحراف.",
+          "line": 37,
+          "props": {
+            "shot": "bd04-dark-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s5",
+          "template": "horizon-shot",
+          "narration": "أين نحن على الخيط؟ بين آدم ونوح عليهما السلام. كم كان بينهما من السنين؟ لا نعلم بيقين.",
+          "line": 39,
+          "props": {
+            "shot": "bd04-between"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s6",
+          "template": "horizon-shot",
+          "narration": "وجاء عن ابن عباس رضي الله عنهما أنه قال: كان بين نوح وآدم عشرة قرون، كلهم على شريعة من الحق. ولم يذكر الأثر عدد السنوات.",
+          "line": 43,
+          "props": {
+            "shot": "bd04-ten-centuries"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s8",
+          "template": "horizon-shot",
+          "narration": "وماذا كان في العالم في ذلك الزمن؟ لا مدن نعرف أسماءها، ولا آثار نستطيع أن ننسبها إلى قوم نوح بدليل.",
+          "line": 45,
+          "props": {
+            "shot": "bd04-world-unlit"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s10",
+          "template": "horizon-shot",
+          "narration": "لكن الذي نعلمه يقينًا أن البشر بدأوا على التوحيد.",
+          "line": 47,
+          "props": {
+            "shot": "bd04-straight-line"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s11",
+          "template": "horizon-shot",
+          "narration": "وفي حديث قدسي يرويه النبي صلى الله عليه وسلم عن ربّه:",
+          "line": 49,
+          "props": {
+            "shot": "bd04-hadith-lead",
+            "hadithText": "وَإِنِّي خَلَقْتُ عِبَادِي حُنَفَاءَ كُلَّهُمْ، وَإِنَّهُمْ أَتَتْهُمُ الشَّيَاطِينُ فَاجْتَالَتْهُمْ عَنْ دِينِهِمْ",
+            "hadithRef": "صحيح مسلم ٢٨٦٥",
+            "hadithNarrator": "عياض بن حمار المجاشعي",
+            "hadithFrom": "وفي"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s13",
+          "template": "horizon-shot",
+          "narration": "واجتالتهم، أي صرفتهم عن دينهم.",
+          "line": 53,
+          "props": {
+            "shot": "bd04-veer"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s14",
+          "template": "horizon-shot",
+          "narration": "ومن هنا ننتقل إلى ما ذكره القرآن عن قوم نوح عليه السلام.",
+          "line": 55,
+          "props": {
+            "shot": "bd04-veer"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s15",
+          "template": "horizon-shot",
+          "narration": "يذكر القرآن خمسةً من معبودات قوم نوح عليه السلام، ويخبرنا أنهم تواصوا بالتمسّك بها.",
+          "line": 57,
+          "props": {
+            "shot": "bd04-five-slots"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s18",
+          "template": "horizon-shot",
+          "narration": "أما كيف نشأت عبادتها، فقد رُوي فيه أثر في إسناده خلاف بين أهل الحديث، فنقف عند ما أخبرنا به القرآن.",
+          "line": 61,
+          "props": {
+            "shot": "bd04-five-slots",
+            "verseKey": "71:23",
+            "verseText": "وَقَالُوا۟ لَا تَذَرُنَّ ءَالِهَتَكُمْ وَلَا تَذَرُنَّ وَدًّا وَلَا سُوَاعًا وَلَا يَغُوثَ وَيَعُوقَ وَنَسْرًا",
+            "verseFrom": "أما"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s19",
+          "template": "horizon-shot",
+          "narration": "والذي نعلمه يقينًا أن الناس خُلقوا على الحق، ثم جاء من صرفهم عنه.",
+          "line": 63,
+          "props": {
+            "shot": "lib-term",
+            "term": "خُلقوا على الحق",
+            "termWord": "خلقوا"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s35",
+          "template": "horizon-shot",
+          "narration": "وأين تقع هذه القصة على خيط الزمن؟",
+          "line": 65,
+          "props": {
+            "shot": "bd04-knot-placed"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s36",
+          "template": "horizon-shot",
+          "narration": "نعلم من القرآن أن هذا كان في قوم نوح، قبل الطوفان. أما متى بالسنة، وأين بالمكان، فلا نعلم.",
+          "line": 67,
+          "props": {
+            "shot": "bd04-knot-placed"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s39",
+          "template": "horizon-shot",
+          "narration": "فماذا بقي لنا من هذه العقدة؟",
+          "line": 69,
+          "props": {
+            "shot": "bd04-what-remains"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s40",
+          "template": "horizon-shot",
+          "narration": "بقي أولًا أن الإنسان خُلق على الحق، وأن الانحراف يأتي بعد ذلك ممن يصرفه عنه.",
+          "line": 71,
+          "props": {
+            "shot": "bd04-what-remains"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s41",
+          "template": "horizon-shot",
+          "narration": "وبقي أن الآية لا تفصّل كيف بدأت عبادة كل واحد منها.",
+          "line": 73,
+          "props": {
+            "shot": "bd04-what-remains"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s42",
+          "template": "horizon-shot",
+          "narration": "وفي باب تعظيم الأنبياء علّمنا النبي صلى الله عليه وسلم ألّا نتجاوز الحد في الثناء عليه. قال:",
+          "line": 75,
+          "props": {
+            "shot": "bd04-hadith-lead",
+            "hadithText": "لَا تُطْرُونِي كَمَا أَطْرَتِ النَّصَارَى ابْنَ مَرْيَمَ، فَإِنَّمَا أَنَا عَبْدُهُ، فَقُولُوا: عَبْدُ اللهِ وَرَسُولُهُ",
+            "hadithRef": "صحيح البخاري ٣٤٤٥",
+            "hadithNarrator": "عمر بن الخطاب",
+            "hadithFrom": "وفي"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s45",
+          "template": "horizon-shot",
+          "narration": "وبقي أن الله لم يترك الناس على هذا الضلال.",
+          "line": 79,
+          "props": {
+            "shot": "bd04-thread-forward"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s46",
+          "template": "horizon-shot",
+          "narration": "فقد أرسل إلى قوم نوح نوحًا عليه السلام، أولَ رسولٍ إلى أهل الأرض، يدعوهم إلى ما كان عليه آباؤهم الأولون: عبادة الله وحده.",
+          "line": 81,
+          "props": {
+            "shot": "bd04-thread-forward"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c1-s47",
+          "template": "horizon-shot",
+          "narration": "ولنتابع الآن كيف دعا نوح عليه السلام قومه، وكيف ردّوا عليه.",
+          "line": 83,
+          "props": {
+            "shot": "bd04-next-knot"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s1",
+          "template": "horizon-shot",
+          "narration": "قطرة ماء تسقط على حجر. ثم قطرة أخرى، ثم أخرى.",
+          "line": 95,
+          "props": {
+            "shot": "bd05-drop-stone"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s2",
+          "template": "horizon-shot",
+          "narration": "لا يتغير الحجر في يوم، ولا في سنة. لكن القطرات لا تتوقف.",
+          "line": 99,
+          "props": {
+            "shot": "bd05-drop-stone"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s5",
+          "template": "horizon-shot",
+          "narration": "فكم لبث نوح عليه السلام في قومه؟ نعرف مدة لبثه مما أخبرنا به القرآن، ولا نعلم سنةً نضعها على خط الزمن أو مكانًا نعيّنه بيقين.",
+          "line": 103,
+          "props": {
+            "shot": "bd05-blank-ribbon"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s8",
+          "template": "horizon-shot",
+          "narration": "قال النبي صلى الله عليه وسلم في حديث الشفاعة الطويل، إن الناس يأتون نوحًا يوم القيامة فيقولون:",
+          "line": 109,
+          "props": {
+            "shot": "bd05-hadith-lead"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s10",
+          "template": "horizon-shot",
+          "narration": "نوحٌ عليه السلام أولُ رسولٍ بعثه الله إلى أهل الأرض، كما جاء في حديث الشفاعة. أرسله الله إلى قومه لينذرهم ويدعوهم إلى عبادته.",
+          "line": 113,
+          "props": {
+            "shot": "bd05-first-messenger",
+            "hadithText": "يَا نُوحُ، أَنْتَ أَوَّلُ الرُّسُلِ إِلَى أَهْلِ الأَرْضِ",
+            "hadithRef": "صحيح البخاري ٣٣٤٠",
+            "hadithNarrator": "أبو هريرة",
+            "hadithFrom": "نوحٌ"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s12",
+          "template": "horizon-shot",
+          "narration": "وتبيّن سورة العنكبوت مدة لبثه في قومه:",
+          "line": 117,
+          "props": {
+            "shot": "verse-intro",
+            "ref": "العنكبوت · ١٤"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s14",
+          "template": "horizon-shot",
+          "narration": "تسعمئة وخمسون سنة. هذه هي المدة التي أخبرنا القرآن أن نوحًا عليه السلام لبثها في قومه قبل الطوفان.",
+          "line": 121,
+          "props": {
+            "shot": "bd05-one-number",
+            "verseKey": "29:14",
+            "verseText": "وَلَقَدْ أَرْسَلْنَا نُوحًا إِلَىٰ قَوْمِهِۦ فَلَبِثَ فِيهِمْ أَلْفَ سَنَةٍ إِلَّا خَمْسِينَ عَامًا فَأَخَذَهُمُ ٱلطُّوفَانُ وَهُمْ ظَـٰلِمُونَ",
+            "verseFrom": "تسعمئة"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s15",
+          "template": "horizon-shot",
+          "narration": "تخيّل جيلًا يولد ويكبر ويموت، وهو يسمع الدعوة نفسها. ثم جيلًا بعده، ثم جيلًا بعده.",
+          "line": 125,
+          "props": {
+            "shot": "bd05-generations"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s16",
+          "template": "horizon-shot",
+          "narration": "وكيف كانت دعوته؟ يحكيها القرآن بلسانه، وهو يشكو إلى ربه.",
+          "line": 129,
+          "props": {
+            "shot": "bd05-complaint"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s17",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة نوح:",
+          "line": 131,
+          "props": {
+            "shot": "verse-intro",
+            "ref": "نوح · ٥–٩"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s19",
+          "template": "horizon-shot",
+          "narration": "واصل نوح عليه السلام دعوة قومه في الليل وفي النهار، ودعاهم علنًا وفي السر.",
+          "line": 135,
+          "props": {
+            "shot": "bd05-day-night",
+            "verseKey": "71:5-9",
+            "verseText": "قَالَ رَبِّ إِنِّى دَعَوْتُ قَوْمِى لَيْلًا وَنَهَارًا فَلَمْ يَزِدْهُمْ دُعَآءِىٓ إِلَّا فِرَارًا وَإِنِّى كُلَّمَا دَعَوْتُهُمْ لِتَغْفِرَ لَهُمْ جَعَلُوٓا۟ أَصَـٰبِعَهُمْ فِىٓ ءَاذَانِهِمْ وَٱسْتَغْشَوْا۟ ثِيَابَهُمْ وَأَصَرُّوا۟ وَٱسْتَكْبَرُوا۟ ٱسْتِكْبَارًا ثُمَّ إِنِّى دَعَوْتُهُمْ جِهَارًا ثُمَّ إِنِّىٓ أَعْلَنتُ لَهُمْ وَأَسْرَرْتُ لَهُمْ إِسْرَارًا",
+            "verseFrom": "واصل"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s20",
+          "template": "horizon-shot",
+          "narration": "وكانوا كلما سمعوه سدّوا آذانهم، وغطّوا وجوههم حتى لا يروه، وأصرّوا.",
+          "line": 137,
+          "props": {
+            "shot": "bd05-closed-doors"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s21",
+          "template": "horizon-shot",
+          "narration": "ولم يكن يدعوهم إلى شيء يخسرونه.",
+          "line": 141,
+          "props": {
+            "shot": "bd05-nothing-lost"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s22",
+          "template": "horizon-shot",
+          "narration": "كما جاء في سورة نوح:",
+          "line": 143,
+          "props": {
+            "shot": "verse-intro",
+            "ref": "نوح · ١٠–١٢"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s24",
+          "template": "horizon-shot",
+          "narration": "ودعاهم نوح عليه السلام إلى استغفار ربهم، وذكّرهم بما وعدهم الله به من المطر والأموال والبنين والبساتين والأنهار. دعوة رحمة، لا دعوة غضب.",
+          "line": 147,
+          "props": {
+            "shot": "bd05-promise",
+            "verseKey": "71:10-12",
+            "verseText": "فَقُلْتُ ٱسْتَغْفِرُوا۟ رَبَّكُمْ إِنَّهُۥ كَانَ غَفَّارًا يُرْسِلِ ٱلسَّمَآءَ عَلَيْكُم مِّدْرَارًا وَيُمْدِدْكُم بِأَمْوَٰلٍ وَبَنِينَ وَيَجْعَل لَّكُمْ جَنَّـٰتٍ وَيَجْعَل لَّكُمْ أَنْهَـٰرًا",
+            "verseFrom": "ودعاهم"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s25",
+          "template": "horizon-shot",
+          "narration": "أما ما زاد على ذلك، فأكثره روايات.",
+          "line": 151,
+          "props": {
+            "shot": "bd05-side-sheet"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s26",
+          "template": "horizon-shot",
+          "narration": "يذكر المفسرون والمؤرخون أعمارًا مختلفة: كم كان عمره حين بُعث، وكم عاش بعد الطوفان، وكم كان عمره كله.",
+          "line": 153,
+          "props": {
+            "shot": "bd05-side-sheet"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s27",
+          "template": "horizon-shot",
+          "narration": "أخبرنا القرآن كم لبث نوح عليه السلام في قومه، ولا نعلم نصًّا صحيحًا صريحًا يحدّد مجموع عمره.",
+          "line": 155,
+          "props": {
+            "shot": "bd05-side-sheet"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s28",
+          "template": "horizon-shot",
+          "narration": "فلن نكتب منها رقمًا. ونضع عليها ختمها: رواية.",
+          "line": 157,
+          "props": {
+            "shot": "bd05-side-sheet"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s29",
+          "template": "horizon-shot",
+          "narration": "لبث نوح عليه السلام في قومه ألف سنة إلا خمسين عامًا. ثم يخبرنا النبي صلى الله عليه وسلم عن مشهد يوم القيامة، حين يُسأل نوح عن البلاغ، وينكر قومه أن يكون قد جاءهم نبي.",
+          "line": 161,
+          "props": {
+            "shot": "bd05-witness"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s30",
+          "template": "horizon-shot",
+          "narration": "قال النبي صلى الله عليه وسلم:",
+          "line": 163,
+          "props": {
+            "shot": "bd05-hadith-lead"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s33",
+          "template": "horizon-shot",
+          "narration": "وهكذا تشهد أمةُ محمدٍ صلى الله عليه وسلم أن نوحًا عليه السلام قد بلّغ.",
+          "line": 167,
+          "props": {
+            "shot": "bd05-witness",
+            "hadithText": "يَجِيءُ نُوحٌ وَأُمَّتُهُ، فَيَقُولُ اللَّهُ تَعَالَى: هَلْ بَلَّغْتَ؟ فَيَقُولُ: نَعَمْ أَيْ رَبِّ، فَيَقُولُ لِأُمَّتِهِ: هَلْ بَلَّغَكُمْ؟ فَيَقُولُونَ: لَا، مَا جَاءَنَا مِنْ نَبِيٍّ، فَيَقُولُ لِنُوحٍ: مَنْ يَشْهَدُ لَكَ؟ فَيَقُولُ: مُحَمَّدٌ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ وَأُمَّتُهُ، فَنَشْهَدُ أَنَّهُ قَدْ بَلَّغَ",
+            "hadithRef": "صحيح البخاري ٣٣٣٩",
+            "hadithNarrator": "أبو سعيد الخدري",
+            "hadithFrom": "وهكذا"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s34",
+          "template": "horizon-shot",
+          "narration": "فماذا نتعلم من قصة لم تنته بعد؟",
+          "line": 172,
+          "props": {
+            "shot": "bd05-drop-stone"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s35",
+          "template": "horizon-shot",
+          "narration": "أن الداعي مسؤول عن البلاغ، لا عن النتيجة.",
+          "line": 174,
+          "props": {
+            "shot": "lib-compare",
+            "aLabel": "البلاغ",
+            "aText": "مسؤول عنه",
+            "aWord": "البلاغ",
+            "bLabel": "النتيجة",
+            "bText": "ليست عليه",
+            "bWord": "النتيجة"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s36",
+          "template": "horizon-shot",
+          "narration": "وأن الصبر في القرآن ليس أيامًا ولا شهورًا، بل قد يكون عمرًا كاملًا.",
+          "line": 176,
+          "props": {
+            "shot": "bd05-drop-stone"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s37",
+          "template": "horizon-shot",
+          "narration": "لكن الصبر لم يكن بلا نهاية.",
+          "line": 178,
+          "props": {
+            "shot": "bd05-drop-stone"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s38",
+          "template": "horizon-shot",
+          "narration": "وفي الحلقة القادمة يأمر الله نوحًا عليه السلام بصنع السفينة. فكيف استقبل قومه هذا المشهد؟",
+          "line": 180,
+          "props": {
+            "shot": "bd05-plank-teaser"
+          },
+          "sfx": []
+        },
+        {
+          "id": "c2-s39",
+          "template": "horizon-shot",
+          "narration": "وأنت، على أي أمر صبرت أطول مما توقعت؟ اكتب لنا في التعليقات.",
+          "line": 182,
+          "props": {
+            "shot": "bd05-thread-knot"
+          },
+          "sfx": []
+        }
+      ]
+    }
+  ],
+  "series": {
+    "id": "bidayat",
+    "name": "البدايات",
+    "kind": "series",
+    "number": 3,
+    "identity": {
+      "channel": "dafatir-alzaman",
+      "accent": "#E07A3F",
+      "accentBase": "#E07A3F",
+      "onAccent": "#2A1E3F",
+      "paper": "#F1E4CB",
+      "ink": "#2A1E3F",
+      "card": {
+        "bg": "#2A1E3F",
+        "ink": "#F1E4CB"
+      },
+      "motif": "stars",
+      "fonts": {
+        "heading": "Amiri",
+        "body": "Tajawal",
+        "wordmark": "Amiri"
+      },
+      "title": {
+        "weight": "bold",
+        "size": "m",
+        "ornament": "rule"
+      },
+      "intro": "sting",
+      "thumbnail": {
+        "badge": "band"
+      },
+      "emblem": {
+        "base": "horizon-book",
+        "parts": [
+          "book"
+        ]
+      },
+      "clamped": []
+    },
+    "template": {},
+    "stampedAt": "2026-11-27T19:59:18.629Z"
+  }
+}

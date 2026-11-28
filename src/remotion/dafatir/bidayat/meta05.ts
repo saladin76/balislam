@@ -1,4 +1,4 @@
-/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 005 — دعوة نوح عليه السلام» (بلا React). الخطة: channels/dafatir-alzaman/episodes/005-nuh-dawah/scenes.md */
+/** لقطات «خط الأفق» الجديدة لـ«دفاتر الزمن 005 — دعوة نوح عليه السلام» (بلا React). الخطة: channels/dafatir-alzaman/episodes/004-kayfa-bada-al-shirk/scenes.md (الجزء الثاني، صفوف c2-…؛ دُمجت 005 في 004 بقرار المالك ٢٧ نوفمبر) */
 import type { HzMeta } from "../horizon/meta";
 
 export const BD05_META: Record<string, HzMeta> = {
@@ -16,5 +16,5 @@ export const BD05_META: Record<string, HzMeta> = {
   "bd05-promise": { nameAr: "البدايات ٥ · وعد الاستغفار", tail: 1.0, exit: "fade" },
   "bd05-side-sheet": { nameAr: "البدايات ٥ · الورقة الجانبية: أعمار الروايات", tail: 1.2, exit: "turn" },
   "bd05-witness": { nameAr: "البدايات ٥ · البلاغ والإنكار والشهادة", tail: 1.0, exit: "fade" },
-  "bd05-plank-teaser": { nameAr: "البدايات ٥ · لوح في أرض لا ماء فيها", tail: 1.0, exit: "fade" },
+  "bd05-plank-teaser": { nameAr: "البدايات ٥ · تمهيد السفينة: مسطرة ولوح", tail: 1.0, exit: "fade" },
 };

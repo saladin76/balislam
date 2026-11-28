@@ -138,6 +138,8 @@ export const SceneSide: React.FC<StepPart> = ({ m, v }) => {
       {shownServer?.afterPreparation ? <p className="sp-hint s3-afterprep" role="note">{afterPreparationLine(shownServer.afterPreparation.what)}</p> : null}
       {/* D148: a conversation's change arrived after this video was made; the cloud never sends videos here */}
       {shownServer?.remoteChange ? <p className="sp-hint s3-remote" role="status">{remoteChangeLine(shownServer.remoteChange)}</p> : null}
+      {/* D242: قطعة جهاز الرندر رُفضت لأن حركتها دون حد القناة؛ لا مسودة حتى يُصلح المشهد ويُرسل من جديد */}
+      {shownServer?.motionFix ? <p className="sp-hint s3-blocked s3-motionfix" role="alert">يحتاج إصلاح: حركة آخر قطعة من جهاز الرندر {shownServer.motionFix.percent}% أقل من حد القناة {shownServer.motionFix.min}%؛ رُفضت ولم تدخل مسودة.</p> : null}
       {shownServer?.blocked?.length || (shownServer && !shownServer.approved && data?.episodeBlocked?.length) ? (
         <p className="sp-hint s3-blocked" role="alert">لا يُنتج قبل إصلاح: {ownerText([...(shownServer.blocked ?? []), ...(data?.episodeBlocked ?? [])].join(" — "), order)}</p>
       ) : null}

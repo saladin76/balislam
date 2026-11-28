@@ -47,38 +47,44 @@ const ZUBDAT_PLAN = "channels/zubdat-alkutub/episodes/001-awwal-marra-osalli/pla
 const DAFATIR_PLAN = "channels/dafatir-alzaman/episodes/001-adam-beginning/plan.json";
 const scenesOf = (p: Plan) => p.chapters.flatMap((c) => c.scenes);
 
-describe("D68: الآية في زبدة الكتب استشهاد مكتوب صامت، والقناتان الأخريان على التلاوة البشرية", () => {
+// D237 (٢٧ نوفمبر، يُلغي بوابة التلاوة D35): ما كان لزبدة الكتب وحدها (D68) صار للقنوات الثلاث؛ الآلية بالحقل باقية
+// كامنة لقناة تختار «required» (لا قناة عليها اليوم)، والبسملة تبقى تسجيل المالك.
+describe("D68 وD237: الآية استشهاد مكتوب صامت في القنوات الثلاث، بلا تلاوة بشرية", () => {
   const verse: PlanScene = { id: "c1-s2", template: "verse-card", narration: "", line: 5, ayahKey: "20:14", props: { text: "نص", reference: "طه · ١٤" }, sfx: [] };
-  it("مرحلة «التلاوات» تُحكم من حقل القناة: لا تلاوات في زبدة الكتب إلا البسملة", () => {
-    expect(versesAreCitations(loadChannel("zubdat-alkutub"))).toBe(true);
-    expect(recitationStageNeeded(loadChannel("zubdat-alkutub"), [verse], false)).toBe(false);
-    expect(recitationStageNeeded(loadChannel("zubdat-alkutub"), [verse], true)).toBe(true);
-    for (const ch of ["balislam", "dafatir-alzaman"]) expect(recitationStageNeeded(loadChannel(ch), [verse], false)).toBe(true);
-    // الحقل لا المعرّف: أي قناة تختار الاستشهاد تأخذه
+  it("مرحلة «التلاوات» تُحكم من حقل القناة: لا تلاوات في أي قناة إلا البسملة (D237)", () => {
+    for (const ch of ["zubdat-alkutub", "balislam", "dafatir-alzaman"]) {
+      expect(versesAreCitations(loadChannel(ch))).toBe(true);
+      expect(recitationStageNeeded(loadChannel(ch), [verse], false)).toBe(false);
+      expect(recitationStageNeeded(loadChannel(ch), [verse], true)).toBe(true);
+    }
+    // الحقل لا المعرّف: الآلية الكامنة تعود لقناة تطلب التلاوة صراحةً
     expect(recitationStageNeeded({ verse: { recitation: "none" } } as never, [verse], false)).toBe(false);
+    expect(recitationStageNeeded({ verse: { recitation: "required" } } as never, [verse], false)).toBe(true);
   });
-  it("لوح الآية في الخطوة ١: «استشهاد صامت» في زبدة الكتب، لا «تُتلى بصوت القارئ» في أي قناة", () => {
+  it("لوح الآية في الخطوة ١: «استشهاد صامت» في القنوات الثلاث (D237)، لا «تُتلى بصوت القارئ» ولا «ترفعه بنفسك»", () => {
     const shots: BoardShot[] = [{ s: verse, chapter: { number: 1, title: "" }, from: 0, d: 150 }];
     const board = (ch: string) => text(within(ch, <BoardViewer shots={shots} index={0} order={["c1-s2"]} fps={30} citations={[]} lineEnd={() => 1e9}
       onIndex={noop} onClose={noop} onEdit={noop} frame={() => <div />} onScreen={() => ""} elements={() => []} />));
-    expect(board("zubdat-alkutub")).toContain("استشهاد بنصها ومرجعها، بلا تلاوة");
-    expect(board("balislam")).toContain("تسجيل بشري ترفعه بنفسك");
-    for (const ch of ["balislam", "dafatir-alzaman", "zubdat-alkutub"]) expect(board(ch)).not.toContain("تُتلى بصوت القارئ");
-    expect(verseRoleAr(loadChannel("dafatir-alzaman"))).toContain("تسجيل بشري");
+    for (const ch of ["balislam", "dafatir-alzaman", "zubdat-alkutub"]) {
+      expect(board(ch)).toContain("استشهاد بنصها ومرجعها، بلا تلاوة");
+      expect(board(ch)).not.toContain("تُتلى بصوت القارئ");
+      expect(board(ch)).not.toContain("ترفعه بنفسك");
+    }
+    expect(verseRoleAr(loadChannel("dafatir-alzaman"))).not.toContain("تسجيل بشري");
+    expect(verseRoleAr({ verse: { recitation: "required" } })).toContain("تسجيل بشري");
   });
-  it("المعاينة قبل النهائية في الخطوة ٣: لا «التلاوة تُضاف لاحقًا» في زبدة الكتب، وتبقى في بالإسلام", () => {
+  it("المعاينة قبل النهائية في الخطوة ٣: لا «التلاوة تُضاف لاحقًا» في أي قناة (D237)", () => {
     const pre = (ch: string) => text(within(ch, <PreFinalPanel episodeId="001" channelId={ch} order={["c1-s1"]} />));
-    expect(pre("zubdat-alkutub")).not.toContain("التلاوة تُضاف لاحقًا");
-    expect(pre("zubdat-alkutub")).toContain("استشهاد مكتوب");
-    expect(pre("balislam")).toContain("التلاوة تُضاف لاحقًا");
+    for (const ch of ["zubdat-alkutub", "balislam", "dafatir-alzaman"]) {
+      expect(pre(ch)).not.toContain("التلاوة تُضاف لاحقًا");
+      expect(pre(ch)).toContain("استشهاد مكتوب");
+    }
   });
-  it("الرندر: لا تطلب بطاقة الآية تلاوة في زبدة الكتب، ولا تُعلَّم «التلاوة تُضاف لاحقًا»؛ والبوابة كما هي في غيرها", () => {
+  it("الرندر: لا تطلب بطاقة الآية تلاوة في أي قناة (D237)، ولا تُعلَّم «التلاوة تُضاف لاحقًا»", () => {
     const plan = { chapters: [{ number: 1, title: "", scenes: [verse] }] } as unknown as Plan;
     const media = { mode: "url", base: "", voice: {}, sfx: [], recitations: {} } as never;
     const gaps = (ch: string) => shotGaps(plan, media, ["c1-s2"], path.join(root, `channels/${ch}/episodes/001-x/script.md`), true).map((g) => g.what);
-    expect(gaps("zubdat-alkutub").join(" ")).not.toMatch(/التلاوة/);
-    expect(gaps("balislam").join(" ")).toMatch(/التلاوة البشرية/);
-    expect(gaps("dafatir-alzaman").join(" ")).toMatch(/التلاوة البشرية/);
+    for (const ch of ["zubdat-alkutub", "balislam", "dafatir-alzaman"]) expect(gaps(ch).join(" ")).not.toMatch(/التلاوة/);
     const preview = src("src/render/shotsPreview.ts");
     expect(preview).toMatch(/s\.template === "verse-card" && !cited/);
   });

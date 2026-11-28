@@ -12,12 +12,38 @@
  *   owner's approved recording, key `BASMALA_KEY` in the episode's recitations), and until that recording is
  *   approved its draft carries a marked silent placeholder and can only be approved «مشروطًا بالتلاوة» — the
  *   same D35 gates as a verse: no assembly, Master or publish while it is pending.
+ *
+ * D239 (owner decision 27 Nov 2026, «اعتمدت البسملة «02_صوتي-المستنسخ_البسملة_أفضل-v4». الاستثناء للبسملة وحدها،
+ * والآيات ممنوعة على الصوت المستنسخ كما هي. تُستعمل هذه النسخة المعتمدة نفسها في كل الحلقات بلا توليد جديد»):
+ * the basmala may be heard in the owner's cloned voice ONLY as this one fixed clip, identified by its sha256
+ * (`APPROVED_BASMALA_CLIP`). It is never generated again: `assertNoQuranForTts` still refuses the basmala and
+ * every verse in any TTS request, and `assertApprovedBasmalaAudio` (quranGuard.ts) refuses any other bytes.
+ * An episode's own approved recording (e.g. «دفاتر الزمن» 001) always comes first and stays as it is.
  */
 
 /** The recitation key of the owner's own basmala recording (one per episode, reused by every occurrence). */
 export const BASMALA_KEY = "basmala";
 /** The reviewed text of that recording (fixed: it is not read from the script). */
 export const BASMALA_TEXT = "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ";
+/**
+ * D239: the one owner-approved basmala clip (his cloned voice, generated once outside the studio with his explicit
+ * permission). The audio never enters git (D101): `npx bal basmala install <file>` copies it to the owner's machine
+ * after checking this sha256, and the studio uses it only while its bytes still match.
+ */
+export const APPROVED_BASMALA_CLIP = Object.freeze({
+  decision: "D239",
+  sha256: "ea235e2b0f34ac071f2532df89e313eda805eaa7b2bd4cc8e5bf9f472f721289",
+  /** The name the owner approved it under (for the record only). */
+  approvedName: "02_صوتي-المستنسخ_البسملة_أفضل-v4.mp3",
+  approvedAt: "2026-11-27T00:00:00.000Z",
+  approvedBy: "owner",
+  /** The file name on the owner's machine (under assets/recitations/basmala/, git-ignored). */
+  file: "approved-basmala-v4.mp3",
+  rightsEvidence: "صوت صاحب القناة المستنسخ، نسخة واحدة اعتمدها بنفسه بعد الاستماع (D239، ٢٧ نوفمبر ٢٠٢٦)",
+});
+/** True only for the bytes of the approved clip (lower-case hex sha256). */
+export const isApprovedBasmalaSha256 = (sha256: unknown): boolean =>
+  typeof sha256 === "string" && sha256.trim().toLowerCase() === APPROVED_BASMALA_CLIP.sha256;
 /** Placeholder length in a draft before the recording is approved (seconds). */
 export const BASMALA_PLACEHOLDER_SEC = 3.2;
 

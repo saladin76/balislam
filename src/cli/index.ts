@@ -206,6 +206,54 @@ program
   });
 
 program
+  .command("plan-from-scenes")
+  .description("دفاتر الزمن (البدايات): الخطة المصمَّمة «خط الأفق» من scenes.md والسكريبت، بالبنية نفسها لخطة 001. عرض فقط إلا بـ --write")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--write", "اكتب plan.json (نسخة احتياطية من القائمة أولًا؛ ويرفض إن بقي نص بلا مشهد أو لقطة غير معتمدة)")
+  .option("--overwrite-designed", "اكتب فوق خطة قائمة مصمَّمة (تأكيد صريح؛ تُحفظ نسخة احتياطية أولًا)")
+  .action(async (episode: string, opts: { write?: boolean; overwriteDesigned?: boolean }) => {
+    const { planFromScenesFile } = await import("../plan/fromScenesFile");
+    try {
+      const r = await planFromScenesFile(episode, { write: opts.write === true, overwriteDesigned: opts.overwriteDesigned === true });
+      const scenes = r.plan.chapters.flatMap((c) => c.scenes);
+      const count = (t: string) => scenes.filter((s) => s.template === t).length;
+      console.log(`الخطة من scenes.md: ${scenes.length} مشهدًا — horizon-shot ${count("horizon-shot")}، بطاقة آية ${count("verse-card")}، بطاقة حديث ${count("hadith-card")}.`);
+      if (r.report.attached.length) console.log(`D242 — الآيات والأحاديث داخل اللقطات: ${r.report.attached.map((a) => `${a.card}←${a.to}`).join("، ")}`);
+      if (r.report.wordsOnly.length) console.log(`بالكلمات وحدها (لقطة pending): ${r.report.wordsOnly.join("، ")}`);
+      if (r.report.unusedRows.length) console.log(`صفوف في scenes.md بلا نص في السكريبت (لا تدخل الخطة): ${r.report.unusedRows.join("، ")}`);
+      if (r.droppedShorts > 0) console.log(`شورتس في الخطة القديمة لم يعد لها مشهد (لم تُنقل): ${r.droppedShorts}`);
+      if (r.problems.length) { console.log(`مشكلات (${r.problems.length}):\n${r.problems.map((p) => `- ${p}`).join("\n")}`); process.exitCode = 1; }
+      if (r.written) console.log(`كُتبت: ${path.relative(projectRoot, r.file)}${r.backup ? ` (نسخة احتياطية: ${path.basename(r.backup)})` : ""}${r.seriesLinkWritten ? "، وملف انتماء السلسلة series.json" : ""}`);
+      else if (!opts.write) console.log("عرض فقط؛ للكتابة: --write");
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exitCode = 1;
+    }
+  });
+
+program
+  .command("inline-quotes")
+  .description("دفاتر الزمن (D242): كل بطاقة آية/حديث صامتة في plan.json تُلحق بلقطة «خط الأفق» المجاورة كما في 001 (النص على الصفحة والراوي مستمر)، بلا تغيير كلمة ولا حقل للمالك. عرض فقط إلا بـ --write")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--write", "اكتب plan.json (نسخة احتياطية أولًا)")
+  .action(async (episode: string, opts: { write?: boolean }) => {
+    const { inlineQuotesFile } = await import("../plan/fromScenesFile");
+    try {
+      const r = await inlineQuotesFile(episode, { write: opts.write === true });
+      if (!r.attached.length && !r.unattached.length) { console.log("لا بطاقة آية أو حديث صامتة في الخطة؛ لا شيء يتغير."); return; }
+      for (const a of r.attached) console.log(`${a.card} (${a.kind === "verse" ? "آية" : "حديث"} ${a.ref}) ← ${a.to} (${a.side === "prev" ? "السابقة" : "التالية"}، ${a.words} كلمة)`);
+      for (const u of r.unattached) console.log(`لم تُلحق: ${u.card} — ${u.reason}`);
+      console.log(`المشاهد المحذوفة: ${r.removed.join("، ") || "—"}؛ نص كل مشهد باقٍ كما كان (لا صوت جديد).`);
+      if (r.written) console.log(`كُتبت: ${path.relative(projectRoot, r.file)}${r.backup ? ` (نسخة احتياطية: ${path.basename(r.backup)})` : ""}`);
+      else if (!opts.write) console.log("عرض فقط؛ للكتابة: --write");
+      if (r.unattached.length) process.exitCode = 1;
+    } catch (e) {
+      console.error((e as Error).message);
+      process.exitCode = 1;
+    }
+  });
+
+program
   .command("remap-scene-ids")
   .description("نقل ملفات الصوت المحلية (voice/index.json وvoice/sentences.json) إلى معرّفات المشاهد الجديدة بعد جعل الخطة قسمًا واحدًا (D87). تجربة افتراضيًا")
   .argument("<episode>", "رقم الحلقة")
@@ -920,7 +968,7 @@ program
 // D226: جهاز رندر ثانٍ (ويندوز) للشورتس. الماك يرسل ويستلم ويتحقق؛ العامل يرندر فقط (docs/studio/windows-worker.md).
 program
   .command("worker-submit")
-  .description("D226: إرسال الشورتس إلى جهاز الرندر الثاني بعد اعتماد النسخة النهائية (المجلد المشترك)")
+  .description("D243: قص الشورتس من النسخة العمودية الكاملة على جهاز الرندر بعد اعتماد Master (D241 على كل شورت)")
   .argument("<episode>", "رقم الحلقة")
   .option("--short <n>", "شورت واحد برقمه")
   .option("--shorts", "كل الشورتس (الافتراضي)")
@@ -929,23 +977,227 @@ program
     await assertProducible(episode);
     const only = opts.short !== undefined ? Number(opts.short) : undefined;
     if (only !== undefined && (!Number.isInteger(only) || only < 1)) throw new Error("رقم الشورت غير صالح.");
-    const { submitWorkerShorts } = await import("../render/worker/macSide");
-    const r = await submitWorkerShorts(episode, path.resolve(opts.share), { only, log: (m) => console.log(m) });
-    console.log(`أُرسلت ${r.written.length} مهمة (والموجودة من قبل ${r.skipped.length}) بالـcommit ${r.commit.slice(0, 8)}. بعد انتهاء العامل: bal worker-collect ${episode} --share ${opts.share}`);
+    const { submitVerticalShorts } = await import("../render/worker/studioJobs");
+    const r = await submitVerticalShorts(episode, path.resolve(opts.share), { only, log: (m) => console.log(m) });
+    console.log(`أُرسل ${r.sent.length} قص (والموجود من قبل ${r.existing.length}) من النسخة العمودية ${r.vertical} بالـcommit ${r.commit.slice(0, 8)}. بعد انتهاء العامل: bal worker-collect ${episode} --share ${opts.share}`);
   });
 
 program
   .command("worker-collect")
-  .description("D226: استلام شورتس جهاز الرندر الثاني بعد التحقق منها على الماك (البصمة والأبعاد والمدة والحركة والأثر)")
+  .description("D243: استلام الشورتس المقصوصة من النسخة العمودية بعد التحقق على الماك (البصمة والأبعاد والمدة والحركة والأثر وD241)")
   .argument("<episode>", "رقم الحلقة")
   .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
-  .option("--replace", "نقل شورت قديم بالاسم نفسه إلى superseded/ بدل الرفض")
-  .action(async (episode: string, opts: { share: string; replace?: boolean }) => {
-    const { collectWorkerShorts } = await import("../render/worker/macSide");
-    const r = await collectWorkerShorts(episode, path.resolve(opts.share), { replace: opts.replace, log: (m) => console.log(m) });
-    for (const x of r.refused) console.error(`مرفوض ${x.id}:\n  - ${x.reasons.join("\n  - ")}`);
-    console.log(`استُلم ${r.imported.length}، ورُفض ${r.refused.length}. المرفوض لا يدخل الحزمة أبدًا.`);
+  .option("--legacy", "D226: استلام شورتس قديمة رُندرت منفصلة قبل D243")
+  .option("--replace", "مع --legacy: نقل شورت قديم بالاسم نفسه إلى superseded/ بدل الرفض")
+  .action(async (episode: string, opts: { share: string; replace?: boolean; legacy?: boolean }) => {
+    if (opts.legacy) {
+      const { collectWorkerShorts } = await import("../render/worker/macSide");
+      const r = await collectWorkerShorts(episode, path.resolve(opts.share), { replace: opts.replace, log: (m) => console.log(m) });
+      for (const x of r.refused) console.error(`مرفوض ${x.id}:\n  - ${x.reasons.join("\n  - ")}`);
+      console.log(`استُلم ${r.imported.length}، ورُفض ${r.refused.length}. المرفوض لا يدخل الحزمة أبدًا.`);
+      if (r.refused.length) process.exitCode = 1;
+      return;
+    }
+    const { importStudioJobs } = await import("../render/worker/studioJobs");
+    const r = await importStudioJobs(episode, path.resolve(opts.share), { kinds: ["cut"], log: (m) => console.log(m) });
+    for (const x of r.rows.filter((x) => x.status !== "superseded" && x.status !== "imported"))
+      console.log(`- الشورت ${x.n}: ${x.status}${x.progress ? ` ${x.progress}` : ""}${x.reasons?.length ? `\n    - ${x.reasons.join("\n    - ")}` : ""}`);
+    console.log(`استُلم الآن ${r.imported.length}، ورُفض أو فشل ${r.refused.length}. يشاهد المالك كل شورت كاملًا قبل النشر؛ المرفوض لا يدخل الحزمة أبدًا.`);
     if (r.refused.length) process.exitCode = 1;
+  });
+
+// D232 (المرحلة ٢): رندر الاستوديو على الويندوز ثم استيراده بعد التحقق إلى السجل نفسه (src/render/worker/studioJobs.ts)
+program
+  .command("worker-submit-scenes")
+  .description("D232: إرسال قطع المشاهد إلى جهاز الرندر (كل المفتوحة بلا مسودة جاهزة، أو مشاهد بعينها) بعد بوابات المحرر والسجل؛ لا صوت يُولَّد")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .option("--scenes <ids>", "مشاهد بعينها مفصولة بفواصل («أنتج هذا المشهد» لكل منها)")
+  .option("--orientation <o>", "landscape (الافتراضي) أو portrait: تجربة عمودية 1080×1920 (D243) مع --purpose trial")
+  .option("--purpose <p>", "studio (الافتراضي) أو trial: تجربة لا تدخل الحزمة ولا السجل")
+  .option("--tag <tag>", "وسم التجربة (الافتراضي <الحلقة>-vertical)")
+  .option("--out <dir>", "مجلد التجربة على الماك (للقراءة بـ worker-trial-collect)")
+  .action(async (episode: string, opts: { share: string; scenes?: string; orientation?: string; purpose?: string; tag?: string; out?: string }) => {
+    await assertProducible(episode);
+    const orientation = opts.orientation ?? "landscape", purpose = opts.purpose ?? "studio";
+    if (!["landscape", "portrait"].includes(orientation) || !["studio", "trial"].includes(purpose)) throw new Error("--orientation landscape|portrait و--purpose studio|trial.");
+    if (orientation === "portrait" || purpose === "trial") {
+      // D243: المشاهد العمودية تجربة وحدها قبل التعميم (النسخة العمودية الكاملة بـ worker-submit-vertical)
+      if (orientation !== "portrait" || purpose !== "trial") throw new Error("المشاهد العمودية تجربة وحدها: --orientation portrait --purpose trial (والنسخة العمودية الكاملة: worker-submit-vertical).");
+      const scenes = opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean) ?? [];
+      if (!opts.out) throw new Error("--out <مجلد على الماك> مطلوب للتجربة.");
+      const tag = opts.tag ?? `${episode}-vertical`;
+      const { submitVerticalTrialScenes } = await import("../render/worker/macJobs");
+      const r = await submitVerticalTrialScenes(episode, path.resolve(opts.share), { scenes, tag, outDir: path.resolve(opts.out), log: (m) => console.log(m) });
+      console.log(`التجربة العمودية ${r.tag}: ${r.jobs.length} مهمة بالـcommit ${r.commit.slice(0, 8)}. للقراءة: bal worker-trial-collect --share ${opts.share} --out ${opts.out}`);
+      return;
+    }
+    const { submitStudioScenes } = await import("../render/worker/studioJobs");
+    const r = await submitStudioScenes(episode, path.resolve(opts.share), { scenes: opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean), log: (m) => console.log(m) });
+    console.log(`أُرسل ${r.sent.length} مشهدًا (والموجود من قبل ${r.existing.length}) بالـcommit ${r.commit.slice(0, 8)}. التقدم: bal worker-status --share ${opts.share}؛ وبعد انتهائها: bal worker-import ${episode} --share ${opts.share}`);
+  });
+
+for (const [name, kind, what] of [["worker-submit-prefinal", "prefinal", "نسخة قبل النهائية (كل القطع الحالية)"], ["worker-submit-assembly", "assembly", "التجميع (بعد اعتماد كل المشاهد)"]] as const) {
+  program
+    .command(name)
+    .description(`D232: إرسال ${what} إلى جهاز الرندر من قطعه المستوردة نفسها (D233: كلها من جهاز الرندر)`)
+    .argument("<episode>", "رقم الحلقة")
+    .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+    .action(async (episode: string, opts: { share: string }) => {
+      await assertProducible(episode);
+      const { submitStudioJoin } = await import("../render/worker/studioJobs");
+      const r = await submitStudioJoin(kind, episode, path.resolve(opts.share), { log: (m) => console.log(m) });
+      console.log(`${r.fresh ? "أُرسلت" : "موجودة من قبل"} ${r.id}. بعد انتهائها: bal worker-import ${episode} --share ${opts.share}`);
+    });
+}
+
+program
+  .command("worker-submit-master")
+  .description("D232: إرسال Master 4K إلى جهاز الرندر بعد اعتماد التجميع وكل بوابات النسخة النهائية (لا صوت يُولَّد؛ الناقص يرفض)")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    await assertProducible(episode);
+    const { submitStudioMaster } = await import("../render/worker/studioJobs");
+    const r = await submitStudioMaster(episode, path.resolve(opts.share), { log: (m) => console.log(m) });
+    console.log(`${r.fresh ? "أُرسل" : "موجود من قبل"} ${r.id}. بعد انتهائه: bal worker-import ${episode} --share ${opts.share}`);
+  });
+
+program
+  .command("worker-submit-vertical")
+  .description("D243: إرسال النسخة العمودية الكاملة 1080×1920 إلى جهاز الرندر، مبوَّبة كـMaster (بعد اعتماد كل المشاهد والتجميع)، وأولويتها بعد Master")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    await assertProducible(episode);
+    const { submitStudioVertical } = await import("../render/worker/studioJobs");
+    const r = await submitStudioVertical(episode, path.resolve(opts.share), { log: (m) => console.log(m) });
+    console.log(`${r.fresh ? "أُرسلت" : "موجودة من قبل"} ${r.id}. بعد انتهائها: bal worker-import ${episode} --share ${opts.share}`);
+  });
+
+program
+  .command("worker-import")
+  .description("D232: استيراد نواتج الاستوديو من جهاز الرندر بعد التحقق (المهمة كما أُرسلت، البصمة، الصيغة، الأبعاد، المدة، الأثر، والحلقة لم تتغير) إلى السجل نفسه؛ المشهد يصل مسودة للمراجعة لا اعتمادًا")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    const { importStudioJobs } = await import("../render/worker/studioJobs");
+    const r = await importStudioJobs(episode, path.resolve(opts.share), { log: (m) => console.log(m) });
+    const label = { imported: "مستورد", refused: "مرفوض", queued: "في الطابور", running: "يُرندر", failed: "فشل", missing: "غير موجود في المجلد المشترك", superseded: "حلّت محله مهمة أحدث" } as const;
+    for (const x of r.rows.filter((x) => x.status !== "superseded"))
+      console.log(`- ${x.sceneId ? `المشهد ${x.sceneId}` : x.kind}: ${label[x.status]}${x.progress ? ` ${x.progress}` : ""}${x.motion !== undefined ? ` (الحركة ${x.motion}%)` : ""}${x.reasons?.length ? `\n    - ${x.reasons.join("\n    - ")}` : ""}`);
+    console.log(`استُورد الآن ${r.imported.length}، ورُفض أو فشل ${r.refused.length}. المستورد ينتظر مراجعة المالك واعتماده في الاستوديو؛ المرفوض لا يُستورد أبدًا.`);
+    if (r.refused.length) process.exitCode = 1;
+  });
+
+// D232: الماك لا يرندر إلا للطوارئ وبإذن المالك الصريح في كل مرة (src/render/macRenderPermit.ts)
+program
+  .command("mac-render-permit")
+  .description("D232: إذن المالك لرندر على الماك هذه المرة وحدها (طوارئ)؛ يُكتب بعد أن يأذن المالك بنفسه، ويُستهلك مع كل رندر")
+  .option("--owner-words <text>", "نص إذن المالك كما قاله")
+  .option("--uses <n>", "عدد مرات الرندر المأذونة (الافتراضي ١)", "1")
+  .option("--minutes <n>", "صلاحية الإذن بالدقائق (الافتراضي ٦٠)", "60")
+  .option("--episode <ep>", "حلقة بعينها (الافتراضي أي حلقة)")
+  .option("--status", "اعرض الإذن الحالي فقط")
+  .option("--revoke", "ألغِ الإذن الحالي")
+  .action(async (opts: { ownerWords?: string; uses: string; minutes: string; episode?: string; status?: boolean; revoke?: boolean }) => {
+    const m = await import("../render/macRenderPermit");
+    if (opts.revoke) { console.log((await m.revokeMacRenderPermit()) ? "أُلغي الإذن." : "لا إذن قائم."); return; }
+    if (opts.status) { const p = await m.readMacRenderPermit(); console.log(p ? `إذن قائم: ${p.uses} مرة حتى ${p.expiresAt}${p.episode ? ` للحلقة ${p.episode}` : ""} — «${p.ownerWords}»` : "لا إذن: الماك لا يرندر."); return; }
+    if (!opts.ownerWords) throw new Error("--owner-words مطلوب: نص إذن المالك لهذه المرة.");
+    const p = await m.grantMacRenderPermit({ ownerWords: opts.ownerWords, uses: Number(opts.uses), minutes: Number(opts.minutes), episode: opts.episode });
+    console.log(`إذن رندر على الماك: ${p.uses} مرة حتى ${p.expiresAt}${p.episode ? ` للحلقة ${p.episode}` : ""}.`);
+  });
+
+// D232: كل الرندر على الويندوز. حالة الجهاز، والتجربة الكاملة (المشاهد ← التجميع ← 4K) التي لا تدخل الحزمة ولا السجل.
+program
+  .command("worker-status")
+  .description("D232: حالة جهاز الرندر (النبض، والطابور، وتقدم المهمة الجارية)")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .action(async (opts: { share: string }) => {
+    const { workerStatus } = await import("../render/worker/macJobs");
+    const s = await workerStatus(path.resolve(opts.share));
+    console.log(s.message);
+    if (s.heartbeat) console.log(`النبض: ${s.heartbeat.host} ${s.heartbeat.state} منذ ${s.heartbeatAgeSec} ث @ ${s.heartbeat.commit?.slice(0, 8) ?? "?"}`);
+    console.log(`في الطابور: ${s.queued.length}${s.queued.length ? ` (${s.queued.slice(0, 5).join("، ")}${s.queued.length > 5 ? "…" : ""})` : ""}`);
+    if (!s.online) process.exitCode = 2;
+  });
+
+program
+  .command("worker-trial")
+  .description("D232: تجربة رندر حلقة كاملة على الويندوز (المشاهد ثم التجميع ثم 4K)؛ لا تدخل الحزمة ولا السجل الموقّع، والماك لا يرندر")
+  .argument("<episode>", "رقم الحلقة")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك، مثل /Volumes/bal-share")
+  .requiredOption("--tag <tag>", "وسم التجربة، مثل dafatir-001")
+  .requiredOption("--out <dir>", "مجلد التجربة على الماك (سجلها ونسخ المراجعة الصغيرة)")
+  .option("--stages <list>", "scenes,assembly,master (الافتراضي كلها بالترتيب)")
+  .option("--scenes <ids>", "مشاهد بعينها مفصولة بفواصل (الافتراضي كل المشاهد)")
+  .option("--concurrency <n>", "تبويبات المتصفح لـMaster التجربة (للقياس)")
+  .option("--x264-preset <p>", "تجربة تسريع: إعداد x264 لـMaster 4K بالـcrf نفسه (medium؛ الإنتاج slow)")
+  .option("--shared-bundle", "تجربة تسريع: حزمة Remotion واحدة للحلقة يعيد العامل استعمالها لكل المشاهد")
+  .option("--chunk-frames <n>", "تجربة تسريع: Master على قطع بهذا العدد من الإطارات تُستأنف بعد الانقطاع (مثل 1800 = دقيقة)")
+  .action(async (episode: string, opts: { share: string; tag: string; out: string; stages?: string; scenes?: string; concurrency?: string; x264Preset?: string; sharedBundle?: boolean; chunkFrames?: string }) => {
+    const stages = opts.stages ? opts.stages.split(",").map((x) => x.trim()) : undefined;
+    if (stages?.some((s) => !["scenes", "assembly", "master"].includes(s))) throw new Error("المراحل: scenes وassembly وmaster.");
+    const { submitTrial } = await import("../render/worker/macJobs");
+    const r = await submitTrial(episode, path.resolve(opts.share), {
+      tag: opts.tag, outDir: path.resolve(opts.out), stages: stages as ("scenes" | "assembly" | "master")[] | undefined,
+      scenes: opts.scenes?.split(",").map((x) => x.trim()).filter(Boolean), concurrency: opts.concurrency ? Number(opts.concurrency) : undefined,
+      x264Preset: opts.x264Preset as "medium" | "slow" | undefined, sharedBundle: opts.sharedBundle, chunkFrames: opts.chunkFrames ? Number(opts.chunkFrames) : undefined,
+      log: (m) => console.log(m),
+    });
+    console.log(`التجربة ${r.tag}: ${r.jobs.length} مهمة بالـcommit ${r.commit.slice(0, 8)}. للقراءة: bal worker-trial-collect --share ${opts.share} --out ${opts.out}`);
+  });
+
+program
+  .command("worker-trial-collect")
+  .description("D232: نتائج التجربة وأوقاتها بعد التحقق (البصمة والصيغة والأبعاد والمدة والأثر)؛ ينسخ نسخ المراجعة 1080p وحدها")
+  .requiredOption("--share <path>", "المجلد المشترك على الماك")
+  .requiredOption("--out <dir>", "مجلد التجربة على الماك")
+  .option("--no-copy", "لا تنسخ شيئًا (الأوقات والتحقق فقط)")
+  .action(async (opts: { share: string; out: string; copy?: boolean }) => {
+    const { collectTrial } = await import("../render/worker/macJobs");
+    await collectTrial(path.resolve(opts.share), path.resolve(opts.out), { copy: opts.copy, log: (m) => console.log(m) });
+  });
+
+program
+  .command("place-master")
+  .description("D240: ينسخ Master المعتمد إلى مكانه الدائم masters/<القناة>/<الحلقة>/<NNN>-episode.mp4 في المجلد المشترك ويتحقق من بصمته بالسجل الموقَّع")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--share <path>", "المجلد المشترك على الماك (F:\\bal-share على ويندوز)", "/Volumes/bal-share")
+  .action(async (episode: string, opts: { share: string }) => {
+    const m = await import("../render/postPublishCleanup");
+    const { sha256File } = await import("../render/worker/protocol");
+    const r = await m.placeMaster(await m.macCleanupContext(episode, path.resolve(opts.share)), { approvedMaster: () => m.ledgerApprovedMaster(episode), sha256File });
+    console.log(`${r.status === "placed" ? "نُسخ" : "موجود من قبل"} Master إلى ${r.target} (sha256 ${r.sha256}، ${m.formatBytes(r.bytes)}) ويطابق الاعتماد.`);
+  });
+
+program
+  .command("cleanup")
+  .description("D240: التنظيف بعد النشر — يعرض ما يُحذف وما يبقى (الافتراضي بلا حذف)؛ الحذف بـ --delete بعد الشروط الثلاثة وحدها")
+  .argument("<episode>", "رقم الحلقة")
+  .option("--share <path>", "المجلد المشترك على الماك (F:\\bal-share على ويندوز)", "/Volumes/bal-share")
+  .option("--dry-run", "عرض فقط (الافتراضي)")
+  .option("--delete", "احذف فعلًا (بعد نجاح الشروط الثلاثة كلها، وإلا لا يُحذف شيء)")
+  .action(async (episode: string, opts: { share: string; dryRun?: boolean; delete?: boolean }) => {
+    const m = await import("../render/postPublishCleanup");
+    const share = path.resolve(opts.share);
+    const plan = await m.planCleanup(await m.macCleanupContext(episode, share), await m.macCleanupDeps(episode));
+    if (!opts.delete || opts.dryRun) {
+      console.log(m.formatPlan(plan));
+      if (!plan.ok) process.exitCode = 1;
+      return;
+    }
+    if (!plan.ok) {
+      console.error(m.formatPlan(plan));
+      console.error("توقف التنظيف: لم يُحذف شيء.");
+      process.exitCode = 1;
+      return;
+    }
+    const r = await m.executeCleanup(plan);
+    const { queueWindowsCleanup } = await import("../render/worker/cleanupQueue");
+    const queued = await queueWindowsCleanup(share, plan).then(() => true, () => false);
+    console.log(m.summaryLine(plan, r.freed, queued, r.skipped.length));
   });
 
 program
@@ -1040,6 +1292,18 @@ program
   });
 
 program
+  .command("shorts-check")
+  .description("D241: الشورت فكرة كاملة وحده — لكل شورت «يمر» أو «مرفوض» بسببه (الخطة، أو حزمة المسودة ومقترحات المحرر). يقرأ ولا يكتب")
+  .argument("[episode]", "رقم الحلقة (الافتراضي كل حلقات القناة)")
+  .option("--json", "إخراج JSON")
+  .action(async (episode: string | undefined, opts: { json?: boolean }) => {
+    const { checkChannelShorts, formatShortRows, isRefused } = await import("../package/shortsCheck");
+    const rows = await checkChannelShorts(episode);
+    console.log(opts.json ? JSON.stringify(rows, null, 2) : formatShortRows(rows));
+    process.exitCode = rows.some(isRefused) ? 1 : 0;
+  });
+
+program
   .command("shorts-plan")
   .description("جدول الشورتس اليومي للقناة (ريلزان يوميًا): الأحدث أولًا، بلا تكرار، ومصدران مختلفان في اليوم ما أمكن، والفجوات بعددها")
   .option("--from <date>", "أول يوم (YYYY-MM-DD)؛ الافتراضي اليوم")
@@ -1087,6 +1351,60 @@ program
     const { templatesDir } = await import("../config/paths");
     const dir = await scaffoldStockEpisode({ channel: currentChannelId(), number, slug, title: opts.title, domain: opts.domain, ...(opts.series ? { series: opts.series } : {}), templatesRoot: templatesDir });
     console.log(`أُنشئت المسودة: ${path.relative(projectRoot, dir)}`);
+  });
+
+program
+  .command("editor-batch")
+  .description("D234: دفعة محرر المحتوى التالية: ملف بالسكريبتات التي تنتظره (روابطها على GitHub، والجمل المتغيّرة وحدها لمن راجعه قبل) في ~/Desktop/للمراجعة/محرر-المحتوى/")
+  .option("--limit <n>", "أقصى عدد سكريبتات في الدفعة", "10")
+  .option("--all", "كل ما ينتظر المحرر في دفعة واحدة")
+  .option("--include-sent", "أعد إدراج ما أُرسل في دفعة سابقة ولم يُسجَّل مروره بعد")
+  .option("--include-paused", "أدرج سكريبتات القنوات الموقوفة تحريريًا (`frozen.editorialPause`، مثل «بالإسلام» D235)؛ تُستبعد افتراضيًا")
+  .option("--dir <dir>", "مجلد الدفعات (الافتراضي ~/Desktop/للمراجعة/محرر-المحتوى)")
+  .option("--dry-run", "اعرض ما ينتظر المحرر بلا كتابة ملف")
+  .action(async (opts: { limit: string; all?: boolean; includeSent?: boolean; includePaused?: boolean; dir?: string; dryRun?: boolean }) => {
+    const st = await import("../studio/scriptPipelineStore");
+    if (opts.dryRun) {
+      const q = await st.editorQueue(undefined, { includePaused: opts.includePaused });
+      for (const x of q) console.log(`${x.channel} ${x.episode} | ${x.state.partial ? `جزئي: ${x.state.pending.length} جملة متغيّرة` : `كاملًا: ${x.state.total} جملة`} | ${x.title}`);
+      console.log(`ينتظر المحرر: ${q.length}`);
+      return;
+    }
+    const limit = opts.all ? undefined : Number(opts.limit);
+    if (limit !== undefined && (!Number.isInteger(limit) || limit < 1)) throw new Error("--limit عدد صحيح موجب.");
+    const r = await st.writeEditorBatch({ ...(opts.dir ? { dir: opts.dir } : {}), ...(limit ? { limit } : {}), includeSent: opts.includeSent, includePaused: opts.includePaused });
+    if (!r.file) { console.log(r.waiting ? `كل ما ينتظر المحرر (${r.waiting}) أُرسل في دفعات سابقة؛ استعمل --include-sent لإعادته.` : "لا سكريبت ينتظر المحرر."); return; }
+    console.log(`دفعة المحرر ${r.n}: ${r.file}`);
+    for (const x of r.items) console.log(`- ${x.channel} ${x.episode}: ${x.state.partial ? `${x.state.pending.length} جملة متغيّرة` : "كاملًا"} — ${x.title}`);
+    console.log(`في الدفعة ${r.items.length} من ${r.waiting} ينتظر المحرر.`);
+  });
+
+program
+  .command("editor-pass")
+  .description("D234: يسجّل مرور محرر المحتوى على سكريبت كما هو الآن (يسجّله المنسّق بعد أن يسلّمه المالك رد المحرر)؛ الجمل المتغيّرة بعده تعود إليه وحدها")
+  .argument("<channel>", "القناة (balislam | dafatir-alzaman | zubdat-alkutub)")
+  .argument("<episode>", "رقم الحلقة (ثلاث خانات)")
+  .option("--by <name>", "من راجع", "محرر المحتوى")
+  .option("--recorded-by <name>", "من سجّل المرور", "المنسّق")
+  .option("--batch <n>", "رقم دفعة المحرر: يُرفض التسجيل إن تغيّر السكريبت بعد إرسالها")
+  .option("--dir <dir>", "مجلد الدفعات (الافتراضي ~/Desktop/للمراجعة/محرر-المحتوى)")
+  .option("--at <date>", "تاريخ رد المحرر (ISO)")
+  .option("--grandfathered <reason>", "مرور بلا مراجعة فعلية لسبب صريح بقرار المالك (مثل حلقة منشورة قبل D234)")
+  .option("--note <note>", "ملاحظة")
+  .action(async (channel: string, episode: string, opts: { by: string; recordedBy: string; batch?: string; dir?: string; at?: string; grandfathered?: string; note?: string }) => {
+    const { listChannels } = await import("../channel");
+    if (!listChannels().includes(channel)) throw new Error(`قناة غير معروفة: ${channel}`);
+    if (!/^\d{3}$/.test(episode)) throw new Error("رقم الحلقة ثلاث خانات.");
+    process.env.BAL_CHANNEL = channel;
+    const st = await import("../studio/scriptPipelineStore");
+    const scriptPath = await resolveScriptPath(episode);
+    const batch = opts.batch !== undefined ? Number(opts.batch) : undefined;
+    if (batch !== undefined && !Number.isInteger(batch)) throw new Error("--batch رقم الدفعة.");
+    const expectSha = batch !== undefined ? st.sentShaFor(opts.dir ?? st.defaultEditorBatchDir(), batch, channel, episode) : null;
+    if (batch !== undefined && !expectSha) throw new Error(`الحلقة ${channel} ${episode} ليست في دفعة المحرر ${batch}.`);
+    const r = await st.recordEditorPass(scriptPath, { by: opts.by, recordedBy: opts.recordedBy, ...(opts.at ? { at: opts.at } : {}),
+      ...(batch !== undefined ? { batch } : {}), ...(expectSha ? { expectSha } : {}), ...(opts.grandfathered ? { grandfathered: opts.grandfathered } : {}), ...(opts.note ? { note: opts.note } : {}) });
+    console.log(`سُجّل مرور المحرر: ${channel} ${episode} (${r.reviewed} جملة كانت تنتظره) ← ${path.relative(projectRoot, r.file)}`);
   });
 
 program
@@ -1160,6 +1478,43 @@ channelCmd
     const dir = await createChannel({ id, name: opts.name, language: opts.lang, nameLatin: opts.latin, from: opts.from, quran: opts.quran });
     console.log(`أُنشئت القناة في ${path.relative(projectRoot, dir)}.`);
     console.log("الخطوات التالية: عدّل المجالات في channel.json، والألوان من تبويب الهوية في الاستوديو، ثم: bal --channel " + id + " new 001 …");
+  });
+
+// D239: نسخة البسملة المعتمدة الواحدة (صوت المالك المستنسخ، بصمتها مثبّتة في src/voice/basmala.ts). لا توليد هنا أبدًا.
+const basmalaCmd = program.command("basmala").description("نسخة البسملة المعتمدة (D239): تثبيت بعد فحص البصمة، وحالتها، وتركيب مشاهدها");
+basmalaCmd
+  .command("install")
+  .description("ينسخ ملف البسملة المعتمد إلى assets/recitations/basmala/ (خارج Git) بعد مطابقة بصمته؛ ويرفض أي ملف آخر")
+  .argument("<file>", "ملف البسملة المعتمد")
+  .action(async (file: string) => {
+    const { installBasmalaClip } = await import("../voice/basmalaClip");
+    const r = await installBasmalaClip(path.resolve(file));
+    console.log(`ثُبّتت نسخة البسملة المعتمدة: ${path.relative(projectRoot, r.path)} (البصمة ${r.sha256}).`);
+    console.log("لتركيبها في مشاهد البسملة المنتظرة: npx bal --channel <القناة> basmala apply");
+  });
+basmalaCmd
+  .command("status")
+  .description("هل نسخة البسملة المعتمدة مثبّتة وبصمتها مطابقة؟")
+  .action(async () => {
+    const { basmalaClipStatus } = await import("../voice/basmalaClip");
+    const s = await basmalaClipStatus();
+    console.log(s.installed ? `مثبّتة ومطابقة: ${path.relative(projectRoot, s.path)}` : s.reason);
+    if (!s.installed) process.exitCode = 1;
+  });
+basmalaCmd
+  .command("apply")
+  .description("يركّب مشاهد البسملة بالنسخة المعتمدة (مجانًا، بلا طلب صوت)؛ الحلقة التي لها تسجيلها المعتمد لا تُمس")
+  .argument("[episode]", "رقم الحلقة (بلا رقم: كل حلقات القناة)")
+  .action(async (episode?: string) => {
+    const { applyBasmalaClip } = await import("../voice/basmalaClip");
+    const { listScriptEpisodeDirs } = await import("../script/episodes");
+    const { channelPaths } = await import("../channel");
+    const list = episode ? [episode] : (await listScriptEpisodeDirs(channelPaths().episodes)).map((d) => d.slice(0, 3));
+    const said = { "own-recording": "لها تسجيلها المعتمد؛ لم تُمس", "no-basmala": "لا بسملة فيها", "up-to-date": "مركّبة بالنسخة المعتمدة من قبل" } as const;
+    for (const ep of list) {
+      const r = await applyBasmalaClip(ep);
+      console.log(r.status === "recomposed" ? `${ep}: رُكّبت البسملة في ${r.scenes.join("، ") || "—"}؛ تعود هذه المشاهد وحدها للمراجعة.` : `${ep}: ${said[r.status]}.`);
+    }
   });
 
 const decisionCmd = program.command("decision").description("سجلات القرارات (ترقيم D عام لكل القنوات)");

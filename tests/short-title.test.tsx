@@ -34,7 +34,9 @@ describe("عنوان الشورت الهادئ", () => {
     const st = readFileSync("src/remotion/scenes/ShortTitle.tsx", "utf8");
     expect(st).not.toMatch(/spring\(|interpolate\(|transform:|scale\(|translate/);
     const pk = readFileSync("src/package/package.ts", "utf8");
-    expect(pk).toMatch(/shortTitleFor\(scriptPath, seg\)/);
+    // D243: الشورت قصّ من النسخة العمودية (لا رندر لكل شورت بعنوانه)؛ عنوانه من حزمة النشر يبقى للنصوص والرندر القديم
+    expect(pk).toMatch(/export const shortTitleFor/);
     expect(pk).toMatch(/youtube\?\.title/);
+    expect(pk).toContain("SHORTS_FROM_VERTICAL");
   });
 });

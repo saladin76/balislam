@@ -110,11 +110,13 @@ describe("«الجمل»: صف الآية بقاعدة القناة، وسطر �
     }
   });
 
-  it("«جمل الحلقة كلها» لا تَعِد برفع التلاوة في قناة الاستشهاد", () => {
-    expect(allSentencesHint(config("zubdat-alkutub"))).not.toContain("برفع التلاوة");
-    expect(allSentencesHint(config("zubdat-alkutub"))).toContain(VERSE_CITATION_WHY);
-    expect(allSentencesHint(config("balislam"))).toContain("برفع التلاوة");
-    expect(allSentencesHint(config("balislam"))).toBe(allSentencesHint(config("dafatir-alzaman")));
+  it("«جمل الحلقة كلها» لا تَعِد برفع التلاوة في أي قناة (D237: القنوات الثلاث استشهاد مكتوب)", () => {
+    for (const c of CHANNELS) {
+      expect(allSentencesHint(config(c))).not.toContain("برفع التلاوة");
+      expect(allSentencesHint(config(c))).toContain(VERSE_CITATION_WHY);
+    }
+    // الآلية الكامنة لقناة تطلب التلاوة صراحةً كما كانت
+    expect(allSentencesHint({ ...config("balislam"), verse: { recitation: "required" } })).toContain("برفع التلاوة");
     expect(src("app/src/workspace/sceneProduction/SceneStepParts.tsx")).toContain("allSentencesHint(");
   });
 

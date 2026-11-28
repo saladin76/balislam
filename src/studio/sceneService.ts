@@ -84,6 +84,9 @@ const inspectLedger = (episode: string) =>
       [scene.id, await optionalSha(sceneFile(current.scriptPath, scene.id))] as const)));
     // D148: what a conversation changed on this machine's scenes since their video was made (local, never pushed).
     const remote = await readRemoteChanges(path.dirname(current.scriptPath));
+    // D242: قطع جهاز الرندر المرفوضة لحركة دون حد القناة («يحتاج إصلاح»؛ محلي، لا يمس السجل)
+    const motionFixes: Record<string, { percent: number; min: number; at: string }> =
+      await (await import("../render/worker/studioJobs")).readMotionFixes(current.scriptPath).catch(() => ({}));
     const scenes = await Promise.all(v.scenes.map(async s => {
       // The owner's latest correction of this scene (shown until the scene is approved).
       const fix = [...doc.history].reverse().find(h => h.sceneId === s.id && (h.action === "correct-scene" || h.action === "approve-scene"));
@@ -99,7 +102,8 @@ const inspectLedger = (episode: string) =>
       const waiting = await awaitingChange(doc, current.scriptPath, s);
       const videoAt = candidates[s.id] ? (await stat(sceneFile(current.scriptPath, s.id)).catch(() => null))?.mtimeMs ?? null : null;
       const remoteChange = remoteChangeFor(remote, s.id, videoAt);
-      return { ...s, draft, ...(waiting ? { awaitingChange: true } : {}),
+      const mf = s.approved ? undefined : motionFixes[s.id];
+      return { ...s, draft, ...(waiting ? { awaitingChange: true } : {}), ...(mf ? { motionFix: { percent: mf.percent, min: mf.min, at: mf.at } } : {}),
         ...(remoteChange ? { remoteChange: { at: remoteChange.at, what: remoteChange.what, subjects: remoteChange.subjects,
           ...(remoteChange.answer ? { answer: remoteChange.answer } : {}) } } : {}), ...(correction ? { correction: { note: correction.note, at: correction.at,
         ...(correction.inbox ? { inbox: correction.inbox } : {}) } } : {}) };

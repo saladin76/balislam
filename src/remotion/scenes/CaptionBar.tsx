@@ -6,6 +6,7 @@ import { activeWordIndex, type WordTiming } from "./timing";
 import { useSize } from "../../../brand/identity/index";
 import { useChannel } from "../../channel/context";
 import { stripTashkeel } from "../../voice/tashkeel";
+import { PORTRAIT_TEXT } from "../safeArea";
 
 /** إملاء المشهد للترجمة (PlanScene.captionSpell)؛ يوفّره Episode لكل مشهد */
 export const CaptionSpellContext = React.createContext<Record<string, string> | undefined>(undefined);
@@ -27,7 +28,8 @@ const useCaptionWord = () => {
 /**
  * الترجمة (قرار المالك ٢٢ نوفمبر، القنوات الثلاث): سطر هادئ بخط القناة، بلا قفز ولا تلوين — لا كلمة مميزة ولا صندوق
  * ملوّن (أسلوب تيك توك ممنوع). الكلمات تُقسم أسطرًا ثابتة تُقطع بعد علامة الوقف أو حين يبلغ السطر حده، والسطر لا
- * يتغير حتى تبدأ أول كلمة في التالي، ويظهر بتلاشٍ قصير. في الشورت يرتفع فوق منطقة أزرار المنصات.
+ * يتغير حتى تبدأ أول كلمة في التالي، ويظهر بتلاشٍ قصير. في العمودي داخل المنطقة الآمنة للشورتس (D243، src/remotion/safeArea.ts):
+ * فوق أزرار المنصات أسفلًا، وبعيدًا عن عمود الأزرار يمينًا.
  */
 export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrait: boolean; variant?: "pill" | "cinema" | "paper" | "dusk" | "adaptive" }> = ({ timings, portrait, variant = "pill" }) => {
   const frame = useCurrentFrame();
@@ -47,7 +49,10 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
     ? { color: "#4A2E1F", textShadow: CAPTION_SHADOW.light }
     : { color: variant === "dusk" ? "#F1E4CB" : variant === "cinema" ? "#F4EEE2" : "#FFFFFF", textShadow: CAPTION_SHADOW.dark };
   return (
-    <div style={{ position: "absolute", left: 0, right: 0, bottom: portrait ? 470 : variant === "cinema" ? 38 : 64, display: "flex", justifyContent: "center", padding: "0 64px" }}>
+    <div style={portrait
+      ? { position: "absolute", left: PORTRAIT_TEXT.caption.left, right: PORTRAIT_TEXT.caption.right, bottom: PORTRAIT_TEXT.caption.bottom, display: "flex", justifyContent: "center" }
+      : { position: "absolute", left: 0, right: 0, bottom: variant === "cinema" ? 38 : 64, display: "flex", justifyContent: "center", padding: "0 64px" }}
+      data-caption-box={portrait ? "portrait" : "landscape"}>
       <div
         style={{
           ...look,
@@ -60,7 +65,8 @@ export const CaptionBar: React.FC<{ theme: Theme; timings: WordTiming[]; portrai
           lineHeight: 1.5,
           textAlign: "center",
           direction: "rtl",
-          maxWidth: portrait ? 940 : 1500,
+          maxWidth: portrait ? PORTRAIT_TEXT.caption.maxWidth : 1500,
+          boxSizing: "border-box",
         }}
       >
         {line.map((i) => shown(timings[i]!.word)).join(" ")}

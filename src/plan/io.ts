@@ -119,7 +119,12 @@ export const saveShortsSelection = async (episode: string, shorts: PlanShort[] |
     // الحقل قبل المشاهد كما يكتبه المولِّد (src/plan/generate.ts)
     const { chapters, shorts: _old, ...rest } = current;
     const next: Plan = shorts === null ? { ...rest, chapters }
-      : { ...rest, shorts: shorts.map((x) => ({ from: x.from, to: x.to, ...(x.title ? { title: x.title } : {}) })), chapters };
+      : { ...rest, // D241: الأجزاء والخطاف ونوعه وسؤال الختام والحالة تُحفظ كما فحصها checkShortsInput (كانت تُسقط فتضيع علامة المحرر)
+      shorts: shorts.map((x) => ({ from: x.from, to: x.to, ...(x.title ? { title: x.title } : {}),
+        ...(x.segments?.length ? { segments: x.segments.map((p) => ({ from: p.from, to: p.to })) } : {}),
+        ...(x.hook === "line" ? { hook: "line" as const, ...(x.hookKind ? { hookKind: x.hookKind } : {}) } : {}),
+        ...(x.closingQuestion === "comment" ? { closingQuestion: "comment" as const } : {}),
+        ...(x.state ? { state: x.state } : {}) })), chapters };
     await writePlanUnlocked(file, next);
     return next;
   });

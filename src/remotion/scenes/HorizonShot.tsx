@@ -1,10 +1,10 @@
 import React from "react";
 import { AbsoluteFill, useCurrentFrame, useVideoConfig } from "remotion";
 import { SceneShell } from "./SceneShell";
-import { C, Dusk, LiveFrameContext, PageHeadContext, SAFE_LIFT, VerseCard, VersePageContext, VerseWindowContext, prog } from "../dafatir/horizon/kit";
+import { C, Dusk, HadithPageCard, LiveFrameContext, PageHeadContext, SAFE_LIFT, VerseCard, VersePageContext, VerseWindowContext, prog } from "../dafatir/horizon/kit";
 import { Book, ChapterHead, NEUTRAL, SceneCloseContext, VERSE_SETTLE, parseCam } from "../dafatir/horizon/book";
 import { HZ_SCENES } from "../dafatir/horizon/episode001";
-import { HZ_LEAD, HZ_META, hzSentences, verseWindow } from "../dafatir/horizon/meta";
+import { HZ_LEAD, HZ_META, hzQuote, hzSentences, verseWindow } from "../dafatir/horizon/meta";
 import { activeTime, breathAt, breathBeats, breathStill } from "../dafatir/horizon/breath";
 import { buildTimeline, timelineFromWords, type Timeline } from "../dafatir/horizon/timeline";
 import { VERSE_PLACEHOLDER } from "../../plan/quranText";
@@ -98,8 +98,9 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
   const exit = (props.exit as typeof meta.exit) || meta.exit;
   // نهاية آخر كلمة منطوقة: منها يبدأ خروج المشهد (قلب الصفحة أو خفوت الحبر)
   // (المشاهد ذات الإمساك المحسوب للقراءة، minEnd، تحتفظ بخروجها المتأخر)
-  // الاستشهاد البصري: البطاقة على الصفحة من كلمتها، والخروج لا يبدأ قبل انتهاء زمن قراءتها
+  // الاستشهاد البصري (آية أو حديث، D242): البطاقة على الصفحة من كلمتها، والخروج لا يبدأ قبل انتهاء زمن قراءتها
   const vw = verseWindow(props as unknown as Record<string, string | undefined>, tl);
+  const quote = hzQuote(props as unknown as Record<string, string | undefined>);
   const lastWord = tl.words.length ? tl.words[tl.words.length - 1]!.e : 0;
   // D198: الخطاف المسبق يقطع المشهد عند closeAt فيبدأ خروجه (قلب الصفحة) هناك، لا عند آخر كلمة في نصه
   const closeAt = Number((props as unknown as Record<string, string | undefined>).closeAt);
@@ -134,7 +135,10 @@ export const HorizonShot: React.FC<HorizonShotProps> = (props) => {
         <AbsoluteFill style={{ transform: `translateX(${cam.bg}px) scale(1.04)` }}><Dusk /></AbsoluteFill>
         <SceneCloseContext.Provider value={vis.close}>
           <VerseWindowContext.Provider value={vw ? [activeTime(vw[0], breath.wins), activeTime(vw[1], breath.wins)] : null}>
-          <VersePageContext.Provider value={vw && verseShow > 0 ? <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} partial={pr.versePartial === "1"} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} /> : null}>
+          <VersePageContext.Provider value={vw && verseShow > 0 ? (quote?.kind === "hadith"
+            // D242: الحديث على الصفحة كالآية، بحقوله hadith*؛ والموضع من hadithSide/hadithY (وإلا verseSide/verseY)
+            ? <HadithPageCard show={verseShow} text={String(pr.hadithText)} refText={String(pr.hadithRef)} narrator={pr.hadithNarrator} side={(pr.hadithSide ?? pr.verseSide) === "l" ? "l" : "r"} y={(pr.hadithY ?? pr.verseY) ? Number(pr.hadithY ?? pr.verseY) : undefined} />
+            : <VerseCard show={verseShow} text={String(pr.verseText)} refKey={String(pr.verseKey)} partial={pr.versePartial === "1"} place="page" side={pr.verseSide === "l" ? "l" : "r"} y={pr.verseY ? Number(pr.verseY) : undefined} />) : null}>
             <LiveFrameContext.Provider value={liveFrame}>
             <PageHeadContext.Provider value={pageHead}>
             <AbsoluteFill style={{ transform: `translate(${cam.x}px, ${cam.y - lift}px) scale(${cam.s})`, transformOrigin: "50% 50%" }}>

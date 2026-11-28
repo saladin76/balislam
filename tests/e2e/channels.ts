@@ -1,8 +1,9 @@
 /**
  * The fixed test episode of each channel (tests/fixtures/e2e/<channel>/) and what its journey must show.
- * Channel rules differ (CLAUDE.md, docs/studio/channel-production-policies.md): «بالإسلام» has a verse whose
- * recitation the owner uploads (here a generated tone, NEVER a real recitation); «زبدة الكتب» has a verse as a
- * silent written citation (D68/D100: no recitation, no D35 wait); «دفاتر الزمن» has its own tone map per scene.
+ * Channel rules differ (CLAUDE.md, docs/studio/channel-production-policies.md): «بالإسلام» and «زبدة الكتب» have a
+ * verse as a silent written citation (D68/D100, and in every channel since D237 cancelled the D35 recitation gate:
+ * no recitation asked or accepted, the verse scene is approved like any other); «دفاتر الزمن» has its own tone map per
+ * scene. The `"recitation"` mode stays for a channel that opts back into `verse.recitation: "required"` (none today).
  */
 export type ChannelCase = {
   channel: string;
@@ -25,7 +26,7 @@ export const CASES: Record<string, ChannelCase> = {
   balislam: {
     channel: "balislam", slug: "e2e-journey", title: "رحلة الاختبار: السعي", domain: "psychology",
     scenes: ["c1-s1", "c1-s2", "c1-s3"],
-    verse: { sceneId: "c1-s2", key: "53:39", mode: "recitation" },
+    verse: { sceneId: "c1-s2", key: "53:39", mode: "citation" }, // D237: written, no recitation
     toneScene: "c1-s1",
     edit: { sceneId: "c1-s3", from: "فَالسَّعْيُ الصَّادِقُ يَصْنَعُ الفَرْقَ مَعَ الأَيَّامِ.", to: "فَالسَّعْيُ الصَّادِقُ يَصْنَعُ الفَرْقَ الكَبِيرَ مَعَ الأَيَّامِ." },
     episodeTone: "calm",

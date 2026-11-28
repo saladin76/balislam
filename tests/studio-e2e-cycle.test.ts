@@ -23,6 +23,8 @@ import { publishCardState } from "../app/src/tabs/PublishTab";
 import { runWithChannel } from "../src/channel";
 import { requirePublishAllowed, requireScenesReadyForMaster } from "../src/studio/sceneService";
 import { PREP_VALID_TAIL } from "./fixtures/prepValidScript";
+import { passEditor } from "./fixtures/editorPass";
+import { grantTestMacRenderPermit } from "./helpers/macRenderPermit";
 
 const repo = path.resolve(import.meta.dirname, "..");
 const CH = "balislam";
@@ -131,6 +133,7 @@ const planOf = (s2text = "الشكر") => ({
 });
 
 beforeAll(async () => {
+  await grantTestMacRenderPermit();
   for (const k of ENV_KEYS) saved[k] = process.env[k];
   // Inside the Studio root (git-ignored renders/), because media routes refuse files outside it.
   await mkdir(path.join(repo, "renders"), { recursive: true });
@@ -149,6 +152,7 @@ beforeAll(async () => {
 
   await writeFile(path.join(epDir, "script.md"),
     `---\ntitle: "دورة إنتاج كاملة"\ndomain: psychology\nepisode: "${EP}"\n---\n## الفصل 1 · تجربة\n${scenes.map((s) => s.narration).join("\n")}\n` + PREP_VALID_TAIL);
+  await passEditor(path.join(epDir, "script.md"));
   await writeFile(path.join(epDir, "plan.json"), JSON.stringify(planOf(), null, 2));
   const voice = path.join(epDir, "voice");
   await mkdir(voice);

@@ -341,6 +341,32 @@ export const PageHeadContext = React.createContext<{ text: string; side: "l" | "
 export const VerseWindowContext = React.createContext<[number, number] | null>(null);
 
 /**
+ * D242 (قرار المالك ٢٨ نوفمبر): نص الحديث على صفحة الدفتر والراوي مستمر، كالاستشهاد البصري للآية (VerseCard place="page"):
+ * الإطار نفسه (رَقّ بإطار مزدوج) وفي الموضع نفسه، لكن بخط الأميري العادي لا خط المصحف، وسطر المرجع: الراوي ثم المصدر
+ * كما تعرضهما بطاقة الحديث القديمة. ساكنة كاملة طوال ظهورها وتختفي دفعة واحدة (D214/D217).
+ */
+export const hadithAttribution = (ref: string, narrator?: string) => {
+  const n = (narrator ?? "").trim();
+  return n ? `${/^عن\s/.test(n) ? n : `عن ${n}`} · ${ref.trim()}` : ref.trim();
+};
+export const HadithPageCard: React.FC<{ show: number; text: string; refText: string; narrator?: string; side?: "r" | "l"; y?: number }> = ({ show, text, refText, narrator, side = "r", y = 510 }) =>
+  show <= 0 ? null : (
+    <AbsoluteFill style={{ direction: "ltr", width: W, height: H }}>
+      <div
+        style={{
+          position: "absolute", left: side === "r" ? 975 : 165, top: verseCardY(text, y), transform: "translateY(-50%)",
+          width: 780, padding: "36px 44px 28px", background: "#FBF4E6",
+          border: `3px double rgba(74,46,31,0.65)`, outline: "1.5px solid rgba(74,46,31,0.35)", outlineOffset: -14,
+          borderRadius: 10, boxShadow: "0 18px 46px rgba(13,10,20,0.35)", opacity: show, direction: "rtl", textAlign: "center",
+        }}
+      >
+        <div style={{ fontFamily: "'Amiri', serif", fontSize: text.length > 200 ? 38 : text.length > 120 ? 44 : 50, lineHeight: 1.9, color: C.inkText }}>{text}</div>
+        <div style={{ marginTop: 18, fontFamily: "'Tajawal', sans-serif", fontWeight: 500, fontSize: 28, color: C.inkSoft }}>{hadithAttribution(refText, narrator)}</div>
+      </div>
+    </AbsoluteFill>
+  );
+
+/**
  * بطاقة نص الآية. «center» بطاقة الآية القديمة وسط الشاشة. «page» استشهاد بصري صامت (V9) على صفحة من الكتاب
  * المفتوح، بإحداثيات الدفتر داخل كاميرته: اليمنى (side "r"، الافتراضي) أو اليسرى ("l")، ومركزها الرأسي y.
  */

@@ -7,9 +7,8 @@
  */
 import React from "react";
 import { Books, Hatch, Lens, Ruler, Boat } from "../lib/drawings";
-import { DateRibbon } from "../horizon/book";
 import {
-  Arrow, BlankLine, C, DotFrame, Dot, Field, GOLD_D, Grass, Horizon, Ink, Leaf, NEUTRAL, Peak, Q, Ring, Scribble, Seal, Sheet, Sun, Tab, Thread, Txt, WATER,
+  Arrow, C, DotFrame, Dot, Field, GOLD_D, Grass, Horizon, Ink, Leaf, NEUTRAL, Peak, Q, Ring, Scribble, Seal, Sheet, Sun, Tab, Thread, Txt, WATER,
   Waterline, Write, GoldSeal, bounce, cueKit, mix, prog, reverent, rng, type BdProps,
 } from "./kit";
 
@@ -186,18 +185,18 @@ const BlankFields = reverent((q) => {
 });
 
 // ─── c1-s6 / c1-s14: الجبل ذو الأختام الثلاثة (القطعة المخصوصة؛ بلا دبوس ولا خريطة معاصرة، الدفعة ٦ البندان ١٤٣ و١٤٥) ───
+// دفعة المحرر ٣ (رد المحرر ٢٧ نوفمبر، البند ٤): حُذفت «سمّى القرآن موضع استقرار السفينة الجودي، ولا نجزم بتعيين موقعه على خرائط اليوم.»،
+// فصار c1-s6 «فعلى الاسم نضع ختم: ثابت.» وحدها: البطاقة والقوس على «الاسم»، والختم على «ثابت»؛ وحُذفت خانة «الموقع على خرائط اليوم» (كلمتها لم تعد منطوقة)
 const SLOT_POS = [[1080, 330], [1650, 330], [1365, 170]] as const;
 const SealMount = reverent((q) => {
-  const k = cueKit(q, ["سمى", "أختام"]);
+  const k = cueKit(q, ["الاسم", "أختام"]);
   const { t, S } = k;
-  const card = S === 0 ? k.on(0, "سمى", 0.7) : 1;
-  const maps = k.draw(0, "خرائط", 0.9);
+  const card = S === 0 ? k.on(0, "الاسم", 0.7) : 1;
   const arc = k.draw(0, "الاسم", 0.9);
   const seals = S === 0 ? [k.on(0, "ثابت", 0.5), 0, 0] : [0, 1, 2].map((i) => prog(t, k.at("أختام") + i * 0.35 - 0.05, k.at("أختام") + i * 0.35 + 0.4));
   const truth = k.draw(1, "الصدق", 0.9);
   const join = k.draw(1, "نعرفه", 1.0);
   const cam = k.cam(NEUTRAL, [
-    [0, "خرائط", { cx: 900, cy: 520, s: 1.05 }, 1.0],
     [0, "الاسم", { cx: PX, cy: 460, s: 1.3 }, 1.0],
     [1, "جبل", { cx: PX, cy: 480, s: 1.25 }, 1.2],
     [1, "نعرفه", { cx: PX, cy: 500, s: 1.05 }, 1.0],
@@ -206,7 +205,6 @@ const SealMount = reverent((q) => {
     <Leaf q={q} id="b8sm" cam={cam}
       L={<g>
         <Water y={720} t={t} amp={4} />
-        <Field x={860} y={420} label="الموقع على خرائط اليوم:" q={S === 0 ? maps : 1} w={150} size={32} />
       </g>}
       R={<g>
         <Mount base={720} emerge={1} />
@@ -294,15 +292,17 @@ const WoodShard = reverent((q) => {
 
 // ─── c1-s15: علامة التحديد الضائعة ───
 const Crosshair = reverent((q) => {
-  const k = cueKit(q, ["بالضبط"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): المشهد على «سمّى القرآن الجودي، ولا نعلم من الآية موضعه على خريطة اليوم. ومن عبرة القصة أن السفينة استقرّت حين قضى الله الأمر.» (البند ٣٤٥)،
+  // وحُذف سؤال «وقد تسأل: وماذا يضرّ…؟» ومعه «؟»: علامة التصويب على «موضعه»، وتهدأ على «خريطة»، وتبهت على «اليوم»، و«العبرة» على «عبرة»
+  const k = cueKit(q, ["سمى"]);
   const { t } = k;
-  const qm = k.on(0, "تسأل");
-  const cross = k.draw(0, "بالضبط", 0.8);
-  const calm = k.on(0, "يضر#2", 0.8);
-  const fade = k.on(0, "يذكر", 1.2);
-  const ibra = k.draw(0, "العبرة", 0.9);
+  const qm = 0;
+  const cross = k.draw(0, "موضعه", 0.8);
+  const calm = k.on(0, "خريطة", 0.8);
+  const fade = k.on(0, "اليوم", 1.2);
+  const ibra = k.draw(0, "عبرة", 0.9);
   const pulse = (1 - calm) * Math.sin(t * 8) * 0.08;
-  const cam = k.cam(NEUTRAL, [[0, "بالضبط", { cx: PX, cy: 420, s: 1.3 }, 1.0], [0, "العبرة", { cx: 800, cy: 480, s: 1.05 }, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "موضعه", { cx: PX, cy: 420, s: 1.3 }, 1.0], [0, "عبرة", { cx: 800, cy: 480, s: 1.05 }, 1.2]]);
   return (
     <Leaf q={q} id="b8ch" cam={cam}
       L={<g><Q x={300} y={260} size={90} q={qm} /><Write id="b8ch-i" x={560} y={520} size={80} p={ibra} label="العبرة" /></g>}
@@ -320,21 +320,23 @@ const Crosshair = reverent((q) => {
 // ─── c1-s16: الماء يقف ───
 const HILLS = [300, 520, 760, 1100, 1350, 1600];
 const WaterHalt = reverent((q) => {
-  const k = cueKit(q, ["أغرق"]);
+  // المراجعة العلمية (الدفعات ١٤–١٧، ٢٧ نوفمبر): «وانحسر الماء بأمر الله، ونجّى الله نوحًا عليه السلام ومن كان معه في السفينة.» بدل «العبرة في أن الماء الذي أغرق المكذّبين… وأن السفينة الصغيرة نجت…» (البند ٣٤٦):
+  // خط الماء على «الماء» ويقف على «بأمر» (قبل النافذة)، والقارب على «السفينة» بلا وصف الحجم، وحُذف غياب التلال والنقاط الغارقة (لا «ما حولها»)
+  const k = cueKit(q, ["وانحسر"]);
   const { t } = k;
   const line = k.draw(0, "الماء", 0.9);
-  const sink = k.on(0, "أغرق", 1.0);
+  const sink = 0;
 
-  const stopT = k.at("توقف");
+  const stopT = k.at("بأمر");
   const waveT = Math.min(t, stopT + 0.4);
   const amp = 10 * (1 - prog(t, stopT, stopT + 0.4));
-  const boat = k.on(0, "الصغيرة", 0.6);
-  const saved = bounce(t, k.at("نجت"), k.at("نجت") + 1.0);
-  const down = k.on(0, "غرق", 1.0);
+  const boat = k.on(0, "نوحا", 0.6);
+  const saved = bounce(t, k.at("السفينة"), k.at("السفينة") + 1.0);
+  const down = 0;
   // لا يمتد خط الماء إلى حافتي الدفتر (لا جزم بعموم الطوفان، الدفعة ٦ اتساقًا مع البند ١٣٨)
   const half = 0.62;
   const BX = 1300;
-  const cam = k.cam(NEUTRAL, [[0, "الصغيرة", { cx: BX, cy: 420, s: 1.3 }, 1.0], [0, "غرق", { cx: BX - 50, cy: 440, s: 1.15 }, 1.0]]);
+  const cam = k.cam(NEUTRAL, [[0, "نوحا", { cx: BX, cy: 420, s: 1.3 }, 1.0], [0, "السفينة", { cx: BX - 50, cy: 440, s: 1.15 }, 1.0]]);
   const both = (
     <g>
       <Ink d="M1760 720 H160" p={1} w={3} c={C.inkSoft} />
@@ -382,13 +384,13 @@ const LensMiss = reverent((q) => {
 
 // ─── c1-s18: من المكان إلى ما بعده ───
 const TurnAfter = reverent((q) => {
-  const k = cueKit(q, ["فلننتقل"]);
+  const k = cueKit(q, ["استقرت"]);
   const { t } = k;
-  const fold = k.on(0, "المكان", 1.2);
-  const clear = k.on(0, "ماذا", 0.8);
+  const fold = k.on(0, "وماذا", 1.2);
+  const clear = k.on(0, "حدث", 0.8);
   const line = k.draw(0, "حدث", 0.9);
-  const step = k.on(0, "وقفت", 1.0);
-  const cam = k.cam({ cx: 1100, cy: 520, s: 1.2 }, [[0, "فلننتقل", NEUTRAL, 1.4]]);
+  const step = k.on(0, "استقرت", 1.0);
+  const cam = k.cam({ cx: 1100, cy: 520, s: 1.2 }, [[0, "وماذا", NEUTRAL, 1.4]]);
   const s = 1 - 0.65 * fold;
   return (
     <Leaf q={q} id="b8ta" cam={cam}
@@ -491,23 +493,20 @@ const BlessedAbode = reverent((q) => {
 
 // ─── c1-s26: دفتر الخسارة يُغلق ───
 const Ledger = reverent((q) => {
+  // الدفعة ١٨ البند ٤٠٠: «ومن أدب المؤمن حين ينجو أن يحمد الله على النجاة، ويسأله البركة فيما يأتي.» بدل «أن أول ما يفعله المؤمن… ليس أن يحسب ما خسر…»:
+  // حُذف عمود الحساب وطيّه (كانا على «يحسب ما خسر» و«ليس»)، والباقي كما كان
   const k = cueKit(q, ["خريطة"]);
   const { t } = k;
   const map = k.on(0, "خريطة", 0.8);
   const step = k.on(0, "ينجو", 1.0);
-  const col = k.span(0, "يحسب", "خسر", 0.8);
-  const fold = k.on(0, "ليس", 0.9);
   const hamd = k.draw(0, "يحمد", 0.9);
   const light = k.draw(0, "البركة", 1.2);
-  const cam = k.cam(NEUTRAL, [[0, "يحسب", { cx: 560, cy: 480, s: 1.2 }, 1.0], [0, "يحمد", { cx: 1250, cy: 480, s: 1.15 }, 1.0], [0, "البركة", NEUTRAL, 1.2]]);
+  const cam = k.cam(NEUTRAL, [[0, "ينجو", { cx: 560, cy: 480, s: 1.2 }, 1.0], [0, "يحمد", { cx: 1250, cy: 480, s: 1.15 }, 1.0], [0, "البركة", NEUTRAL, 1.2]]);
   return (
     <Leaf q={q} id="b8lg" cam={cam}
       L={<g>
         <Water y={mix(780, 830, step)} t={t} amp={3} />
         <MiniMap x={mix(560, 300, map)} y={mix(400, 200, map)} q={map} s={0.8 - 0.3 * map} />
-        <Sheet x={560} y={520} w={300 * (1 - 0.7 * fold)} h={360} q={col > 0 ? 1 - 0.8 * fold : 0}>
-          <Scribble x={120 * (1 - 0.7 * fold)} y={-140} w={220 * (1 - 0.7 * fold)} n={8} p={col} gap={38} seed={7} c={C.inkSoft} o={0.7} />
-        </Sheet>
       </g>}
       R={<g>
         <Water y={mix(780, 830, step)} t={t} amp={3} />
@@ -547,15 +546,15 @@ const FirstMorning = reverent((q) => {
   );
 });
 
-// ─── c1-s28: العقدة التاسعة الفارغة ───
+// ─── c1-s28 (منقول إلى آخر الجزء الأول): الخطوط المتفرعة و«؟» ───
 const Handoff = reverent((q) => {
-  const k = cueKit(q, ["انتشر"]);
-  const branch = k.draw(0, "انتشر", 1.2);
-  const qm = k.on(0, "الأمم");
-  const ext = k.draw(0, "الخيط", 1.2);
-  const k9 = k.on(0, "القادمة", 0.7);
-  const rib = k.on(0, "البدايات", 0.7);
-  const cam = k.cam(NEUTRAL, [[0, "الخيط", { cx: 960, cy: 700, s: 1.15 }, 1.2], [0, "البدايات", { cx: 520, cy: 520, s: 1.15 }, 1.0]]);
+  // دفعة المحرر ١ (٢٧ نوفمبر): الجملة جملة الوصل «بعد خبر استقرار السفينة والنزول منها، ننتقل إلى ما ذكره القرآن عن ذرية نوح عليه السلام.» بدل السؤال «وماذا يخبرنا القرآن عن ذرية…؟»، بالكلمتين نفسيهما («ذرية» و«نوح»)
+  // فلا امتداد للخيط ولا عقدة تاسعة ولا شريط «البدايات» هنا (يأتي الخيط بعقده في bd09-knots)
+  const k = cueKit(q, ["ذرية"]);
+  const branch = k.draw(0, "ذرية", 1.2);
+  const qm = k.on(0, "نوح");
+  const ext = 0;
+  const cam = k.cam(NEUTRAL, [[0, "ذرية", { cx: 760, cy: 460, s: 1.15 }, 1.2]]);
   const ORIG = [1150, 560] as const;
   const paths = (
     <g>
@@ -567,7 +566,6 @@ const Handoff = reverent((q) => {
     <Thread x1={1760} x2={160} y={800} p={mix(0.45, 1, ext)} knots={[
       { x: 1650, kind: "tied", q: 1 },
       { x: 1350, kind: "stone", q: 1 },
-      { x: 600, kind: "ring", q: k9, tie: 0, mark: k9 },
     ]} />
   );
   return (
@@ -577,8 +575,6 @@ const Handoff = reverent((q) => {
         {paths}
         <Q x={600} y={290} size={90} q={qm} />
         {thread}
-        <DateRibbon x={300} y={170} s={1} o={rib} />
-        <Txt x={300} y={150} size={34} q={rib} color={C.ribbon}>البدايات</Txt>
       </g>}
       R={<g><Horizon y={560} p={1} sky="morning" texture={0.4} /><Peak x={1400} y={560} w={420} h={260} p={1} fill="#D4C4A2" /><Dot x={ORIG[0]} y={ORIG[1]} q={1} r={8} />{paths}{thread}</g>} />
   );
@@ -588,14 +584,14 @@ const Handoff = reverent((q) => {
 const KS = 1150;
 const ROW = [1560, 760, 400];
 const KnotSeals = reverent((q) => {
-  const k = cueKit(q, ["نعقد"]);
+  const k = cueKit(q, ["نلخص"]);
   const { t } = k;
   const glow = bounce(t, k.at("حجر"), k.at("حجر") + 1.2);
   const seals = [k.on(0, "ثابت", 0.5), k.on(0, "رواية", 0.5), k.on(0, "نعلم", 0.5)];
   const card = k.on(0, "الجودي", 0.6);
   const pull = k.on(0, "البقايا", 0.8);
-  const ask = k.draw(0, "نعقد", 0.9);
-  const cam = k.cam({ cx: KS, cy: 520, s: 1.5 }, [[0, "نعقد", { cx: KS, cy: 520, s: 1.75 }, 1.0], [0, "ثابت", { cx: 1300, cy: 560, s: 1.15 }, 1.0], [0, "رواية", { cx: 800, cy: 560, s: 1.1 }, 1.0], [0, "البقايا", NEUTRAL, 1.2]]);
+  const ask = k.draw(0, "نلخص", 0.9);
+  const cam = k.cam({ cx: KS, cy: 520, s: 1.5 }, [[0, "نلخص", { cx: KS, cy: 520, s: 1.75 }, 1.0], [0, "ثابت", { cx: 1300, cy: 560, s: 1.15 }, 1.0], [0, "رواية", { cx: 800, cy: 560, s: 1.1 }, 1.0], [0, "البقايا", NEUTRAL, 1.2]]);
   const both = (
     <g>
       <Thread x1={1760} x2={160} y={520} p={1} sag={8 * (1 - pull)} knots={[{ x: KS, kind: "stone", q: 1, glow }]} />
@@ -612,25 +608,15 @@ const KnotSeals = reverent((q) => {
   return <Leaf q={q} id="b8ks" cam={cam} L={both} R={both} />;
 });
 
-// ─── c1-s30: الختام في ضوء الصباح ───
+// ─── c1-s30: سلام وبركات بجوار العقدة ───
 const ClosingMorning = reverent((q) => {
+  // دمج الحلقتين (٢٧ نوفمبر): بقيت «وبجوارها كلمتان من الآية: سلام، وبركات.» وحدها، وحُذف سؤال التعليقات
+  // («وأنت» و«أزمة» و«اكتبه»: انسحاب الكاميرا والقمة والماء والسطر الفارغ)
   const k = cueKit(q, ["وبجوارها"]);
-  const { t } = k;
   const w1 = k.on(0, "سلام"), w2 = k.on(0, "وبركات");
-  const back = k.on(0, "وأنت", 1.4);
-  const recede = k.draw(0, "أزمة", 1.4);
-  const line = k.draw(0, "اكتبه", 0.9);
-  const cam = k.cam({ cx: 1400, cy: 480, s: 1.6 }, [[0, "وأنت", NEUTRAL, 1.6]]);
+  const cam = k.cam({ cx: 1400, cy: 480, s: 1.6 }, []);
   return (
     <Leaf q={q} id="b8cm" cam={cam}
-      L={<g>
-        <g opacity={back}>
-          <Horizon y={420} p={1} sky="morning" texture={0.2} />
-          <Peak x={560} y={420} w={220} h={130} p={1} fill="#D4C4A2" />
-        </g>
-        <Waterline x1={420} x2={170} y={mix(700, 780, recede)} p={1 - prog(recede, 0.7, 1)} t={t} amp={3} rows={2} fill={0.15} />
-        <BlankLine x={560} y={640} w={440} p={line} pen={line} touch={prog(line, 0.8, 1)} />
-      </g>}
       R={<g>
         <Thread x1={1760} x2={960} y={480} p={1} knots={[{ x: 1400, kind: "stone", q: 1 }]} />
         <Txt x={1560} y={400} size={50} q={w1} font="amiri">سلام</Txt>
